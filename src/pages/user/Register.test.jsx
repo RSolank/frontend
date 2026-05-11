@@ -2,8 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RegisterPage } from './Register';
-import * as AuthContextModule from '../state/AuthContext';
-import * as ApiClientModule from '../utils/apiClient';
+import * as AuthContextModule from '../../state/AuthContext';
+import * as ApiClientModule from '../../utils/apiClient';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Register Page', () => {

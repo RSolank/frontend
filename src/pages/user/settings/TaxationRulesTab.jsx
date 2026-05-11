@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../../utils/apiClient.js';
+import { useAuth } from '../../../state/AuthContext.jsx';
+import { apiFetch } from '../../../utils/apiClient.js';
 
-const TXN_TYPES = ['committed', 'essential', 'discretionary', 'uncategorized'];
 
 export function TaxationRulesTab() {
+  const { constants } = useAuth();
+  const TXN_TYPES = constants?.TAXABLE_TXN_TYPES || ['committed', 'essential', 'discretionary', 'uncategorized'];
   const [rules, setRules] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
 
@@ -6,8 +7,8 @@ import { apiFetch } from '../../utils/apiClient.js';
  * BudgetsTab component.
  * Displays real-time expense data from expense_tracker and allows setting monthly limits.
  */
-export function BudgetsTab() {
-  const { user } = useAuth();
+export function BudgetsPage() {
+  const { user, constants } = useAuth();
   const [categories, setCategories] = useState([]);
   const [totalBudget, setTotalBudget] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -114,15 +115,16 @@ export function BudgetsTab() {
   };
 
   return (
-    <div style={{ maxWidth: 900 }}>
-      {/* Header section with Dropdown */}
-      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ maxWidth: 1000, margin: '2rem auto', padding: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, color: '#333' }}>Budget Planning</h2>
-          <p style={{ color: '#666', marginTop: '0.25rem', marginBottom: 0 }}>
-            Monitor spending and configure monthly limits.
-          </p>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Budget Planning</h1>
+          <p style={{ color: '#64748b' }}>Monitor spending and configure monthly limits</p>
         </div>
+        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 600, fontSize: '0.9rem' }}>
+          ← Back to dashboard
+        </Link>
+      </header>
         
         {availableMonths.length > 0 ? (
           <div style={{ position: 'relative' }}>
@@ -160,7 +162,6 @@ export function BudgetsTab() {
             {formatMonthLabel(displayMonth)}
           </div>
         ) : null}
-      </div>
 
       {error && (
         <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', color: '#c53030', padding: '1rem', borderRadius: 8, marginBottom: '1.5rem' }}>
@@ -197,7 +198,7 @@ export function BudgetsTab() {
                 <div style={{ fontWeight: 600, color: '#004a99' }}>{currencySymbol}{(totalBudget?.avg_expense || 0).toFixed(0)}</div>
               </div>
               <button 
-                onClick={() => handleStartEdit({ ...totalBudget, tag_id: 1, tag_name: 'Total Budget', tag_type: 'total' })}
+                onClick={() => handleStartEdit({ ...totalBudget, tag_id: constants?.TOTAL_TAG_ID || 1, tag_name: 'Total Budget', tag_type: 'total' })}
                 style={{ padding: '0.4rem 0.8rem', background: '#fff', border: '1px solid #b3d7ff', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', color: '#0052cc' }}
               >
                 Configure
@@ -207,7 +208,7 @@ export function BudgetsTab() {
         )}
       </div>
 
-      {expandedTagId === 1 && (
+      {expandedTagId === (constants?.TOTAL_TAG_ID || 1) && (
         <div style={{ marginTop: '-1.5rem', marginBottom: '2rem', padding: '1.5rem', background: '#f0f7ff', borderRadius: 12, border: '1px solid #b3d7ff' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -232,7 +233,7 @@ export function BudgetsTab() {
               Cancel
             </button>
             <button 
-              onClick={() => handleSave(1)}
+              onClick={() => handleSave(constants?.TOTAL_TAG_ID || 1)}
               style={{ padding: '0.5rem 1.5rem', background: '#0066ff', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
             >
               Save Global Total

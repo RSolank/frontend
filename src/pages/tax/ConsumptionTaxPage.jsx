@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
 
@@ -27,7 +28,7 @@ function weekEndSat(dateObj) {
   return d;
 }
 
-export function ConsumptionTaxTab() {
+export function ConsumptionTaxPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -148,8 +149,16 @@ export function ConsumptionTaxTab() {
   };
 
   return (
-    <div>
-      <h2 style={{ marginBottom: '1rem' }}>Consumption Tax</h2>
+    <div style={{ maxWidth: 1000, margin: '2rem auto', padding: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Consumption Tax</h1>
+          <p style={{ color: '#64748b' }}>Generate and track your taxation insights</p>
+        </div>
+        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 600, fontSize: '0.9rem' }}>
+          ← Back to dashboard
+        </Link>
+      </header>
 
       {error && <div style={{ color: 'red', marginBottom: '0.75rem' }}>{error}</div>}
       {loading ? <div>Loading...</div> : null}
@@ -264,7 +273,7 @@ export function ConsumptionTaxTab() {
                         <thead>
                           <tr style={{ borderBottom: '1px solid #eee' }}>
                             <th style={{ textAlign: 'left', padding: '0.5rem' }}>Date</th>
-                            <th style={{ textAlign: 'left', padding: '0.5rem' }}>Merchant</th>
+                            <th style={{ textAlign: 'left', padding: '0.5rem' }}>Beneficiary</th>
                             <th style={{ textAlign: 'left', padding: '0.5rem' }}>Txn Type</th>
                             <th style={{ textAlign: 'left', padding: '0.5rem' }}>Tax</th>
                             <th style={{ textAlign: 'left', padding: '0.5rem' }}>Penalty</th>
@@ -276,7 +285,7 @@ export function ConsumptionTaxTab() {
                             selectedBill.items.map((it) => (
                               <tr key={it.txn_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                 <td style={{ padding: '0.5rem' }}>{it.date}</td>
-                                <td style={{ padding: '0.5rem' }}>{it.merchant || '—'}</td>
+                                <td style={{ padding: '0.5rem' }}>{it.beneficiary || '—'}</td>
                                 <td style={{ padding: '0.5rem' }}>{it.txn_type}</td>
                                 <td style={{ padding: '0.5rem' }}>{user?.currency || '$'}
 {Number(it.tax_amount || 0).toFixed(2)}</td>

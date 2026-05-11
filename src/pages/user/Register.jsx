@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../state/AuthContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
-import { validatePassword } from '../utils/validation';
-import { PasswordRequirements } from '../components/PasswordRequirements.jsx';
+import { useAuth } from '../../state/AuthContext.jsx';
+import { apiFetch } from '../../utils/apiClient.js';
+import { validatePassword } from '../../utils/validation';
+import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 
 export function RegisterPage() {
   const { register, error, setError } = useAuth();

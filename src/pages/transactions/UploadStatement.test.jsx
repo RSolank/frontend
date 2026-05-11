@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { UploadStatementPage } from './UploadStatement';
-import { apiFetch } from '../utils/apiClient';
+import { apiFetch } from '../../utils/apiClient';
 
-vi.mock('../utils/apiClient', () => ({
+vi.mock('../../utils/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 
@@ -31,7 +31,7 @@ describe('UploadStatementPage', () => {
 
     expect(screen.getByText(/Upload statement/i)).toBeInTheDocument();
 
-    const file = new File(['date,merchant,amount\n2023-01-01,Test,100'], 'statement.csv', { type: 'text/csv' });
+    const file = new File(['date,beneficiary,amount\n2023-01-01,Test,100'], 'statement.csv', { type: 'text/csv' });
     const input = screen.getByLabelText(/Choose file/i);
     
     fireEvent.change(input, { target: { files: [file] } });

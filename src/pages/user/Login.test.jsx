@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginPage } from './Login';
-import * as AuthContextModule from '../state/AuthContext';
+import * as AuthContextModule from '../../state/AuthContext';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Login Page', () => {

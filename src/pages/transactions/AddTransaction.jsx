@@ -1,50 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../state/AuthContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../state/AuthContext.jsx';
+import { apiFetch } from '../../utils/apiClient.js';
 
 
-export function EditTransactionPage() {
+export function AddTransactionPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { id } = useParams();
-  const [txn, setTxn] = useState(null);
   const [tags, setTags] = useState([]);
   const [tagSearch, setTagSearch] = useState('');
   const [tagSearchFocused, setTagSearchFocused] = useState(false);
   const [activeTagIndex, setActiveTagIndex] = useState(-1);
-  const [form, setForm] = useState(null);
+  const [form, setForm] = useState({
+    amount: '',
+    debit_credit: 'debit',
+    beneficiary: '',
+    txn_date: new Date().toISOString().slice(0, 10),
+    notes: '',
+    tag_ids: []
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      apiFetch(`/api/transactions/${id}`).then((d) => d.transaction),
-      apiFetch('/api/tags').then((d) => flattenTags(d.tags))
-    ])
-      .then(([t, tagList]) => {
-        if (t) {
-          setTxn(t);
-          setForm({
-            amount: t.amount,
-            debit_credit: t.debit_credit,
-            merchant: t.merchant || '',
-            txn_date: t.txn_date,
-            notes: t.notes || '',
-            tag_ids: t.tag_ids || []
-          });
-        } else {
-          setError('Transaction not found');
-        }
-        setTags(tagList);
-      })
-      .catch(() => setError('Failed to load'));
-  }, [id]);
+    apiFetch('/api/tags')
+      .then((data) => flattenTags(data.tags))
+      .then(setTags)
+      .catch(() => setTags([]));
+  }, []);
 
   function flattenTags(nodes, out = []) {
     for (const n of nodes || []) {
-      out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
+      out.push({ tag_id: n.tag_id, tag_name: n.tag_name, parent: n.parent });
       flattenTags(n.children, out);
     }
     return out;
@@ -59,7 +47,7 @@ export function EditTransactionPage() {
   const handleTagToggle = (tagId) => {
     setForm((f) => {
       const ids = f.tag_ids.includes(tagId)
-        ? f.tag_ids.filter((x) => x !== tagId)
+        ? f.tag_ids.filter((id) => id !== tagId)
         : [...f.tag_ids, tagId];
       return { ...f, tag_ids: ids };
     });
@@ -73,12 +61,10 @@ export function EditTransactionPage() {
     setTagSearch('');
   };
 
-  const selectedTags = (form?.tag_ids || []).length
-    ? tags.filter((t) => form.tag_ids.includes(t.tag_id))
-    : [];
+  const selectedTags = tags.filter((t) => form.tag_ids.includes(t.tag_id));
   const availableTags = tags.filter(
     (t) =>
-      !form?.tag_ids?.includes(t.tag_id) &&
+      !form.tag_ids.includes(t.tag_id) &&
       (!tagSearch ||
         t.tag_name.toLowerCase().includes(tagSearch.toLowerCase()))
   );
@@ -88,121 +74,97 @@ export function EditTransactionPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const isAutoStatement = txn.source === 'statement' || txn.source === 'statement_pending';
-      const payload = isAutoStatement
-        ? {
-            notes: form.notes,
-            tag_ids: form.tag_ids
-          }
-        : {
-            amount: parseFloat(form.amount),
-            debit_credit: form.debit_credit,
-            merchant: form.merchant || null,
-            txn_date: form.txn_date,
-            notes: form.notes || null,
-            tag_ids: form.tag_ids
-          };
-      await apiFetch(`/api/transactions/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
+      await apiFetch('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: parseFloat(form.amount),
+          debit_credit: form.debit_credit,
+          beneficiary: form.beneficiary || null,
+          txn_date: form.txn_date,
+          notes: form.notes || null,
+          tag_ids: form.tag_ids.length > 0 ? form.tag_ids : undefined
+        })
       });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.error || 'Failed to update');
+      setError(err.error || 'Failed to add transaction');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (error && !txn) {
-    return (
-      <div style={{ padding: '2rem' }}>
-        {error}
-        <p>
-          <button onClick={() => navigate('/dashboard')}>Back to dashboard</button>
-        </p>
-      </div>
-    );
-  }
-
-  if (!form) {
-    return <div style={{ padding: '2rem' }}>Loading...</div>;
-  }
-
-  const isAutoStatement = txn.source === 'statement' || txn.source === 'statement_pending';
-  const isManual = txn.source === 'manual';
-
   return (
     <div style={{ maxWidth: 500, margin: '2rem auto', padding: '1.5rem' }}>
-      <h1>Edit transaction</h1>
-      {isAutoStatement && (
-        <p style={{ color: '#666' }}>
-          Statement transactions can have notes and tags updated. Saving tags may also create new categorization rules (system tags remain protected).
-        </p>
-      )}
+      <h1>Add transaction</h1>
       {error && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>}
       <form onSubmit={handleSubmit}>
-        {isManual && (
-          <>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>
-                Amount ({user?.currency || '$'})
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  name="amount"
-                  value={form.amount}
-                  onChange={handleChange}
-                  required
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
-              </label>
-            </div>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>
-                Type
-                <select
-                  name="debit_credit"
-                  value={form.debit_credit}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                >
-                  <option value="debit">Debit</option>
-                  <option value="credit">Credit</option>
-                </select>
-              </label>
-            </div>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>
-                Merchant
-                <input
-                  name="merchant"
-                  value={form.merchant}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
-              </label>
-            </div>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label>
-                Date
-                <input
-                  type="date"
-                  name="txn_date"
-                  value={form.txn_date}
-                  onChange={handleChange}
-                  required
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
-              </label>
-            </div>
-          </>
-        )}
-
-        {/* Tags editor is available for both manual and statement uploads. */}
         <div style={{ marginBottom: '0.75rem' }}>
-          <span>Tags</span>
+          <label>
+            Amount ({user?.currency || '$'})
+
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="amount"
+              value={form.amount}
+              onChange={handleChange}
+              required
+              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+            />
+          </label>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label>
+            Type
+            <select
+              name="debit_credit"
+              value={form.debit_credit}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+            >
+              <option value="debit">Debit</option>
+              <option value="credit">Credit</option>
+            </select>
+          </label>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label>
+            Beneficiary
+            <input
+              name="beneficiary"
+              value={form.beneficiary}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+            />
+          </label>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label>
+            Date
+            <input
+              type="date"
+              name="txn_date"
+              value={form.txn_date}
+              onChange={handleChange}
+              required
+              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+            />
+          </label>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label>
+            Notes
+            <input
+              name="notes"
+              value={form.notes}
+              onChange={handleChange}
+              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+            />
+          </label>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <span>Tags (optional, defaults to Miscellaneous)</span>
           <div style={{ marginTop: 4, marginBottom: 8 }}>
             <input
               type="text"
@@ -217,6 +179,7 @@ export function EditTransactionPage() {
                 if (availableTags.length > 0) setActiveTagIndex(0);
               }}
               onBlur={() => {
+                // Small timeout to allow click selection before hiding
                 setTimeout(() => {
                   setTagSearchFocused(false);
                   setActiveTagIndex(-1);
@@ -226,10 +189,14 @@ export function EditTransactionPage() {
                 if (!availableTags.length) return;
                 if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  setActiveTagIndex((idx) => (idx < availableTags.length - 1 ? idx + 1 : 0));
+                  setActiveTagIndex((idx) =>
+                    idx < availableTags.length - 1 ? idx + 1 : 0
+                  );
                 } else if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  setActiveTagIndex((idx) => (idx > 0 ? idx - 1 : availableTags.length - 1));
+                  setActiveTagIndex((idx) =>
+                    idx > 0 ? idx - 1 : availableTags.length - 1
+                  );
                 } else if (e.key === 'Enter') {
                   e.preventDefault();
                   const chosen = availableTags[activeTagIndex] || availableTags[0];
@@ -265,7 +232,9 @@ export function EditTransactionPage() {
                       padding: '0.4rem 0.5rem',
                       border: 'none',
                       background:
-                        availableTags[activeTagIndex]?.tag_id === t.tag_id ? '#e5e7eb' : 'white',
+                        availableTags[activeTagIndex]?.tag_id === t.tag_id
+                          ? '#e5e7eb'
+                          : 'white',
                       cursor: 'pointer'
                     }}
                   >
@@ -290,21 +259,9 @@ export function EditTransactionPage() {
             </div>
           )}
         </div>
-
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label>
-            Notes
-            <input
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-            />
-          </label>
-        </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
           <button type="submit" disabled={submitting} style={{ padding: '0.5rem 1rem' }}>
-            {submitting ? 'Saving...' : 'Save'}
+            {submitting ? 'Adding...' : 'Add'}
           </button>
           <button type="button" onClick={() => navigate('/dashboard')} style={{ padding: '0.5rem 1rem' }}>
             Cancel

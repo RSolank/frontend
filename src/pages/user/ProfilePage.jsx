@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
 import { validatePassword } from '../../utils/validation';
 import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 
 
-export function ProfileTab() {
+export function ProfilePage() {
   const { refreshUser } = useAuth();
   const [user, setUser] = useState(null);
 
@@ -122,7 +123,18 @@ export function ProfileTab() {
   if (!user) return <p>Loading...</p>;
 
   return (
-    <>
+    <div style={{ maxWidth: 1000, margin: '2rem auto', padding: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>User Profile</h1>
+          <p style={{ color: '#64748b' }}>Manage your personal information and security settings</p>
+        </div>
+        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 600, fontSize: '0.9rem' }}>
+          ← Back to dashboard
+        </Link>
+      </header>
+
+      <div style={{ background: 'white', borderRadius: '12px' }}>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gap: '0.75rem', maxWidth: 400 }}>
           <label>
@@ -319,7 +331,8 @@ export function ProfileTab() {
           </button>
         </form>
       </div>
-    </>
+      </div>
+    </div>
   );
 }
 

@@ -2,15 +2,15 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AddTransactionPage } from './AddTransaction';
-import { apiFetch } from '../utils/apiClient';
+import { apiFetch } from '../../utils/apiClient';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../utils/apiClient.js', () => ({
+vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn()
 }));
 
 // Mock AuthContext so component doesn't need a real AuthProvider
-vi.mock('../state/AuthContext.jsx', () => ({
+vi.mock('../../state/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { user_id: 1, currency: '$' } })
 }));
 
@@ -48,7 +48,7 @@ describe('AddTransactionPage Component', () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/tags'));
     expect(screen.getByLabelText(/Amount/)).toBeInTheDocument();
     expect(screen.getByLabelText('Type')).toBeInTheDocument();
-    expect(screen.getByLabelText('Merchant')).toBeInTheDocument();
+    expect(screen.getByLabelText('Beneficiary')).toBeInTheDocument();
     expect(screen.getByLabelText('Date')).toBeInTheDocument();
     expect(screen.getByLabelText('Notes')).toBeInTheDocument();
   });
@@ -64,7 +64,7 @@ describe('AddTransactionPage Component', () => {
     });
 
     fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: '50.50' } });
-    fireEvent.change(screen.getByLabelText('Merchant'), { target: { value: 'Store' } });
+    fireEvent.change(screen.getByLabelText('Beneficiary'), { target: { value: 'Store' } });
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'debit' } });
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Test note' } });
 

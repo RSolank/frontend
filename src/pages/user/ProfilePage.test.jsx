@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { ProfileTab } from './ProfileTab';
+import { MemoryRouter } from 'react-router-dom';
+import { ProfilePage } from './ProfilePage';
 import { apiFetch } from '../../utils/apiClient';
 
 vi.mock('../../utils/apiClient', () => ({
@@ -28,7 +29,7 @@ const mockOptionsResponse = {
   currencies: [{ code: 'USD', label: 'USD - US Dollar' }]
 };
 
-describe('ProfileTab', () => {
+describe('ProfilePage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -42,7 +43,11 @@ describe('ProfileTab', () => {
       return {};
     });
 
-    render(<ProfileTab />);
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ProfilePage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('John')).toBeInTheDocument();
@@ -73,7 +78,11 @@ describe('ProfileTab', () => {
       return {};
     });
 
-    render(<ProfileTab />);
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ProfilePage />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Change password')).toBeInTheDocument();

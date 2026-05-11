@@ -2,10 +2,18 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { TaxationRulesTab } from './TaxationRulesTab';
-import { apiFetch } from '../../utils/apiClient';
+import { apiFetch } from '../../../utils/apiClient';
 
-vi.mock('../../utils/apiClient', () => ({
+vi.mock('../../../utils/apiClient', () => ({
   apiFetch: vi.fn(),
+}));
+
+vi.mock('../../../state/AuthContext', () => ({
+  useAuth: () => ({
+    constants: {
+      TAXABLE_TXN_TYPES: ['committed', 'essential', 'discretionary', 'uncategorized']
+    }
+  })
 }));
 
 const mockRulesResponse = {

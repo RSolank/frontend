@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { apiFetch } from '../utils/apiClient.js';
-import { useAuth } from '../state/AuthContext.jsx';
-import { validatePassword } from '../utils/validation';
-import { PasswordRequirements } from '../components/PasswordRequirements.jsx';
+import { apiFetch } from '../../utils/apiClient.js';
+import { useAuth } from '../../state/AuthContext.jsx';
+import { validatePassword } from '../../utils/validation';
+import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 
 export function LoginPage() {
   const { user, loading, login, error, setError } = useAuth();

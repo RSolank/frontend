@@ -6,16 +6,22 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [constants, setConstants] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const refreshUser = async () => {
     try {
-      const data = await apiFetch('/api/users/me');
-      setUser(data.user || null);
+      const [userData, constantsData] = await Promise.all([
+        apiFetch('/api/users/me'),
+        apiFetch('/api/options/constants')
+      ]);
+      setUser(userData.user || null);
+      setConstants(constantsData || null);
     } catch {
       setUser(null);
+      setConstants(null);
     } finally {
       setLoading(false);
     }
@@ -62,7 +68,7 @@ export function AuthProvider({ children }) {
     navigate('/login');
   };
 
-  const value = { user, loading, error, setError, register, login, logout, refreshUser };
+  const value = { user, constants, loading, error, setError, register, login, logout, refreshUser };
 
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

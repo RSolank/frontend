@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch } from '../../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {
@@ -43,7 +43,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
   return (
     <div style={{ border: '1px solid #ddd', borderRadius: 6, padding: '1rem', marginBottom: '1rem' }}>
       <div style={{ marginBottom: '0.75rem' }}>
-        <div style={{ fontWeight: 600 }}>{txn.merchant || '—'}</div>
+        <div style={{ fontWeight: 600 }}>{txn.beneficiary || '—'}</div>
         <div style={{ color: '#666', fontSize: '0.9rem' }}>
           {txn.txn_date} • {txn.debit_credit} • ₹{txn.amount}
         </div>

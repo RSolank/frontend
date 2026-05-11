@@ -1,22 +1,30 @@
-import { render, screen } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import App from './App.jsx';
 import { AuthProvider } from './state/AuthContext.jsx';
 
-describe('App Component', () => {
-  it('renders and redirects to login by default', () => {
-    // Render the app wrapped in MemoryRouter since it uses Routes
-    render(
-      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </MemoryRouter>
-    );
+// Mock apiFetch to prevent real network calls during render,
+// which would be aborted on happy-dom teardown causing DOMException AbortError.
+vi.mock('./utils/apiClient', () => ({
+  apiFetch: vi.fn().mockResolvedValue({ user: null })
+}));
 
-    // Depending on HomePage implementation, we can check for a specific text
-    // Assuming HomePage or fallback redirects somewhere or renders something
-    // We just check if it renders without crashing
+describe('App Component', () => {
+  it('renders and redirects to login by default', async () => {
+    // Wrap render in act so AuthProvider's useEffect state updates
+    // (setUser, setConstants, setLoading) fully settle before assertions.
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </MemoryRouter>
+      );
+    });
+
+    // We just check that the app renders without crashing.
     expect(true).toBe(true);
   });
 });

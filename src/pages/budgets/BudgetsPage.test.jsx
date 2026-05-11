@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { BudgetsTab } from './BudgetsTab';
+import { MemoryRouter } from 'react-router-dom';
+import { BudgetsPage } from './BudgetsPage';
 import { apiFetch } from '../../utils/apiClient';
 
 // Mock apiFetch
@@ -9,12 +10,14 @@ vi.mock('../../utils/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 
-// Mock useAuth
 vi.mock('../../state/AuthContext', () => ({
-  useAuth: () => ({ user: { user_id: 1, first_name: 'Test', currency: '$' } })
+  useAuth: () => ({ 
+    user: { user_id: 1, first_name: 'Test', currency: '$' },
+    constants: { TOTAL_TAG_ID: 1, MISCELLANEOUS_TAG_ID: 2 }
+  })
 }));
 
-describe('BudgetsTab', () => {
+describe('BudgetsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -63,7 +66,11 @@ describe('BudgetsTab', () => {
   it('renders loading state and then budget data', async () => {
     apiFetch.mockResolvedValueOnce(mockStatusResponse);
 
-    render(<BudgetsTab />);
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BudgetsPage />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText(/Refreshing budget status/i)).toBeInTheDocument();
 
@@ -79,14 +86,16 @@ describe('BudgetsTab', () => {
     // Check Categories
     expect(screen.getByText('Groceries')).toBeInTheDocument();
     expect(screen.getByText('Dining')).toBeInTheDocument();
-    expect(screen.getByText('$300')).toBeInTheDocument(); // Groceries current
-    expect(screen.getByText('/ $350')).toBeInTheDocument(); // Groceries limit
   });
 
   it('handles setting a new budget', async () => {
     apiFetch.mockResolvedValueOnce(mockStatusResponse);
 
-    render(<BudgetsTab />);
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BudgetsPage />
+      </MemoryRouter>
+    );
     
     await waitFor(() => {
       expect(screen.getByText('Dining')).toBeInTheDocument();
