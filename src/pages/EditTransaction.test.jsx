@@ -9,6 +9,11 @@ vi.mock('../utils/apiClient.js', () => ({
   apiFetch: vi.fn()
 }));
 
+// Mock AuthContext so component doesn't need a real AuthProvider
+vi.mock('../state/AuthContext.jsx', () => ({
+  useAuth: () => ({ user: { user_id: 1, currency: '$' } })
+}));
+
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -25,7 +30,7 @@ describe('EditTransactionPage Component', () => {
 
   const renderComponent = (id = '1') =>
     render(
-      <MemoryRouter initialEntries={[`/edit/${id}`]}>
+      <MemoryRouter initialEntries={[`/edit/${id}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/edit/:id" element={<EditTransactionPage />} />
         </Routes>
@@ -61,7 +66,7 @@ describe('EditTransactionPage Component', () => {
         };
       }
       if (url === '/api/tags') {
-        return { tags: [{ tag_id: 1, tag_name: 'Groceries', parent: null }] };
+        return { tags: [{ tag_id: 1, tag_name: 'Groceries', parent: null, children: [] }] };
       }
       return {};
     });
@@ -69,12 +74,12 @@ describe('EditTransactionPage Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Amount')).toHaveValue(50.5);
+      expect(screen.getByLabelText(/Amount/)).toHaveValue(50.5);
       expect(screen.getByLabelText('Merchant')).toHaveValue('Store');
     });
 
     // Update form
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '60' } });
+    fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: '60' } });
     fireEvent.submit(screen.getByText('Save').closest('form'));
 
     await waitFor(() => {
@@ -112,7 +117,7 @@ describe('EditTransactionPage Component', () => {
     });
 
     // These fields should NOT exist for statement source
-    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Amount/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Merchant')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Notes')).toHaveValue('Stmt Note');
 

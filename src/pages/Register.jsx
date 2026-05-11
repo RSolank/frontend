@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext.jsx';
 import { apiFetch } from '../utils/apiClient.js';
+import { validatePassword } from '../utils/validation';
+import { PasswordRequirements } from '../components/PasswordRequirements.jsx';
 
 export function RegisterPage() {
   const { register, error, setError } = useAuth();
@@ -226,6 +228,7 @@ export function RegisterPage() {
               style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
             />
           </label>
+          <PasswordRequirements password={form.password} />
         </div>
         <div style={{ marginTop: '0.75rem' }}>
           <label>
@@ -332,7 +335,11 @@ export function RegisterPage() {
             </label>
           </div>
         </div>
-        <button type="submit" disabled={submitting} style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}>
+        <button 
+          type="submit" 
+          disabled={submitting || (form.password && !validatePassword(form.password).isValid)} 
+          style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
+        >
           {submitting ? 'Registering...' : 'Register'}
         </button>
       </form>

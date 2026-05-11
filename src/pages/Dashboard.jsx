@@ -130,8 +130,9 @@ export function DashboardPage() {
 
       <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>Year</label>
+          <label htmlFor="year-filter" style={{ display: 'block', fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>Year</label>
           <select
+            id="year-filter"
             value={yearFilter}
             onChange={(e) => {
               setYearFilter(e.target.value);
@@ -148,8 +149,9 @@ export function DashboardPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>Month</label>
+          <label htmlFor="month-filter" style={{ display: 'block', fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>Month</label>
           <select
+            id="month-filter"
             value={monthFilter ? monthFilter.slice(5) : ''}
             onChange={(e) => {
               const m = e.target.value;

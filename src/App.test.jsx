@@ -1,13 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App.jsx';
+import { AuthProvider } from './state/AuthContext.jsx';
 
 describe('App Component', () => {
   it('renders and redirects to login by default', () => {
     // Render the app wrapped in MemoryRouter since it uses Routes
     render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
+      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </MemoryRouter>
     );
 

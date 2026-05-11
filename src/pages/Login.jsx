@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { apiFetch } from '../utils/apiClient.js';
 import { useAuth } from '../state/AuthContext.jsx';
+import { validatePassword } from '../utils/validation';
+import { PasswordRequirements } from '../components/PasswordRequirements.jsx';
 
 export function LoginPage() {
   const { user, loading, login, error, setError } = useAuth();
@@ -364,8 +366,9 @@ export function LoginPage() {
                     style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
                   />
                 </label>
+                <PasswordRequirements password={newPassword} />
               </div>
-              <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+              <button type="submit" disabled={submitting || (newPassword && !validatePassword(newPassword).isValid)} style={{ width: '100%', padding: '0.5rem' }}>
                 {submitting ? 'Updating...' : 'Reset password'}
               </button>
             </form>

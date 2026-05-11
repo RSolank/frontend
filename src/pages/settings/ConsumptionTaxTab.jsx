@@ -226,7 +226,7 @@ export function ConsumptionTaxTab() {
                       {b.period_start} to {b.period_end}
                     </div>
                     <div style={{ color: '#666', fontSize: '0.9rem' }}>
-                      Status: {b.bill_status} • Amount: {user?.currency || '$'}
+                      Status: {b.status} • Amount: {user?.currency || '$'}
 {Number(b.amount || 0).toFixed(2)}
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export function ConsumptionTaxTab() {
                     >
                       {expandedBillId === b.bill_id ? 'Hide' : 'View'}
                     </button>
-                    {b.bill_status === 'pending' ? (
+                    {b.status === 'pending' ? (
                       <button
                         type="button"
                         onClick={() => handlePay(b.bill_id)}
@@ -275,7 +275,7 @@ export function ConsumptionTaxTab() {
                           {selectedBill.items && selectedBill.items.length > 0 ? (
                             selectedBill.items.map((it) => (
                               <tr key={it.txn_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                <td style={{ padding: '0.5rem' }}>{it.txn_date}</td>
+                                <td style={{ padding: '0.5rem' }}>{it.date}</td>
                                 <td style={{ padding: '0.5rem' }}>{it.merchant || '—'}</td>
                                 <td style={{ padding: '0.5rem' }}>{it.txn_type}</td>
                                 <td style={{ padding: '0.5rem' }}>{user?.currency || '$'}

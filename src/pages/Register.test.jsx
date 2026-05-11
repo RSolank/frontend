@@ -7,20 +7,24 @@ import * as ApiClientModule from '../utils/apiClient';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Register Page', () => {
-  it('renders required register fields', () => {
+  it('renders required register fields', async () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       user: null,
       register: vi.fn(),
       error: null,
       setError: vi.fn(),
     });
-    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({});
+    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({ 
+      countries: [{ name: 'India', country_code: '+91', default_currency: 'INR' }],
+      currencies: [{ code: 'INR', label: 'INR - Indian Rupee' }]
+    });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RegisterPage />
       </MemoryRouter>
     );
+    await waitFor(() => expect(screen.getByDisplayValue('India')).toBeInTheDocument());
 
     expect(screen.getByText('Register', { selector: 'h1' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/)).toBeInTheDocument();
@@ -37,13 +41,17 @@ describe('Register Page', () => {
       error: null,
       setError: vi.fn(),
     });
-    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({});
+    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({ 
+      countries: [{ name: 'India', country_code: '+91', default_currency: 'INR' }],
+      currencies: [{ code: 'INR', label: 'INR - Indian Rupee' }]
+    });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RegisterPage />
       </MemoryRouter>
     );
+    await waitFor(() => expect(screen.getByDisplayValue('India')).toBeInTheDocument());
 
     fireEvent.change(screen.getByLabelText(/First name/), { target: { value: 'John' } });
     fireEvent.change(screen.getByLabelText(/Last name/), { target: { value: 'Doe' } });
@@ -63,36 +71,52 @@ describe('Register Page', () => {
     });
   });
 
-  it.fails('validates extreme password length and spaces locally', async () => {
+  it('validates password requirements and disables register button', async () => {
     const mockRegister = vi.fn().mockResolvedValue();
-    const mockSetError = vi.fn();
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       user: null,
       register: mockRegister,
       error: null,
-      setError: mockSetError,
+      setError: vi.fn(),
     });
-    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({});
+    vi.spyOn(ApiClientModule, 'apiFetch').mockResolvedValue({ 
+      countries: [{ name: 'India', country_code: '+91', default_currency: 'INR' }],
+      currencies: [{ code: 'INR', label: 'INR - Indian Rupee' }]
+    });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RegisterPage />
       </MemoryRouter>
     );
+    await waitFor(() => expect(screen.getByDisplayValue('India')).toBeInTheDocument());
 
-    // Provide base info
-    fireEvent.change(screen.getByLabelText(/First name/), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText(/Last name/), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'user@example.com' } });
-    
-    // Try spaces
-    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'pass  word' } });
-    fireEvent.submit(screen.getByRole('button', { name: 'Register' }));
-    
-    // Validate that it rejected the space (Expected to fail right now, as this isn't implemented)
-    await waitFor(() => {
-      expect(mockSetError).toHaveBeenCalledWith(expect.stringContaining('spaces'));
-      expect(mockRegister).not.toHaveBeenCalled();
-    });
+    const passwordInput = screen.getByLabelText(/Password/);
+    const registerBtn = screen.getByRole('button', { name: 'Register' });
+
+    // Initial state: empty password, no requirements shown, button not disabled by validation but maybe by submitting
+    expect(screen.queryByText(/Password must have:/)).not.toBeInTheDocument();
+
+    // Type weak password
+    fireEvent.change(passwordInput, { target: { value: 'weak' } });
+    expect(screen.getByText(/Password must have:/)).toBeInTheDocument();
+    expect(registerBtn).toBeDisabled();
+
+    // Check individual requirements (some should be unmet)
+    expect(screen.getByText('8-64 characters').previousSibling.textContent).toBe('○');
+    expect(screen.getByText('At least one uppercase letter').previousSibling.textContent).toBe('○');
+
+    // Type strong password
+    fireEvent.change(passwordInput, { target: { value: 'SecurePass123!' } });
+    expect(registerBtn).not.toBeDisabled();
+    expect(screen.getByText('8-64 characters').previousSibling.textContent).toBe('✓');
+    expect(screen.getByText('At least one uppercase letter').previousSibling.textContent).toBe('✓');
+    expect(screen.getByText('At least one special character').previousSibling.textContent).toBe('✓');
+
+    // Type password with spaces (should be trimmed and checked)
+    fireEvent.change(passwordInput, { target: { value: '  Short1!  ' } });
+    // "Short1!" is 7 characters. Trimmed length 7 is invalid.
+    expect(screen.getByText('8-64 characters').previousSibling.textContent).toBe('○');
+    expect(registerBtn).toBeDisabled();
   });
 });

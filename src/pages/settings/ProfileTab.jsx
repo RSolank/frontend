@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
+import { validatePassword } from '../../utils/validation';
+import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 
 
 export function ProfileTab() {
@@ -220,7 +222,12 @@ export function ProfileTab() {
               style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
             />
           </label>
-          <button type="submit" style={{ marginTop: '0.75rem', padding: '0.5rem 1rem' }}>
+          <PasswordRequirements password={passwordForm.new_password} />
+          <button 
+            type="submit" 
+            disabled={passwordForm.new_password && !validatePassword(passwordForm.new_password).isValid}
+            style={{ marginTop: '0.75rem', padding: '0.5rem 1rem' }}
+          >
             Update password
           </button>
           {passwordStatus && (
