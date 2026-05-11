@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import { ProfileTab } from './settings/ProfileTab.jsx';
 import { CategoriesTab } from './settings/CategoriesTab.jsx';
-import { SystemRulesTab } from './settings/SystemRulesTab.jsx';
+import { CategorizationRulesTab } from './settings/CategorizationRulesTab.jsx';
 import { BudgetsTab } from './settings/BudgetsTab.jsx';
 import { TaxationRulesTab } from './settings/TaxationRulesTab.jsx';
 import { ConsumptionTaxTab } from './settings/ConsumptionTaxTab.jsx';
@@ -11,7 +11,7 @@ import { ConsumptionTaxTab } from './settings/ConsumptionTaxTab.jsx';
 const TABS = {
   profile: 'Profile',
   categories: 'Categories',
-  system_rules: 'System Rules',
+  categorization_rules: 'Categorization Rules',
   budgets: 'Budgets',
   taxation_rules: 'Taxation Rules',
   consumption_tax: 'Consumption Tax'
@@ -50,7 +50,7 @@ export function SettingsPage() {
       </nav>
       {activeTab === 'profile' && <ProfileTab />}
       {activeTab === 'categories' && <CategoriesTab />}
-      {activeTab === 'system_rules' && <SystemRulesTab />}
+      {activeTab === 'categorization_rules' && <CategorizationRulesTab />}
       {activeTab === 'budgets' && <BudgetsTab />}
       {activeTab === 'taxation_rules' && <TaxationRulesTab />}
       {activeTab === 'consumption_tax' && <ConsumptionTaxTab />}

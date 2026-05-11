@@ -157,6 +157,7 @@ export function UploadStatementPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [categorizing, setCategorizing] = useState(false);
 
   const [uploadResult, setUploadResult] = useState(null);
   const [tagsFlat, setTagsFlat] = useState([]);
@@ -178,6 +179,7 @@ export function UploadStatementPage() {
     }
     setError(null);
     setUploading(true);
+    setCategorizing(false);
     setUploadResult(null);
     setSaveStatus({});
     try {
@@ -187,11 +189,20 @@ export function UploadStatementPage() {
         method: 'POST',
         body: fd
       });
-      setUploadResult(d);
+      
+      setUploading(false);
+      setCategorizing(true);
+      
+      const categorizeRes = await apiFetch(`/api/transactions/upload-statement/${d.upload_id}/categorize`, {
+        method: 'POST'
+      });
+      
+      setUploadResult({ ...d, ...categorizeRes });
     } catch (err) {
       setError(err.detail || err.error || 'Upload failed');
     } finally {
       setUploading(false);
+      setCategorizing(false);
     }
   };
 
@@ -212,6 +223,15 @@ export function UploadStatementPage() {
   const handleFinalize = async (decision) => {
     if (!uploadResult?.upload_id) return;
     setError(null);
+
+    // If commit is selected but there are unsaved problematic rows, automatically use "set_misc" to assign default tags.
+    if (decision === 'commit' && problematic.length > 0) {
+      const allSaved = problematic.every((txn) => saveStatus[txn.txn_id]);
+      if (!allSaved) {
+        decision = 'set_misc'; 
+      }
+    }
+
     try {
       await apiFetch(`/api/transactions/upload-statement/${uploadResult.upload_id}/finalize`, {
         method: 'POST',
@@ -239,12 +259,12 @@ export function UploadStatementPage() {
               accept=".csv,.pdf"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               style={{ display: 'block', marginTop: 6 }}
-              disabled={uploading}
+              disabled={uploading || categorizing}
             />
           </label>
 
-          <button type="button" onClick={handleUpload} disabled={uploading} style={{ padding: '0.6rem 1rem' }}>
-            {uploading ? 'Uploading...' : 'Upload'}
+          <button type="button" onClick={handleUpload} disabled={uploading || categorizing} style={{ padding: '0.6rem 1rem' }}>
+            {uploading ? 'Uploading...' : categorizing ? 'Categorizing rules...' : 'Upload'}
           </button>
         </div>
       </div>

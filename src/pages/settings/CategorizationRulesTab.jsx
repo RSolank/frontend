@@ -9,7 +9,7 @@ function flattenTags(nodes, out = []) {
   return out;
 }
 
-export function SystemRulesTab() {
+export function CategorizationRulesTab() {
   const [rules, setRules] = useState([]);
   const [tags, setTags] = useState([]);
   const [error, setError] = useState(null);
@@ -31,7 +31,7 @@ export function SystemRulesTab() {
     setLoading(true);
     setError(null);
     Promise.all([
-      apiFetch('/api/system-rules?type=Categorization').then((d) => d.rules || []),
+      apiFetch('/api/categorization-rules').then((d) => d.rules || []),
       apiFetch('/api/tags').then((d) => flattenTags(d.tags || []))
     ])
       .then(([r, t]) => {
@@ -77,12 +77,12 @@ export function SystemRulesTab() {
 
     try {
       if (isEditing) {
-        await apiFetch(`/api/system-rules/${form.uid}`, {
+        await apiFetch(`/api/categorization-rules/${form.uid}`, {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
       } else {
-        await apiFetch('/api/system-rules', {
+        await apiFetch('/api/categorization-rules', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
@@ -107,11 +107,26 @@ export function SystemRulesTab() {
     });
   };
 
+  const handleDelete = async (uid) => {
+    if (!window.confirm('Delete this categorization rule?')) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await apiFetch(`/api/categorization-rules/${uid}`, {
+        method: 'DELETE'
+      });
+      loadAll();
+    } catch (err) {
+      setError(err.detail || err.error || 'Failed to delete rule');
+      setLoading(false);
+    }
+  };
+
   const handleReRun = async () => {
     setError(null);
     setLoading(true);
     try {
-      await apiFetch('/api/system-rules/re-run', {
+      await apiFetch('/api/categorization-rules/re-run', {
         method: 'POST',
         body: JSON.stringify({})
       });
@@ -124,7 +139,7 @@ export function SystemRulesTab() {
 
   return (
     <div>
-      <h2 style={{ marginBottom: '1rem' }}>System Rules</h2>
+      <h2 style={{ marginBottom: '1rem' }}>Categorization Rules</h2>
       <p style={{ color: '#666', marginBottom: '1rem' }}>
         Categorization rules apply to <b>statement</b> transactions. Manual tags are not overridden.
       </p>
@@ -207,9 +222,16 @@ export function SystemRulesTab() {
               <div key={r.uid} style={{ border: '1px solid #eee', padding: '0.75rem', borderRadius: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
                   <div style={{ fontWeight: 650 }}>{r.name}</div>
-                  <button type="button" onClick={() => handleEdit(r)} style={{ padding: '0.25rem 0.5rem' }}>
-                    Edit
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" onClick={() => handleEdit(r)} style={{ padding: '0.25rem 0.5rem' }}>
+                      Edit
+                    </button>
+                    {r.created_by != null && (
+                      <button type="button" onClick={() => handleDelete(r.uid)} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ color: '#666', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                   Field: {r.rule_condition?.field} • Match: {r.rule_condition?.match} • Pattern: {r.rule_condition?.pattern} • Tag: {r.rule_implement?.tag_id}
