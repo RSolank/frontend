@@ -3,7 +3,7 @@ import { apiFetch } from '../../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {
-    out.push({ tag_id: n.tag_id, name: n.name, parent: n.parent, created_by: n.created_by });
+    out.push({ tag_id: n.tag_id, tag_name: n.tag_name, parent: n.parent, created_by: n.created_by });
     flattenTags(n.children, out);
   }
   return out;
@@ -16,7 +16,8 @@ function TagTree({ tags }) {
       {tags.map((t) => (
         <li key={t.tag_id} style={{ marginBottom: '0.25rem' }}>
           <span style={{ fontWeight: t.parent == null ? 600 : 400 }}>
-            {t.name}
+            {t.tag_name} <span style={{ color: '#666', fontSize: '0.8em' }}>[{t.tag_type}]</span>
+            {t.aliases && t.aliases.length > 0 && <span style={{ color: '#888', fontSize: '0.8em', marginLeft: 4 }}>(Aliases: {t.aliases.join(', ')})</span>}
             {t.created_by == null && <span style={{ color: '#999', fontSize: '0.85em', marginLeft: 6 }}>(system)</span>}
           </span>
           {t.children && t.children.length > 0 && (
@@ -33,7 +34,7 @@ function TagTree({ tags }) {
 export function CategoriesTab() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', parent: '' });
+  const [form, setForm] = useState({ tag_name: '', parent: '', tag_type: 'essential', aliases: '' });
   const [error, setError] = useState(null);
   const [flatTags, setFlatTags] = useState([]);
 
@@ -56,16 +57,21 @@ export function CategoriesTab() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.name.trim()) return;
+    if (!form.tag_name.trim()) return;
+    
+    const aliasesArray = form.aliases ? form.aliases.split(',').map(a => a.trim()).filter(a => a) : [];
+
     try {
       await apiFetch('/api/tags', {
         method: 'POST',
         body: JSON.stringify({
-          name: form.name.trim(),
-          parent: form.parent ? parseInt(form.parent, 10) : null
+          tag_name: form.tag_name.trim(),
+          parent: form.parent ? parseInt(form.parent, 10) : null,
+          tag_type: form.tag_type,
+          aliases: aliasesArray
         })
       });
-      setForm({ name: '', parent: '' });
+      setForm({ tag_name: '', parent: '', tag_type: 'essential', aliases: '' });
       loadTags();
     } catch (err) {
       setError(err.error || 'Failed to create tag');
@@ -86,12 +92,34 @@ export function CategoriesTab() {
         <label>
           New tag name
           <input
-            value={form.name}
+            value={form.tag_name}
             onChange={(e) => {
-              setForm((f) => ({ ...f, name: e.target.value }));
+              setForm((f) => ({ ...f, tag_name: e.target.value }));
               setError(null);
             }}
             placeholder="e.g. Subscriptions"
+            style={{ padding: '0.5rem', marginLeft: 8, minWidth: 160 }}
+          />
+        </label>
+        <label>
+          Tag Type
+          <select
+            value={form.tag_type}
+            onChange={(e) => setForm((f) => ({ ...f, tag_type: e.target.value }))}
+            style={{ padding: '0.5rem', marginLeft: 8 }}
+          >
+            <option value="essential">Essential</option>
+            <option value="discretionary">Discretionary</option>
+            <option value="committed">Committed</option>
+            <option value="exempted">Exempted</option>
+          </select>
+        </label>
+        <label>
+          Aliases (csv)
+          <input
+            value={form.aliases}
+            onChange={(e) => setForm((f) => ({ ...f, aliases: e.target.value }))}
+            placeholder="e.g. Subs, Renewals"
             style={{ padding: '0.5rem', marginLeft: 8, minWidth: 160 }}
           />
         </label>
@@ -104,7 +132,7 @@ export function CategoriesTab() {
           >
             <option value="">— None (top-level) —</option>
             {flatTags.map((t) => (
-              <option key={t.tag_id} value={t.tag_id}>{t.name}</option>
+              <option key={t.tag_id} value={t.tag_id}>{t.tag_name}</option>
             ))}
           </select>
         </label>
@@ -117,4 +145,5 @@ export function CategoriesTab() {
     </div>
   );
 }
+
 

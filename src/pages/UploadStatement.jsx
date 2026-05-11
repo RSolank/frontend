@@ -4,7 +4,7 @@ import { apiFetch } from '../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {
-    out.push({ tag_id: n.tag_id, name: n.name, parent: n.parent });
+    out.push({ tag_id: n.tag_id, tag_name: n.tag_name, parent: n.parent });
     flattenTags(n.children, out);
   }
   return out;
@@ -19,7 +19,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
     return tags.filter(
       (t) =>
         !selectedTagIds.includes(t.tag_id) &&
-        (!tagSearch || t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+        (!tagSearch || t.tag_name.toLowerCase().includes(tagSearch.toLowerCase()))
     );
   }, [tags, selectedTagIds, tagSearch]);
 
@@ -45,7 +45,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
       <div style={{ marginBottom: '0.75rem' }}>
         <div style={{ fontWeight: 600 }}>{txn.merchant || '—'}</div>
         <div style={{ color: '#666', fontSize: '0.9rem' }}>
-          {txn.date} • {txn.debit_credit} • ₹{txn.amount}
+          {txn.txn_date} • {txn.debit_credit} • ₹{txn.amount}
         </div>
       </div>
 
@@ -116,7 +116,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
                   cursor: 'pointer'
                 }}
               >
-                {t.name}
+                {t.tag_name}
               </button>
             ))}
           </div>
@@ -130,7 +130,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
             return (
               <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <input type="checkbox" checked={true} onChange={() => handleToggleTag(id)} />
-                {t?.name || id}
+                {t?.tag_name || id}
               </label>
             );
           })}

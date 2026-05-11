@@ -22,7 +22,7 @@ export function DashboardPage() {
         const map = {};
         const flatten = (nodes) => {
           for (const n of nodes || []) {
-            map[n.tag_id] = n.name;
+            map[n.tag_id] = n.tag_name;
             if (n.children) flatten(n.children);
           }
         };
@@ -32,7 +32,7 @@ export function DashboardPage() {
       .catch(() => setTagMap({}));
   }, []);
 
-  const miscName = tagMap[12] || 'Miscellaneous';
+  const miscName = tagMap[2] || 'Miscellaneous';
   const showLoading = loading || !user;
 
   const years = useMemo(() => {
@@ -208,7 +208,7 @@ export function DashboardPage() {
           <tbody>
             {transactions.map((t) => (
               <tr key={t.txn_id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '0.5rem' }}>{t.date}</td>
+                <td style={{ padding: '0.5rem' }}>{t.txn_date}</td>
                 <td style={{ padding: '0.5rem' }}>{t.merchant || '—'}</td>
                 <td style={{ padding: '0.5rem' }}>{t.amount}</td>
                 <td style={{ padding: '0.5rem' }}>{t.debit_credit}</td>

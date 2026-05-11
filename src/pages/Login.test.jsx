@@ -43,7 +43,7 @@ describe('Login Page', () => {
     );
 
     fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'pass123' } });
+    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'SecurePass123!' } });
     
     const submitBtn = screen.getByRole('button', { name: 'Login' });
     fireEvent.click(submitBtn);
@@ -51,7 +51,7 @@ describe('Login Page', () => {
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
         email_id: 'user@example.com',
-        password: 'pass123'
+        password: 'SecurePass123!'
       });
     });
   });

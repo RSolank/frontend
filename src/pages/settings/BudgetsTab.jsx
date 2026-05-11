@@ -3,7 +3,7 @@ import { apiFetch } from '../../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {
-    out.push({ tag_id: n.tag_id, name: n.name });
+    out.push({ tag_id: n.tag_id, tag_name: n.tag_name, tag_type: n.tag_type });
     flattenTags(n.children, out);
   }
   return out;
@@ -12,6 +12,7 @@ function flattenTags(nodes, out = []) {
 export function BudgetsTab() {
   const [tags, setTags] = useState([]);
   const [budgetsByTagId, setBudgetsByTagId] = useState({});
+  const [budgetsPenaltyByTagId, setBudgetsPenaltyByTagId] = useState({});
   const [totalBudgetLimit, setTotalBudgetLimit] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,19 +25,22 @@ export function BudgetsTab() {
     try {
       const [tagRes, budgetsRes] = await Promise.all([
         apiFetch('/api/tags'),
-        apiFetch('/api/budget-limits?period=monthly')
+        apiFetch('/api/budget-limits?budget_period=monthly')
       ]);
 
       const flat = flattenTags(tagRes.tags || []);
       setTags(flat);
 
       const map = {};
+      const penaltyMap = {};
       for (const b of budgetsRes.budgets || []) {
-        map[b.tag_id] = b.limit;
+        map[b.tag_id] = b.limit_amt;
+        penaltyMap[b.tag_id] = b.penalty_rate;
       }
       setBudgetsByTagId(map);
+      setBudgetsPenaltyByTagId(penaltyMap);
       setTotalBudgetLimit(
-        map[48] !== undefined ? String(map[48]) : ''
+        map[1] !== undefined ? String(map[1]) : ''
       );
     } catch (err) {
       setError(err.detail || err.error || 'Failed to load budgets');
@@ -66,7 +70,7 @@ export function BudgetsTab() {
       setError(null);
       await apiFetch('/api/budget-limits', {
         method: 'POST',
-        body: JSON.stringify({ tag_id: tagId, period: 'monthly', limit })
+        body: JSON.stringify({ tag_id: tagId, budget_period: 'monthly', limit_amt: limit })
       });
       await loadAll();
     } catch (err) {
@@ -79,17 +83,18 @@ export function BudgetsTab() {
       <h2 style={{ marginBottom: '1rem' }}>Budgets</h2>
       <p style={{ color: '#666', marginBottom: '1rem' }}>
         Set monthly spend limits per category. Budgets are used later to compute consumption-tax penalties.
+        Note: Exempted and Committed tags cannot have limits imposed.
       </p>
 
       {error && <div style={{ color: 'red', marginBottom: '0.75rem' }}>{error}</div>}
       {loading ? <div>Loading...</div> : null}
 
       <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justify-content: 'space-between', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontWeight: 650, marginBottom: 4 }}>Total Monthly Budget</div>
             <div style={{ color: '#666', fontSize: '0.9rem' }}>
-              Stored for system use (tag_id=48).
+              Stored for system use (tag_id=1).
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -101,7 +106,7 @@ export function BudgetsTab() {
             />
             <button
               type="button"
-              onClick={() => handleSaveBudget(48, totalBudgetLimit)}
+              onClick={() => handleSaveBudget(1, totalBudgetLimit)}
               style={{ padding: '0.5rem 1rem' }}
             >
               Save
@@ -113,11 +118,17 @@ export function BudgetsTab() {
       <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
         <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Category Monthly Limits</h3>
         <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {allTags.map((t) => {
+          {allTags.filter((t) => t.tag_type !== 'exempted' && t.tag_type !== 'committed' && t.tag_id !== 1).map((t) => {
             const value = budgetsByTagId[t.tag_id] !== undefined ? String(budgetsByTagId[t.tag_id]) : '';
             return (
               <div key={t.tag_id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 220, fontWeight: 600 }}>{t.name}</div>
+                <div style={{ minWidth: 220 }}>
+                  <span style={{ fontWeight: 600 }}>{t.tag_name}</span>
+                  <span style={{ color: '#666', fontSize: '0.85rem', marginLeft: 8 }}>[{t.tag_type}]</span>
+                  {budgetsPenaltyByTagId[t.tag_id] !== undefined && (
+                    <div style={{ fontSize: '0.8rem', color: '#888' }}>Penalty Rate: {(budgetsPenaltyByTagId[t.tag_id] * 100).toFixed(0)}%</div>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <input
                     value={value}

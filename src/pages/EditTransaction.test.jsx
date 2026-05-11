@@ -53,7 +53,7 @@ describe('EditTransactionPage Component', () => {
             amount: 50.5,
             debit_credit: 'debit',
             merchant: 'Store',
-            date: '2023-10-10',
+            txn_date: '2023-10-10',
             notes: 'Test',
             tag_ids: [1],
             source: 'manual'
@@ -61,7 +61,7 @@ describe('EditTransactionPage Component', () => {
         };
       }
       if (url === '/api/tags') {
-        return { tags: [{ tag_id: 1, name: 'Groceries', parent: null }] };
+        return { tags: [{ tag_id: 1, tag_name: 'Groceries', parent: null }] };
       }
       return {};
     });
@@ -95,7 +95,7 @@ describe('EditTransactionPage Component', () => {
             amount: 100,
             debit_credit: 'debit',
             merchant: 'Bank Transfer',
-            date: '2023-10-11',
+            txn_date: '2023-10-11',
             notes: 'Stmt Note',
             tag_ids: [],
             source: 'statement'

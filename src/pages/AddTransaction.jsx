@@ -12,7 +12,7 @@ export function AddTransactionPage() {
     amount: '',
     debit_credit: 'debit',
     merchant: '',
-    date: new Date().toISOString().slice(0, 10),
+    txn_date: new Date().toISOString().slice(0, 10),
     notes: '',
     tag_ids: []
   });
@@ -28,7 +28,7 @@ export function AddTransactionPage() {
 
   function flattenTags(nodes, out = []) {
     for (const n of nodes || []) {
-      out.push({ tag_id: n.tag_id, name: n.name, parent: n.parent });
+      out.push({ tag_id: n.tag_id, tag_name: n.tag_name, parent: n.parent });
       flattenTags(n.children, out);
     }
     return out;
@@ -62,7 +62,7 @@ export function AddTransactionPage() {
     (t) =>
       !form.tag_ids.includes(t.tag_id) &&
       (!tagSearch ||
-        t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+        t.tag_name.toLowerCase().includes(tagSearch.toLowerCase()))
   );
 
   const handleSubmit = async (e) => {
@@ -76,7 +76,7 @@ export function AddTransactionPage() {
           amount: parseFloat(form.amount),
           debit_credit: form.debit_credit,
           merchant: form.merchant || null,
-          date: form.date,
+          txn_date: form.txn_date,
           notes: form.notes || null,
           tag_ids: form.tag_ids.length > 0 ? form.tag_ids : undefined
         })
@@ -139,8 +139,8 @@ export function AddTransactionPage() {
             Date
             <input
               type="date"
-              name="date"
-              value={form.date}
+              name="txn_date"
+              value={form.txn_date}
               onChange={handleChange}
               required
               style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
@@ -233,7 +233,7 @@ export function AddTransactionPage() {
                       cursor: 'pointer'
                     }}
                   >
-                    {t.name}
+                    {t.tag_name}
                   </button>
                 ))}
               </div>
@@ -248,7 +248,7 @@ export function AddTransactionPage() {
                     checked={form.tag_ids.includes(t.tag_id)}
                     onChange={() => handleTagToggle(t.tag_id)}
                   />
-                  {t.name}
+                  {t.tag_name}
                 </label>
               ))}
             </div>

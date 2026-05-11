@@ -48,7 +48,7 @@ describe('Register Page', () => {
     fireEvent.change(screen.getByLabelText(/First name/), { target: { value: 'John' } });
     fireEvent.change(screen.getByLabelText(/Last name/), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'pass123' } });
+    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'SecurePass123!' } });
     
     // Simulate clicking submit
     fireEvent.submit(screen.getByRole('button', { name: 'Register' }));
@@ -58,7 +58,7 @@ describe('Register Page', () => {
         email_id: 'user@example.com',
         first_name: 'John',
         last_name: 'Doe',
-        password: 'pass123'
+        password: 'SecurePass123!'
       }));
     });
   });

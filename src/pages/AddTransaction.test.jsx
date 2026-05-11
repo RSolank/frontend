@@ -24,8 +24,8 @@ describe('AddTransactionPage Component', () => {
     // Default mock for tags fetch
     apiFetch.mockResolvedValueOnce({
       tags: [
-        { tag_id: 12, name: 'Miscellaneous', parent: null },
-        { tag_id: 1, name: 'Groceries', parent: null }
+        { tag_id: 12, tag_name: 'Miscellaneous', parent: null },
+        { tag_id: 1, tag_name: 'Groceries', parent: null }
       ]
     });
   });

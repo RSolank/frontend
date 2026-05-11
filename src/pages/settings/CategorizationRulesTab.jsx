@@ -3,7 +3,7 @@ import { apiFetch } from '../../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {
-    out.push({ tag_id: n.tag_id, name: n.name });
+    out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
   }
   return out;
@@ -98,7 +98,7 @@ export function CategorizationRulesTab() {
     setError(null);
     setForm({
       uid: r.uid,
-      name: r.name || '',
+      name: r.rule_name || '',
       field: r.rule_condition?.field || 'merchant',
       match: r.rule_condition?.match || 'icontains',
       pattern: r.rule_condition?.pattern || '',
@@ -186,7 +186,7 @@ export function CategorizationRulesTab() {
             <select value={form.tag_id} onChange={(e) => setForm((f) => ({ ...f, tag_id: e.target.value }))} style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}>
               <option value="">— Select tag —</option>
               {tags.map((t) => (
-                <option key={t.tag_id} value={t.tag_id}>{t.name}</option>
+                <option key={t.tag_id} value={t.tag_id}>{t.tag_name}</option>
               ))}
             </select>
           </label>
@@ -221,7 +221,7 @@ export function CategorizationRulesTab() {
             {rules.map((r) => (
               <div key={r.uid} style={{ border: '1px solid #eee', padding: '0.75rem', borderRadius: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-                  <div style={{ fontWeight: 650 }}>{r.name}</div>
+                  <div style={{ fontWeight: 650 }}>{r.rule_name}</div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button type="button" onClick={() => handleEdit(r)} style={{ padding: '0.25rem 0.5rem' }}>
                       Edit
