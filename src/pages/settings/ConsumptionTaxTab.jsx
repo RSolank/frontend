@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
+
 
 function toISODate(d) {
   const dd = new Date(d);
@@ -26,7 +28,9 @@ function weekEndSat(dateObj) {
 }
 
 export function ConsumptionTaxTab() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState(null);
 
   const [bills, setBills] = useState([]);
@@ -222,7 +226,8 @@ export function ConsumptionTaxTab() {
                       {b.period_start} to {b.period_end}
                     </div>
                     <div style={{ color: '#666', fontSize: '0.9rem' }}>
-                      Status: {b.bill_status} • Amount: ₹{Number(b.amount || 0).toFixed(2)}
+                      Status: {b.bill_status} • Amount: {user?.currency || '$'}
+{Number(b.amount || 0).toFixed(2)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -248,8 +253,10 @@ export function ConsumptionTaxTab() {
                 {expandedBillId === b.bill_id && selectedBill && selectedBill.bill_id === b.bill_id ? (
                   <div style={{ marginTop: '0.75rem', borderTop: '1px dashed rgba(203,213,225,0.9)', paddingTop: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                      <div><b>Tax total</b>: ₹{Number(selectedBill.totals?.tax_total || 0).toFixed(2)}</div>
-                      <div><b>Penalty total</b>: ₹{Number(selectedBill.totals?.penalty_total || 0).toFixed(2)}</div>
+                      <div><b>Tax total</b>: {user?.currency || '$'}
+{Number(selectedBill.totals?.tax_total || 0).toFixed(2)}</div>
+                      <div><b>Penalty total</b>: {user?.currency || '$'}
+{Number(selectedBill.totals?.penalty_total || 0).toFixed(2)}</div>
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
@@ -271,8 +278,10 @@ export function ConsumptionTaxTab() {
                                 <td style={{ padding: '0.5rem' }}>{it.txn_date}</td>
                                 <td style={{ padding: '0.5rem' }}>{it.merchant || '—'}</td>
                                 <td style={{ padding: '0.5rem' }}>{it.txn_type}</td>
-                                <td style={{ padding: '0.5rem' }}>₹{Number(it.tax_amount || 0).toFixed(2)}</td>
-                                <td style={{ padding: '0.5rem' }}>₹{Number(it.penalty || 0).toFixed(2)}</td>
+                                <td style={{ padding: '0.5rem' }}>{user?.currency || '$'}
+{Number(it.tax_amount || 0).toFixed(2)}</td>
+                                <td style={{ padding: '0.5rem' }}>{user?.currency || '$'}
+{Number(it.penalty || 0).toFixed(2)}</td>
                                 <td style={{ padding: '0.5rem', color: '#666' }}>
                                   {it.penalty_tag_name || (it.penalty_tag_id ? `#${it.penalty_tag_id}` : '—')}
                                 </td>

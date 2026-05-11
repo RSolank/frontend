@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../state/AuthContext.jsx';
 import { apiFetch } from '../utils/apiClient.js';
 
+
 export function EditTransactionPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
+
   const { id } = useParams();
   const [txn, setTxn] = useState(null);
   const [tags, setTags] = useState([]);
@@ -142,7 +146,7 @@ export function EditTransactionPage() {
           <>
             <div style={{ marginBottom: '0.75rem' }}>
               <label>
-                Amount
+                Amount ({user?.currency || '$'})
                 <input
                   type="number"
                   step="0.01"

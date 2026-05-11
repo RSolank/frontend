@@ -12,7 +12,9 @@ export function LoginPage() {
   const [otpForm, setOtpForm] = useState({ email_id: '', otp: '', new_password: '' });
   const [recoveryStep, setRecoveryStep] = useState('email');
   const [recoveryQuestion, setRecoveryQuestion] = useState('');
-  const [answerForm, setAnswerForm] = useState({ email_id: '', answer: '', new_password: '' });
+  const [answerForm, setAnswerForm] = useState({ email_id: '', answer: '' });
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
 
   if (loading) {
@@ -57,49 +59,91 @@ export function LoginPage() {
   };
 
   const startRecovery = async (email) => {
+    setError(null);
     try {
       const res = await apiFetch('/api/auth/recovery-question', {
-        method: 'POST',
+        method: 'POST', // Changed to POST to match FastAPI requirement for JSON body
         body: JSON.stringify({ email_id: email })
       });
       setRecoveryQuestion(res.question || '');
       setAnswerForm({ email_id: email, answer: '', new_password: '' });
       setOtpForm((f) => ({ ...f, email_id: email }));
-      setRecoveryStep(res.question ? 'question' : 'otp');
+      
+      if (res.question) {
+        setRecoveryStep('choice');
+      } else {
+        // No question? Send OTP immediately and go to OTP step
+        await handleRequestOtpInternal(email);
+        setRecoveryStep('otp');
+      }
     } catch (err) {
-      // If lookup fails, fall back to OTP path
-      setRecoveryQuestion('');
-      setRecoveryStep('otp');
+      setError(err.detail || err.error || 'Recovery failed to start');
     }
+  };
+
+  const handleRequestOtpInternal = async (email) => {
+    await apiFetch('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email_id: email })
+    });
+    setOtpSent(true);
   };
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await apiFetch('/api/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email_id: otpForm.email_id })
-      });
-      setOtpSent(true);
+      await handleRequestOtpInternal(otpForm.email_id);
     } catch (err) {
-      setError(err.detail || err.error || 'Failed to request reset link');
+      setError(err.detail || err.error || 'Failed to request OTP');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await apiFetch('/api/auth/reset-password', {
+      const res = await apiFetch('/api/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({
-          email_id: otpForm.email_id,
-          otp: otpForm.otp,
-          new_password: otpForm.new_password
-        })
+        body: JSON.stringify({ email_id: otpForm.email_id, otp: otpForm.otp })
+      });
+      setResetToken(res.reset_token);
+      setRecoveryStep('reset');
+      setError(null);
+    } catch (err) {
+      setError(err.detail || err.error || 'Invalid OTP');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyAnswer = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await apiFetch('/api/auth/verify-answer', {
+        method: 'POST',
+        body: JSON.stringify({ email_id: answerForm.email_id, answer: answerForm.answer })
+      });
+      setResetToken(res.reset_token);
+      setRecoveryStep('reset');
+      setError(null);
+    } catch (err) {
+      setError(err.detail || err.error || 'Incorrect answer');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFinalReset = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await apiFetch('/api/auth/reset-password-final', {
+        method: 'POST',
+        body: JSON.stringify({ reset_token: resetToken, new_password: newPassword })
       });
       navigate('/dashboard');
     } catch (err) {
@@ -187,34 +231,37 @@ export function LoginPage() {
             </form>
           )}
 
+          {recoveryStep === 'choice' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <p style={{ margin: 0, color: '#374151' }}>How would you like to verify your identity?</p>
+              <button
+                type="button"
+                onClick={() => setRecoveryStep('question')}
+                style={{ width: '100%', padding: '0.5rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4 }}
+              >
+                Security question
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleRequestOtpInternal(otpForm.email_id);
+                  setRecoveryStep('otp');
+                }}
+                style={{ width: '100%', padding: '0.5rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4 }}
+              >
+                OTP (One-time password)
+              </button>
+            </div>
+          )}
+
           {recoveryStep === 'question' && (
             <>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setSubmitting(true);
-                  try {
-                    await apiFetch('/api/auth/reset-by-answer', {
-                      method: 'POST',
-                      body: JSON.stringify({
-                        email_id: answerForm.email_id,
-                        answer: answerForm.answer,
-                        new_password: answerForm.new_password
-                      })
-                    });
-                    navigate('/dashboard');
-                  } catch (err) {
-                    setError(err.detail || err.error || 'Failed to reset password');
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-              >
+              <form onSubmit={handleVerifyAnswer}>
                 <div style={{ marginBottom: '0.75rem' }}>
                   <label>
                     Security question
-                    <div style={{ marginTop: 4, marginBottom: 4, color: '#374151' }}>
-                      {recoveryQuestion || 'No security question configured; you can use OTP instead.'}
+                    <div style={{ marginTop: 4, marginBottom: 4, color: '#374151', fontWeight: 'bold' }}>
+                      {recoveryQuestion}
                     </div>
                   </label>
                 </div>
@@ -231,29 +278,59 @@ export function LoginPage() {
                     />
                   </label>
                 </div>
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <label>
-                    New password <span style={{ color: 'red' }}>*</span>
-                    <input
-                      type="password"
-                      name="new_password"
-                      value={answerForm.new_password}
-                      onChange={handleAnswerChange}
-                      required
-                      style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                    />
-                  </label>
-                </div>
                 <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
-                  {submitting ? 'Updating...' : 'Reset password'}
+                  {submitting ? 'Verifying...' : 'Verify answer'}
                 </button>
               </form>
               <button
                 type="button"
-                onClick={() => {
-                  setRecoveryStep('otp');
+                onClick={async () => {
                   setError(null);
+                  await handleRequestOtpInternal(otpForm.email_id);
+                  setRecoveryStep('otp');
                 }}
+                style={{
+                  marginTop: '1rem',
+                  width: '100%',
+                  padding: '0.5rem',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#2563eb',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Use OTP instead
+              </button>
+            </>
+          )}
+
+          {recoveryStep === 'otp' && (
+            <form onSubmit={handleVerifyOtp}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                  A 6-digit code has been sent to {otpForm.email_id}.
+                </p>
+                <label>
+                  OTP <span style={{ color: 'red' }}>*</span>
+                  <input
+                    type="text"
+                    name="otp"
+                    value={otpForm.otp}
+                    onChange={handleForgotChange}
+                    required
+                    maxLength={6}
+                    style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+                  />
+                </label>
+              </div>
+              <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+                {submitting ? 'Verifying...' : 'Verify OTP'}
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleRequestOtp}
                 style={{
                   marginTop: '0.5rem',
                   width: '100%',
@@ -261,76 +338,46 @@ export function LoginPage() {
                   background: 'transparent',
                   border: 'none',
                   color: '#2563eb',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
                 }}
               >
-                I do not remember the answer, use OTP instead
+                Resend code
               </button>
-            </>
+            </form>
           )}
 
-          {recoveryStep === 'otp' && (
-            <>
-              {!otpSent ? (
-                <form onSubmit={handleRequestOtp}>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <label>
-                      Registered email <span style={{ color: 'red' }}>*</span>
-                      <input
-                        type="email"
-                        name="email_id"
-                        value={otpForm.email_id}
-                        onChange={handleForgotChange}
-                        required
-                        style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                      />
-                    </label>
-                  </div>
-                  <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
-                    {submitting ? 'Sending OTP...' : 'Send OTP'}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleResetPassword}>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <label>
-                      OTP <span style={{ color: 'red' }}>*</span>
-                      <input
-                        type="text"
-                        name="otp"
-                        value={otpForm.otp}
-                        onChange={handleForgotChange}
-                        required
-                        maxLength={6}
-                        style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                      />
-                    </label>
-                  </div>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <label>
-                      New password <span style={{ color: 'red' }}>*</span>
-                      <input
-                        type="password"
-                        name="new_password"
-                        value={otpForm.new_password}
-                        onChange={handleForgotChange}
-                        required
-                        style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                      />
-                    </label>
-                  </div>
-                  <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
-                    {submitting ? 'Updating...' : 'Reset password'}
-                  </button>
-                </form>
-              )}
-            </>
+          {recoveryStep === 'reset' && (
+            <form onSubmit={handleFinalReset}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.9rem', color: '#059669', marginBottom: '1rem', fontWeight: 'bold' }}>
+                  Identity verified! Set your new password below.
+                </p>
+                <label>
+                  New password <span style={{ color: 'red' }}>*</span>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+                  />
+                </label>
+              </div>
+              <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+                {submitting ? 'Updating...' : 'Reset password'}
+              </button>
+            </form>
           )}
+
           <button
             type="button"
             onClick={() => {
               setForgotMode(false);
               setOtpSent(false);
+              setRecoveryStep('email');
+              setResetToken('');
               setError(null);
             }}
             style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer' }}

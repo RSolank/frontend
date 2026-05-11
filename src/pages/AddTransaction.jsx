@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../state/AuthContext.jsx';
 import { apiFetch } from '../utils/apiClient.js';
 
+
 export function AddTransactionPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
+
   const [tags, setTags] = useState([]);
   const [tagSearch, setTagSearch] = useState('');
   const [tagSearchFocused, setTagSearchFocused] = useState(false);
@@ -96,7 +100,8 @@ export function AddTransactionPage() {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '0.75rem' }}>
           <label>
-            Amount
+            Amount ({user?.currency || '$'})
+
             <input
               type="number"
               step="0.01"

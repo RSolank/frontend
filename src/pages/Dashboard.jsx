@@ -210,7 +210,8 @@ export function DashboardPage() {
               <tr key={t.txn_id} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '0.5rem' }}>{t.txn_date}</td>
                 <td style={{ padding: '0.5rem' }}>{t.merchant || '—'}</td>
-                <td style={{ padding: '0.5rem' }}>{t.amount}</td>
+                <td style={{ padding: '0.5rem' }}>{user?.currency || '$'}{t.amount}</td>
+
                 <td style={{ padding: '0.5rem' }}>{t.debit_credit}</td>
                 <td style={{ padding: '0.5rem' }}>{t.source}</td>
                 <td style={{ padding: '0.5rem', fontSize: '0.85rem', color: '#374151' }}>

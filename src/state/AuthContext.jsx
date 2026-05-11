@@ -10,23 +10,26 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const refreshUser = async () => {
+    try {
+      const data = await apiFetch('/api/users/me');
+      setUser(data.user || null);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     let isMounted = true;
-    apiFetch('/api/users/me')
-      .then((data) => {
-        if (!isMounted) return;
-        setUser(data.user || null);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setUser(null);
-        setLoading(false);
-      });
+    refreshUser();
     return () => {
       isMounted = false;
     };
   }, []);
+
 
   const register = async (payload) => {
     setError(null);
@@ -59,7 +62,8 @@ export function AuthProvider({ children }) {
     navigate('/login');
   };
 
-  const value = { user, loading, error, setError, register, login, logout };
+  const value = { user, loading, error, setError, register, login, logout, refreshUser };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
 
+
 export function ProfileTab() {
+  const { refreshUser } = useAuth();
   const [user, setUser] = useState(null);
+
   const [form, setForm] = useState({});
   const [saved, setSaved] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -105,7 +109,9 @@ export function ProfileTab() {
           currency: form.currency || null
         })
       });
+      await refreshUser();
       setSaved(true);
+
     } catch (err) {
       setError(err.detail || err.error || 'Failed to save');
     }
@@ -225,18 +231,20 @@ export function ProfileTab() {
         </form>
       </div>
 
-      <div style={{ marginTop: '2rem', maxWidth: 500 }}>
-        <h3>Security questions</h3>
-        <p style={{ color: '#666', marginBottom: '0.5rem' }}>
-          You can add multiple security questions for account recovery. Answers are stored securely and are not shown again.
+      <div style={{ marginTop: '3rem', maxWidth: 500 }}>
+        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Security question</h3>
+        <p style={{ color: '#666', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
+          Configuring a security question helps you recover your account if you forget your password. 
+          Setting a new question will <strong>replace</strong> any previous choice. Answers are hashed and stored securely.
         </p>
+        
         {recoveryQuestions.length > 0 && (
-          <ul style={{ paddingLeft: '1.25rem', marginBottom: '0.75rem' }}>
-            {recoveryQuestions.map((q) => (
-              <li key={q.uid} style={{ marginBottom: '0.25rem' }}>{q.question}</li>
-            ))}
-          </ul>
+          <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Current Question</span>
+            <div style={{ marginTop: 4, color: '#1e293b', fontWeight: '500' }}>{recoveryQuestions[0].question}</div>
+          </div>
         )}
+
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -252,19 +260,20 @@ export function ProfileTab() {
               const refreshed = await apiFetch('/api/auth/recovery');
               setRecoveryQuestions(refreshed.questions || []);
               setNewRecovery({ question: '', answer: '' });
+              setPasswordStatus('Security question updated successfully.');
             } catch (err) {
-              setPasswordStatus(err.detail || err.error || 'Failed to add security question');
+              setPasswordStatus(err.detail || err.error || 'Failed to update security question');
             }
           }}
         >
-          <label>
-            New security question
+          <label style={{ display: 'block', marginBottom: '1rem' }}>
+            <span style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+              {recoveryQuestions.length > 0 ? 'Change question' : 'Set question'}
+            </span>
             <div
               style={{
-                marginTop: 4,
-                border: '1px solid #ddd',
+                border: '1px solid #d1d5db',
                 borderRadius: 6,
-                padding: '0.25rem',
                 background: questionHover ? '#f9fafb' : 'white'
               }}
               onMouseEnter={() => setQuestionHover(true)}
@@ -274,7 +283,7 @@ export function ProfileTab() {
                 name="question"
                 value={newRecovery.question}
                 onChange={(e) => setNewRecovery((f) => ({ ...f, question: e.target.value }))}
-                style={{ width: '100%', padding: '0.5rem', border: 'none', outline: 'none', background: 'transparent' }}
+                style={{ width: '100%', padding: '0.6rem', border: 'none', outline: 'none', background: 'transparent' }}
               >
                 <option value="">— Select a question —</option>
                 {SECURITY_QUESTIONS.map((q) => (
@@ -285,17 +294,21 @@ export function ProfileTab() {
               </select>
             </div>
           </label>
-          <label>
-            Answer
+          
+          <label style={{ display: 'block', marginBottom: '1.25rem' }}>
+            <span style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Security answer</span>
             <input
+              type="password"
               name="answer"
+              placeholder="Enter answer"
               value={newRecovery.answer}
               onChange={(e) => setNewRecovery((f) => ({ ...f, answer: e.target.value }))}
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+              style={{ width: '100%', padding: '0.6rem', borderRadius: 6, border: '1px solid #d1d5db' }}
             />
           </label>
-          <button type="submit" style={{ marginTop: '0.75rem', padding: '0.5rem 1rem' }}>
-            Add security question
+          
+          <button type="submit" style={{ padding: '0.6rem 1.25rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: '500' }}>
+            {recoveryQuestions.length > 0 ? 'Update Question' : 'Save Question'}
           </button>
         </form>
       </div>
