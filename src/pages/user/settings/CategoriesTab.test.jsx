@@ -4,7 +4,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { CategoriesTab } from './CategoriesTab';
 import { apiFetch } from '../../../utils/apiClient';
 
-vi.mock('../../../utils/apiClient', () => ({
+vi.mock('../../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 

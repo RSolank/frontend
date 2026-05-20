@@ -157,6 +157,7 @@ export function UploadStatementPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [mapping, setMapping] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
 
   const [uploadResult, setUploadResult] = useState(null);
@@ -179,6 +180,7 @@ export function UploadStatementPage() {
     }
     setError(null);
     setUploading(true);
+    setMapping(false);
     setCategorizing(false);
     setUploadResult(null);
     setSaveStatus({});
@@ -189,19 +191,27 @@ export function UploadStatementPage() {
         method: 'POST',
         body: fd
       });
-      
+
       setUploading(false);
+      setMapping(true);
+
+      await apiFetch(`/api/transactions/upload-statement/${d.upload_id}/map-beneficiaries`, {
+        method: 'POST'
+      });
+
+      setMapping(false);
       setCategorizing(true);
-      
+
       const categorizeRes = await apiFetch(`/api/transactions/upload-statement/${d.upload_id}/categorize`, {
         method: 'POST'
       });
-      
+
       setUploadResult({ ...d, ...categorizeRes });
     } catch (err) {
       setError(err.detail || err.error || 'Upload failed');
     } finally {
       setUploading(false);
+      setMapping(false);
       setCategorizing(false);
     }
   };
@@ -228,7 +238,7 @@ export function UploadStatementPage() {
     if (decision === 'commit' && problematic.length > 0) {
       const allSaved = problematic.every((txn) => saveStatus[txn.txn_id]);
       if (!allSaved) {
-        decision = 'set_misc'; 
+        decision = 'set_misc';
       }
     }
 
@@ -263,8 +273,8 @@ export function UploadStatementPage() {
             />
           </label>
 
-          <button type="button" onClick={handleUpload} disabled={uploading || categorizing} style={{ padding: '0.6rem 1rem' }}>
-            {uploading ? 'Uploading...' : categorizing ? 'Categorizing rules...' : 'Upload'}
+          <button type="button" onClick={handleUpload} disabled={uploading || mapping || categorizing} style={{ padding: '0.6rem 1rem' }}>
+            {uploading ? 'Uploading...' : mapping ? 'Mapping beneficiaries...' : categorizing ? 'Categorizing rules...' : 'Upload'}
           </button>
         </div>
       </div>

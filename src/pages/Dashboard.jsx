@@ -23,11 +23,11 @@ const ProgressBar = ({ current, limit, color = '#2563eb' }) => {
   const isOver = (current || 0) > limit;
   return (
     <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden', marginTop: '8px' }}>
-      <div style={{ 
-        width: `${percent}%`, 
-        height: '100%', 
+      <div style={{
+        width: `${percent}%`,
+        height: '100%',
         background: isOver ? '#ef4444' : color,
-        transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' 
+        transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }} />
     </div>
   );
@@ -46,14 +46,14 @@ export function DashboardPage() {
 
   useEffect(() => {
     // Load data
-    apiFetch('/api/budget-limits/status').then(setBudgetData).catch(() => {});
+    apiFetch('/api/budget-limits/status').then(setBudgetData).catch(() => { });
     apiFetch('/api/consumption-tax/bills').then(d => {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const total = (d.bills || []).filter(b => b.period_start?.startsWith(currentMonth))
         .reduce((acc, b) => acc + (b.total_amount || 0), 0);
       setTaxSummary(total);
-    }).catch(() => {});
-    
+    }).catch(() => { });
+
     setLoading(true);
     apiFetch('/api/transactions?limit=10')
       .then(d => setTransactions(d.transactions || []))
@@ -87,12 +87,12 @@ export function DashboardPage() {
           <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.025em' }}>Dashboard</h1>
           <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Welcome back, <span style={{ color: '#1e293b', fontWeight: 600 }}>{user?.first_name || 'User'}</span></p>
         </div>
-        
+
         <div style={{ position: 'relative' }} ref={menuRef}>
-          <button 
+          <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', 
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem',
               background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', cursor: 'pointer',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)', fontWeight: 600
             }}
@@ -103,11 +103,11 @@ export function DashboardPage() {
             <span>{user?.first_name || 'Profile'}</span>
             <span style={{ fontSize: '0.7rem' }}>▼</span>
           </button>
-          
+
           {showUserMenu && (
-            <div style={{ 
-              position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '200px', 
-              background: 'white', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
+            <div style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '200px',
+              background: 'white', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
               border: '1px solid #f1f5f9', zIndex: 10, overflow: 'hidden'
             }}>
               <Link to="/profile" style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', borderBottom: '1px solid #f1f5f9' }}>User Profile</Link>
@@ -167,7 +167,7 @@ export function DashboardPage() {
                 {transactions.map(t => (
                   <tr key={t.txn_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '1rem 1.5rem', fontSize: '0.9rem' }}>{formatDisplayDate(t.txn_date)}</td>
-                    <td style={{ padding: '1rem 1.5rem', fontSize: '0.9rem', fontWeight: 500 }}>{t.beneficiary || '—'}</td>
+                    <td style={{ padding: '1rem 1.5rem', fontSize: '0.9rem', fontWeight: 500 }}>{t.beneficiary_name || t.beneficiary || '—'}</td>
                     <td style={{ padding: '1rem 1.5rem', fontSize: '0.9rem', fontWeight: 700, textAlign: 'right', color: t.debit_credit === 'debit' ? '#ef4444' : '#10b981' }}>{currency}{(t.amount || 0).toLocaleString()}</td>
                     <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontSize: '0.9rem' }}>
                       {/* Delete removed as per user request (Recent Activity is view-only) */}
@@ -178,7 +178,7 @@ export function DashboardPage() {
             </table>
           </div>
           <div style={{ padding: '1rem', textAlign: 'right' }}>
-             <Link to="/consumption-tax" style={{ color: '#64748b', fontSize: '0.8rem', textDecoration: 'none' }}>Detailed Tax Insights →</Link>
+            <Link to="/consumption-tax" style={{ color: '#64748b', fontSize: '0.8rem', textDecoration: 'none' }}>Detailed Tax Insights →</Link>
           </div>
         </Card>
       </div>

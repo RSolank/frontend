@@ -4,11 +4,11 @@ import { vi } from 'vitest';
 import { TaxationRulesTab } from './TaxationRulesTab';
 import { apiFetch } from '../../../utils/apiClient';
 
-vi.mock('../../../utils/apiClient', () => ({
+vi.mock('../../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../../state/AuthContext', () => ({
+vi.mock('../../../state/AuthContext.jsx', () => ({
   useAuth: () => ({
     constants: {
       TAXABLE_TXN_TYPES: ['committed', 'essential', 'discretionary', 'uncategorized']

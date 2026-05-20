@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { UploadStatementPage } from './UploadStatement';
 import { apiFetch } from '../../utils/apiClient';
 
-vi.mock('../../utils/apiClient', () => ({
+vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 
@@ -33,12 +33,12 @@ describe('UploadStatementPage', () => {
 
     const file = new File(['date,beneficiary,amount\n2023-01-01,Test,100'], 'statement.csv', { type: 'text/csv' });
     const input = screen.getByLabelText(/Choose file/i);
-    
+
     fireEvent.change(input, { target: { files: [file] } });
 
     // In the real component, it doesn't show the filename until upload or something?
     // Let's check the UI. Line 256 has <input type="file">.
-    
+
     apiFetch.mockResolvedValueOnce({ upload_id: 1, requires_confirmation: false }); // POST upload
     apiFetch.mockResolvedValueOnce({ inserted_count: 1, categorized_count: 1, problematic_count: 0 }); // POST categorize
 

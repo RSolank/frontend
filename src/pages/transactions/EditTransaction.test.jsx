@@ -51,6 +51,7 @@ describe('EditTransactionPage Component', () => {
     apiFetch.mockImplementation((url) => {
       if (url.includes('/api/transactions')) return Promise.resolve({ transaction: null });
       if (url === '/api/tags') return Promise.resolve({ tags: [] });
+      if (url === '/api/beneficiaries') return Promise.resolve([]);
       if (url === '/api/options/constants') return Promise.resolve(mockConstants);
       return Promise.resolve({});
     });
@@ -71,6 +72,7 @@ describe('EditTransactionPage Component', () => {
             txn_id: 1,
             amount: 50.5,
             debit_credit: 'debit',
+            beneficiary_name: 'Store',
             beneficiary: 'Store',
             txn_date: '2023-10-10',
             notes: 'Test',
@@ -81,6 +83,9 @@ describe('EditTransactionPage Component', () => {
       }
       if (url === '/api/tags') {
         return { tags: mockTags };
+      }
+      if (url === '/api/beneficiaries') {
+        return [];
       }
       if (url === '/api/options/constants') {
         return mockConstants;
@@ -105,7 +110,7 @@ describe('EditTransactionPage Component', () => {
         method: 'PATCH',
         body: expect.stringContaining('"amount":60')
       }));
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
   });
 
@@ -117,6 +122,7 @@ describe('EditTransactionPage Component', () => {
             txn_id: 2,
             amount: 100,
             debit_credit: 'debit',
+            beneficiary_name: 'Bank Transfer',
             beneficiary: 'Bank Transfer',
             txn_date: '2023-10-11',
             notes: 'Stmt Note',
@@ -126,6 +132,7 @@ describe('EditTransactionPage Component', () => {
         };
       }
       if (url === '/api/tags') return { tags: mockTags };
+      if (url === '/api/beneficiaries') return [];
       if (url === '/api/options/constants') return mockConstants;
       return {};
     });
@@ -133,7 +140,7 @@ describe('EditTransactionPage Component', () => {
     renderComponent('2');
 
     await waitFor(() => {
-      expect(screen.getByText('Edit transaction')).toBeInTheDocument();
+      expect(screen.getByText(/Edit Transaction/i)).toBeInTheDocument();
     });
 
     // These fields should NOT exist for statement source (amount field with specific text)
@@ -153,33 +160,34 @@ describe('EditTransactionPage Component', () => {
   });
 
   it('removes Miscellaneous when adding a real tag', async () => {
-      apiFetch.mockImplementation(async (url) => {
-        if (url.includes('/api/transactions/1')) {
-          return {
-            transaction: {
-              txn_id: 1,
-              tag_ids: [2], // Starts with Misc
-              source: 'manual'
-            }
-          };
-        }
-        if (url === '/api/tags') return { tags: mockTags };
-        if (url === '/api/options/constants') return mockConstants;
-        return {};
-      });
+    apiFetch.mockImplementation(async (url) => {
+      if (url.includes('/api/transactions/1')) {
+        return {
+          transaction: {
+            txn_id: 1,
+            tag_ids: [2], // Starts with Misc
+            source: 'manual'
+          }
+        };
+      }
+      if (url === '/api/tags') return { tags: mockTags };
+      if (url === '/api/beneficiaries') return [];
+      if (url === '/api/options/constants') return mockConstants;
+      return {};
+    });
 
-      renderComponent();
-      await waitFor(() => expect(screen.getByText('Miscellaneous')).toBeInTheDocument());
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Miscellaneous')).toBeInTheDocument());
 
-      // Focus search and pick Groceries (tag_id 3)
-      const search = screen.getByPlaceholderText('Search tags...');
-      fireEvent.focus(search);
-      
-      const groceriesOption = screen.getByText('Groceries');
-      fireEvent.mouseDown(groceriesOption); // OnMouseDown is what we used
+    // Focus search and pick Groceries (tag_id 3)
+    const search = screen.getByPlaceholderText('Search tags...');
+    fireEvent.focus(search);
 
-      // Misc should be gone, Groceries should be there
-      expect(screen.queryByText('Miscellaneous')).not.toBeInTheDocument();
-      expect(screen.getByText('Groceries')).toBeInTheDocument();
+    const groceriesOption = screen.getByText('Groceries');
+    fireEvent.mouseDown(groceriesOption); // OnMouseDown is what we used
+
+    // Misc should be gone, Groceries should be there
+    expect(screen.queryByText('Miscellaneous')).not.toBeInTheDocument();
+    expect(screen.getByText('Groceries')).toBeInTheDocument();
   });
 });

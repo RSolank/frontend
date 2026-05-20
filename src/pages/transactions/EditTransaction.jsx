@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
@@ -7,32 +7,45 @@ import { formatInputDate } from '../../utils/dateUtils.js';
 export function EditTransactionPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const { id } = useParams();
+
   const [txn, setTxn] = useState(null);
   const [tags, setTags] = useState([]);
-  const [tagSearch, setTagSearch] = useState('');
-  const [tagSearchFocused, setTagSearchFocused] = useState(false);
-  const [activeTagIndex, setActiveTagIndex] = useState(-1);
+  const [beneficiaries, setBeneficiaries] = useState([]);
   const [form, setForm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [constants, setConstants] = useState(null);
 
+  // Tag Search
+  const [tagSearch, setTagSearch] = useState('');
+  const [tagSearchFocused, setTagSearchFocused] = useState(false);
+  const [activeTagIndex, setActiveTagIndex] = useState(-1);
+
+  // Beneficiary Search
+  const [bSearch, setBSearch] = useState('');
+  const [bSearchFocused, setBSearchFocused] = useState(false);
+  const [activeBIndex, setActiveBIndex] = useState(-1);
+  const bRef = useRef(null);
+
   useEffect(() => {
     Promise.all([
-      apiFetch(`/api/transactions/${id}`).then((d) => d.transaction),
+      apiFetch(`/api/transactions/${id}`).then((d) => d.transaction), // note: single returns object
       apiFetch('/api/tags').then((d) => flattenTags(d.tags)),
+      apiFetch('/api/beneficiaries'),
       apiFetch('/api/options/constants')
     ])
-      .then(([t, tagList, consts]) => {
+      .then(([t, tagList, bList, consts]) => {
         setConstants(consts);
+        setTags(tagList);
+        setBeneficiaries(bList);
         if (t) {
           setTxn(t);
+          setBSearch(t.beneficiary_name || '');
           setForm({
             amount: t.amount,
             debit_credit: t.debit_credit,
-            beneficiary: t.beneficiary || '',
+            beneficiary_id: t.beneficiary_id || '',
             txn_date: formatInputDate(t.txn_date),
             notes: t.notes || '',
             tag_ids: t.tag_ids || []
@@ -40,9 +53,11 @@ export function EditTransactionPage() {
         } else {
           setError('Transaction not found');
         }
-        setTags(tagList);
       })
-      .catch(() => setError('Failed to load'));
+      .catch((err) => {
+        console.error(err);
+        setError('Failed to load data');
+      });
   }, [id]);
 
   function flattenTags(nodes, out = []) {
@@ -63,20 +78,13 @@ export function EditTransactionPage() {
     setForm((f) => {
       let ids = [...f.tag_ids];
       if (ids.includes(tagId)) return f;
-
       const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      
-      // If adding a real tag, remove Misc if present
       if (tagId !== MISC_ID) {
         ids = ids.filter(x => x !== MISC_ID);
         ids.push(tagId);
       } else {
-        // If adding Misc, it can only be added if no other tags exist
-        if (ids.length === 0) {
-          ids = [MISC_ID];
-        } else {
-          return f; // Cannot add misc if other tags exist
-        }
+        if (ids.length === 0) ids = [MISC_ID];
+        else return f;
       }
       return { ...f, tag_ids: ids };
     });
@@ -87,288 +95,205 @@ export function EditTransactionPage() {
     setForm((f) => {
       let ids = f.tag_ids.filter((x) => x !== tagId);
       const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      
-      // If we removed the last tag, and it wasn't misc, add misc back
-      if (ids.length === 0 && tagId !== MISC_ID && MISC_ID) {
-        ids = [MISC_ID];
-      }
+      if (ids.length === 0 && tagId !== MISC_ID && MISC_ID) ids = [MISC_ID];
       return { ...f, tag_ids: ids };
     });
   };
 
-  const selectedTags = (form?.tag_ids || []).length
-    ? tags.filter((t) => form.tag_ids.includes(t.tag_id))
-    : [];
+  const availableTags = tags.filter(t => {
+    const isSelected = form?.tag_ids?.includes(t.tag_id);
+    const isMisc = t.tag_id === constants?.MISCELLANEOUS_TAG_ID;
+    const hasOtherTags = form?.tag_ids?.some(id => id !== constants?.MISCELLANEOUS_TAG_ID);
+    const isTotal = t.tag_id === constants?.TOTAL_TAG_ID;
+    if (isSelected || isTotal) return false;
+    if (isMisc && hasOtherTags) return false;
+    return !tagSearch || t.tag_name.toLowerCase().includes(tagSearch.toLowerCase());
+  });
 
-  const availableTags = tags.filter(
-    (t) => {
-      const isSelected = form?.tag_ids?.includes(t.tag_id);
-      const isMisc = t.tag_id === constants?.MISCELLANEOUS_TAG_ID;
-      const hasOtherTags = form?.tag_ids?.some(id => id !== constants?.MISCELLANEOUS_TAG_ID);
-      const isTotal = t.tag_id === constants?.TOTAL_TAG_ID;
-
-      if (isSelected) return false;
-      if (isTotal) return false;
-      if (isMisc && hasOtherTags) return false; // Hide misc if other tags selected
-      
-      return !tagSearch || t.tag_name.toLowerCase().includes(tagSearch.toLowerCase());
-    }
+  const availableBeneficiaries = beneficiaries.filter(b =>
+    !bSearch || b.name.toLowerCase().includes(bSearch.toLowerCase())
   );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
     try {
-      const isAutoStatement = txn.source === 'statement' || txn.source === 'statement_pending';
-      const payload = isAutoStatement
-        ? {
-            notes: form.notes,
-            tag_ids: form.tag_ids
+      // Check if tags changed
+      const tagsChanged = JSON.stringify(form.tag_ids.sort()) !== JSON.stringify(txn.tag_ids.sort());
+
+      let ruleIdToLink = null;
+      if (tagsChanged && form.beneficiary_id) {
+        const createRule = window.confirm('You updated the tags. Would you like to create/update a categorization rule for this beneficiary?');
+        if (createRule) {
+          // Check if rule exists
+          const { rules } = await apiFetch('/api/categorization-rules');
+          const existingRule = rules.find(r => r.beneficiary_id === form.beneficiary_id);
+
+          if (existingRule) {
+            if (window.confirm(`A rule for "${existingRule.beneficiary_name}" already exists. Update it with these tags?`)) {
+              await apiFetch(`/api/categorization-rules/${existingRule.uid}`, {
+                method: 'PUT',
+                body: JSON.stringify({ tag_ids: form.tag_ids })
+              });
+              ruleIdToLink = existingRule.uid;
+            }
+          } else {
+            const newRule = await apiFetch('/api/categorization-rules', {
+              method: 'POST',
+              body: JSON.stringify({
+                name: `Rule for ${bSearch}`,
+                beneficiary_id: form.beneficiary_id,
+                tag_ids: form.tag_ids
+              })
+            });
+            ruleIdToLink = newRule.rule.uid;
           }
-        : {
-            amount: parseFloat(form.amount),
-            debit_credit: form.debit_credit,
-            beneficiary: form.beneficiary || null,
-            txn_date: form.txn_date,
-            notes: form.notes || null,
-            tag_ids: form.tag_ids
-          };
-      await apiFetch(`/api/transactions/${id}`, {
+        }
+      }
+
+      const payload = txn?.source === 'statement' ? {
+        notes: form.notes || null,
+        tag_ids: form.tag_ids
+      } : {
+        amount: parseFloat(form.amount),
+        debit_credit: form.debit_credit,
+        beneficiary_id: form.beneficiary_id || null,
+        beneficiary_name: bSearch || null,
+        txn_date: form.txn_date,
+        notes: form.notes || null,
+        tag_ids: form.tag_ids
+      };
+
+      await apiFetch(`/api/transactions/${id}${ruleIdToLink ? `?rule_id=${ruleIdToLink}` : ''}`, {
         method: 'PATCH',
         body: JSON.stringify(payload)
       });
-      navigate('/dashboard');
+      navigate('/transactions');
     } catch (err) {
-      setError(err.error || 'Failed to update');
+      setError(err.detail || 'Failed to update');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (error && !txn) {
-    return (
-      <div style={{ padding: '2rem' }}>
-        {error}
-        <p>
-          <button onClick={() => navigate('/dashboard')}>Back to dashboard</button>
-        </p>
-      </div>
-    );
-  }
-
-  if (!form) {
-    return <div style={{ padding: '2rem' }}>Loading...</div>;
-  }
-
-  const isAutoStatement = txn.source === 'statement' || txn.source === 'statement_pending';
-  const isManual = txn.source === 'manual';
+  if (error && !form) return <div style={{ padding: '2rem', color: '#ef4444' }}>{error}</div>;
+  if (!form) return <div style={{ padding: '2rem' }}>Loading...</div>;
 
   return (
     <div style={{ maxWidth: '600px', margin: '2rem auto', padding: '2rem', background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', color: '#1e293b' }}>Edit transaction</h1>
-      
-      {isAutoStatement && (
-        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #2563eb', marginBottom: '1.5rem', fontSize: '0.9rem', color: '#64748b' }}>
-          Statement transactions can have notes and tags updated. Saving tags may also create new categorization rules.
-        </div>
-      )}
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', color: '#1e293b' }}>Edit Transaction</h1>
 
       {error && <div style={{ color: '#ef4444', background: '#fef2f2', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem', fontWeight: 600 }}>{error}</div>}
-      
+
       <form onSubmit={handleSubmit}>
-        {isManual && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Beneficiary</label>
+        {txn?.source === 'manual' && (
+          <>
+            <div style={{ marginBottom: '1rem', position: 'relative' }}>
+              <label htmlFor="beneficiary_name" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Beneficiary</label>
               <input
-                name="beneficiary"
-                value={form.beneficiary}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Amount ({user?.currency || '$'})</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
+                id="beneficiary_name"
+                value={bSearch}
+                onChange={(e) => {
+                  setBSearch(e.target.value);
+                  setForm(f => ({ ...f, beneficiary_id: '' }));
+                  setActiveBIndex(0);
+                }}
+                onFocus={() => setBSearchFocused(true)}
+                onBlur={() => setTimeout(() => setBSearchFocused(false), 200)}
+                placeholder="Search beneficiary..."
                 required
                 style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
               />
+              {bSearchFocused && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                  {availableBeneficiaries.map((b, i) => (
+                    <div
+                      key={b.uid}
+                      onMouseDown={() => {
+                        setBSearch(b.name);
+                        setForm(f => ({ ...f, beneficiary_id: b.uid }));
+                      }}
+                      style={{ padding: '0.6rem 1rem', cursor: 'pointer', background: activeBIndex === i ? '#f1f5f9' : 'white' }}
+                    >
+                      {b.name}
+                    </div>
+                  ))}
+                  <div
+                    onMouseDown={() => window.open('/beneficiaries', '_blank')}
+                    style={{ padding: '0.6rem 1rem', cursor: 'pointer', borderTop: '1px solid #f1f5f9', color: '#2563eb', fontWeight: 600 }}
+                  >
+                    + Add New Beneficiary
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Type</label>
-              <select
-                name="debit_credit"
-                value={form.debit_credit}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-              >
-                <option value="debit">Debit</option>
-                <option value="credit">Credit</option>
-              </select>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label htmlFor="amount" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Amount</label>
+                <input id="amount" type="number" step="0.01" name="amount" value={form.amount} onChange={handleChange} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+              </div>
+              <div>
+                <label htmlFor="debit_credit" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Type</label>
+                <select id="debit_credit" name="debit_credit" value={form.debit_credit} onChange={handleChange} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
             </div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Date</label>
-              <input
-                type="date"
-                name="txn_date"
-                value={form.txn_date}
-                onChange={handleChange}
-                required
-                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
-              />
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="txn_date" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Date</label>
+              <input id="txn_date" type="date" name="txn_date" value={form.txn_date} onChange={handleChange} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
             </div>
-          </div>
+          </>
         )}
 
         <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Tags</label>
+          <label htmlFor="tags_search" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Tags</label>
           <div style={{ position: 'relative' }}>
             <input
+              id="tags_search"
               type="text"
               placeholder="Search tags..."
               value={tagSearch}
-              onChange={(e) => {
-                setTagSearch(e.target.value);
-                setActiveTagIndex(0);
-              }}
-              onFocus={() => {
-                setTagSearchFocused(true);
-                if (availableTags.length > 0) setActiveTagIndex(0);
-              }}
-              onBlur={() => {
-                setTimeout(() => {
-                  setTagSearchFocused(false);
-                  setActiveTagIndex(-1);
-                }, 200);
-              }}
-              onKeyDown={(e) => {
-                if (!availableTags.length) return;
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setActiveTagIndex((idx) => (idx < availableTags.length - 1 ? idx + 1 : 0));
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setActiveTagIndex((idx) => (idx > 0 ? idx - 1 : availableTags.length - 1));
-                } else if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const chosen = availableTags[activeTagIndex];
-                  if (chosen) handleAddTag(chosen.tag_id);
-                } else if (e.key === 'Escape') {
-                  setTagSearch('');
-                  setTagSearchFocused(false);
-                }
-              }}
-              style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem' }}
+              onChange={(e) => setTagSearch(e.target.value)}
+              onFocus={() => setTagSearchFocused(true)}
+              onBlur={() => setTimeout(() => setTagSearchFocused(false), 200)}
+              style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
             />
-            {tagSearchFocused && (tagSearch || availableTags.length > 0) && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                  zIndex: 10,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  marginTop: '4px'
-                }}
-              >
-                {availableTags.length === 0 ? (
-                  <div style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.9rem' }}>No tags found</div>
-                ) : availableTags.map((t, i) => (
-                  <div
-                    key={t.tag_id}
-                    onMouseDown={(e) => {
-                      e.preventDefault(); // Prevent blur before click
-                      handleAddTag(t.tag_id);
-                    }}
-                    onMouseEnter={() => setActiveTagIndex(i)}
-                    style={{
-                      padding: '0.6rem 1rem',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      background: activeTagIndex === i ? '#f1f5f9' : 'white',
-                      color: '#1e293b',
-                      transition: 'background 0.2s'
-                    }}
-                  >
-                    {t.tag_name}
-                  </div>
+            {tagSearchFocused && availableTags.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 10, maxHeight: '200px', overflowY: 'auto' }}>
+                {availableTags.map((t) => (
+                  <div key={t.tag_id} onMouseDown={() => handleAddTag(t.tag_id)} style={{ padding: '0.6rem 1rem', cursor: 'pointer' }}>{t.tag_name}</div>
                 ))}
               </div>
             )}
           </div>
-          
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '0.75rem' }}>
-            {selectedTags.map((t) => (
-              <div 
-                key={t.tag_id} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px', 
-                  background: '#eff6ff', 
-                  color: '#2563eb', 
-                  padding: '4px 10px', 
-                  borderRadius: '20px', 
-                  fontSize: '0.85rem', 
-                  fontWeight: 600,
-                  border: '1px solid #dbeafe'
-                }}
-              >
-                {t.tag_name}
-                <button 
-                  type="button" 
-                  onClick={() => handleRemoveTag(t.tag_id)}
-                  style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontSize: '1rem', fontWeight: 700 }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {selectedTags.length === 0 && <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>No tags selected (Uncategorized)</span>}
+            {form.tag_ids.map(tid => {
+              const tag = tags.find(tg => tg.tag_id === tid);
+              return (
+                <div key={tid} style={{ background: '#eff6ff', color: '#2563eb', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {tag?.tag_name} <button type="button" onClick={() => handleRemoveTag(tid)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}>×</button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Notes</label>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            rows={3}
-            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.95rem', resize: 'vertical', fontFamily: 'inherit' }}
-          />
+          <textarea name="notes" value={form.notes} onChange={handleChange} rows={3} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', resize: 'vertical' }} />
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-          <button 
-            type="submit" 
-            disabled={submitting} 
-            style={{ flex: 1, padding: '0.75rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
-            onMouseEnter={(e) => !submitting && (e.target.style.background = '#1d4ed8')}
-            onMouseLeave={(e) => !submitting && (e.target.style.background = '#2563eb')}
-          >
+          <button type="submit" disabled={submitting} style={{ flex: 1, padding: '0.75rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
             {submitting ? 'Saving...' : 'Save Changes'}
           </button>
-          <button 
-            type="button" 
-            onClick={() => navigate('/transactions')} 
-            style={{ flex: 1, padding: '0.75rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
-          >
-            Cancel
-          </button>
+          <button type="button" onClick={() => navigate('/transactions')} style={{ flex: 1, padding: '0.75rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
         </div>
       </form>
     </div>

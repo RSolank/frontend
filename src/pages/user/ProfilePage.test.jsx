@@ -5,11 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { ProfilePage } from './ProfilePage';
 import { apiFetch } from '../../utils/apiClient';
 
-vi.mock('../../utils/apiClient', () => ({
+vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../state/AuthContext', () => ({
+vi.mock('../../state/AuthContext.jsx', () => ({
   useAuth: () => ({
     user: {
       first_name: 'John',

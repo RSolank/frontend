@@ -26,12 +26,16 @@ vi.mock('react-router-dom', async () => {
 describe('AddTransactionPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for tags fetch
-    apiFetch.mockResolvedValueOnce({
-      tags: [
-        { tag_id: 12, tag_name: 'Miscellaneous', parent: null, children: [] },
-        { tag_id: 1, tag_name: 'Groceries', parent: null, children: [] }
-      ]
+    apiFetch.mockImplementation(async (url) => {
+      if (url.includes('tags')) return {
+        tags: [
+          { tag_id: 12, tag_name: 'Miscellaneous', parent: null, children: [] },
+          { tag_id: 1, tag_name: 'Groceries', parent: null, children: [] }
+        ]
+      };
+      if (url.includes('beneficiaries')) return [];
+      if (url.includes('constants')) return {};
+      return {};
     });
   });
 
@@ -44,7 +48,7 @@ describe('AddTransactionPage Component', () => {
 
   it('renders form fields correctly', async () => {
     renderComponent();
-    expect(screen.getByText('Add transaction')).toBeInTheDocument();
+    expect(screen.getByText(/Add Transaction/i)).toBeInTheDocument();
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/tags'));
     expect(screen.getByLabelText(/Amount/)).toBeInTheDocument();
     expect(screen.getByLabelText('Type')).toBeInTheDocument();
@@ -68,29 +72,29 @@ describe('AddTransactionPage Component', () => {
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'debit' } });
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Test note' } });
 
-    fireEvent.submit(screen.getByText('Add').closest('form'));
+    fireEvent.submit(screen.getByText('Create Transaction').closest('form'));
 
     await waitFor(() => {
       expect(apiFetch).toHaveBeenCalledWith('/api/transactions', expect.objectContaining({
         method: 'POST',
         body: expect.stringContaining('"amount":50.5')
       }));
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
   });
 
   it('shows error if API fails', async () => {
     renderComponent();
 
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(3));
 
     apiFetch.mockRejectedValueOnce({ error: 'Server error' });
 
     fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: '10' } });
-    fireEvent.submit(screen.getByText('Add').closest('form'));
+    fireEvent.submit(screen.getByText('Create Transaction').closest('form'));
 
     await waitFor(() => {
-      expect(screen.getByText('Server error')).toBeInTheDocument();
+      expect(screen.getByText(/Failed to create/i)).toBeInTheDocument();
     });
   });
 });

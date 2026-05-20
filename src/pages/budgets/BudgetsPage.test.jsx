@@ -6,11 +6,11 @@ import { BudgetsPage } from './BudgetsPage';
 import { apiFetch } from '../../utils/apiClient';
 
 // Mock apiFetch
-vi.mock('../../utils/apiClient', () => ({
+vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../state/AuthContext', () => ({
+vi.mock('../../state/AuthContext.jsx', () => ({
   useAuth: () => ({ 
     user: { user_id: 1, first_name: 'Test', currency: '$' },
     constants: { TOTAL_TAG_ID: 1, MISCELLANEOUS_TAG_ID: 2 }

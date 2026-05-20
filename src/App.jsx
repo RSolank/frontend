@@ -12,6 +12,8 @@ import { EditTransactionPage } from './pages/transactions/EditTransaction.jsx';
 import { UploadStatementPage } from './pages/transactions/UploadStatement.jsx';
 import { BudgetsPage } from './pages/budgets/BudgetsPage.jsx';
 import { ConsumptionTaxPage } from './pages/tax/ConsumptionTaxPage.jsx';
+import { BeneficiariesPage } from './pages/beneficiaries/BeneficiariesPage.jsx';
+import { BeneficiaryDetailPage } from './pages/beneficiaries/BeneficiaryDetailPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -49,6 +51,12 @@ function App() {
       } />
       <Route path="/consumption-tax" element={
         <ProtectedRoute><ConsumptionTaxPage /></ProtectedRoute>
+      } />
+      <Route path="/beneficiaries" element={
+        <ProtectedRoute><BeneficiariesPage /></ProtectedRoute>
+      } />
+      <Route path="/beneficiaries/:id" element={
+        <ProtectedRoute><BeneficiaryDetailPage /></ProtectedRoute>
       } />
 
       {/* User Settings */}

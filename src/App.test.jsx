@@ -6,7 +6,7 @@ import { AuthProvider } from './state/AuthContext.jsx';
 
 // Mock apiFetch to prevent real network calls during render,
 // which would be aborted on happy-dom teardown causing DOMException AbortError.
-vi.mock('./utils/apiClient', () => ({
+vi.mock('./utils/apiClient.js', () => ({
   apiFetch: vi.fn().mockResolvedValue({ user: null })
 }));
 

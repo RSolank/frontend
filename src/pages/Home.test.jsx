@@ -5,7 +5,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { HomePage } from './Home';
 import { useAuth } from '../state/AuthContext';
 
-vi.mock('../state/AuthContext', () => ({
+vi.mock('../state/AuthContext.jsx', () => ({
   useAuth: vi.fn(),
 }));
 

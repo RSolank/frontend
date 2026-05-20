@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from './Dashboard';
 import { apiFetch } from '../utils/apiClient';
 
-vi.mock('../utils/apiClient', () => ({
+vi.mock('../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
 }));
 
@@ -17,7 +17,7 @@ const mockUser = {
 
 const mockLogout = vi.fn();
 
-vi.mock('../state/AuthContext', () => ({
+vi.mock('../state/AuthContext.jsx', () => ({
   useAuth: () => ({
     user: mockUser,
     constants: {
@@ -78,13 +78,13 @@ describe('DashboardPage', () => {
 
     // Use findBy to wait for initial text
     expect(await screen.findByText(/Welcome back/i)).toBeInTheDocument();
-    
+
     // Check for John - might be multiple, so check if at least one is present
     const johns = await screen.findAllByText(/John/i);
     expect(johns.length).toBeGreaterThan(0);
 
     expect(screen.getByText('TOTAL BUDGET')).toBeInTheDocument();
-    
+
     // Check for ₹500
     await waitFor(() => {
       // Look for the text specifically in a heading or just any element
