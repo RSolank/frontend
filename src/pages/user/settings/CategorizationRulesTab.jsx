@@ -49,7 +49,7 @@ export function CategorizationRulesTab() {
       apiFetch('/api/categorization-rules').then((d) => d.rules || []),
       apiFetch('/api/tags').then((d) => flattenTags(d.tags || [])),
       apiFetch('/api/beneficiaries'),
-      apiFetch('/api/options/constants'),
+      apiFetch('/api/metadata/constants'),
     ])
       .then(([r, t, bList, c]) => {
         setRules(r);

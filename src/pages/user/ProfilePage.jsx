@@ -62,8 +62,8 @@ export function ProfilePage() {
       })
       .catch(() => {});
 
-    apiFetch('/api/options/countries').then((d) => setCountries(d.countries || [])).catch(() => {});
-    apiFetch('/api/options/currencies').then((d) => setCurrencies(d.currencies || [])).catch(() => {});
+    apiFetch('/api/metadata/countries').then((d) => setCountries(d.countries || [])).catch(() => {});
+    apiFetch('/api/metadata/currencies').then((d) => setCurrencies(d.currencies || [])).catch(() => {});
     apiFetch('/api/auth/recovery').then((d) => setRecoveryQuestions(d.questions || [])).catch(() => {});
   }, []);
 

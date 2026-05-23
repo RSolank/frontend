@@ -31,7 +31,7 @@ export function AddTransactionPage() {
     Promise.all([
       apiFetch('/api/tags').then(d => flattenTags(d.tags)),
       apiFetch('/api/beneficiaries'),
-      apiFetch('/api/options/constants')
+      apiFetch('/api/metadata/constants')
     ])
       .then(([tagList, bList, consts]) => {
         setTags(tagList);

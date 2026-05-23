@@ -37,8 +37,8 @@ describe('ProfilePage', () => {
   it('renders profile data and allows editing', async () => {
     apiFetch.mockImplementation(async (url) => {
       if (url === '/api/users/me') return { user: { first_name: 'John', last_name: 'Doe' } };
-      if (url === '/api/options/countries') return { countries: mockOptionsResponse.countries };
-      if (url === '/api/options/currencies') return { currencies: mockOptionsResponse.currencies };
+      if (url === '/api/metadata/countries') return { countries: mockOptionsResponse.countries };
+      if (url === '/api/metadata/currencies') return { currencies: mockOptionsResponse.currencies };
       if (url === '/api/auth/recovery') return { questions: [] };
       return {};
     });
@@ -72,8 +72,8 @@ describe('ProfilePage', () => {
   it('validates new password requirements in settings', async () => {
     apiFetch.mockImplementation(async (url) => {
       if (url === '/api/users/me') return { user: { first_name: 'John', last_name: 'Doe' } };
-      if (url === '/api/options/countries') return { countries: mockOptionsResponse.countries };
-      if (url === '/api/options/currencies') return { currencies: mockOptionsResponse.currencies };
+      if (url === '/api/metadata/countries') return { countries: mockOptionsResponse.countries };
+      if (url === '/api/metadata/currencies') return { currencies: mockOptionsResponse.currencies };
       if (url === '/api/auth/recovery') return { questions: [] };
       return {};
     });

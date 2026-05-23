@@ -76,17 +76,17 @@ export function RegisterPage() {
   };
 
   useEffect(() => {
-    apiFetch('/api/options/countries')
+    apiFetch('/api/metadata/countries')
       .then((d) => setCountries(d.countries || []))
       .catch(() => {});
-    apiFetch('/api/options/currencies')
+    apiFetch('/api/metadata/currencies')
       .then((d) => setCurrencies(d.currencies || []))
       .catch(() => {});
 
     const region = resolveLocaleDefaults();
     // When countries arrive, choose a sensible default based on locale.
     // Fallback to India / INR.
-    apiFetch('/api/options/countries')
+    apiFetch('/api/metadata/countries')
       .then((d) => {
         const all = d.countries || [];
         setCountries(all);

@@ -164,7 +164,7 @@ export function CategoriesTab() {
   };
 
   const loadConstants = () => {
-    apiFetch('/api/options/constants')
+    apiFetch('/api/metadata/constants')
       .then(setConstants)
       .catch(err => console.error('Failed to load constants', err));
   };

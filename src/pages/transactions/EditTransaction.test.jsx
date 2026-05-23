@@ -52,7 +52,7 @@ describe('EditTransactionPage Component', () => {
       if (url.includes('/api/transactions')) return Promise.resolve({ transaction: null });
       if (url === '/api/tags') return Promise.resolve({ tags: [] });
       if (url === '/api/beneficiaries') return Promise.resolve([]);
-      if (url === '/api/options/constants') return Promise.resolve(mockConstants);
+      if (url === '/api/metadata/constants') return Promise.resolve(mockConstants);
       return Promise.resolve({});
     });
 
@@ -87,7 +87,7 @@ describe('EditTransactionPage Component', () => {
       if (url === '/api/beneficiaries') {
         return [];
       }
-      if (url === '/api/options/constants') {
+      if (url === '/api/metadata/constants') {
         return mockConstants;
       }
       return {};
@@ -133,7 +133,7 @@ describe('EditTransactionPage Component', () => {
       }
       if (url === '/api/tags') return { tags: mockTags };
       if (url === '/api/beneficiaries') return [];
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       return {};
     });
 
@@ -172,7 +172,7 @@ describe('EditTransactionPage Component', () => {
       }
       if (url === '/api/tags') return { tags: mockTags };
       if (url === '/api/beneficiaries') return [];
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       return {};
     });
 

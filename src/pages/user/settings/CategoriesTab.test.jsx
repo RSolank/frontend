@@ -36,7 +36,7 @@ describe('CategoriesTab', () => {
   it('renders tag list after loading', async () => {
     apiFetch.mockImplementation(async (url) => {
       if (url === '/api/tags') return mockTagsResponse;
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       return {};
     });
 
@@ -57,7 +57,7 @@ describe('CategoriesTab', () => {
   it('submits a new tag with aliases and reloads the list', async () => {
     apiFetch.mockImplementation(async (url, options) => {
       if (url === '/api/tags' && !options) return mockTagsResponse;
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       if (url === '/api/tags' && options?.method === 'POST') return { tag: { tag_id: 99 } };
       return {};
     });

@@ -33,7 +33,7 @@ export function EditTransactionPage() {
       apiFetch(`/api/transactions/${id}`).then((d) => d.transaction), // note: single returns object
       apiFetch('/api/tags').then((d) => flattenTags(d.tags)),
       apiFetch('/api/beneficiaries'),
-      apiFetch('/api/options/constants')
+      apiFetch('/api/metadata/constants')
     ])
       .then(([t, tagList, bList, consts]) => {
         setConstants(consts);

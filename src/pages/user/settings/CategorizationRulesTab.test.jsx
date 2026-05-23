@@ -63,7 +63,7 @@ function mockLoadApis(rules = mockRules.rules, beneficiaries = mockBeneficiaries
     if (url === '/api/categorization-rules' && !options) return { rules };
     if (url === '/api/tags') return mockTags;
     if (url === '/api/beneficiaries') return beneficiaries;
-    if (url === '/api/options/constants') return mockConstants;
+    if (url === '/api/metadata/constants') return mockConstants;
     return {};
   });
 }
@@ -94,7 +94,7 @@ describe('CategorizationRulesTab', () => {
       if (url === '/api/categorization-rules' && !options) return { rules: [] };
       if (url === '/api/tags') return mockTags;
       if (url === '/api/beneficiaries') return mockBeneficiaries;
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       if (url === '/api/categorization-rules' && options?.method === 'POST') {
         return { rule: { uid: 3 } };
       }
@@ -147,7 +147,7 @@ describe('CategorizationRulesTab', () => {
       if (url === '/api/categorization-rules' && !options) return mockRules;
       if (url === '/api/tags') return mockTags;
       if (url === '/api/beneficiaries') return mockBeneficiaries;
-      if (url === '/api/options/constants') return mockConstants;
+      if (url === '/api/metadata/constants') return mockConstants;
       if (url === '/api/categorization-rules/1' && options?.method === 'DELETE') {
         return { status: 'ok' };
       }

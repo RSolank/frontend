@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
     try {
       const [userData, constantsData] = await Promise.all([
         apiFetch('/api/users/me'),
-        apiFetch('/api/options/constants')
+        apiFetch('/api/metadata/constants')
       ]);
       setUser(userData.user || null);
       setConstants(constantsData || null);
