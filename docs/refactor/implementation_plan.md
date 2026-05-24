@@ -80,8 +80,13 @@ graph TD
 
 ### Batch 0 — Tooling & Baseline
 
-Order matters: each step assumes the prior one is in place. Land each as its
-own small commit so a bisect remains useful.
+Order matters: each step assumes the prior one is in place. Use WIP commits
+locally between steps as rollback checkpoints, but **do not push them** —
+at the end of the batch, soft-reset and condense to a single
+`Frontend Batch 0: tooling baseline (…)` commit before pushing. The
+refactor branch carries one commit per batch, not one per step (bisect
+granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scratch/task-frontend.md)
+"Workflow" for the soft-reset recipe).
 
 1. **ESLint + Prettier.** Install: `eslint@^9`, `@eslint/js@^9`,
    `eslint-plugin-react`, `eslint-plugin-react-hooks`,
