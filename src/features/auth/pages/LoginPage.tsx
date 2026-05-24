@@ -97,11 +97,7 @@ export function LoginPage() {
                 className="form-input"
               />
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
+            <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Logging in...' : 'Login'}
             </button>
           </form>
@@ -111,15 +107,8 @@ export function LoginPage() {
               setForgotMode(true);
               setError(null);
             }}
-            style={{
-              marginTop: '0.5rem',
-              width: '100%',
-              padding: '0.5rem',
-              background: 'transparent',
-              border: 'none',
-              color: '#2563eb',
-              cursor: 'pointer',
-            }}
+            className="btn-link"
+            style={{ marginTop: '0.5rem' }}
           >
             Forgot password?
           </button>

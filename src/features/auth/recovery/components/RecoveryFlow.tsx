@@ -149,7 +149,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
               className="form-input"
             />
           </div>
-          <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>
+          <button type="submit" className="btn-primary">
             Continue
           </button>
         </form>
@@ -159,20 +159,16 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
         >
-          <p style={{ margin: 0, color: '#374151' }}>
+          <p
+            style={{ margin: 0 }}
+            className="text-slate-700 dark:text-slate-300"
+          >
             How would you like to verify your identity?
           </p>
           <button
             type="button"
             onClick={() => setStep('question')}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              cursor: 'pointer',
-              background: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              borderRadius: 4,
-            }}
+            className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
           >
             Security question
           </button>
@@ -182,14 +178,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
               await requestOtp(email);
               setStep('otp');
             }}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              cursor: 'pointer',
-              background: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              borderRadius: 4,
-            }}
+            className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
           >
             OTP (One-time password)
           </button>
@@ -227,11 +216,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
                 className="form-input"
               />
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
+            <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Verifying...' : 'Verify answer'}
             </button>
           </form>
@@ -242,16 +227,8 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
               await requestOtp(email);
               setStep('otp');
             }}
-            style={{
-              marginTop: '1rem',
-              width: '100%',
-              padding: '0.5rem',
-              background: 'transparent',
-              border: 'none',
-              color: '#2563eb',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-            }}
+            className="btn-link"
+            style={{ marginTop: '1rem' }}
           >
             Use OTP instead
           </button>
@@ -286,11 +263,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
               className="form-input"
             />
           </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{ width: '100%', padding: '0.5rem' }}
-          >
+          <button type="submit" disabled={submitting} className="btn-primary">
             {submitting ? 'Verifying...' : 'Verify OTP'}
           </button>
           <button
@@ -306,16 +279,8 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
                 setSubmitting(false);
               }
             }}
-            style={{
-              marginTop: '0.5rem',
-              width: '100%',
-              padding: '0.5rem',
-              background: 'transparent',
-              border: 'none',
-              color: '#2563eb',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-            }}
+            className="btn-link"
+            style={{ marginTop: '0.5rem' }}
           >
             Resend code
           </button>
@@ -354,7 +319,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
               submitting ||
               (newPassword.length > 0 && !validatePassword(newPassword).isValid)
             }
-            style={{ width: '100%', padding: '0.5rem' }}
+            className="btn-primary"
           >
             {submitting ? 'Updating...' : 'Reset password'}
           </button>
@@ -371,15 +336,8 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
           setQuestion('');
           onExit();
         }}
-        style={{
-          marginTop: '0.5rem',
-          width: '100%',
-          padding: '0.5rem',
-          background: 'transparent',
-          border: 'none',
-          color: '#2563eb',
-          cursor: 'pointer',
-        }}
+        className="btn-link"
+        style={{ marginTop: '0.5rem' }}
       >
         Back to login
       </button>

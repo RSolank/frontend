@@ -441,7 +441,8 @@ export function RegisterPage() {
             submitting ||
             (form.password.length > 0 && !validatePassword(form.password).isValid)
           }
-          style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
+          className="btn-primary"
+          style={{ marginTop: '1rem' }}
         >
           {submitting ? 'Registering...' : 'Register'}
         </button>

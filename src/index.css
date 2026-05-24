@@ -9,6 +9,21 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
+ * Tailwind v4's preflight removed the default `cursor: pointer` on
+ * `<button>` elements (and on the role="button" pattern). Restore it
+ * project-wide so every interactive button signals affordance on hover
+ * without each call site repeating `cursor-pointer`. Disabled buttons
+ * keep `cursor: not-allowed`, which the relevant `.btn-*` classes wire
+ * via `disabled:cursor-not-allowed`.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+/*
  * Feature batches add component patterns here as they migrate UI to
  * Tailwind. Keep this file thin — most styling stays in component
  * className strings; @layer components is reserved for genuinely
@@ -40,5 +55,31 @@
 
   .form-error {
     @apply text-sm text-rose-600 dark:text-rose-400;
+  }
+
+  /*
+   * Button primitives. `.btn-primary` is the indigo CTA used by every
+   * form's main action; `.btn-link` is the tertiary text-link variant
+   * used by "Forgot password?" / "Resend code" / "Back to login".
+   * Both ship with the same focus ring + disabled treatment so the
+   * design language reads consistently across auth screens.
+   */
+  .btn-primary {
+    @apply inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
+    @apply hover:bg-indigo-700;
+    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:cursor-not-allowed disabled:bg-indigo-400 disabled:shadow-none;
+    @apply dark:bg-indigo-500 dark:hover:bg-indigo-400;
+    @apply dark:disabled:bg-indigo-900 dark:disabled:text-indigo-300;
+    @apply dark:focus-visible:ring-offset-slate-950;
+  }
+
+  .btn-link {
+    @apply inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium text-indigo-600 transition-colors;
+    @apply hover:bg-indigo-50 hover:text-indigo-700;
+    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:cursor-not-allowed disabled:text-indigo-300;
+    @apply dark:text-indigo-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300;
+    @apply dark:focus-visible:ring-offset-slate-950;
   }
 }
