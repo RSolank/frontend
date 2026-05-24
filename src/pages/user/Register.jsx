@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+
+import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 import { useAuth } from '../../state/AuthContext.jsx';
 import { apiFetch } from '../../utils/apiClient.js';
 import { validatePassword } from '../../utils/validation';
-import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
 
 export function RegisterPage() {
   const { register, error, setError } = useAuth();
@@ -18,7 +19,7 @@ export function RegisterPage() {
     dob: '',
     contact_local: '',
     country: '',
-    currency: ''
+    currency: '',
   });
   const [countries, setCountries] = useState([]);
   const [currencies, setCurrencies] = useState([]);
@@ -30,12 +31,16 @@ export function RegisterPage() {
     'What is your mother’s maiden name?',
     'What was the name of your first pet?',
     'What city were you born in?',
-    'What is your favorite teacher’s name?'
+    'What is your favorite teacher’s name?',
   ];
 
   const resolveLocaleDefaults = () => {
     try {
-      const locale = (navigator.language || navigator.userLanguage || '').toUpperCase();
+      const locale = (
+        navigator.language ||
+        navigator.userLanguage ||
+        ''
+      ).toUpperCase();
       const parts = locale.split('-');
       const region = parts[1] || 'IN';
       // We will match region to a country name later using countries data.
@@ -59,7 +64,7 @@ export function RegisterPage() {
           setForm((f) => ({
             ...f,
             country: found.name,
-            currency: found.default_currency || f.currency
+            currency: found.default_currency || f.currency,
           }));
         }
       }
@@ -92,17 +97,23 @@ export function RegisterPage() {
         setCountries(all);
         let defaultCountry = all.find((c) => c.name === 'India');
         if (region === 'IN') {
-          defaultCountry = all.find((c) => c.name === 'India') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'India') || defaultCountry;
         } else if (region === 'US') {
-          defaultCountry = all.find((c) => c.name === 'United States') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'United States') || defaultCountry;
         } else if (region === 'GB') {
-          defaultCountry = all.find((c) => c.name === 'United Kingdom') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'United Kingdom') || defaultCountry;
         } else if (region === 'CA') {
-          defaultCountry = all.find((c) => c.name === 'Canada') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'Canada') || defaultCountry;
         } else if (region === 'AU') {
-          defaultCountry = all.find((c) => c.name === 'Australia') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'Australia') || defaultCountry;
         } else if (region === 'SG') {
-          defaultCountry = all.find((c) => c.name === 'Singapore') || defaultCountry;
+          defaultCountry =
+            all.find((c) => c.name === 'Singapore') || defaultCountry;
         }
 
         if (defaultCountry) {
@@ -110,14 +121,14 @@ export function RegisterPage() {
           setForm((f) => ({
             ...f,
             country: defaultCountry.name,
-            currency: defaultCountry.default_currency || 'INR'
+            currency: defaultCountry.default_currency || 'INR',
           }));
         } else {
           setDialCode('+91');
           setForm((f) => ({
             ...f,
             country: 'India',
-            currency: 'INR'
+            currency: 'INR',
           }));
         }
       })
@@ -127,7 +138,7 @@ export function RegisterPage() {
         setForm((f) => ({
           ...f,
           country: 'India',
-          currency: 'INR'
+          currency: 'INR',
         }));
       });
   }, []);
@@ -155,8 +166,11 @@ export function RegisterPage() {
       last_name: form.last_name,
       dob: form.dob || null,
       contact: phoneDigits ? `${dialCode}${phoneDigits}` : null,
-      country: !form.country || form.country === '__PREFER_NOT_SAY__' ? null : form.country,
-      currency: form.currency || 'INR'
+      country:
+        !form.country || form.country === '__PREFER_NOT_SAY__'
+          ? null
+          : form.country,
+      currency: form.currency || 'INR',
     };
 
     setSubmitting(true);
@@ -173,9 +187,19 @@ export function RegisterPage() {
   };
 
   return (
-    <div style={{ maxWidth: 500, margin: '2rem auto', padding: '2rem', border: '1px solid #ddd', borderRadius: 8 }}>
+    <div
+      style={{
+        maxWidth: 500,
+        margin: '2rem auto',
+        padding: '2rem',
+        border: '1px solid #ddd',
+        borderRadius: 8,
+      }}
+    >
       <h1>Register</h1>
-      {error && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>}
+      {error && (
+        <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>
+      )}
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <div style={{ flex: 1 }}>
@@ -281,11 +305,16 @@ export function RegisterPage() {
                   name="dialCode"
                   value={dialCode}
                   onChange={handleChange}
-                  readOnly={!!form.country && form.country !== '__PREFER_NOT_SAY__'}
+                  readOnly={
+                    !!form.country && form.country !== '__PREFER_NOT_SAY__'
+                  }
                   style={{
                     width: '4rem',
                     padding: '0.5rem',
-                    background: form.country && form.country !== '__PREFER_NOT_SAY__' ? '#f5f5f5' : 'white'
+                    background:
+                      form.country && form.country !== '__PREFER_NOT_SAY__'
+                        ? '#f5f5f5'
+                        : 'white',
                   }}
                 />
                 <input
@@ -313,7 +342,9 @@ export function RegisterPage() {
                 <option value="">— Select country —</option>
                 <option value="__PREFER_NOT_SAY__">Rather not say</option>
                 {countries.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -329,15 +360,20 @@ export function RegisterPage() {
               >
                 <option value="">— Select currency —</option>
                 {currencies.map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
             </label>
           </div>
         </div>
-        <button 
-          type="submit" 
-          disabled={submitting || (form.password && !validatePassword(form.password).isValid)} 
+        <button
+          type="submit"
+          disabled={
+            submitting ||
+            (form.password && !validatePassword(form.password).isValid)
+          }
           style={{ marginTop: '1rem', width: '100%', padding: '0.5rem' }}
         >
           {submitting ? 'Registering...' : 'Register'}
@@ -349,4 +385,3 @@ export function RegisterPage() {
     </div>
   );
 }
-

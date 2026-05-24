@@ -1,17 +1,19 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { EditTransactionPage } from './EditTransaction';
-import { apiFetch } from '../../utils/apiClient';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { apiFetch } from '../../utils/apiClient';
+
+import { EditTransactionPage } from './EditTransaction';
+
 vi.mock('../../utils/apiClient.js', () => ({
-  apiFetch: vi.fn()
+  apiFetch: vi.fn(),
 }));
 
 // Mock AuthContext so component doesn't need a real AuthProvider
 vi.mock('../../state/AuthContext.jsx', () => ({
-  useAuth: () => ({ user: { user_id: 1, currency: '$' } })
+  useAuth: () => ({ user: { user_id: 1, currency: '$' } }),
 }));
 
 const mockNavigate = vi.fn();
@@ -19,7 +21,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => mockNavigate
+    useNavigate: () => mockNavigate,
   };
 });
 
@@ -30,7 +32,10 @@ describe('EditTransactionPage Component', () => {
 
   const renderComponent = (id = '1') =>
     render(
-      <MemoryRouter initialEntries={[`/edit/${id}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={[`/edit/${id}`]}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <Routes>
           <Route path="/edit/:id" element={<EditTransactionPage />} />
         </Routes>
@@ -39,20 +44,22 @@ describe('EditTransactionPage Component', () => {
 
   const mockConstants = {
     TOTAL_TAG_ID: 1,
-    MISCELLANEOUS_TAG_ID: 2
+    MISCELLANEOUS_TAG_ID: 2,
   };
 
   const mockTags = [
     { tag_id: 2, tag_name: 'Miscellaneous' },
-    { tag_id: 3, tag_name: 'Groceries' }
+    { tag_id: 3, tag_name: 'Groceries' },
   ];
 
   it('renders loading initially and handles not found', async () => {
     apiFetch.mockImplementation((url) => {
-      if (url.includes('/api/transactions')) return Promise.resolve({ transaction: null });
+      if (url.includes('/api/transactions'))
+        return Promise.resolve({ transaction: null });
       if (url === '/api/tags') return Promise.resolve({ tags: [] });
       if (url === '/api/beneficiaries') return Promise.resolve([]);
-      if (url === '/api/metadata/constants') return Promise.resolve(mockConstants);
+      if (url === '/api/metadata/constants')
+        return Promise.resolve(mockConstants);
       return Promise.resolve({});
     });
 
@@ -77,8 +84,8 @@ describe('EditTransactionPage Component', () => {
             txn_date: '2023-10-10',
             notes: 'Test',
             tag_ids: [3],
-            source: 'manual'
-          }
+            source: 'manual',
+          },
         };
       }
       if (url === '/api/tags') {
@@ -102,14 +109,19 @@ describe('EditTransactionPage Component', () => {
     });
 
     // Update form
-    fireEvent.change(screen.getByDisplayValue('50.5'), { target: { value: '60' } });
+    fireEvent.change(screen.getByDisplayValue('50.5'), {
+      target: { value: '60' },
+    });
     fireEvent.submit(screen.getByText('Save Changes').closest('form'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/transactions/1', expect.objectContaining({
-        method: 'PATCH',
-        body: expect.stringContaining('"amount":60')
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/transactions/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.stringContaining('"amount":60'),
+        })
+      );
       expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
   });
@@ -127,8 +139,8 @@ describe('EditTransactionPage Component', () => {
             txn_date: '2023-10-11',
             notes: 'Stmt Note',
             tag_ids: [],
-            source: 'statement'
-          }
+            source: 'statement',
+          },
         };
       }
       if (url === '/api/tags') return { tags: mockTags };
@@ -148,14 +160,19 @@ describe('EditTransactionPage Component', () => {
     expect(screen.getByDisplayValue('Stmt Note')).toBeInTheDocument();
 
     // Only notes and tags are submitted
-    fireEvent.change(screen.getByDisplayValue('Stmt Note'), { target: { value: 'Updated Stmt Note' } });
+    fireEvent.change(screen.getByDisplayValue('Stmt Note'), {
+      target: { value: 'Updated Stmt Note' },
+    });
     fireEvent.submit(screen.getByText('Save Changes').closest('form'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/transactions/2', expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ notes: 'Updated Stmt Note', tag_ids: [] })
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/transactions/2',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ notes: 'Updated Stmt Note', tag_ids: [] }),
+        })
+      );
     });
   });
 
@@ -166,8 +183,8 @@ describe('EditTransactionPage Component', () => {
           transaction: {
             txn_id: 1,
             tag_ids: [2], // Starts with Misc
-            source: 'manual'
-          }
+            source: 'manual',
+          },
         };
       }
       if (url === '/api/tags') return { tags: mockTags };
@@ -177,7 +194,9 @@ describe('EditTransactionPage Component', () => {
     });
 
     renderComponent();
-    await waitFor(() => expect(screen.getByText('Miscellaneous')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Miscellaneous')).toBeInTheDocument()
+    );
 
     // Focus search and pick Groceries (tag_id 3)
     const search = screen.getByPlaceholderText('Search tags...');

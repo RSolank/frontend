@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { apiFetch } from '../../utils/apiClient.js';
-import { useAuth } from '../../state/AuthContext.jsx';
-import { validatePassword } from '../../utils/validation';
+
 import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
+import { useAuth } from '../../state/AuthContext.jsx';
+import { apiFetch } from '../../utils/apiClient.js';
+import { validatePassword } from '../../utils/validation';
 
 export function LoginPage() {
   const { user, loading, login, error, setError } = useAuth();
@@ -11,7 +12,11 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const [otpForm, setOtpForm] = useState({ email_id: '', otp: '', new_password: '' });
+  const [otpForm, setOtpForm] = useState({
+    email_id: '',
+    otp: '',
+    new_password: '',
+  });
   const [recoveryStep, setRecoveryStep] = useState('email');
   const [recoveryQuestion, setRecoveryQuestion] = useState('');
   const [answerForm, setAnswerForm] = useState({ email_id: '', answer: '' });
@@ -21,7 +26,14 @@ export function LoginPage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 400, margin: '3rem auto', padding: '2rem', textAlign: 'center' }}>
+      <div
+        style={{
+          maxWidth: 400,
+          margin: '3rem auto',
+          padding: '2rem',
+          textAlign: 'center',
+        }}
+      >
         Loading...
       </div>
     );
@@ -65,12 +77,12 @@ export function LoginPage() {
     try {
       const res = await apiFetch('/api/auth/recovery-question', {
         method: 'POST', // Changed to POST to match FastAPI requirement for JSON body
-        body: JSON.stringify({ email_id: email })
+        body: JSON.stringify({ email_id: email }),
       });
       setRecoveryQuestion(res.question || '');
       setAnswerForm({ email_id: email, answer: '', new_password: '' });
       setOtpForm((f) => ({ ...f, email_id: email }));
-      
+
       if (res.question) {
         setRecoveryStep('choice');
       } else {
@@ -86,7 +98,7 @@ export function LoginPage() {
   const handleRequestOtpInternal = async (email) => {
     await apiFetch('/api/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email_id: email })
+      body: JSON.stringify({ email_id: email }),
     });
     setOtpSent(true);
   };
@@ -109,7 +121,7 @@ export function LoginPage() {
     try {
       const res = await apiFetch('/api/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ email_id: otpForm.email_id, otp: otpForm.otp })
+        body: JSON.stringify({ email_id: otpForm.email_id, otp: otpForm.otp }),
       });
       setResetToken(res.reset_token);
       setRecoveryStep('reset');
@@ -127,7 +139,10 @@ export function LoginPage() {
     try {
       const res = await apiFetch('/api/auth/verify-answer', {
         method: 'POST',
-        body: JSON.stringify({ email_id: answerForm.email_id, answer: answerForm.answer })
+        body: JSON.stringify({
+          email_id: answerForm.email_id,
+          answer: answerForm.answer,
+        }),
       });
       setResetToken(res.reset_token);
       setRecoveryStep('reset');
@@ -145,7 +160,10 @@ export function LoginPage() {
     try {
       await apiFetch('/api/auth/reset-password-final', {
         method: 'POST',
-        body: JSON.stringify({ reset_token: resetToken, new_password: newPassword })
+        body: JSON.stringify({
+          reset_token: resetToken,
+          new_password: newPassword,
+        }),
       });
       navigate('/dashboard');
     } catch (err) {
@@ -156,9 +174,19 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '3rem auto', padding: '2rem', border: '1px solid #ddd', borderRadius: 8 }}>
+    <div
+      style={{
+        maxWidth: 400,
+        margin: '3rem auto',
+        padding: '2rem',
+        border: '1px solid #ddd',
+        borderRadius: 8,
+      }}
+    >
       <h1>{forgotMode ? 'Reset password' : 'Login'}</h1>
-      {error && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>}
+      {error && (
+        <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>
+      )}
       {!forgotMode && (
         <>
           <form onSubmit={handleSubmit}>
@@ -188,7 +216,11 @@ export function LoginPage() {
                 />
               </label>
             </div>
-            <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{ width: '100%', padding: '0.5rem' }}
+            >
               {submitting ? 'Logging in...' : 'Login'}
             </button>
           </form>
@@ -198,7 +230,15 @@ export function LoginPage() {
               setForgotMode(true);
               setError(null);
             }}
-            style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer' }}
+            style={{
+              marginTop: '0.5rem',
+              width: '100%',
+              padding: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              color: '#2563eb',
+              cursor: 'pointer',
+            }}
           >
             Forgot password?
           </button>
@@ -227,19 +267,37 @@ export function LoginPage() {
                   />
                 </label>
               </div>
-              <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>
+              <button
+                type="submit"
+                style={{ width: '100%', padding: '0.5rem' }}
+              >
                 Continue
               </button>
             </form>
           )}
 
           {recoveryStep === 'choice' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ margin: 0, color: '#374151' }}>How would you like to verify your identity?</p>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              <p style={{ margin: 0, color: '#374151' }}>
+                How would you like to verify your identity?
+              </p>
               <button
                 type="button"
                 onClick={() => setRecoveryStep('question')}
-                style={{ width: '100%', padding: '0.5rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4 }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                }}
               >
                 Security question
               </button>
@@ -249,7 +307,14 @@ export function LoginPage() {
                   await handleRequestOtpInternal(otpForm.email_id);
                   setRecoveryStep('otp');
                 }}
-                style={{ width: '100%', padding: '0.5rem', cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4 }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                }}
               >
                 OTP (One-time password)
               </button>
@@ -262,7 +327,14 @@ export function LoginPage() {
                 <div style={{ marginBottom: '0.75rem' }}>
                   <label>
                     Security question
-                    <div style={{ marginTop: 4, marginBottom: 4, color: '#374151', fontWeight: 'bold' }}>
+                    <div
+                      style={{
+                        marginTop: 4,
+                        marginBottom: 4,
+                        color: '#374151',
+                        fontWeight: 'bold',
+                      }}
+                    >
                       {recoveryQuestion}
                     </div>
                   </label>
@@ -280,7 +352,11 @@ export function LoginPage() {
                     />
                   </label>
                 </div>
-                <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ width: '100%', padding: '0.5rem' }}
+                >
                   {submitting ? 'Verifying...' : 'Verify answer'}
                 </button>
               </form>
@@ -299,7 +375,7 @@ export function LoginPage() {
                   border: 'none',
                   color: '#2563eb',
                   cursor: 'pointer',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
                 }}
               >
                 Use OTP instead
@@ -310,7 +386,13 @@ export function LoginPage() {
           {recoveryStep === 'otp' && (
             <form onSubmit={handleVerifyOtp}>
               <div style={{ marginBottom: '0.75rem' }}>
-                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                <p
+                  style={{
+                    fontSize: '0.9rem',
+                    color: '#6b7280',
+                    marginBottom: '0.5rem',
+                  }}
+                >
                   A 6-digit code has been sent to {otpForm.email_id}.
                 </p>
                 <label>
@@ -326,7 +408,11 @@ export function LoginPage() {
                   />
                 </label>
               </div>
-              <button type="submit" disabled={submitting} style={{ width: '100%', padding: '0.5rem' }}>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ width: '100%', padding: '0.5rem' }}
+              >
                 {submitting ? 'Verifying...' : 'Verify OTP'}
               </button>
               <button
@@ -341,7 +427,7 @@ export function LoginPage() {
                   border: 'none',
                   color: '#2563eb',
                   cursor: 'pointer',
-                  fontSize: '0.85rem'
+                  fontSize: '0.85rem',
                 }}
               >
                 Resend code
@@ -352,7 +438,14 @@ export function LoginPage() {
           {recoveryStep === 'reset' && (
             <form onSubmit={handleFinalReset}>
               <div style={{ marginBottom: '0.75rem' }}>
-                <p style={{ fontSize: '0.9rem', color: '#059669', marginBottom: '1rem', fontWeight: 'bold' }}>
+                <p
+                  style={{
+                    fontSize: '0.9rem',
+                    color: '#059669',
+                    marginBottom: '1rem',
+                    fontWeight: 'bold',
+                  }}
+                >
                   Identity verified! Set your new password below.
                 </p>
                 <label>
@@ -368,7 +461,14 @@ export function LoginPage() {
                 </label>
                 <PasswordRequirements password={newPassword} />
               </div>
-              <button type="submit" disabled={submitting || (newPassword && !validatePassword(newPassword).isValid)} style={{ width: '100%', padding: '0.5rem' }}>
+              <button
+                type="submit"
+                disabled={
+                  submitting ||
+                  (newPassword && !validatePassword(newPassword).isValid)
+                }
+                style={{ width: '100%', padding: '0.5rem' }}
+              >
                 {submitting ? 'Updating...' : 'Reset password'}
               </button>
             </form>
@@ -383,7 +483,15 @@ export function LoginPage() {
               setResetToken('');
               setError(null);
             }}
-            style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer' }}
+            style={{
+              marginTop: '0.5rem',
+              width: '100%',
+              padding: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              color: '#2563eb',
+              cursor: 'pointer',
+            }}
           >
             Back to login
           </button>
@@ -396,4 +504,3 @@ export function LoginPage() {
     </div>
   );
 }
-

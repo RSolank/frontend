@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+
 import { apiFetch } from '../../../utils/apiClient.js';
 import { formatAliasesDisplay } from '../../beneficiaries/aliasUtils.js';
-import { buildRuleName, flattenTags, formatTagAssignment } from './categorizationRuleUtils.js';
+
+import {
+  buildRuleName,
+  flattenTags,
+  formatTagAssignment,
+} from './categorizationRuleUtils.js';
 
 const emptyForm = () => ({
   uid: null,
@@ -57,7 +63,9 @@ export function CategorizationRulesTab() {
         setBeneficiaries(bList);
         setConstants(c);
       })
-      .catch((err) => setError(err.detail || err.error || 'Failed to load rules'))
+      .catch((err) =>
+        setError(err.detail || err.error || 'Failed to load rules')
+      )
       .finally(() => setLoading(false));
   };
 
@@ -126,7 +134,8 @@ export function CategorizationRulesTab() {
     setError(null);
     if (!form.beneficiary_id) return setError('Please select a beneficiary');
     if (beneficiaryConflict) return setError(beneficiaryConflict);
-    if (form.tag_ids.length === 0) return setError('At least one tag is required');
+    if (form.tag_ids.length === 0)
+      return setError('At least one tag is required');
     if (!generatedRuleName) return setError('Could not generate rule name');
 
     const payload = {
@@ -170,11 +179,17 @@ export function CategorizationRulesTab() {
   };
 
   const handleRemoveTagFromRule = async (rule, tid) => {
-    const nextTags = (rule.tag_ids || []).filter(id => id !== tid);
+    const nextTags = (rule.tag_ids || []).filter((id) => id !== tid);
     try {
       if (nextTags.length === 0) {
-        if (window.confirm(`Deleting the last tag will delete the categorization rule for "${rule.beneficiary_name}". Proceed?`)) {
-          await apiFetch(`/api/categorization-rules/${rule.uid}`, { method: 'DELETE' });
+        if (
+          window.confirm(
+            `Deleting the last tag will delete the categorization rule for "${rule.beneficiary_name}". Proceed?`
+          )
+        ) {
+          await apiFetch(`/api/categorization-rules/${rule.uid}`, {
+            method: 'DELETE',
+          });
         } else {
           return;
         }
@@ -191,7 +206,7 @@ export function CategorizationRulesTab() {
   };
 
   const handleSetPrimaryInRule = async (rule, tid) => {
-    const nextTags = [tid, ...(rule.tag_ids || []).filter(id => id !== tid)];
+    const nextTags = [tid, ...(rule.tag_ids || []).filter((id) => id !== tid)];
     try {
       await apiFetch(`/api/categorization-rules/${rule.uid}`, {
         method: 'PUT',
@@ -236,7 +251,14 @@ export function CategorizationRulesTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1rem',
+        }}
+      >
         <h2 style={{ margin: 0 }}>Categorization Rules</h2>
         <button
           type="button"
@@ -251,11 +273,17 @@ export function CategorizationRulesTab() {
       </div>
 
       <p style={{ color: '#666', marginBottom: '1rem' }}>
-        Map beneficiaries to tags for <b>statement</b> transactions. Beneficiary identification is handled separately.
+        Map beneficiaries to tags for <b>statement</b> transactions. Beneficiary
+        identification is handled separately.
       </p>
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <button type="button" onClick={handleReRun} disabled={loading} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+        <button
+          type="button"
+          onClick={handleReRun}
+          disabled={loading}
+          style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
+        >
           Re-run categorization
         </button>
       </div>
@@ -273,7 +301,9 @@ export function CategorizationRulesTab() {
           }}
         >
           <div style={{ display: 'grid', gap: '1rem' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label
+              style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+            >
               <span style={{ fontWeight: 500 }}>Rule name</span>
               <input
                 readOnly
@@ -291,7 +321,14 @@ export function CategorizationRulesTab() {
             </label>
 
             <div style={{ position: 'relative' }}>
-              <label htmlFor="rule-beneficiary-search" style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+              <label
+                htmlFor="rule-beneficiary-search"
+                style={{
+                  display: 'block',
+                  marginBottom: '4px',
+                  fontWeight: 500,
+                }}
+              >
                 Beneficiary
               </label>
               <input
@@ -309,7 +346,12 @@ export function CategorizationRulesTab() {
                 onBlur={() => setTimeout(() => setBSearchFocused(false), 200)}
                 placeholder="Search beneficiary..."
                 required
-                style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid #ccc' }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                }}
               />
               {bSearchFocused && (
                 <div
@@ -328,7 +370,9 @@ export function CategorizationRulesTab() {
                   }}
                 >
                   {availableBeneficiaries.length === 0 ? (
-                    <div style={{ padding: '0.6rem 1rem', color: '#94a3b8' }}>No matches</div>
+                    <div style={{ padding: '0.6rem 1rem', color: '#94a3b8' }}>
+                      No matches
+                    </div>
                   ) : (
                     availableBeneficiaries.map((b) => (
                       <div
@@ -340,7 +384,13 @@ export function CategorizationRulesTab() {
                       >
                         {b.name}
                         {b.aliases?.length > 0 && (
-                          <span style={{ color: '#94a3b8', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
+                          <span
+                            style={{
+                              color: '#94a3b8',
+                              marginLeft: '0.5rem',
+                              fontSize: '0.85rem',
+                            }}
+                          >
                             {formatAliasesDisplay(b.aliases)}
                           </span>
                         )}
@@ -350,19 +400,38 @@ export function CategorizationRulesTab() {
                 </div>
               )}
               {beneficiaryConflict && (
-                <div style={{ color: '#b91c1c', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                <div
+                  style={{
+                    color: '#b91c1c',
+                    fontSize: '0.85rem',
+                    marginTop: '0.25rem',
+                  }}
+                >
                   {beneficiaryConflict}
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+            >
               <span style={{ fontWeight: 500 }}>Tags to apply</span>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 <select
                   value={tempTagId}
                   onChange={(e) => setTempTagId(e.target.value)}
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: 4, border: '1px solid #ccc' }}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    borderRadius: 4,
+                    border: '1px solid #ccc',
+                  }}
                 >
                   <option value="">Select a tag</option>
                   {filteredTags.map((t) => (
@@ -371,7 +440,11 @@ export function CategorizationRulesTab() {
                     </option>
                   ))}
                 </select>
-                <button type="button" onClick={handleAddTag} style={{ padding: '0.5rem 1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleAddTag}
+                  style={{ padding: '0.5rem 1rem' }}
+                >
                   Add
                 </button>
               </div>
@@ -388,7 +461,9 @@ export function CategorizationRulesTab() {
                 }}
               >
                 {form.tag_ids.length === 0 ? (
-                  <span style={{ color: '#999', fontSize: '0.9rem' }}>No tags selected</span>
+                  <span style={{ color: '#999', fontSize: '0.9rem' }}>
+                    No tags selected
+                  </span>
                 ) : (
                   form.tag_ids.map((tid, idx) => {
                     const isPrimary = idx === 0;
@@ -407,7 +482,9 @@ export function CategorizationRulesTab() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          border: isPrimary ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                          border: isPrimary
+                            ? '1px solid #bbf7d0'
+                            : '1px solid #e2e8f0',
                         }}
                       >
                         {formatTagAssignment(tid, tags)}
@@ -431,7 +508,10 @@ export function CategorizationRulesTab() {
                               type="button"
                               onClick={() => {
                                 setForm((f) => {
-                                  const newTagIds = [tid, ...f.tag_ids.filter((id) => id !== tid)];
+                                  const newTagIds = [
+                                    tid,
+                                    ...f.tag_ids.filter((id) => id !== tid),
+                                  ];
                                   return { ...f, tag_ids: newTagIds };
                                 });
                               }}
@@ -473,27 +553,47 @@ export function CategorizationRulesTab() {
               </div>
             </div>
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label
+              style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+            >
               <span style={{ fontWeight: 500 }}>Notes (optional)</span>
               <input
                 value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: 4, border: '1px solid #ccc' }}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, notes: e.target.value }))
+                }
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                }}
               />
             </label>
 
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '1rem',
+                alignItems: 'center',
+                marginTop: '0.5rem',
+              }}
+            >
               <button
                 type="submit"
-                disabled={loading || !!beneficiaryConflict || !form.beneficiary_id}
+                disabled={
+                  loading || !!beneficiaryConflict || !form.beneficiary_id
+                }
                 style={{
                   padding: '0.75rem 2rem',
-                  background: loading || beneficiaryConflict ? '#94a3b8' : '#2563eb',
+                  background:
+                    loading || beneficiaryConflict ? '#94a3b8' : '#2563eb',
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
                   fontWeight: 600,
-                  cursor: loading || beneficiaryConflict ? 'not-allowed' : 'pointer',
+                  cursor:
+                    loading || beneficiaryConflict ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isEditing ? 'Update Rule' : 'Create Rule'}
@@ -520,11 +620,22 @@ export function CategorizationRulesTab() {
       )}
 
       {error && (
-        <div style={{ color: 'red', marginBottom: '1rem', fontWeight: 500 }}>{error}</div>
+        <div style={{ color: 'red', marginBottom: '1rem', fontWeight: 500 }}>
+          {error}
+        </div>
       )}
 
-      <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+      <div
+        style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '0.75rem',
+          }}
+        >
           <h3 style={{ margin: 0 }}>Existing rules</h3>
           <div style={{ color: '#666', fontSize: '0.9rem' }}>
             {loading ? 'Loading…' : `${rules.length} rules total`}
@@ -549,10 +660,25 @@ export function CategorizationRulesTab() {
                     background: '#fff',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-                    <div style={{ fontWeight: 650, fontSize: '1.05rem' }}>{r.rule_name}</div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <div style={{ fontWeight: 650, fontSize: '1.05rem' }}>
+                      {r.rule_name}
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button type="button" onClick={() => handleEdit(r)} style={{ padding: '0.25rem 0.75rem', cursor: 'pointer' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(r)}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
                         Edit
                       </button>
                       {userRule && (
@@ -572,8 +698,16 @@ export function CategorizationRulesTab() {
                       )}
                     </div>
                   </div>
-                  <div style={{ color: '#666', fontSize: '0.9rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
-                    <span style={{ fontWeight: 500 }}>Beneficiary:</span> {r.beneficiary_name}
+                  <div
+                    style={{
+                      color: '#666',
+                      fontSize: '0.9rem',
+                      marginTop: '0.5rem',
+                      lineHeight: '1.5',
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>Beneficiary:</span>{' '}
+                    {r.beneficiary_name}
                     {aliasText && (
                       <>
                         <br />
@@ -581,15 +715,34 @@ export function CategorizationRulesTab() {
                         <span style={{ color: '#94a3b8' }}>{aliasText}</span>
                       </>
                     )}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 500, marginRight: '4px', fontSize: '0.9rem', color: '#666' }}>Tags:</span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '0.4rem',
+                        marginTop: '0.4rem',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          marginRight: '4px',
+                          fontSize: '0.9rem',
+                          color: '#666',
+                        }}
+                      >
+                        Tags:
+                      </span>
                       {(r.tag_ids || []).map((tid, idx) => {
                         const isPrimary = idx === 0;
                         const isHovered = hoveredRuleTag === `${r.uid}-${tid}`;
                         return (
                           <span
                             key={tid}
-                            onMouseEnter={() => setHoveredRuleTag(`${r.uid}-${tid}`)}
+                            onMouseEnter={() =>
+                              setHoveredRuleTag(`${r.uid}-${tid}`)
+                            }
                             onMouseLeave={() => setHoveredRuleTag(null)}
                             style={{
                               display: 'inline-flex',
@@ -600,7 +753,9 @@ export function CategorizationRulesTab() {
                               fontWeight: 600,
                               background: isPrimary ? '#dcfce7' : '#f1f5f9',
                               color: isPrimary ? '#15803d' : '#475569',
-                              border: isPrimary ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                              border: isPrimary
+                                ? '1px solid #bbf7d0'
+                                : '1px solid #e2e8f0',
                             }}
                           >
                             {formatTagAssignment(tid, tags)}
@@ -660,11 +815,24 @@ export function CategorizationRulesTab() {
                     </div>
                   </div>
                   {r.notes && (
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', fontStyle: 'italic', color: '#444' }}>
+                    <div
+                      style={{
+                        marginTop: '0.5rem',
+                        fontSize: '0.9rem',
+                        fontStyle: 'italic',
+                        color: '#444',
+                      }}
+                    >
                       &ldquo;{r.notes}&rdquo;
                     </div>
                   )}
-                  <div style={{ color: '#999', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                  <div
+                    style={{
+                      color: '#999',
+                      fontSize: '0.85rem',
+                      marginTop: '0.5rem',
+                    }}
+                  >
                     Created by: {userRule ? `User ${r.created_by}` : 'System'}
                   </div>
                 </div>

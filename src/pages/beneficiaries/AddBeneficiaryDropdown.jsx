@@ -21,8 +21,25 @@ export function AddBeneficiaryDropdown({ onSelectType }) {
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <div style={{ display: 'flex', alignItems: 'center', background: '#2563eb', borderRadius: '8px', overflow: 'hidden' }}>
-        <span style={{ padding: '0.6rem 1rem', color: 'white', fontWeight: 600, fontSize: '0.9rem' }}>Add New</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#2563eb',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+      >
+        <span
+          style={{
+            padding: '0.6rem 1rem',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
+        >
+          Add New
+        </span>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}

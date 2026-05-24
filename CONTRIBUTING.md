@@ -1,10 +1,10 @@
 # Personal Budget — Frontend Contributing Guide
 
 > [!NOTE]
-> **Target spec.** This document is the *target* shape for the frontend after
+> **Target spec.** This document is the _target_ shape for the frontend after
 > its refactor. The planning session on 2026-05-24 resolved every prior
 > `TODO(planning)` — see §10 for the locked decision table. The current code
-> under `src/pages/` and `src/components/` is the *baseline* the refactor will
+> under `src/pages/` and `src/components/` is the _baseline_ the refactor will
 > reshape into the layout described here.
 >
 > Mirrors [`backend/CONTRIBUTING.md`](../backend/CONTRIBUTING.md) in shape and
@@ -243,6 +243,74 @@ Rules:
 - **Accessibility** — every interactive element keyboard-reachable; labels
   on every input; semantic HTML over `<div onClick>`.
 
+### Visual design language
+
+The refactor is also the moment to **upgrade the app's visual surface to
+a modern, sleek, premium feel** — reference tier: Linear / Stripe /
+Vercel / Notion. The pre-refactor look (plain CSS, generic forms,
+minimal polish) is the _baseline to leave behind_, not the bar to clear.
+
+**Operating principle:** every time a component is moved during a feature
+batch, also upgrade its visuals to the new design language. Do not
+re-skin the old plain look behind Tailwind utilities. A move + visual
+upgrade in one batch is cheaper than two passes.
+
+**Concrete elements of the target language:**
+
+- **Whitespace and rhythm.** Generous padding; consistent vertical
+  spacing scale (Tailwind's `space-y-*` / `gap-*` from a small set of
+  values — e.g. 2, 3, 4, 6, 8). No tight, dense layouts unless data
+  density is the point (transaction tables can be tight; forms cannot).
+- **Type hierarchy.** Clear weight contrast: page titles bold/semibold,
+  body regular, supporting text muted. Limit to ~3 sizes per screen.
+  Use a system font stack or one well-chosen webfont (Inter / Geist /
+  system-ui), set globally — no per-component font surprises.
+- **Color discipline.** A restrained neutral palette + one accent + a
+  small set of semantic colors (success, warning, error, info). Defined
+  once in Tailwind's `@theme` block, referenced everywhere; no ad-hoc
+  hex values inside components.
+- **Corners and surfaces.** Small-to-medium rounded corners
+  (`rounded-md` / `rounded-lg`); subtle shadows (`shadow-sm` /
+  `shadow-md`) for elevated surfaces (cards, modals, dropdowns). No
+  harsh borders; if a border is needed, use a low-contrast neutral.
+- **Motion.** Smooth transitions on hover/focus/active state changes,
+  ~150ms ease-out. `transition-colors`, `transition-shadow`,
+  `transition-transform` — never `transition-all`. Reduced-motion users
+  (`prefers-reduced-motion`) get instantaneous transitions.
+- **Interactive feedback on everything.** Every clickable element has
+  hover + focus + active states. Visible focus rings (don't suppress
+  `:focus-visible`). Disabled buttons look obviously disabled.
+- **Dark mode from day one.** Use Tailwind's `dark:` variant on every
+  component as it's built. Don't defer dark-mode to a later pass — it's
+  cheap if done as you go, painful retroactively. The theme
+  infrastructure and a header `<ThemeToggle />` (light / dark / system)
+  land in Batch 1 alongside the app shell, so every subsequent batch's
+  dark styling is verifiable as it's written.
+- **Loading and empty states** are first-class. Skeletons for any list
+  fetch > 200 ms (per §8); thoughtful empty states with a clear next
+  action (not just "No data").
+- **Accessibility is part of polish**, not a separate concern: visible
+  focus, ARIA where semantic HTML doesn't suffice, color contrast
+  passing WCAG AA.
+
+**Anti-patterns to avoid:**
+
+- Generic Bootstrap-era blue buttons; flat untreated forms; tables with
+  zero whitespace; harsh saturated colors; modals that fill the entire
+  viewport on desktop; UI that looks the same in light and dark mode
+  because dark mode wasn't considered.
+
+**Pragmatism — don't redesign blindly:** if a screen already works well
+visually and just needs to migrate from plain CSS to Tailwind, do exactly
+that. Reserve substantial redesign effort for screens that are visibly
+weak today (likely candidates: Dashboard, Transactions list, Budget
+overview, Taxation bills view).
+
+**When a redesign decision is non-trivial** (e.g. picking the accent
+color, choosing between two layout structures for a complex screen),
+pause and surface options — this is exactly the kind of taste decision
+that benefits from user input rather than autonomous choice.
+
 ---
 
 ## 🧪 7. Testing
@@ -313,17 +381,17 @@ The §10 open questions are now locked. The table below is the single source
 of truth; the same choices are reflected throughout §3, §5, §7. Future
 revisits should update this section and the corresponding section in lockstep.
 
-| # | Decision | Choice | Future option |
-|---|---|---|---|
-| 1 | Test file location | Co-located `*.test.tsx`; `src/test/` for MSW handlers and shared infra only | — |
-| 2 | Lint + format | ESLint flat config + Prettier + plugins (`react`, `react-hooks`, `jsx-a11y`, `import` with `no-restricted-paths`) + `prettier-plugin-tailwindcss` | Revisit Biome in ~12 months once `react-hooks/exhaustive-deps` and `jsx-a11y` equivalents land |
-| 3 | Type system | **TypeScript strict**, `noUncheckedIndexedAccess`, `allowJs` during migration; OpenAPI → `src/shared/types/api.ts` via `openapi-typescript` | — |
-| 4a | Server state | **TanStack Query v5** | — |
-| 4b | Client state | **Zustand**, one store per domain, `persist` middleware for auth | — |
-| 5 | Forms + validation | **react-hook-form + Zod**; Zod schemas double as TS request-body types | — |
-| 6 | Styling | **Tailwind CSS v4** + `@layer components` for shared patterns; class sorting via Prettier plugin | Revisit **vanilla-extract** if/when the project scales to need typed, zero-runtime styles with formal theming |
-| 7 | Backend mocking | **MSW**, handlers under `src/test/handlers/<feature>.ts`; `vi.mock(apiClient)` reserved for transport-level tests | — |
-| 8 | Routing | `createBrowserRouter` + per-feature `RouteObject[]` + `protectedRoutes()` helper; per-route `lazy` for code-splitting | Migration to **TanStack Router** is a future adoption, not part of this refactor |
-| 9 | Auth state | `useAuthStore` (Zustand + `persist`) replaces `AuthContext`; selector-based subscriptions | New stores added only when a concrete cross-page client-state need exists |
-| 10 | Error boundaries | Global ErrorBoundary at app shell + per-feature `errorElement` on each `RouteObject` | Watch **Statement Upload** and **Weekly Tax generation** for crash frequency; add finer sub-route boundaries inside those pages if errors recur |
-| 11 | Bundle budget | ≤ 120 KB gzipped first-paint JS, ≤ 80 KB per per-feature lazy chunk, ≤ 15 KB CSS; `size-limit` CI gate wired in Batch 9 | — |
+| #   | Decision           | Choice                                                                                                                                            | Future option                                                                                                                                   |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Test file location | Co-located `*.test.tsx`; `src/test/` for MSW handlers and shared infra only                                                                       | —                                                                                                                                               |
+| 2   | Lint + format      | ESLint flat config + Prettier + plugins (`react`, `react-hooks`, `jsx-a11y`, `import` with `no-restricted-paths`) + `prettier-plugin-tailwindcss` | Revisit Biome in ~12 months once `react-hooks/exhaustive-deps` and `jsx-a11y` equivalents land                                                  |
+| 3   | Type system        | **TypeScript strict**, `noUncheckedIndexedAccess`, `allowJs` during migration; OpenAPI → `src/shared/types/api.ts` via `openapi-typescript`       | —                                                                                                                                               |
+| 4a  | Server state       | **TanStack Query v5**                                                                                                                             | —                                                                                                                                               |
+| 4b  | Client state       | **Zustand**, one store per domain, `persist` middleware for auth                                                                                  | —                                                                                                                                               |
+| 5   | Forms + validation | **react-hook-form + Zod**; Zod schemas double as TS request-body types                                                                            | —                                                                                                                                               |
+| 6   | Styling            | **Tailwind CSS v4** + `@layer components` for shared patterns; class sorting via Prettier plugin                                                  | Revisit **vanilla-extract** if/when the project scales to need typed, zero-runtime styles with formal theming                                   |
+| 7   | Backend mocking    | **MSW**, handlers under `src/test/handlers/<feature>.ts`; `vi.mock(apiClient)` reserved for transport-level tests                                 | —                                                                                                                                               |
+| 8   | Routing            | `createBrowserRouter` + per-feature `RouteObject[]` + `protectedRoutes()` helper; per-route `lazy` for code-splitting                             | Migration to **TanStack Router** is a future adoption, not part of this refactor                                                                |
+| 9   | Auth state         | `useAuthStore` (Zustand + `persist`) replaces `AuthContext`; selector-based subscriptions                                                         | New stores added only when a concrete cross-page client-state need exists                                                                       |
+| 10  | Error boundaries   | Global ErrorBoundary at app shell + per-feature `errorElement` on each `RouteObject`                                                              | Watch **Statement Upload** and **Weekly Tax generation** for crash frequency; add finer sub-route boundaries inside those pages if errors recur |
+| 11  | Bundle budget      | ≤ 120 KB gzipped first-paint JS, ≤ 80 KB per per-feature lazy chunk, ≤ 15 KB CSS; `size-limit` CI gate wired in Batch 9                           | —                                                                                                                                               |

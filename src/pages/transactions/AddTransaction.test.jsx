@@ -1,17 +1,19 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { AddTransactionPage } from './AddTransaction';
-import { apiFetch } from '../../utils/apiClient';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { apiFetch } from '../../utils/apiClient';
+
+import { AddTransactionPage } from './AddTransaction';
+
 vi.mock('../../utils/apiClient.js', () => ({
-  apiFetch: vi.fn()
+  apiFetch: vi.fn(),
 }));
 
 // Mock AuthContext so component doesn't need a real AuthProvider
 vi.mock('../../state/AuthContext.jsx', () => ({
-  useAuth: () => ({ user: { user_id: 1, currency: '$' } })
+  useAuth: () => ({ user: { user_id: 1, currency: '$' } }),
 }));
 
 const mockNavigate = vi.fn();
@@ -19,7 +21,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => mockNavigate
+    useNavigate: () => mockNavigate,
   };
 });
 
@@ -27,12 +29,18 @@ describe('AddTransactionPage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiFetch.mockImplementation(async (url) => {
-      if (url.includes('tags')) return {
-        tags: [
-          { tag_id: 12, tag_name: 'Miscellaneous', parent: null, children: [] },
-          { tag_id: 1, tag_name: 'Groceries', parent: null, children: [] }
-        ]
-      };
+      if (url.includes('tags'))
+        return {
+          tags: [
+            {
+              tag_id: 12,
+              tag_name: 'Miscellaneous',
+              parent: null,
+              children: [],
+            },
+            { tag_id: 1, tag_name: 'Groceries', parent: null, children: [] },
+          ],
+        };
       if (url.includes('beneficiaries')) return [];
       if (url.includes('constants')) return {};
       return {};
@@ -41,7 +49,9 @@ describe('AddTransactionPage Component', () => {
 
   const renderComponent = () =>
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <AddTransactionPage />
       </MemoryRouter>
     );
@@ -64,21 +74,32 @@ describe('AddTransactionPage Component', () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/tags'));
 
     apiFetch.mockResolvedValueOnce({
-      transaction: { txn_id: 1, amount: 50.5 }
+      transaction: { txn_id: 1, amount: 50.5 },
     });
 
-    fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: '50.50' } });
-    fireEvent.change(screen.getByLabelText('Beneficiary'), { target: { value: 'Store' } });
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'debit' } });
-    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Test note' } });
+    fireEvent.change(screen.getByLabelText(/Amount/), {
+      target: { value: '50.50' },
+    });
+    fireEvent.change(screen.getByLabelText('Beneficiary'), {
+      target: { value: 'Store' },
+    });
+    fireEvent.change(screen.getByLabelText('Type'), {
+      target: { value: 'debit' },
+    });
+    fireEvent.change(screen.getByLabelText('Notes'), {
+      target: { value: 'Test note' },
+    });
 
     fireEvent.submit(screen.getByText('Create Transaction').closest('form'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/transactions', expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"amount":50.5')
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/transactions',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"amount":50.5'),
+        })
+      );
       expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
   });
@@ -90,7 +111,9 @@ describe('AddTransactionPage Component', () => {
 
     apiFetch.mockRejectedValueOnce({ error: 'Server error' });
 
-    fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText(/Amount/), {
+      target: { value: '10' },
+    });
     fireEvent.submit(screen.getByText('Create Transaction').closest('form'));
 
     await waitFor(() => {

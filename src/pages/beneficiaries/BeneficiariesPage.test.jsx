@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { BeneficiariesPage } from './BeneficiariesPage.jsx';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
 import { apiFetch } from '../../utils/apiClient.js';
+
+import { BeneficiariesPage } from './BeneficiariesPage.jsx';
 
 vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -37,7 +39,9 @@ describe('BeneficiariesPage', () => {
     apiFetch.mockResolvedValue(mockBeneficiaries);
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <BeneficiariesPage />
       </MemoryRouter>
     );
@@ -47,14 +51,18 @@ describe('BeneficiariesPage', () => {
     });
 
     expect(screen.getByText('(Jio, Airtel)')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '← Back to Dashboard' })).toHaveAttribute('href', '/dashboard');
+    expect(
+      screen.getByRole('link', { name: '← Back to Dashboard' })
+    ).toHaveAttribute('href', '/dashboard');
   });
 
   it('filters by search and type', async () => {
     apiFetch.mockResolvedValue(mockBeneficiaries);
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <BeneficiariesPage />
       </MemoryRouter>
     );
@@ -70,7 +78,9 @@ describe('BeneficiariesPage', () => {
     fireEvent.change(screen.getByPlaceholderText(/Search by name or alias/i), {
       target: { value: '' },
     });
-    fireEvent.change(screen.getByDisplayValue('All types'), { target: { value: 'person' } });
+    fireEvent.change(screen.getByDisplayValue('All types'), {
+      target: { value: 'person' },
+    });
     expect(screen.getByText('Jane')).toBeInTheDocument();
     expect(screen.queryByText('Mobile Recharged')).not.toBeInTheDocument();
   });
@@ -80,29 +90,44 @@ describe('BeneficiariesPage', () => {
       if (url === '/api/beneficiaries' && !options) return mockBeneficiaries;
       if (url.includes('/check-alias')) return { alias: 'EKART', unique: true };
       if (url === '/api/beneficiaries' && options?.method === 'POST') {
-        return { uid: 99, name: 'New Store', aliases: ['EKART'], beneficiary_type: 'merchant' };
+        return {
+          uid: 99,
+          name: 'New Store',
+          aliases: ['EKART'],
+          beneficiary_type: 'merchant',
+        };
       }
       return {};
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <BeneficiariesPage />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByRole('button', { name: '+ Add New' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '+ Add New' })
+      ).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '+ Add New' }));
 
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'New Store' } });
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'New Store' },
+    });
 
     const aliasInput = screen.getByPlaceholderText(/Enter alias/i);
     fireEvent.change(aliasInput, { target: { value: 'EKART' } });
 
     await waitFor(() => {
       expect(screen.getByText('Alias is available')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Add alias' })).not.toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Add alias' })
+      ).not.toBeDisabled();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Add alias' }));
@@ -114,10 +139,13 @@ describe('BeneficiariesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/beneficiaries', expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"aliases":["EKART"]'),
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/beneficiaries',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"aliases":["EKART"]'),
+        })
+      );
     });
   });
 });

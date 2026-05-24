@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { TransactionsPage } from './TransactionsPage';
+import { vi } from 'vitest';
+
 import { apiFetch } from '../../utils/apiClient.js';
+
+import { TransactionsPage } from './TransactionsPage';
 
 vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -11,20 +13,20 @@ vi.mock('../../utils/apiClient.js', () => ({
 
 const mockUser = {
   first_name: 'John',
-  currency: '₹'
+  currency: '₹',
 };
 
 vi.mock('../../state/AuthContext.jsx', () => ({
   useAuth: () => ({
-    user: mockUser
-  })
+    user: mockUser,
+  }),
 }));
 
 const mockTags = {
   tags: [
     { tag_id: 10, tag_name: 'Food' },
-    { tag_id: 20, tag_name: 'Income' }
-  ]
+    { tag_id: 20, tag_name: 'Income' },
+  ],
 };
 
 const mockTransactions = {
@@ -38,7 +40,7 @@ const mockTransactions = {
       amount: 150,
       debit_credit: 'debit',
       source: 'manual',
-      tag_ids: [10]
+      tag_ids: [10],
     },
     {
       txn_id: 2,
@@ -48,10 +50,10 @@ const mockTransactions = {
       amount: 5000,
       debit_credit: 'credit',
       source: 'statement',
-      tag_ids: [20]
-    }
+      tag_ids: [20],
+    },
   ],
-  returned_count: 2
+  returned_count: 2,
 };
 
 describe('TransactionsPage', () => {
@@ -67,7 +69,9 @@ describe('TransactionsPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <TransactionsPage />
       </MemoryRouter>
     );
@@ -79,8 +83,14 @@ describe('TransactionsPage', () => {
       expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByRole('link', { name: 'Beneficiaries' })).toHaveAttribute('href', '/beneficiaries');
-    expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute('href', '/beneficiaries/10');
+    expect(screen.getByRole('link', { name: 'Beneficiaries' })).toHaveAttribute(
+      'href',
+      '/beneficiaries'
+    );
+    expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute(
+      'href',
+      '/beneficiaries/10'
+    );
   });
 
   it('shows action dropdown only for manual transactions', async () => {
@@ -91,12 +101,16 @@ describe('TransactionsPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <TransactionsPage />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText('Supermarket')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
 
     // Manual transaction (Supermarket) should have the ▼ button
     const toggleButtons = screen.getAllByRole('button', { name: '▼' });
@@ -104,21 +118,37 @@ describe('TransactionsPage', () => {
 
     // Statement transaction (Salary) should NOT have a ▼ button
     const salaryRow = screen.getByText('Salary').closest('tr');
-    expect(salaryRow).not.toContainElement(screen.queryByRole('button', { name: '▼' }));
+    expect(salaryRow).not.toContainElement(
+      screen.queryByRole('button', { name: '▼' })
+    );
   });
 
   it('handles pagination', async () => {
     apiFetch.mockImplementation(async (url) => {
       if (url.includes('transactions')) {
-          if (url.includes('offset=25')) return { transactions: [{ ...mockTransactions.transactions[0], txn_id: 100 }], returned_count: 1 };
-          return { transactions: Array.from({ length: 25 }, (_, i) => ({ ...mockTransactions.transactions[0], txn_id: i })), returned_count: 25 };
+        if (url.includes('offset=25'))
+          return {
+            transactions: [
+              { ...mockTransactions.transactions[0], txn_id: 100 },
+            ],
+            returned_count: 1,
+          };
+        return {
+          transactions: Array.from({ length: 25 }, (_, i) => ({
+            ...mockTransactions.transactions[0],
+            txn_id: i,
+          })),
+          returned_count: 25,
+        };
       }
       if (url.includes('tags')) return mockTags;
       return {};
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <TransactionsPage />
       </MemoryRouter>
     );
@@ -128,7 +158,9 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByText('Next'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining('offset=25'));
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('offset=25')
+      );
     });
   });
 
@@ -136,17 +168,22 @@ describe('TransactionsPage', () => {
     apiFetch.mockImplementation(async (url) => {
       if (url.includes('group_by=merchant')) {
         return {
-          groups: [{
-            beneficiary_id: 42,
-            beneficiary_name: 'Coffee Shop',
-            frequency: 3,
-            total_amount: -450,
-          }],
+          groups: [
+            {
+              beneficiary_id: 42,
+              beneficiary_name: 'Coffee Shop',
+              frequency: 3,
+              total_amount: -450,
+            },
+          ],
           returned_count: 1,
         };
       }
       if (url.includes('beneficiary_id=42')) {
-        return { transactions: [{ ...mockTransactions.transactions[0], txn_id: 99 }], returned_count: 1 };
+        return {
+          transactions: [{ ...mockTransactions.transactions[0], txn_id: 99 }],
+          returned_count: 1,
+        };
       }
       if (url.includes('transactions')) return mockTransactions;
       if (url.includes('tags')) return mockTags;
@@ -154,23 +191,34 @@ describe('TransactionsPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <TransactionsPage />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText('Supermarket')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
 
     fireEvent.click(screen.getByText('Merchant View'));
 
-    await waitFor(() => expect(screen.getByText('Coffee Shop')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Coffee Shop')).toBeInTheDocument()
+    );
 
-    expect(screen.getByRole('link', { name: 'Coffee Shop' })).toHaveAttribute('href', '/beneficiaries/42');
+    expect(screen.getByRole('link', { name: 'Coffee Shop' })).toHaveAttribute(
+      'href',
+      '/beneficiaries/42'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining('beneficiary_id=42'));
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('beneficiary_id=42')
+      );
     });
   });
 
@@ -180,16 +228,20 @@ describe('TransactionsPage', () => {
       if (url.includes('tags')) return mockTags;
       return {};
     });
-    
+
     window.confirm = vi.fn(() => true);
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <TransactionsPage />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText('Supermarket')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
 
     // 1. Open dropdown
     const toggleButton = screen.getByRole('button', { name: '▼' });
@@ -200,9 +252,12 @@ describe('TransactionsPage', () => {
     fireEvent.click(deleteButton);
 
     expect(window.confirm).toHaveBeenCalled();
-    
+
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining('/api/transactions/1'), expect.objectContaining({ method: 'DELETE' }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/transactions/1'),
+        expect.objectContaining({ method: 'DELETE' })
+      );
     });
   });
 });

@@ -1,19 +1,30 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
+
 import { SettingsPage } from './SettingsPage';
 
 // Mock sub-components
-vi.mock('../ProfilePage.jsx', () => ({ ProfilePage: () => <div data-testid="profile-tab">Profile</div> }));
-vi.mock('./CategoriesTab.jsx', () => ({ CategoriesTab: () => <div data-testid="categories-tab">Categories</div> }));
-vi.mock('./CategorizationRulesTab.jsx', () => ({ CategorizationRulesTab: () => <div data-testid="rules-tab">Rules</div> }));
-vi.mock('./TaxationRulesTab.jsx', () => ({ TaxationRulesTab: () => <div data-testid="taxation-tab">Taxation</div> }));
+vi.mock('../ProfilePage.jsx', () => ({
+  ProfilePage: () => <div data-testid="profile-tab">Profile</div>,
+}));
+vi.mock('./CategoriesTab.jsx', () => ({
+  CategoriesTab: () => <div data-testid="categories-tab">Categories</div>,
+}));
+vi.mock('./CategorizationRulesTab.jsx', () => ({
+  CategorizationRulesTab: () => <div data-testid="rules-tab">Rules</div>,
+}));
+vi.mock('./TaxationRulesTab.jsx', () => ({
+  TaxationRulesTab: () => <div data-testid="taxation-tab">Taxation</div>,
+}));
 
 describe('SettingsPage', () => {
   it('renders and allows switching tabs via navigation', () => {
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <SettingsPage />
       </MemoryRouter>
     );
@@ -28,7 +39,10 @@ describe('SettingsPage', () => {
 
   it('initializes with tab from URL query', () => {
     render(
-      <MemoryRouter initialEntries={['/settings?tab=taxation_rules']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={['/settings?tab=taxation_rules']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <SettingsPage />
       </MemoryRouter>
     );
@@ -38,7 +52,10 @@ describe('SettingsPage', () => {
 
   it('does not render profile or budgets tabs anymore', () => {
     render(
-      <MemoryRouter initialEntries={['/settings?tab=profile']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={['/settings?tab=profile']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <SettingsPage />
       </MemoryRouter>
     );

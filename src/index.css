@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+/*
+ * Feature batches add component patterns here as they migrate UI to
+ * Tailwind. Keep this file thin — most styling stays in component
+ * className strings; @layer components is reserved for genuinely
+ * shared patterns (e.g. a project-wide button reset) that appear
+ * across multiple features.
+ */
+@layer components {
+  /* Empty — patterns added per feature batch. */
+}

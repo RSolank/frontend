@@ -15,7 +15,9 @@ export function flattenTags(nodes, out = []) {
 export function formatTagAssignment(tagId, flatTags) {
   const tag = flatTags.find((t) => t.tag_id === tagId);
   if (!tag) return String(tagId);
-  const parent = tag.parent ? flatTags.find((t) => t.tag_id === tag.parent) : null;
+  const parent = tag.parent
+    ? flatTags.find((t) => t.tag_id === tag.parent)
+    : null;
   if (parent) return `${parent.tag_name} (${tag.tag_name})`;
   return tag.tag_name;
 }
@@ -23,6 +25,8 @@ export function formatTagAssignment(tagId, flatTags) {
 /** Rule name: Beneficiary_Name -> Parent (Tag), Parent2 (Tag2), ... */
 export function buildRuleName(beneficiaryName, tagIds, flatTags) {
   if (!beneficiaryName?.trim() || !tagIds?.length) return '';
-  const parts = tagIds.map((tid) => formatTagAssignment(tid, flatTags)).filter(Boolean);
+  const parts = tagIds
+    .map((tid) => formatTagAssignment(tid, flatTags))
+    .filter(Boolean);
   return `${beneficiaryName.trim()} -> ${parts.join(', ')}`;
 }

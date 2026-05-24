@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { ProtectedRoute } from './ProtectedRoute';
-import * as AuthContextModule from '../state/AuthContext';
 import { describe, it, expect, vi } from 'vitest';
+
+import * as AuthContextModule from '../state/AuthContext';
+
+import { ProtectedRoute } from './ProtectedRoute';
 
 // We mock the AuthContext.
 // The actual logic of "Back Button" means hitting the protected route when user is null.
@@ -15,7 +17,10 @@ describe('ProtectedRoute Component', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={['/dashboard']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <Routes>
           <Route path="/login" element={<div>Login Page Mock</div>} />
           <Route
@@ -42,7 +47,10 @@ describe('ProtectedRoute Component', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={['/dashboard']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <Routes>
           <Route path="/login" element={<div>Login Page Mock</div>} />
           <Route
@@ -69,7 +77,10 @@ describe('ProtectedRoute Component', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/dashboard']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        initialEntries={['/dashboard']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <Routes>
           <Route
             path="/dashboard"

@@ -8,7 +8,7 @@ import { TaxationRulesTab } from './TaxationRulesTab.jsx';
 const TABS = {
   categories: 'Categories',
   categorization_rules: 'Categorization Rules',
-  taxation_rules: 'Taxation Rules'
+  taxation_rules: 'Taxation Rules',
 };
 
 export function SettingsPage() {
@@ -22,22 +22,46 @@ export function SettingsPage() {
   }, [location.search]);
 
   return (
-    <div style={{ maxWidth: 1000, margin: '2rem auto', padding: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <div
+      style={{
+        maxWidth: 1000,
+        margin: '2rem auto',
+        padding: '1.5rem',
+        fontFamily: 'Inter, sans-serif',
+      }}
+    >
+      <header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+        }}
+      >
         <h1 style={{ fontWeight: 800 }}>Settings</h1>
-        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 600, fontSize: '0.9rem' }}>
+        <Link
+          to="/dashboard"
+          style={{
+            textDecoration: 'none',
+            color: '#2563eb',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
+        >
           ← Back to dashboard
         </Link>
       </header>
-      
-      <nav style={{ 
-        display: 'flex', 
-        gap: '0.5rem', 
-        borderBottom: '1px solid #f1f5f9', 
-        marginBottom: '2rem',
-        overflowX: 'auto',
-        paddingBottom: '2px'
-      }}>
+
+      <nav
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          borderBottom: '1px solid #f1f5f9',
+          marginBottom: '2rem',
+          overflowX: 'auto',
+          paddingBottom: '2px',
+        }}
+      >
         {Object.entries(TABS).map(([key, label]) => (
           <button
             key={key}
@@ -45,14 +69,17 @@ export function SettingsPage() {
             style={{
               padding: '0.75rem 1.25rem',
               border: 'none',
-              borderBottom: activeTab === key ? '3px solid #2563eb' : '3px solid transparent',
+              borderBottom:
+                activeTab === key
+                  ? '3px solid #2563eb'
+                  : '3px solid transparent',
               background: 'transparent',
               cursor: 'pointer',
               fontWeight: activeTab === key ? 700 : 500,
               color: activeTab === key ? '#2563eb' : '#64748b',
               whiteSpace: 'nowrap',
               transition: 'all 0.2s',
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
             }}
           >
             {label}

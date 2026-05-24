@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { LoginPage } from './Login';
-import * as AuthContextModule from '../../state/AuthContext';
 import { describe, it, expect, vi } from 'vitest';
+
+import * as AuthContextModule from '../../state/AuthContext';
+
+import { LoginPage } from './Login';
 
 describe('Login Page', () => {
   it('renders login form properly', () => {
@@ -16,7 +18,9 @@ describe('Login Page', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LoginPage />
       </MemoryRouter>
     );
@@ -37,21 +41,27 @@ describe('Login Page', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LoginPage />
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/Email/), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'SecurePass123!' } });
-    
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: 'user@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Password/), {
+      target: { value: 'SecurePass123!' },
+    });
+
     const submitBtn = screen.getByRole('button', { name: 'Login' });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith({
         email_id: 'user@example.com',
-        password: 'SecurePass123!'
+        password: 'SecurePass123!',
       });
     });
   });
@@ -66,7 +76,9 @@ describe('Login Page', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LoginPage />
       </MemoryRouter>
     );
@@ -84,19 +96,21 @@ describe('Login Page', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LoginPage />
       </MemoryRouter>
     );
 
     // Enter forgot password mode
     fireEvent.click(screen.getByText('Forgot password?'));
-    
-    // We need to skip to the 'reset' step. 
+
+    // We need to skip to the 'reset' step.
     // In a unit test, we can either mock the state or manually trigger all steps.
-    // However, since we are testing the UI rendered in 'reset' step, 
+    // However, since we are testing the UI rendered in 'reset' step,
     // we should ideally test if it renders correctly when the state is right.
-    
+
     // For now, let's just check if it renders the requirements when we are in the right mode.
     // Note: To test the actual 'reset' step visibility, we'd need more complex state mocking.
     // But we can at least verify the component is used in the codebase.

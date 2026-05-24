@@ -1,9 +1,21 @@
 import React from 'react';
-import { AliasChipsInput } from './AliasChipsInput.jsx';
+
 import { apiFetch } from '../../utils/apiClient.js';
 
-const fieldStyle = { width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0' };
-const labelStyle = { display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '0.85rem' };
+import { AliasChipsInput } from './AliasChipsInput.jsx';
+
+const fieldStyle = {
+  width: '100%',
+  padding: '0.6rem',
+  borderRadius: '8px',
+  border: '1px solid #e2e8f0',
+};
+const labelStyle = {
+  display: 'block',
+  marginBottom: '4px',
+  fontWeight: 600,
+  fontSize: '0.85rem',
+};
 
 export function emptyBeneficiaryForm(type = 'merchant') {
   return {
@@ -82,7 +94,9 @@ function Field({ label, children, style }) {
   const child = React.Children.only(children);
   return (
     <div style={style}>
-      <label htmlFor={inputId} style={labelStyle}>{label}</label>
+      <label htmlFor={inputId} style={labelStyle}>
+        {label}
+      </label>
       {React.cloneElement(child, { id: child.props.id || inputId })}
     </div>
   );
@@ -103,7 +117,9 @@ function flattenTags(nodes, out = []) {
 function formatTagAssignment(tagId, flatTags) {
   const tag = flatTags.find((t) => t.tag_id === tagId);
   if (!tag) return String(tagId);
-  const parent = tag.parent ? flatTags.find((t) => t.tag_id === tag.parent) : null;
+  const parent = tag.parent
+    ? flatTags.find((t) => t.tag_id === tag.parent)
+    : null;
   if (parent) return `${parent.tag_name} (${tag.tag_name})`;
   return tag.tag_name;
 }
@@ -130,19 +146,23 @@ export function BeneficiaryFormFields({
   const [hoveredTagId, setHoveredTagId] = React.useState(null);
 
   const handleRemoveRuleTag = async (tid) => {
-    const nextTags = ruleTags.filter(id => id !== tid);
+    const nextTags = ruleTags.filter((id) => id !== tid);
     setRuleTags(nextTags);
     if (parseInt(form.category, 10) === tid) {
       const newPrimary = nextTags.length > 0 ? String(nextTags[0]) : '';
-      setForm(f => ({ ...f, category: newPrimary }));
+      setForm((f) => ({ ...f, category: newPrimary }));
     }
     if (form.uid) {
       try {
         const res = await apiFetch('/api/categorization-rules');
-        const rule = (res.rules || []).find((r) => r.beneficiary_id === form.uid);
+        const rule = (res.rules || []).find(
+          (r) => r.beneficiary_id === form.uid
+        );
         if (rule) {
           if (nextTags.length === 0) {
-            await apiFetch(`/api/categorization-rules/${rule.uid}`, { method: 'DELETE' });
+            await apiFetch(`/api/categorization-rules/${rule.uid}`, {
+              method: 'DELETE',
+            });
           } else {
             await apiFetch(`/api/categorization-rules/${rule.uid}`, {
               method: 'PUT',
@@ -157,13 +177,15 @@ export function BeneficiaryFormFields({
   };
 
   const handleSetPrimary = async (tid) => {
-    const nextTags = [tid, ...ruleTags.filter(id => id !== tid)];
+    const nextTags = [tid, ...ruleTags.filter((id) => id !== tid)];
     setRuleTags(nextTags);
-    setForm(f => ({ ...f, category: String(tid) }));
+    setForm((f) => ({ ...f, category: String(tid) }));
     if (form.uid) {
       try {
         const res = await apiFetch('/api/categorization-rules');
-        const rule = (res.rules || []).find((r) => r.beneficiary_id === form.uid);
+        const rule = (res.rules || []).find(
+          (r) => r.beneficiary_id === form.uid
+        );
         if (rule) {
           await apiFetch(`/api/categorization-rules/${rule.uid}`, {
             method: 'PUT',
@@ -175,7 +197,6 @@ export function BeneficiaryFormFields({
       }
     }
   };
-
 
   React.useEffect(() => {
     apiFetch('/api/beneficiaries/relationships')
@@ -193,7 +214,9 @@ export function BeneficiaryFormFields({
     if (form.uid) {
       apiFetch('/api/categorization-rules')
         .then((res) => {
-          const rule = (res.rules || []).find((r) => r.beneficiary_id === form.uid);
+          const rule = (res.rules || []).find(
+            (r) => r.beneficiary_id === form.uid
+          );
           if (rule && rule.tag_ids) {
             setRuleTags(rule.tag_ids);
           } else {
@@ -235,7 +258,12 @@ export function BeneficiaryFormFields({
             onTypeChange?.(nextType, nextForm);
           }}
           disabled={disabled}
-          style={{ ...fieldStyle, background: disabled ? '#f1f5f9' : 'white', color: '#0f172a', textTransform: 'capitalize' }}
+          style={{
+            ...fieldStyle,
+            background: disabled ? '#f1f5f9' : 'white',
+            color: '#0f172a',
+            textTransform: 'capitalize',
+          }}
         >
           <option value="merchant">Merchant</option>
           <option value="person">Person</option>
@@ -272,7 +300,11 @@ export function BeneficiaryFormFields({
                 }
               }}
               disabled={disabled}
-              style={{ ...fieldStyle, background: disabled ? '#f1f5f9' : 'white', color: '#0f172a' }}
+              style={{
+                ...fieldStyle,
+                background: disabled ? '#f1f5f9' : 'white',
+                color: '#0f172a',
+              }}
             >
               <option value="">-- None --</option>
               {tags
@@ -288,7 +320,14 @@ export function BeneficiaryFormFields({
           {isMerchant && ruleTags.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={labelStyle}>Assigned Tags</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  marginTop: '4px',
+                }}
+              >
                 {ruleTags.map((tid, idx) => {
                   const tagLabel = formatTagAssignment(tid, tags);
                   const isPrimary = idx === 0;
@@ -307,7 +346,9 @@ export function BeneficiaryFormFields({
                         fontWeight: 600,
                         background: isPrimary ? '#dcfce7' : '#f1f5f9',
                         color: isPrimary ? '#15803d' : '#475569',
-                        border: isPrimary ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                        border: isPrimary
+                          ? '1px solid #bbf7d0'
+                          : '1px solid #e2e8f0',
                         transition: 'all 0.2s',
                       }}
                     >
@@ -369,7 +410,10 @@ export function BeneficiaryFormFields({
             </div>
           )}
 
-          <Field label="Contact (phone or website)" style={{ marginBottom: '1rem' }}>
+          <Field
+            label="Contact (phone or website)"
+            style={{ marginBottom: '1rem' }}
+          >
             <input
               value={form.contact}
               onChange={(e) => setForm({ ...form, contact: e.target.value })}
@@ -381,7 +425,9 @@ export function BeneficiaryFormFields({
           <Field label="UPI ID" style={{ marginBottom: '1rem' }}>
             <input
               value={form.merchant_upi_id}
-              onChange={(e) => setForm({ ...form, merchant_upi_id: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, merchant_upi_id: e.target.value })
+              }
               readOnly={readOnly}
               disabled={disabled}
               style={fieldStyle}
@@ -393,13 +439,24 @@ export function BeneficiaryFormFields({
           <Field label="Relationship" style={{ marginBottom: '1rem' }}>
             <select
               value={form.relationship_type}
-              onChange={(e) => setForm({ ...form, relationship_type: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, relationship_type: e.target.value })
+              }
               disabled={disabled}
-              style={{ ...fieldStyle, background: disabled ? '#f1f5f9' : 'white', color: '#0f172a', textTransform: 'capitalize' }}
+              style={{
+                ...fieldStyle,
+                background: disabled ? '#f1f5f9' : 'white',
+                color: '#0f172a',
+                textTransform: 'capitalize',
+              }}
             >
               <option value="">-- Select Relationship --</option>
               {(relationships || []).map((r) => (
-                <option key={r} value={r} style={{ textTransform: 'capitalize' }}>
+                <option
+                  key={r}
+                  value={r}
+                  style={{ textTransform: 'capitalize' }}
+                >
                   {r}
                 </option>
               ))}
@@ -417,7 +474,9 @@ export function BeneficiaryFormFields({
           <Field label="UPI ID" style={{ marginBottom: '1rem' }}>
             <input
               value={form.person_upi_id}
-              onChange={(e) => setForm({ ...form, person_upi_id: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, person_upi_id: e.target.value })
+              }
               readOnly={readOnly}
               disabled={disabled}
               style={fieldStyle}

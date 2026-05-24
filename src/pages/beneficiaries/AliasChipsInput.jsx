@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+
 import { apiFetch } from '../../utils/apiClient.js';
+
 import { buildAliasCheckUrl } from './aliasUtils.js';
 
 const chipStyle = {
@@ -89,10 +91,30 @@ export function AliasChipsInput({
 
   const statusMessage = () => {
     if (readOnly || !aliasTemp.trim()) return null;
-    if (checkStatus === 'checking') return <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Checking availability…</span>;
-    if (checkStatus === 'unique') return <span style={{ color: '#10b981', fontSize: '0.8rem' }}>Alias is available</span>;
-    if (checkStatus === 'taken') return <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>Alias already in use</span>;
-    if (checkStatus === 'duplicate') return <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>Alias already added</span>;
+    if (checkStatus === 'checking')
+      return (
+        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
+          Checking availability…
+        </span>
+      );
+    if (checkStatus === 'unique')
+      return (
+        <span style={{ color: '#10b981', fontSize: '0.8rem' }}>
+          Alias is available
+        </span>
+      );
+    if (checkStatus === 'taken')
+      return (
+        <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>
+          Alias already in use
+        </span>
+      );
+    if (checkStatus === 'duplicate')
+      return (
+        <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>
+          Alias already added
+        </span>
+      );
     return null;
   };
 
@@ -100,11 +122,22 @@ export function AliasChipsInput({
 
   return (
     <div style={{ marginBottom: '1rem' }}>
-      <span style={{ display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '0.85rem' }}>Aliases</span>
+      <span
+        style={{
+          display: 'block',
+          marginBottom: '4px',
+          fontWeight: 600,
+          fontSize: '0.85rem',
+        }}
+      >
+        Aliases
+      </span>
 
       {!readOnly && (
         <>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div
+            style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
+          >
             <input
               value={aliasTemp}
               onChange={(e) => setAliasTemp(e.target.value)}
@@ -139,7 +172,9 @@ export function AliasChipsInput({
               Add alias
             </button>
           </div>
-          <div style={{ marginBottom: '0.5rem', minHeight: '1.2rem' }}>{statusMessage()}</div>
+          <div style={{ marginBottom: '0.5rem', minHeight: '1.2rem' }}>
+            {statusMessage()}
+          </div>
         </>
       )}
 
@@ -156,7 +191,9 @@ export function AliasChipsInput({
         }}
       >
         {aliases.length === 0 ? (
-          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No aliases added</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+            No aliases added
+          </span>
         ) : (
           aliases.map((a) => (
             <span key={a} style={chipStyle}>

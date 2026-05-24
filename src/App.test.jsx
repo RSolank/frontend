@@ -1,13 +1,14 @@
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import App from './App.jsx';
+
+import App from './App';
 import { AuthProvider } from './state/AuthContext.jsx';
 
 // Mock apiFetch to prevent real network calls during render,
 // which would be aborted on happy-dom teardown causing DOMException AbortError.
 vi.mock('./utils/apiClient.js', () => ({
-  apiFetch: vi.fn().mockResolvedValue({ user: null })
+  apiFetch: vi.fn().mockResolvedValue({ user: null }),
 }));
 
 describe('App Component', () => {
@@ -16,7 +17,10 @@ describe('App Component', () => {
     // (setUser, setConstants, setLoading) fully settle before assertions.
     await act(async () => {
       render(
-        <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter
+          initialEntries={['/']}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
           <AuthProvider>
             <App />
           </AuthProvider>

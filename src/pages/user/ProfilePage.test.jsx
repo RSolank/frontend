@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ProfilePage } from './ProfilePage';
+import { vi } from 'vitest';
+
 import { apiFetch } from '../../utils/apiClient';
+
+import { ProfilePage } from './ProfilePage';
 
 vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -18,15 +20,15 @@ vi.mock('../../state/AuthContext.jsx', () => ({
       dob: '1990-01-01',
       contact: '1234567890',
       country: 'USA',
-      currency: 'USD'
+      currency: 'USD',
     },
-    refreshUser: vi.fn()
-  })
+    refreshUser: vi.fn(),
+  }),
 }));
 
 const mockOptionsResponse = {
   countries: [{ name: 'USA', country_code: '+1', default_currency: 'USD' }],
-  currencies: [{ code: 'USD', label: 'USD - US Dollar' }]
+  currencies: [{ code: 'USD', label: 'USD - US Dollar' }],
 };
 
 describe('ProfilePage', () => {
@@ -36,15 +38,20 @@ describe('ProfilePage', () => {
 
   it('renders profile data and allows editing', async () => {
     apiFetch.mockImplementation(async (url) => {
-      if (url === '/api/users/me') return { user: { first_name: 'John', last_name: 'Doe' } };
-      if (url === '/api/metadata/countries') return { countries: mockOptionsResponse.countries };
-      if (url === '/api/metadata/currencies') return { currencies: mockOptionsResponse.currencies };
+      if (url === '/api/users/me')
+        return { user: { first_name: 'John', last_name: 'Doe' } };
+      if (url === '/api/metadata/countries')
+        return { countries: mockOptionsResponse.countries };
+      if (url === '/api/metadata/currencies')
+        return { currencies: mockOptionsResponse.currencies };
       if (url === '/api/auth/recovery') return { questions: [] };
       return {};
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <ProfilePage />
       </MemoryRouter>
     );
@@ -54,32 +61,42 @@ describe('ProfilePage', () => {
       expect(screen.getByDisplayValue('Doe')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/First Name/i), { target: { value: 'Jane' } });
-    
+    fireEvent.change(screen.getByLabelText(/First Name/i), {
+      target: { value: 'Jane' },
+    });
+
     // Mock the PATCH call
     apiFetch.mockResolvedValueOnce({ user: { first_name: 'Jane' } });
 
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/users/me', expect.objectContaining({
-        method: 'PATCH',
-        body: expect.stringContaining('"first_name":"Jane"')
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/users/me',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.stringContaining('"first_name":"Jane"'),
+        })
+      );
     });
   });
 
   it('validates new password requirements in settings', async () => {
     apiFetch.mockImplementation(async (url) => {
-      if (url === '/api/users/me') return { user: { first_name: 'John', last_name: 'Doe' } };
-      if (url === '/api/metadata/countries') return { countries: mockOptionsResponse.countries };
-      if (url === '/api/metadata/currencies') return { currencies: mockOptionsResponse.currencies };
+      if (url === '/api/users/me')
+        return { user: { first_name: 'John', last_name: 'Doe' } };
+      if (url === '/api/metadata/countries')
+        return { countries: mockOptionsResponse.countries };
+      if (url === '/api/metadata/currencies')
+        return { currencies: mockOptionsResponse.currencies };
       if (url === '/api/auth/recovery') return { questions: [] };
       return {};
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <ProfilePage />
       </MemoryRouter>
     );
@@ -102,6 +119,8 @@ describe('ProfilePage', () => {
     // Type valid password
     fireEvent.change(newPasswordInput, { target: { value: 'ValidPass123!' } });
     expect(updateBtn).not.toBeDisabled();
-    expect(screen.getByText('8-64 characters').previousSibling.textContent).toBe('✓');
+    expect(
+      screen.getByText('8-64 characters').previousSibling.textContent
+    ).toBe('✓');
   });
 });

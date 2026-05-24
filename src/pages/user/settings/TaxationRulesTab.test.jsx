@@ -1,8 +1,10 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { vi } from 'vitest';
-import { TaxationRulesTab } from './TaxationRulesTab';
+
 import { apiFetch } from '../../../utils/apiClient';
+
+import { TaxationRulesTab } from './TaxationRulesTab';
 
 vi.mock('../../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -11,18 +13,47 @@ vi.mock('../../../utils/apiClient.js', () => ({
 vi.mock('../../../state/AuthContext.jsx', () => ({
   useAuth: () => ({
     constants: {
-      TAXABLE_TXN_TYPES: ['committed', 'essential', 'discretionary', 'uncategorized']
-    }
-  })
+      TAXABLE_TXN_TYPES: [
+        'committed',
+        'essential',
+        'discretionary',
+        'uncategorized',
+      ],
+    },
+  }),
 }));
 
 const mockRulesResponse = {
   rules: [
-    { txn_type: 'committed', tax_rate: 0.0, default_penalty_rate: 0.0, created_by: null, uid: 1 },
-    { txn_type: 'essential', tax_rate: 0.05, default_penalty_rate: 0.1, created_by: null, uid: 2 },
-    { txn_type: 'discretionary', tax_rate: 0.1, default_penalty_rate: 0.5, created_by: null, uid: 3 },
-    { txn_type: 'uncategorized', tax_rate: 0.1, default_penalty_rate: 0.5, created_by: null, uid: 4 },
-  ]
+    {
+      txn_type: 'committed',
+      tax_rate: 0.0,
+      default_penalty_rate: 0.0,
+      created_by: null,
+      uid: 1,
+    },
+    {
+      txn_type: 'essential',
+      tax_rate: 0.05,
+      default_penalty_rate: 0.1,
+      created_by: null,
+      uid: 2,
+    },
+    {
+      txn_type: 'discretionary',
+      tax_rate: 0.1,
+      default_penalty_rate: 0.5,
+      created_by: null,
+      uid: 3,
+    },
+    {
+      txn_type: 'uncategorized',
+      tax_rate: 0.1,
+      default_penalty_rate: 0.5,
+      created_by: null,
+      uid: 4,
+    },
+  ],
 };
 
 describe('TaxationRulesTab', () => {
@@ -64,7 +95,9 @@ describe('TaxationRulesTab', () => {
 
   it('saves an updated rule via PUT on Save click', async () => {
     apiFetch.mockResolvedValueOnce(mockRulesResponse); // initial load
-    apiFetch.mockResolvedValueOnce({ rule: { uid: 3, txn_type: 'discretionary' } }); // PUT
+    apiFetch.mockResolvedValueOnce({
+      rule: { uid: 3, txn_type: 'discretionary' },
+    }); // PUT
     apiFetch.mockResolvedValueOnce(mockRulesResponse); // reload after save
 
     render(<TaxationRulesTab />);
@@ -82,10 +115,13 @@ describe('TaxationRulesTab', () => {
     fireEvent.click(saveBtns[2]); // discretionary is 3rd (index 2)
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/taxation-rules/discretionary', expect.objectContaining({
-        method: 'PUT',
-        body: expect.stringContaining('"tax_rate"')
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/taxation-rules/discretionary',
+        expect.objectContaining({
+          method: 'PUT',
+          body: expect.stringContaining('"tax_rate"'),
+        })
+      );
     });
   });
 });

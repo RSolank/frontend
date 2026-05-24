@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { HomePage } from './Home';
+import { vi } from 'vitest';
+
 import { useAuth } from '../state/AuthContext';
+
+import { HomePage } from './Home';
 
 vi.mock('../state/AuthContext.jsx', () => ({
   useAuth: vi.fn(),
@@ -20,14 +22,18 @@ vi.mock('react-router-dom', async () => {
 describe('HomePage', () => {
   it('renders landing page content for unauthenticated users', () => {
     useAuth.mockReturnValue({ user: null });
-    
+
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <HomePage />
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Smart budgeting for future you/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Smart budgeting for future you/i)
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/Log in/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Register/i)).toBeInTheDocument();
   });
@@ -38,13 +44,17 @@ describe('HomePage', () => {
     useAuth.mockReturnValue({ user: { first_name: 'John' } });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <HomePage />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
     });
   });
 });

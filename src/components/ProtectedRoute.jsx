@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+
 import { useAuth } from '../state/AuthContext.jsx';
 
 export function ProtectedRoute({ children }) {
@@ -15,4 +16,3 @@ export function ProtectedRoute({ children }) {
 
   return children;
 }
-

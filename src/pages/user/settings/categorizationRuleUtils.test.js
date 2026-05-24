@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildRuleName, formatTagAssignment, flattenTags } from './categorizationRuleUtils.js';
+
+import {
+  buildRuleName,
+  formatTagAssignment,
+  flattenTags,
+} from './categorizationRuleUtils.js';
 
 const flatTags = flattenTags([
   {

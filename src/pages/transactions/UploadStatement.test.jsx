@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { UploadStatementPage } from './UploadStatement';
+import { vi } from 'vitest';
+
 import { apiFetch } from '../../utils/apiClient';
+
+import { UploadStatementPage } from './UploadStatement';
 
 vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -24,14 +26,20 @@ describe('UploadStatementPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <UploadStatementPage />
       </MemoryRouter>
     );
 
     expect(screen.getByText(/Upload statement/i)).toBeInTheDocument();
 
-    const file = new File(['date,beneficiary,amount\n2023-01-01,Test,100'], 'statement.csv', { type: 'text/csv' });
+    const file = new File(
+      ['date,beneficiary,amount\n2023-01-01,Test,100'],
+      'statement.csv',
+      { type: 'text/csv' }
+    );
     const input = screen.getByLabelText(/Choose file/i);
 
     fireEvent.change(input, { target: { files: [file] } });
@@ -39,15 +47,25 @@ describe('UploadStatementPage', () => {
     // In the real component, it doesn't show the filename until upload or something?
     // Let's check the UI. Line 256 has <input type="file">.
 
-    apiFetch.mockResolvedValueOnce({ upload_id: 1, requires_confirmation: false }); // POST upload
-    apiFetch.mockResolvedValueOnce({ inserted_count: 1, categorized_count: 1, problematic_count: 0 }); // POST categorize
+    apiFetch.mockResolvedValueOnce({
+      upload_id: 1,
+      requires_confirmation: false,
+    }); // POST upload
+    apiFetch.mockResolvedValueOnce({
+      inserted_count: 1,
+      categorized_count: 1,
+      problematic_count: 0,
+    }); // POST categorize
 
     fireEvent.click(screen.getByText('Upload'));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/transactions/upload-statement', expect.objectContaining({
-        method: 'POST'
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/transactions/upload-statement',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
     });
   });
 
@@ -58,13 +76,17 @@ describe('UploadStatementPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <UploadStatementPage />
       </MemoryRouter>
     );
 
     const file = new File(['test'], 'test.csv', { type: 'text/csv' });
-    fireEvent.change(screen.getByLabelText(/Choose file/i), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText(/Choose file/i), {
+      target: { files: [file] },
+    });
 
     fireEvent.click(screen.getByText('Upload'));
 

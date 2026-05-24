@@ -22,6 +22,13 @@ styling, linting, TypeScript.
 **No new product features in this refactor.** Compatibility with the
 backend's API surface stays unchanged; the changes are structural.
 
+**Visual upgrade rides along.** The refactor is also the opportunity to
+shift the app's visual surface to a modern, sleek, premium look — see
+[CONTRIBUTING.md §6 "Visual design language"](../../CONTRIBUTING.md#visual-design-language)
+for the target language and operating principle. Every component touched
+during a feature batch gets its visuals upgraded in the same pass; do not
+re-skin the pre-refactor plain look behind Tailwind utilities.
+
 ---
 
 ## User Review Required & Design Decisions
@@ -76,20 +83,32 @@ graph TD
 Order matters: each step assumes the prior one is in place. Land each as its
 own small commit so a bisect remains useful.
 
-1. **ESLint + Prettier.** Install: `eslint`, `@eslint/js`, `eslint-plugin-react`,
-   `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `eslint-plugin-import`,
+1. **ESLint + Prettier.** Install: `eslint@^9`, `@eslint/js@^9`,
+   `eslint-plugin-react`, `eslint-plugin-react-hooks`,
+   `eslint-plugin-jsx-a11y`, `eslint-plugin-import`,
    `eslint-config-prettier`, `prettier`, `prettier-plugin-tailwindcss` (used
    from step 7 onwards but install now to avoid a follow-up config bump).
+   **ESLint pinned to v9 deliberately:** ESLint 10 released in early 2026
+   but `eslint-plugin-import@2.32.0` and several other plugins still declare
+   their peer range as `^9` only — installing `eslint@*` resolves to v10 and
+   produces `ERESOLVE` errors. v9 still ships flat config (the planning
+   decision); we revisit v10 once the plugin ecosystem catches up.
    Flat config in `eslint.config.js`. `import/no-restricted-paths` rule
    pre-wired with the eventual `features → shared` boundary. Run
    `npm run format -- --write` over the existing tree as a single commit so
    future batches' diffs stay clean.
-2. **TypeScript.** Install: `typescript`, `@types/react`, `@types/react-dom`.
-   `tsconfig.json` with `strict`, `noUncheckedIndexedAccess`, `allowJs`,
-   `jsx: "react-jsx"`. Convert `src/main.jsx` → `src/main.tsx` and
-   `src/App.jsx` → `src/App.tsx` as the smoke proof. Add `vite-tsconfig-paths`
-   if path aliases (`@/...`) are wanted. Strategy for batches 1–8: "convert
-   each file as its feature batch moves it" — no second sweep.
+2. **TypeScript.** Install: `typescript@~5.9` (pinned because
+   `openapi-typescript@7.x` does not yet support TS 6.x), `@types/react@^18`,
+   `@types/react-dom@^18` (**pinned to v18 to match the React 18.3 runtime
+   — installing `@types/react@latest` resolves to v19 and produces
+   load-bearing type errors against React 18 code, including the
+   `useRef<T>()` signature change and the removal of the implicit `children`
+   prop**). `tsconfig.json` with `strict`, `noUncheckedIndexedAccess`,
+   `allowJs`, `jsx: "react-jsx"`. Convert `src/main.jsx` → `src/main.tsx`
+   and `src/App.jsx` → `src/App.tsx` as the smoke proof. Add
+   `vite-tsconfig-paths` if path aliases (`@/...`) are wanted. Strategy for
+   batches 1–8: "convert each file as its feature batch moves it" — no
+   second sweep.
 3. **OpenAPI types.** Install: `openapi-typescript`. `npm script gen:api` →
    `openapi-typescript http://localhost:4000/openapi.json -o src/shared/types/api.ts`.
    Not run in CI; regenerated on demand. Commit the first generation so types
@@ -143,7 +162,20 @@ own small commit so a bisect remains useful.
 - [ ] Add a `protectedRoutes(routes)` helper in `src/app/routeHelpers.ts`
       that wraps each `RouteObject` so its `element` is gated by
       `<ProtectedRoute>` — used by Batches 3–8 when their routes are added.
-- [ ] `npm test` green; no functional change.
+- [ ] **Theme infrastructure (dark / light / system) + header toggle:** - `src/shared/state/theme.store.ts` — `useThemeStore` (Zustand +
+      `persist` middleware) with modes `'light' | 'dark' | 'system'`,
+      default `'system'`. Subscribes to `prefers-color-scheme` for the
+      system mode. - `src/shared/components/ThemeToggle.tsx` — small icon button
+      (sun / moon / monitor) cycling through the three modes. Mounted
+      top-right of the app header in `src/app/App.tsx`. - Tailwind v4 class-based dark strategy in `src/index.css`:
+      `@variant dark (&:where(.dark, .dark *));`. - `index.html` — synchronous inline script (~10 lines) that reads
+      the persisted theme from `localStorage` and sets
+      `<html class="dark">` _before_ React renders. Prevents FOUC flash
+      on initial load. - `src/app/providers.tsx` — `useThemeStore.hydrate()` and effect
+      that mirrors store state to the `<html>` class on every change. - Install `lucide-react` (~3 KB tree-shaken) for the icons. Not a
+      §10-locked decision; added as the conventional icon dep. - Settings-page placement of the toggle is added later in Batch 3
+      when the users feature lands.
+- [ ] `npm test` green; no functional change to existing features.
 
 ### Batch 2 — `auth` feature
 

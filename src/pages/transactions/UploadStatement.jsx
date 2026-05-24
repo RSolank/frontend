@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+
 import { apiFetch } from '../../utils/apiClient.js';
 
 function flattenTags(nodes, out = []) {
@@ -19,13 +20,19 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
     return tags.filter(
       (t) =>
         !selectedTagIds.includes(t.tag_id) &&
-        (!tagSearch || t.tag_name.toLowerCase().includes(tagSearch.toLowerCase()))
+        (!tagSearch ||
+          t.tag_name.toLowerCase().includes(tagSearch.toLowerCase()))
     );
   }, [tags, selectedTagIds, tagSearch]);
 
   useEffect(() => {
     // If user saved already, keep selectedTagIds in sync with backend state.
-    if (saved && selectedTagIds.length === 0 && txn.tag_ids && txn.tag_ids.length) {
+    if (
+      saved &&
+      selectedTagIds.length === 0 &&
+      txn.tag_ids &&
+      txn.tag_ids.length
+    ) {
       setSelectedTagIds(txn.tag_ids);
     }
   }, [saved]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -37,11 +44,20 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
   };
 
   const handleToggleTag = (id) => {
-    setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   return (
-    <div style={{ border: '1px solid #ddd', borderRadius: 6, padding: '1rem', marginBottom: '1rem' }}>
+    <div
+      style={{
+        border: '1px solid #ddd',
+        borderRadius: 6,
+        padding: '1rem',
+        marginBottom: '1rem',
+      }}
+    >
       <div style={{ marginBottom: '0.75rem' }}>
         <div style={{ fontWeight: 600 }}>{txn.beneficiary || '—'}</div>
         <div style={{ color: '#666', fontSize: '0.9rem' }}>
@@ -73,10 +89,14 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
             if (!availableTags.length) return;
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              setActiveTagIndex((idx) => (idx < availableTags.length - 1 ? idx + 1 : 0));
+              setActiveTagIndex((idx) =>
+                idx < availableTags.length - 1 ? idx + 1 : 0
+              );
             } else if (e.key === 'ArrowUp') {
               e.preventDefault();
-              setActiveTagIndex((idx) => (idx > 0 ? idx - 1 : availableTags.length - 1));
+              setActiveTagIndex((idx) =>
+                idx > 0 ? idx - 1 : availableTags.length - 1
+              );
             } else if (e.key === 'Enter') {
               e.preventDefault();
               const chosen = availableTags[activeTagIndex] || availableTags[0];
@@ -97,7 +117,7 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
               borderRadius: 4,
               maxHeight: 160,
               overflowY: 'auto',
-              background: 'white'
+              background: 'white',
             }}
           >
             {availableTags.slice(0, 10).map((t) => (
@@ -105,15 +125,22 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
                 key={t.tag_id}
                 type="button"
                 onClick={() => handleAddTag(t.tag_id)}
-                onMouseEnter={() => setActiveTagIndex(availableTags.findIndex((x) => x.tag_id === t.tag_id))}
+                onMouseEnter={() =>
+                  setActiveTagIndex(
+                    availableTags.findIndex((x) => x.tag_id === t.tag_id)
+                  )
+                }
                 style={{
                   display: 'block',
                   width: '100%',
                   textAlign: 'left',
                   padding: '0.4rem 0.5rem',
                   border: 'none',
-                  background: availableTags[activeTagIndex]?.tag_id === t.tag_id ? '#e5e7eb' : 'white',
-                  cursor: 'pointer'
+                  background:
+                    availableTags[activeTagIndex]?.tag_id === t.tag_id
+                      ? '#e5e7eb'
+                      : 'white',
+                  cursor: 'pointer',
                 }}
               >
                 {t.tag_name}
@@ -124,12 +151,21 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
       </div>
 
       {selectedTagIds.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+        <div
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}
+        >
           {selectedTagIds.map((id) => {
             const t = tags.find((x) => x.tag_id === id);
             return (
-              <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="checkbox" checked={true} onChange={() => handleToggleTag(id)} />
+              <label
+                key={id}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={true}
+                  onChange={() => handleToggleTag(id)}
+                />
                 {t?.tag_name || id}
               </label>
             );
@@ -137,7 +173,14 @@ function ProblematicTxnRow({ txn, tags, onSaveTags, saved }) {
         </div>
       )}
 
-      <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <div
+        style={{
+          marginTop: '0.75rem',
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center',
+        }}
+      >
         <button
           type="button"
           onClick={() => onSaveTags(txn.txn_id, selectedTagIds)}
@@ -189,22 +232,28 @@ export function UploadStatementPage() {
       fd.append('file', file);
       const d = await apiFetch('/api/transactions/upload-statement', {
         method: 'POST',
-        body: fd
+        body: fd,
       });
 
       setUploading(false);
       setMapping(true);
 
-      await apiFetch(`/api/transactions/upload-statement/${d.upload_id}/map-beneficiaries`, {
-        method: 'POST'
-      });
+      await apiFetch(
+        `/api/transactions/upload-statement/${d.upload_id}/map-beneficiaries`,
+        {
+          method: 'POST',
+        }
+      );
 
       setMapping(false);
       setCategorizing(true);
 
-      const categorizeRes = await apiFetch(`/api/transactions/upload-statement/${d.upload_id}/categorize`, {
-        method: 'POST'
-      });
+      const categorizeRes = await apiFetch(
+        `/api/transactions/upload-statement/${d.upload_id}/categorize`,
+        {
+          method: 'POST',
+        }
+      );
 
       setUploadResult({ ...d, ...categorizeRes });
     } catch (err) {
@@ -221,8 +270,8 @@ export function UploadStatementPage() {
       await apiFetch(`/api/transactions/${txnId}/manual-tags`, {
         method: 'POST',
         body: JSON.stringify({
-          tag_ids: tagIds && tagIds.length ? tagIds : []
-        })
+          tag_ids: tagIds && tagIds.length ? tagIds : [],
+        }),
       });
       setSaveStatus((prev) => ({ ...prev, [txnId]: true }));
     } catch (err) {
@@ -243,10 +292,13 @@ export function UploadStatementPage() {
     }
 
     try {
-      await apiFetch(`/api/transactions/upload-statement/${uploadResult.upload_id}/finalize`, {
-        method: 'POST',
-        body: JSON.stringify({ decision })
-      });
+      await apiFetch(
+        `/api/transactions/upload-statement/${uploadResult.upload_id}/finalize`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ decision }),
+        }
+      );
       navigate('/dashboard');
     } catch (err) {
       setError(err.detail || err.error || 'Failed to finalize upload');
@@ -255,12 +307,25 @@ export function UploadStatementPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '2rem auto', padding: '1.5rem' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <h1>Upload statement</h1>
         <Link to="/dashboard">Back</Link>
       </header>
 
-      <div style={{ marginTop: '1rem', border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
+      <div
+        style={{
+          marginTop: '1rem',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+          padding: '1rem',
+        }}
+      >
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <label>
             Choose file (CSV/PDF)
@@ -273,8 +338,19 @@ export function UploadStatementPage() {
             />
           </label>
 
-          <button type="button" onClick={handleUpload} disabled={uploading || mapping || categorizing} style={{ padding: '0.6rem 1rem' }}>
-            {uploading ? 'Uploading...' : mapping ? 'Mapping beneficiaries...' : categorizing ? 'Categorizing rules...' : 'Upload'}
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={uploading || mapping || categorizing}
+            style={{ padding: '0.6rem 1rem' }}
+          >
+            {uploading
+              ? 'Uploading...'
+              : mapping
+                ? 'Mapping beneficiaries...'
+                : categorizing
+                  ? 'Categorizing rules...'
+                  : 'Upload'}
           </button>
         </div>
       </div>
@@ -286,7 +362,8 @@ export function UploadStatementPage() {
           <div style={{ marginBottom: '1rem' }}>
             <div style={{ fontWeight: 700 }}>Upload summary</div>
             <div style={{ color: '#666' }}>
-              Inserted: {uploadResult.inserted_count} • Tagged: {uploadResult.categorized_count} • Problematic:{' '}
+              Inserted: {uploadResult.inserted_count} • Tagged:{' '}
+              {uploadResult.categorized_count} • Problematic:{' '}
               {uploadResult.problematic_count}
             </div>
           </div>
@@ -294,7 +371,8 @@ export function UploadStatementPage() {
           {uploadResult.requires_confirmation ? (
             <>
               <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>
-                Some transactions need attention. Categorize them below or choose one of the bulk actions.
+                Some transactions need attention. Categorize them below or
+                choose one of the bulk actions.
               </div>
 
               {problematic.length === 0 ? (
@@ -311,7 +389,14 @@ export function UploadStatementPage() {
                 ))
               )}
 
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  marginTop: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => handleFinalize('commit')}
@@ -340,9 +425,15 @@ export function UploadStatementPage() {
             </>
           ) : (
             <div>
-              <div style={{ color: 'green', fontWeight: 700 }}>Upload completed and categorized.</div>
+              <div style={{ color: 'green', fontWeight: 700 }}>
+                Upload completed and categorized.
+              </div>
               <div style={{ marginTop: '0.75rem' }}>
-                <button type="button" onClick={() => navigate('/dashboard')} style={{ padding: '0.6rem 1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  style={{ padding: '0.6rem 1rem' }}
+                >
                   Go to dashboard
                 </button>
               </div>
@@ -353,4 +444,3 @@ export function UploadStatementPage() {
     </div>
   );
 }
-

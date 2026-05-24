@@ -2,21 +2,26 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export async function apiFetch(path, options = {}) {
   const accessToken = localStorage.getItem('access_token');
-  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-    ...(options.headers || {})
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...(options.headers || {}),
   };
 
   let res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers
+    headers,
   });
 
   // Handle Token Refresh
-  if (res.status === 401 && !path.includes('/api/auth/refresh') && !path.includes('/api/auth/login')) {
+  if (
+    res.status === 401 &&
+    !path.includes('/api/auth/refresh') &&
+    !path.includes('/api/auth/login')
+  ) {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
       try {
@@ -24,8 +29,8 @@ export async function apiFetch(path, options = {}) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Refresh-Token': refreshToken
-          }
+            'X-Refresh-Token': refreshToken,
+          },
         });
 
         if (refreshRes.ok) {
@@ -37,7 +42,7 @@ export async function apiFetch(path, options = {}) {
           headers['Authorization'] = `Bearer ${tokens.access_token}`;
           res = await fetch(`${BASE_URL}${path}`, {
             ...options,
-            headers
+            headers,
           });
         } else {
           // Refresh failed
@@ -47,7 +52,7 @@ export async function apiFetch(path, options = {}) {
           return;
         }
       } catch (err) {
-        console.error("Token refresh error:", err);
+        console.error('Token refresh error:', err);
       }
     }
   }

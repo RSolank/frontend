@@ -1,8 +1,10 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { AliasChipsInput } from './AliasChipsInput.jsx';
+
 import { apiFetch } from '../../utils/apiClient.js';
+
+import { AliasChipsInput } from './AliasChipsInput.jsx';
 
 vi.mock('../../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -37,7 +39,9 @@ describe('AliasChipsInput', () => {
     });
 
     expect(apiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/beneficiaries/check-alias?alias=Jio&exclude_uid=1')
+      expect.stringContaining(
+        '/api/beneficiaries/check-alias?alias=Jio&exclude_uid=1'
+      )
     );
     expect(screen.getByRole('button', { name: 'Add alias' })).toBeDisabled();
   });
@@ -54,7 +58,9 @@ describe('AliasChipsInput', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Alias is available')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Add alias' })).not.toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Add alias' })
+      ).not.toBeDisabled();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Add alias' }));

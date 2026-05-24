@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { DashboardPage } from './Dashboard';
+import { vi } from 'vitest';
+
 import { apiFetch } from '../utils/apiClient';
+
+import { DashboardPage } from './Dashboard';
 
 vi.mock('../utils/apiClient.js', () => ({
   apiFetch: vi.fn(),
@@ -12,7 +14,7 @@ vi.mock('../utils/apiClient.js', () => ({
 const mockUser = {
   first_name: 'John',
   last_name: 'Doe',
-  currency: '₹'
+  currency: '₹',
 };
 
 const mockLogout = vi.fn();
@@ -22,17 +24,17 @@ vi.mock('../state/AuthContext.jsx', () => ({
     user: mockUser,
     constants: {
       MISCELLANEOUS_TAG_ID: 2,
-      TOTAL_TAG_ID: 1
+      TOTAL_TAG_ID: 1,
     },
-    logout: mockLogout
-  })
+    logout: mockLogout,
+  }),
 }));
 
 const mockTags = {
   tags: [
     { tag_id: 1, tag_name: 'Food', children: [] },
-    { tag_id: 2, tag_name: 'Groceries', children: [] }
-  ]
+    { tag_id: 2, tag_name: 'Groceries', children: [] },
+  ],
 };
 
 const mockTransactions = {
@@ -44,16 +46,16 @@ const mockTransactions = {
       amount: 100,
       debit_credit: 'debit',
       source: 'manual',
-      tag_ids: [2]
-    }
-  ]
+      tag_ids: [2],
+    },
+  ],
 };
 
 const mockBudgets = {
   total_budget: { current_expense: 500, limit_amt: 1000 },
   categories: [
-    { tag_id: 1, tag_name: 'Food', current_expense: 200, limit_amt: 300 }
-  ]
+    { tag_id: 1, tag_name: 'Food', current_expense: 200, limit_amt: 300 },
+  ],
 };
 
 describe('DashboardPage', () => {
@@ -71,7 +73,9 @@ describe('DashboardPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <DashboardPage />
       </MemoryRouter>
     );
@@ -89,7 +93,11 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       // Look for the text specifically in a heading or just any element
       const textNodes = screen.getAllByText((content, element) => {
-        return element.tagName.toLowerCase() === 'h2' && content.includes('₹') && content.includes('500');
+        return (
+          element.tagName.toLowerCase() === 'h2' &&
+          content.includes('₹') &&
+          content.includes('500')
+        );
       });
       expect(textNodes.length).toBeGreaterThan(0);
     });
@@ -110,7 +118,9 @@ describe('DashboardPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <DashboardPage />
       </MemoryRouter>
     );
@@ -130,7 +140,9 @@ describe('DashboardPage', () => {
     });
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <DashboardPage />
       </MemoryRouter>
     );

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../state/AuthContext.jsx';
 
 export function HomePage() {
@@ -93,21 +94,7 @@ export function HomePage() {
           >
             <Link
               to="/login"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.7rem 1.4rem',
-                borderRadius: '999px',
-                backgroundColor: '#0f766e',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                textDecoration: 'none',
-                boxShadow:
-                  '0 14px 30px rgba(15,118,110,0.35), 0 4px 8px rgba(15,118,110,0.2)',
-                border: '1px solid rgba(15,118,110,0.9)',
-              }}
+              className="inline-flex items-center justify-center rounded-full border border-teal-700/90 bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
             >
               Log in
             </Link>
@@ -332,4 +319,3 @@ export function HomePage() {
     </div>
   );
 }
-

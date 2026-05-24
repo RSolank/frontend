@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { apiFetch } from '../utils/apiClient.js';
 
 const AuthContext = createContext(null);
@@ -17,16 +18,16 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
-    
+
     try {
       const [userData, constantsData] = await Promise.all([
         apiFetch('/api/users/me'),
-        apiFetch('/api/metadata/constants')
+        apiFetch('/api/metadata/constants'),
       ]);
       setUser(userData.user || null);
       setConstants(constantsData || null);
     } catch (err) {
-      console.error("Refresh user failed:", err);
+      console.error('Refresh user failed:', err);
       // If unauthorized, token might be expired and refresh handled by apiClient
       // but if it still fails, clear user.
       if (err.status === 401) {
@@ -37,28 +38,26 @@ export function AuthProvider({ children }) {
     }
   };
 
-
   useEffect(() => {
     refreshUser();
   }, []);
-
 
   const register = async (payload) => {
     setError(null);
     try {
       const data = await apiFetch('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      
+
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
-      
+
       setUser({
         user_id: data.user_id,
         email_id: data.email_id,
         first_name: data.first_name,
-        last_name: data.last_name
+        last_name: data.last_name,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -72,12 +71,15 @@ export function AuthProvider({ children }) {
     try {
       const data = await apiFetch('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email_id: payload.email_id, password: payload.password })
+        body: JSON.stringify({
+          email_id: payload.email_id,
+          password: payload.password,
+        }),
       });
-      
+
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
-      
+
       const me = await apiFetch('/api/users/me');
       setUser(me.user || null);
       navigate('/dashboard');
@@ -91,7 +93,7 @@ export function AuthProvider({ children }) {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
-      console.error("Logout error:", err);
+      console.error('Logout error:', err);
     } finally {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -100,8 +102,17 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = { user, constants, loading, error, setError, register, login, logout, refreshUser };
-
+  const value = {
+    user,
+    constants,
+    loading,
+    error,
+    setError,
+    register,
+    login,
+    logout,
+    refreshUser,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

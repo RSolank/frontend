@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+
 import { apiFetch } from '../../utils/apiClient.js';
+
 import {
   BeneficiaryFormFields,
   beneficiaryToForm,
@@ -24,7 +26,15 @@ const ActionDropdown = ({ editing, onEdit, onCancel, onDelete }) => {
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#f1f5f9',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+      >
         <button
           type="button"
           onClick={editing ? onCancel : onEdit}
@@ -76,7 +86,10 @@ const ActionDropdown = ({ editing, onEdit, onCancel, onDelete }) => {
         >
           <button
             type="button"
-            onClick={() => { onDelete(); setIsOpen(false); }}
+            onClick={() => {
+              onDelete();
+              setIsOpen(false);
+            }}
             style={{
               width: '100%',
               textAlign: 'left',
@@ -134,9 +147,12 @@ export function BeneficiaryDetailPage() {
     if (aliasInvalid) return;
 
     // 1. Check type switch from Merchant to Person
-    if (beneficiary.beneficiary_type === 'merchant' && form.beneficiary_type === 'person') {
+    if (
+      beneficiary.beneficiary_type === 'merchant' &&
+      form.beneficiary_type === 'person'
+    ) {
       const proceed = window.confirm(
-        "Changing this beneficiary from Merchant to Person will delete its merchant details. The categorization rule mapping will be preserved. Do you want to proceed?"
+        'Changing this beneficiary from Merchant to Person will delete its merchant details. The categorization rule mapping will be preserved. Do you want to proceed?'
       );
       if (!proceed) return;
     }
@@ -148,11 +164,16 @@ export function BeneficiaryDetailPage() {
       if (originalCategory !== newCategory && newCategory !== '') {
         try {
           const res = await apiFetch('/api/categorization-rules');
-          const rule = (res.rules || []).find((r) => r.beneficiary_id === beneficiary.uid);
-          const isNewTag = !rule || !rule.tag_ids || !rule.tag_ids.includes(parseInt(newCategory, 10));
+          const rule = (res.rules || []).find(
+            (r) => r.beneficiary_id === beneficiary.uid
+          );
+          const isNewTag =
+            !rule ||
+            !rule.tag_ids ||
+            !rule.tag_ids.includes(parseInt(newCategory, 10));
           if (isNewTag) {
             const proceed = window.confirm(
-              "Changing the merchant category will automatically create or update the corresponding categorization rule. This will re-categorize all related statement transactions and update your budgets. Do you want to proceed?"
+              'Changing the merchant category will automatically create or update the corresponding categorization rule. This will re-categorize all related statement transactions and update your budgets. Do you want to proceed?'
             );
             if (!proceed) return;
           }
@@ -176,7 +197,12 @@ export function BeneficiaryDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete beneficiary "${beneficiary?.name}"? This cannot be undone.`)) return;
+    if (
+      !window.confirm(
+        `Delete beneficiary "${beneficiary?.name}"? This cannot be undone.`
+      )
+    )
+      return;
     try {
       await apiFetch(`/api/beneficiaries/${id}`, { method: 'DELETE' });
       navigate('/beneficiaries');
@@ -188,11 +214,19 @@ export function BeneficiaryDetailPage() {
   const handleMerge = async () => {
     if (!mergeSource || !mergeTarget) return;
     if (mergeSource === mergeTarget) return;
-    if (!window.confirm('Merging will consolidate all aliases and update all transaction links. This cannot be undone. Proceed?')) return;
+    if (
+      !window.confirm(
+        'Merging will consolidate all aliases and update all transaction links. This cannot be undone. Proceed?'
+      )
+    )
+      return;
     try {
       await apiFetch('/api/beneficiaries/merge', {
         method: 'POST',
-        body: JSON.stringify({ source_uid: parseInt(mergeSource, 10), target_uid: parseInt(mergeTarget, 10) }),
+        body: JSON.stringify({
+          source_uid: parseInt(mergeSource, 10),
+          target_uid: parseInt(mergeTarget, 10),
+        }),
       });
       if (mergeSource === String(id)) {
         navigate(`/beneficiaries/${mergeTarget}`);
@@ -216,7 +250,18 @@ export function BeneficiaryDetailPage() {
   };
 
   if (loading) {
-    return <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', color: '#94a3b8' }}>Loading...</div>;
+    return (
+      <div
+        style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '1rem',
+          color: '#94a3b8',
+        }}
+      >
+        Loading...
+      </div>
+    );
   }
 
   if (error || !beneficiary || !form) {
@@ -229,10 +274,33 @@ export function BeneficiaryDetailPage() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'Inter, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+    <div
+      style={{
+        maxWidth: '800px',
+        margin: '2rem auto',
+        padding: '1rem',
+        fontFamily: 'Inter, sans-serif',
+      }}
+    >
+      <header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '1.5rem',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
         <div>
-          <Link to="/beneficiaries" style={{ color: '#2563eb', textDecoration: 'none', fontSize: '0.9rem' }}>
+          <Link
+            to="/beneficiaries"
+            style={{
+              color: '#2563eb',
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+            }}
+          >
             ← Back to All Beneficiaries
           </Link>
           <h1 style={{ margin: '0.5rem 0 0' }}>{beneficiary.name}</h1>
@@ -245,7 +313,14 @@ export function BeneficiaryDetailPage() {
         />
       </header>
 
-      <form onSubmit={handleSave} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px' }}>
+      <form
+        onSubmit={handleSave}
+        style={{
+          background: '#f8fafc',
+          padding: '1.5rem',
+          borderRadius: '12px',
+        }}
+      >
         <BeneficiaryFormFields
           form={form}
           setForm={setForm}

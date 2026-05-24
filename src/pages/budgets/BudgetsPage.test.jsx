@@ -1,9 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { BudgetsPage } from './BudgetsPage';
+import { vi } from 'vitest';
+
 import { apiFetch } from '../../utils/apiClient';
+
+import { BudgetsPage } from './BudgetsPage';
 
 // Mock apiFetch
 vi.mock('../../utils/apiClient.js', () => ({
@@ -11,10 +13,10 @@ vi.mock('../../utils/apiClient.js', () => ({
 }));
 
 vi.mock('../../state/AuthContext.jsx', () => ({
-  useAuth: () => ({ 
+  useAuth: () => ({
     user: { user_id: 1, first_name: 'Test', currency: '$' },
-    constants: { TOTAL_TAG_ID: 1, MISCELLANEOUS_TAG_ID: 2 }
-  })
+    constants: { TOTAL_TAG_ID: 1, MISCELLANEOUS_TAG_ID: 2 },
+  }),
 }));
 
 describe('BudgetsPage', () => {
@@ -34,7 +36,7 @@ describe('BudgetsPage', () => {
         max_expense: 400,
         limit_amt: 350,
         penalty_rate: 0.05,
-        default_penalty_rate: 0.05
+        default_penalty_rate: 0.05,
       },
       {
         tag_id: 3,
@@ -46,8 +48,8 @@ describe('BudgetsPage', () => {
         max_expense: 200,
         limit_amt: null,
         penalty_rate: null,
-        default_penalty_rate: 0.1
-      }
+        default_penalty_rate: 0.1,
+      },
     ],
     total_budget: {
       uid: 1,
@@ -56,18 +58,20 @@ describe('BudgetsPage', () => {
       current_expense: 450,
       avg_expense: 350,
       min_expense: 250,
-      max_expense: 600
+      max_expense: 600,
     },
     currency: '$',
     month: '2023-10',
-    available_months: ['2023-10', '2023-09']
+    available_months: ['2023-10', '2023-09'],
   };
 
   it('renders loading state and then budget data', async () => {
     apiFetch.mockResolvedValueOnce(mockStatusResponse);
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <BudgetsPage />
       </MemoryRouter>
     );
@@ -75,7 +79,9 @@ describe('BudgetsPage', () => {
     expect(screen.getByText(/Refreshing budget status/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.queryByText(/Refreshing budget status/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Refreshing budget status/i)
+      ).not.toBeInTheDocument();
     });
 
     // Check Total Budget
@@ -92,11 +98,13 @@ describe('BudgetsPage', () => {
     apiFetch.mockResolvedValueOnce(mockStatusResponse);
 
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <BudgetsPage />
       </MemoryRouter>
     );
-    
+
     await waitFor(() => {
       expect(screen.getByText('Dining')).toBeInTheDocument();
     });
@@ -108,21 +116,26 @@ describe('BudgetsPage', () => {
 
     // Form appears
     expect(screen.getByText('Monthly Limit')).toBeInTheDocument();
-    
+
     // Simulate user editing slider & penalty
     const saveBtns = screen.getAllByText('Save');
     expect(saveBtns.length).toBeGreaterThan(0);
 
-    apiFetch.mockResolvedValueOnce({ budget: { limit_amt: 150, penalty_rate: 0.1 } });
+    apiFetch.mockResolvedValueOnce({
+      budget: { limit_amt: 150, penalty_rate: 0.1 },
+    });
     apiFetch.mockResolvedValueOnce(mockStatusResponse); // Reload loadStatus
 
     fireEvent.click(saveBtns[0]);
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/api/budget-limits', expect.objectContaining({
-        method: 'POST',
-        body: expect.any(String)
-      }));
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/budget-limits',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.any(String),
+        })
+      );
     });
   });
 });
