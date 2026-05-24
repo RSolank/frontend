@@ -16,7 +16,7 @@ const mockUser = {
   currency: '₹',
 };
 
-vi.mock('../../state/AuthContext.jsx', () => ({
+vi.mock('../../features/auth/state/useAuth', () => ({
   useAuth: () => ({
     user: mockUser,
   }),

@@ -3,11 +3,11 @@ import React from 'react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { vi } from 'vitest';
 
-import { useAuth } from '../state/AuthContext';
+import { useAuth } from '../features/auth/state/useAuth';
 
 import { HomePage } from './Home';
 
-vi.mock('../state/AuthContext.jsx', () => ({
+vi.mock('../features/auth/state/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 

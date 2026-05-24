@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '../../state/AuthContext.jsx';
+import { useAuth } from '../../features/auth/state/useAuth';
 import { apiFetch } from '../../shared/api/apiClient';
 
 export function AddTransactionPage() {

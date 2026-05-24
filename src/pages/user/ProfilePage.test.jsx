@@ -11,7 +11,7 @@ vi.mock('../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../state/AuthContext.jsx', () => ({
+vi.mock('../../features/auth/state/useAuth', () => ({
   useAuth: () => ({
     user: {
       first_name: 'John',

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useAuth } from '../../state/AuthContext.jsx';
+import { useAuth } from '../../features/auth/state/useAuth';
 import { apiFetch } from '../../shared/api/apiClient';
 
 function toISODate(d) {

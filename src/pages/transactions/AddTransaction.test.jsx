@@ -12,7 +12,7 @@ vi.mock('../../shared/api/apiClient', () => ({
 }));
 
 // Mock AuthContext so component doesn't need a real AuthProvider
-vi.mock('../../state/AuthContext.jsx', () => ({
+vi.mock('../../features/auth/state/useAuth', () => ({
   useAuth: () => ({ user: { user_id: 1, currency: '$' } }),
 }));
 

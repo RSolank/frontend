@@ -10,7 +10,7 @@ vi.mock('../../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../../state/AuthContext.jsx', () => ({
+vi.mock('../../../features/auth/state/useAuth', () => ({
   useAuth: () => ({
     constants: {
       TAXABLE_TXN_TYPES: [

@@ -1,17 +1,15 @@
 import { type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 
-import { useAuth } from '../../state/AuthContext.jsx';
+import { useAuthStore } from '../state/auth.store';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth() as {
-    user: unknown;
-    loading: boolean;
-  };
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
 
   if (loading) {
     return (

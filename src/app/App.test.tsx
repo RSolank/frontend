@@ -1,14 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { routes } from './routes';
 
-// Mock apiFetch so AuthProvider's mount-time refresh doesn't hit the
-// network. Replaced with MSW handlers when auth migrates in Batch 2.
-vi.mock('../shared/api/apiClient', () => ({
-  apiFetch: vi.fn().mockResolvedValue({ user: null }),
-}));
+// AuthInit's mount-time refresh now goes through MSW handlers (see
+// src/test/handlers/users.ts + metadata.ts). No apiFetch mock needed.
 
 describe('App shell', () => {
   it('mounts the root layout (header + brand link) at /', async () => {

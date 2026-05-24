@@ -41,6 +41,20 @@ materially changes the dependency graph (typically Batches 1, 2, 5, 7,
 and 9). Note **why** a delta moved — e.g. "+11 kB CSS: Tailwind v4
 arrived", "-18 kB JS: extracted Statement Upload into a lazy chunk".
 
+## Snapshot — Batch 2 close (2026-05-25)
+
+Build: `npm run build` after the auth feature + Register tz + prefs
+hydration landed; `auth.routes.tsx` lazy-imports `LoginPage` and
+`RegisterPage` so the `countries-and-timezones` dep ships in a per-route
+chunk instead of the initial bundle.
+
+| Surface | Size (gzipped) | Δ vs Batch 1 | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 110.07 kB | −1.43 kB | Auth surface (incl. RHF + Zod stubs) moved into the lazy auth chunk; main bundle leans slightly. |
+| `dist/assets/RegisterPage-*.js` | 12.01 kB | new | Carries `countries-and-timezones` (~10 kB gz of it) + the Register form. |
+| `dist/assets/LoginPage-*.js` | 1.81 kB | new | Login form + RecoveryFlow. |
+| `dist/assets/index-*.css` | 4.07 kB | 0 | Auth pages still use inline styles; Tailwind utilities unchanged. |
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

@@ -12,7 +12,7 @@ vi.mock('../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock('../../state/AuthContext.jsx', () => ({
+vi.mock('../../features/auth/state/useAuth', () => ({
   useAuth: () => ({
     user: { user_id: 1, first_name: 'Test', currency: '$' },
     constants: { TOTAL_TAG_ID: 1, MISCELLANEOUS_TAG_ID: 2 },

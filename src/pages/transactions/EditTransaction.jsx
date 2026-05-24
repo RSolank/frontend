@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useAuth } from '../../state/AuthContext.jsx';
+import { useAuth } from '../../features/auth/state/useAuth';
 import { apiFetch } from '../../shared/api/apiClient';
 import { formatInputDate } from '../../shared/utils/dateUtils';
 

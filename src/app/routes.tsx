@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
+import { authRoutes } from '../features/auth/auth.routes';
 import { BeneficiariesPage } from '../pages/beneficiaries/BeneficiariesPage.jsx';
 import { BeneficiaryDetailPage } from '../pages/beneficiaries/BeneficiaryDetailPage.jsx';
 import { BudgetsPage } from '../pages/budgets/BudgetsPage.jsx';
@@ -10,19 +11,17 @@ import { AddTransactionPage } from '../pages/transactions/AddTransaction.jsx';
 import { EditTransactionPage } from '../pages/transactions/EditTransaction.jsx';
 import { TransactionsPage } from '../pages/transactions/TransactionsPage.jsx';
 import { UploadStatementPage } from '../pages/transactions/UploadStatement.jsx';
-import { LoginPage } from '../pages/user/Login.jsx';
 import { ProfilePage } from '../pages/user/ProfilePage.jsx';
-import { RegisterPage } from '../pages/user/Register.jsx';
 import { SettingsPage } from '../pages/user/settings/SettingsPage.jsx';
 
 import { App } from './App';
 import { protectedRoutes } from './routeHelpers';
 
-// Public-facing routes (no auth gate).
+// Public-facing routes (no auth gate). The auth feature owns /login and
+// /register from Batch 2 onwards.
 const publicRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
+  ...authRoutes,
 ];
 
 // Routes that require an authenticated user. Wrapped in <ProtectedRoute>

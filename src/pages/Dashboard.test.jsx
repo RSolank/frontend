@@ -19,7 +19,7 @@ const mockUser = {
 
 const mockLogout = vi.fn();
 
-vi.mock('../state/AuthContext.jsx', () => ({
+vi.mock('../features/auth/state/useAuth', () => ({
   useAuth: () => ({
     user: mockUser,
     constants: {

@@ -1,21 +1,27 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import * as AuthContextModule from '../../state/AuthContext.jsx';
+import { useAuthStore } from '../state/auth.store';
 
 import { ProtectedRoute } from './ProtectedRoute';
 
-// useAuth comes from .jsx and has no TS signature yet; cast each
-// mockReturnValue. Batch 2 types AuthContext and drops the cast.
-const mockAuth = (value: { user: unknown; loading: boolean }) =>
-  vi
-    .spyOn(AuthContextModule, 'useAuth')
-    .mockReturnValue(value as never);
+function setAuth(value: { user: unknown; loading: boolean }) {
+  useAuthStore.setState({
+    user: value.user as never,
+    loading: value.loading,
+    constants: null,
+    error: null,
+  });
+}
 
 describe('ProtectedRoute', () => {
+  beforeEach(() => {
+    setAuth({ user: null, loading: false });
+  });
+
   it('redirects to login when user is unauthenticated', () => {
-    mockAuth({ user: null, loading: false });
+    setAuth({ user: null, loading: false });
 
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
@@ -38,7 +44,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('allows access to protected content when authenticated', () => {
-    mockAuth({
+    setAuth({
       user: { user_id: 1, email_id: 'test@example.com' },
       loading: false,
     });
@@ -64,7 +70,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('shows loading indicator when auth is verifying', () => {
-    mockAuth({ user: null, loading: true });
+    setAuth({ user: null, loading: true });
 
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

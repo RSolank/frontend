@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { useAuth } from '../state/AuthContext.jsx';
+import { useAuth } from '../features/auth/state/useAuth';
 
 export function HomePage() {
   const { user } = useAuth();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useAuth } from '../../../state/AuthContext.jsx';
+import { useAuth } from '../../../features/auth/state/useAuth';
 import { apiFetch } from '../../../shared/api/apiClient';
 
 export function TaxationRulesTab() {
