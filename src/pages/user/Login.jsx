@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 
-import { PasswordRequirements } from '../../components/PasswordRequirements.jsx';
+import { PasswordRequirements } from '../../shared/components/PasswordRequirements';
 import { useAuth } from '../../state/AuthContext.jsx';
-import { apiFetch } from '../../utils/apiClient.js';
-import { validatePassword } from '../../utils/validation';
+import { apiFetch } from '../../shared/api/apiClient';
+import { validatePassword } from '../../shared/utils/validation';
 
 export function LoginPage() {
   const { user, loading, login, error, setError } = useAuth();

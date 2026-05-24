@@ -1,26 +1,24 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { describe, expect, it, vi } from 'vitest';
 
-import * as AuthContextModule from '../state/AuthContext';
+import * as AuthContextModule from '../../state/AuthContext.jsx';
 
 import { ProtectedRoute } from './ProtectedRoute';
 
-// We mock the AuthContext.
-// The actual logic of "Back Button" means hitting the protected route when user is null.
-describe('ProtectedRoute Component', () => {
+// useAuth comes from .jsx and has no TS signature yet; cast each
+// mockReturnValue. Batch 2 types AuthContext and drops the cast.
+const mockAuth = (value: { user: unknown; loading: boolean }) =>
+  vi
+    .spyOn(AuthContextModule, 'useAuth')
+    .mockReturnValue(value as never);
+
+describe('ProtectedRoute', () => {
   it('redirects to login when user is unauthenticated', () => {
-    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-      user: null,
-      loading: false,
-    });
+    mockAuth({ user: null, loading: false });
 
     render(
-      <MemoryRouter
-        initialEntries={['/dashboard']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route path="/login" element={<div>Login Page Mock</div>} />
           <Route
@@ -35,22 +33,18 @@ describe('ProtectedRoute Component', () => {
       </MemoryRouter>
     );
 
-    // It should have redirected to the login page mock
     expect(screen.getByText('Login Page Mock')).toBeInTheDocument();
     expect(screen.queryByText('Secret Dashboard')).not.toBeInTheDocument();
   });
 
   it('allows access to protected content when authenticated', () => {
-    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+    mockAuth({
       user: { user_id: 1, email_id: 'test@example.com' },
       loading: false,
     });
 
     render(
-      <MemoryRouter
-        initialEntries={['/dashboard']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route path="/login" element={<div>Login Page Mock</div>} />
           <Route
@@ -65,22 +59,15 @@ describe('ProtectedRoute Component', () => {
       </MemoryRouter>
     );
 
-    // It should NOT redirect
     expect(screen.getByText('Secret Dashboard')).toBeInTheDocument();
     expect(screen.queryByText('Login Page Mock')).not.toBeInTheDocument();
   });
 
   it('shows loading indicator when auth is verifying', () => {
-    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
-      user: null,
-      loading: true,
-    });
+    mockAuth({ user: null, loading: true });
 
     render(
-      <MemoryRouter
-        initialEntries={['/dashboard']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route
             path="/dashboard"
@@ -94,7 +81,6 @@ describe('ProtectedRoute Component', () => {
       </MemoryRouter>
     );
 
-    // Expecting loading state
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 });

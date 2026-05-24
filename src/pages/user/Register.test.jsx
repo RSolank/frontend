@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 
 import * as AuthContextModule from '../../state/AuthContext';
-import * as ApiClientModule from '../../utils/apiClient';
+import * as ApiClientModule from '../../shared/api/apiClient';
 
 import { RegisterPage } from './Register';
 

@@ -4,9 +4,36 @@
     <meta charset="UTF-8" />
     <title>Personal Budget App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // No-FOUC theme bootstrap. Runs synchronously before React renders so
+      // the .dark class is on <html> on the very first paint. Mirrors the
+      // logic in src/shared/state/theme.store.ts:resolveEffectiveMode.
+      (function () {
+        try {
+          var raw = localStorage.getItem('theme');
+          var mode = 'system';
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            mode = (parsed && parsed.state && parsed.state.mode) || 'system';
+          }
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var effective =
+            mode === 'dark' || (mode === 'system' && prefersDark)
+              ? 'dark'
+              : 'light';
+          if (effective === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* localStorage / matchMedia unavailable — fall back to light. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

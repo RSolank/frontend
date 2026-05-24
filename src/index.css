@@ -1,6 +1,14 @@
 @import 'tailwindcss';
 
 /*
+ * Class-based dark variant. Pairs with the no-FOUC inline script in
+ * index.html (which sets html.dark before React renders) and with
+ * shared/state/theme.store.ts (which mirrors store state to the same
+ * class on every change).
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
  * Feature batches add component patterns here as they migrate UI to
  * Tailwind. Keep this file thin — most styling stays in component
  * className strings; @layer components is reserved for genuinely

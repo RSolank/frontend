@@ -2,11 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-import { apiFetch } from '../../../utils/apiClient';
+import { apiFetch } from '../../../shared/api/apiClient';
 
 import { CategorizationRulesTab } from './CategorizationRulesTab';
 
-vi.mock('../../../utils/apiClient.js', () => ({
+vi.mock('../../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 

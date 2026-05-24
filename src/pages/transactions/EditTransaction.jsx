@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { useAuth } from '../../state/AuthContext.jsx';
-import { apiFetch } from '../../utils/apiClient.js';
-import { formatInputDate } from '../../utils/dateUtils.js';
+import { apiFetch } from '../../shared/api/apiClient';
+import { formatInputDate } from '../../shared/utils/dateUtils';
 
 export function EditTransactionPage() {
   const { user } = useAuth();

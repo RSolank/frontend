@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { apiFetch } from '../../../utils/apiClient.js';
+import { apiFetch } from '../../../shared/api/apiClient';
 import { formatAliasesDisplay } from '../../beneficiaries/aliasUtils.js';
 
 import {

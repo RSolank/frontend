@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useAuth } from '../../../state/AuthContext.jsx';
-import { apiFetch } from '../../../utils/apiClient.js';
+import { apiFetch } from '../../../shared/api/apiClient';
 
 export function TaxationRulesTab() {
   const { constants } = useAuth();

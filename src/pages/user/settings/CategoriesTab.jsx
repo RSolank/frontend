@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { apiFetch } from '../../../utils/apiClient.js';
+import { apiFetch } from '../../../shared/api/apiClient';
 
 function sortTagsById(nodes) {
   if (!nodes) return [];

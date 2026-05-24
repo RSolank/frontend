@@ -167,6 +167,33 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
 - [ ] Add a `protectedRoutes(routes)` helper in `src/app/routeHelpers.ts`
       that wraps each `RouteObject` so its `element` is gated by
       `<ProtectedRoute>` — used by Batches 3–8 when their routes are added.
+- [ ] **User-preferences plumbing (currency + timezone)** — see
+      [CONTRIBUTING.md §5 "User preferences contract"](../../CONTRIBUTING.md#user-preferences-contract-currency--timezone)
+      for the full spec.
+      - `src/shared/state/preferences.store.ts` — `usePreferencesStore`
+        (Zustand + `persist`), shape
+        `{currency: string; country: string | null; timezone: string;
+        setPreferences(p): void; reset(): void;}`. Defaults: `currency:
+        'USD'`, `country: null`, `timezone: 'UTC'`. Lives in `shared/`
+        because `apiClient.ts` reads from it.
+      - `src/shared/api/apiClient.ts` — extend the existing header build
+        to also inject `x-user-currency` and `x-user-timezone` from the
+        store on every request (read via
+        `usePreferencesStore.getState()` — outside React render path).
+      - `src/shared/utils/currency.ts` — new module with
+        `formatMoney(amount, code, symbol)` returning
+        `${symbol}${formatted}` when symbol present, `${code}
+        ${formatted}` when null. Includes `parseMoney` if any input form
+        needs the inverse (likely not in Batch 1).
+      - `src/shared/utils/dateUtils.ts` — extend with tz-aware helpers:
+        `formatDate(iso, tz, opts)`, `formatDateTime(iso, tz, opts)`,
+        `todayInUserTz(tz)` (returns local-tz `YYYY-MM-DD` for
+        date-input defaults), `localToUtcIso(localDateString, tz)`
+        (form-submit inverse).
+      - No real prefs flowing yet — the store always returns defaults
+        until Batch 2 wires the login flow. Smoke test asserts the two
+        headers appear on a sample `apiFetch` call when store values
+        are non-default.
 - [ ] **Theme infrastructure (dark / light / system) + header toggle:** - `src/shared/state/theme.store.ts` — `useThemeStore` (Zustand +
       `persist` middleware) with modes `'light' | 'dark' | 'system'`,
       default `'system'`. Subscribes to `prefers-color-scheme` for the
@@ -203,6 +230,49 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
       `src/app/routes.tsx`.
 - [ ] MSW handlers under `src/test/handlers/auth.ts`. Drop the per-test
       `vi.mock(apiClient)` calls.
+- [ ] **Register form: timezone field + smarter locale defaulting.**
+      - **Replace** the existing 6-country hardcoded locale switch
+        (`if region === 'IN'… else if 'US'…`) with `Intl.DisplayNames`:
+        `new Intl.DisplayNames(['en'], { type: 'region' }).of(region)`
+        returns the country's English name → match against the
+        `/api/metadata/countries` list. Covers all ~250 ISO regions,
+        zero hardcoded mapping. No IP geolocation (privacy/dependency
+        cost not worth marginal accuracy on a register form).
+      - **New `<TimezoneSelect />` component** in
+        `src/features/metadata/components/TimezoneSelect.tsx`. Owned by
+        the metadata feature (Batch 3 reuses it on Profile), built
+        early in Batch 2 because Register needs it. Behavior driven by
+        the selected country's timezone cardinality:
+        - **Country has one timezone** → render read-only field with
+          that tz; "Use a different timezone" expand-link reveals the
+          full-IANA fallback dropdown.
+        - **Country has multiple timezones** → render dropdown of *that
+          country's* timezones, defaulted to the backend's primary
+          (`country.timezone` from the metadata API). Same "Use a
+          different timezone" expand-link for users physically located
+          outside their country of residence.
+        - **Country unknown / "Rather not say"** → full IANA dropdown
+          via `Intl.supportedValuesOf('timeZone')`, defaulted to
+          browser's `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+      - **Country→timezones data source:** install
+        `countries-and-timezones` (~30 KB gz tree-shaken). Lazy-loads
+        with the auth chunk; first-paint not affected. Wrapped behind
+        a tiny `src/shared/utils/countryTimezones.ts` so the swap to a
+        backend-sourced list (when the queued follow-up lands —
+        see "Backend follow-ups" below) is one-file.
+      - **Register payload** now includes `timezone: string`. Backend
+        accepts it via the existing profile/preferences flow (timezone
+        is currently transient via `UserPreferencesMiddleware`; persist
+        on the profile if the backend follow-up adds the column).
+- [ ] **Hydrate `usePreferencesStore` from `/api/users/preferences`:**
+      - On successful login: `useLoginMutation.onSuccess` →
+        `GET /api/users/preferences` → `usePreferencesStore.setPreferences(...)`.
+      - On token refresh (`apiClient.ts` refresh path): re-fetch
+        preferences (covers profile-changed-on-another-device case).
+      - On logout: `usePreferencesStore.reset()` back to USD/UTC defaults.
+      - MSW handler at `src/test/handlers/users.ts` (placeholder for
+        Batch 3's full users handler) returns a sample preferences
+        payload for the login smoke test.
 - [ ] `npm test` green.
 
 ### Batch 3 — `users` + `metadata` features
@@ -211,9 +281,25 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
 - [ ] If the registration form's country/currency dropdowns currently live in
       `Register.jsx`, factor them out into `src/features/metadata/components/`
       (CountrySelect, CurrencySelect — both consume `/api/metadata/*`).
-- [ ] Surface the new `symbol` field on `/api/metadata/currencies` somewhere
-      visible (e.g. in the currency dropdown label).
-- [ ] `npm test` green.
+- [ ] **Currency dropdown shows `${code} (${symbol})`** (fallback to just
+      `${code}` when `symbol` is null). Lives in
+      `features/metadata/components/CurrencySelect.tsx`.
+- [ ] **`CountrySelect` auto-populates timezone** from the selected
+      country's metadata `timezone` field — saving the profile with a
+      new country updates both `country` and the active `timezone`. Allow
+      user to override timezone explicitly via a separate dropdown if
+      country's default doesn't match (e.g. user in a different tz than
+      their nationality).
+- [ ] **On profile save**: after the PATCH/PUT succeeds, re-fetch
+      `/api/users/preferences` and call
+      `usePreferencesStore.setPreferences(...)` so all open tabs see the
+      new currency/tz immediately (also re-renders every component
+      using `formatMoney`/`formatDate`).
+- [ ] **`features/users/api/queries.ts`** owns the `useUserPreferencesQuery`
+      hook (used by Batch 2's login flow and this batch's profile page;
+      both invalidate it on mutation).
+- [ ] `npm test` green; write `docs/modules/users.md` and
+      `docs/modules/metadata.md`.
 
 ### Batch 4 — `tags` + `beneficiaries` features
 
@@ -265,6 +351,19 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
 - [ ] Lighthouse audit; record numbers in `docs/performance.md`.
 - [ ] Wire `vitest --coverage` with the §7 targets (80% critical-path,
       60% elsewhere). Record in `docs/testing.md`.
+- [ ] **User-preferences audit** — grep-based verification that the
+      contract from
+      [CONTRIBUTING.md §5 "User preferences contract"](../../CONTRIBUTING.md#user-preferences-contract-currency--timezone)
+      holds across `src/features/`:
+      ```bash
+      # zero non-helper hits expected in src/features/
+      git grep -nE '\.toLocaleString\(' src/features/
+      git grep -nE 'new Date\(' src/features/ | grep -v dateUtils
+      git grep -nE 'toISOString\(\)\.split' src/features/
+      ```
+      Any hits get refactored to use `shared/utils/currency.ts` or
+      `shared/utils/dateUtils.ts` before sign-off. Add a lint rule via
+      `no-restricted-syntax` if drift is observed.
 - [ ] Monitor risky surfaces in production / dev usage: **Statement Upload**
       (file parsing, multi-step async) and **Weekly Tax generation**
       (background work, cross-module data). If either crashes more than
@@ -272,6 +371,32 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
       than relying only on the per-feature `errorElement`.
 - [ ] Run `npm test` + `npm run build` + full app smoke test against a live
       backend before signing off.
+
+---
+
+## Backend follow-ups (queued — out of scope for this refactor)
+
+These are backend changes the frontend would benefit from. None block
+any batch in this plan; the frontend works around each gap as noted
+below. Track these as separate backend tasks after the refactor merges.
+
+- **`/api/metadata/countries` → return `timezones: List[str]` per
+  country** (currently returns singular `timezone`). The frontend
+  workaround for Batch 2 bundles the `countries-and-timezones` npm
+  package (~30 KB gz) and wraps it behind
+  `src/shared/utils/countryTimezones.ts` so swap-to-backend-source is
+  one file. Once the backend adds the list, drop the package and read
+  from the API. Backend impact: schema + seed data extension; no
+  breaking change (keep `timezone` as the singular default alongside
+  the list).
+- **Profile schema: persist `timezone` column** (currently transient
+  via `UserPreferencesMiddleware` only — derived from the country's
+  default, or `UTC` if absent header). If a user explicitly overrides
+  their timezone via Profile, that choice is lost across logins.
+  Adding a `timezone` column on `UserProfile` lets the override
+  persist. Frontend already sends `x-user-timezone` on every request
+  (per the §5 contract) and includes `timezone` in the Register
+  payload from Batch 2; backend just needs to store + return it.
 
 ---
 

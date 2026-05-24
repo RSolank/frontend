@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { apiFetch } from '../../utils/apiClient.js';
+import { apiFetch } from '../../shared/api/apiClient';
 
 import {
   BeneficiaryFormFields,

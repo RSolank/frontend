@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { apiFetch } from '../../utils/apiClient.js';
+import { apiFetch } from '../../shared/api/apiClient';
 
 import { buildAliasCheckUrl } from './aliasUtils.js';
 

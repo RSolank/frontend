@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../state/AuthContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
-import { formatDisplayDate } from '../utils/dateUtils.js';
+import { apiFetch } from '../shared/api/apiClient';
+import { formatDisplayDate } from '../shared/utils/dateUtils';
 
 const Card = ({ children, style = {} }) => (
   <div

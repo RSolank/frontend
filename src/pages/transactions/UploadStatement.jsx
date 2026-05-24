@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { apiFetch } from '../../utils/apiClient.js';
+import { apiFetch } from '../../shared/api/apiClient';
 
 function flattenTags(nodes, out = []) {
   for (const n of nodes || []) {

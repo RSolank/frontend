@@ -1,19 +1,25 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
-import { vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
 
 import { ErrorBoundary } from './ErrorBoundary';
 
-const ThrowError = ({ shouldThrow }) => {
+function ThrowError({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) {
     throw new Error('Test Error');
   }
   return <div>No Error</div>;
-};
+}
 
 describe('ErrorBoundary', () => {
   beforeEach(() => {
-    // Suppress console.error in tests for the intentional error
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -37,14 +43,17 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
-    expect(screen.getByText('Refresh Page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /refresh page/i })
+    ).toBeInTheDocument();
   });
 
   it('allows refreshing the page', () => {
-    // Mock window.location.reload
-    const originalLocation = window.location;
-    delete window.location;
-    window.location = { reload: vi.fn() };
+    const reload = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload },
+    });
 
     render(
       <ErrorBoundary>
@@ -52,9 +61,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    fireEvent.click(screen.getByText('Refresh Page'));
-    expect(window.location.reload).toHaveBeenCalled();
-
-    window.location = originalLocation;
+    fireEvent.click(screen.getByRole('button', { name: /refresh page/i }));
+    expect(reload as Mock).toHaveBeenCalled();
   });
 });

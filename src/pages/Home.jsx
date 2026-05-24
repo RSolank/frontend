@@ -94,7 +94,7 @@ export function HomePage() {
           >
             <Link
               to="/login"
-              className="inline-flex items-center justify-center rounded-full border border-teal-700/90 bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
+              className="inline-flex items-center justify-center rounded-full border border-indigo-600/90 bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             >
               Log in
             </Link>

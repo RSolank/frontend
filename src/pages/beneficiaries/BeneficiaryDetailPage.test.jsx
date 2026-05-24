@@ -3,11 +3,11 @@ import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-import { apiFetch } from '../../utils/apiClient.js';
+import { apiFetch } from '../../shared/api/apiClient';
 
 import { BeneficiaryDetailPage } from './BeneficiaryDetailPage.jsx';
 
-vi.mock('../../utils/apiClient.js', () => ({
+vi.mock('../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 

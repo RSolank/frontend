@@ -2,11 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
-import { apiFetch } from '../../../utils/apiClient';
+import { apiFetch } from '../../../shared/api/apiClient';
 
 import { TaxationRulesTab } from './TaxationRulesTab';
 
-vi.mock('../../../utils/apiClient.js', () => ({
+vi.mock('../../../shared/api/apiClient', () => ({
   apiFetch: vi.fn(),
 }));
 

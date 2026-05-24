@@ -227,6 +227,63 @@ Rules:
   backend's `/openapi.json` via `openapi-typescript`). When in doubt about
   a shape, regenerate before guessing.
 
+### User preferences contract (currency + timezone)
+
+The backend's `UserPreferencesMiddleware`
+([`backend/app/core/middleware.py`](../backend/app/core/middleware.py))
+reads two headers from every incoming request and binds them to
+`request.state.preferences` + a `ContextVar` that the service layer
+queries via `get_current_preferences()`:
+
+| Header | Default if absent | Source on frontend |
+|---|---|---|
+| `x-user-currency` | `USD` | `usePreferencesStore.currency` |
+| `x-user-timezone` | `UTC` | `usePreferencesStore.timezone` |
+
+**The frontend is responsible for sending both on every authenticated
+request** so the backend's timezone-sensitive logic and currency-aware
+formatting see the user's real preferences rather than the defaults.
+
+**Where the values come from:**
+
+- After login (and after token refresh / profile save), the auth flow
+  calls `GET /api/users/preferences` — returns
+  `{currency, country, timezone}` (currency/country from the profile row,
+  timezone resolved by the middleware from the country lookup).
+- The response populates `usePreferencesStore` (Zustand, in
+  `src/shared/state/preferences.store.ts` — **must live in `shared/`
+  because `shared/api/apiClient.ts` reads from it; `shared/` cannot
+  depend on `features/`**).
+- `apiClient.ts` injects both headers on every request, reading from the
+  store on each call.
+
+**Rules every batch must follow:**
+
+- **No raw amount formatting.** Every user-facing amount goes through
+  `shared/utils/currency.ts → formatMoney(amount, code, symbol)`. The
+  helper renders `${symbol}${amount}` when a symbol is available and
+  falls back to `${code} ${amount}` when it isn't. Never use
+  `(amount).toLocaleString()` directly in a component — that drops the
+  currency entirely.
+- **No raw date formatting.** Every user-facing date/time goes through
+  `shared/utils/dateUtils.ts` helpers, which take the active timezone
+  from the store and pass it to `Intl.DateTimeFormat` via the
+  `timeZone` option. Never call `new Date(iso).toLocaleDateString()`
+  in a component.
+- **No UTC-derived "today" defaults in forms.** `new Date().toISOString().split('T')[0]`
+  is wrong for users east of UTC after ~6 PM local. Use
+  `todayInUserTz(tz)` from `dateUtils` for default date-input values.
+- **Form submission converts back.** Date inputs are interpreted in the
+  user's tz; `localToUtcIso(localDateString, tz)` produces the ISO
+  string sent to the backend.
+- **Currency dropdowns show both code and symbol.** `${code} (${symbol})`
+  format in `<CurrencySelect />` so users recognise either notation.
+  When `symbol` is null, render just `${code}`.
+
+The full staging across batches is captured in
+[`docs/refactor/implementation_plan.md`](docs/refactor/implementation_plan.md)
+(Batches 1, 2, 3, and the audit step in Batch 9).
+
 ---
 
 ## 🧩 6. Component Design
