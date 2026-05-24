@@ -50,6 +50,24 @@ describe('apiFetch — user-preferences headers (CONTRIBUTING.md §5)', () => {
     expect(h.get('x-user-timezone')).toBe('Asia/Kolkata');
   });
 
+  it('sanitizes a poisoned currency value rather than throwing on fetch', async () => {
+    // Regression test for the 2026-05-25 incident: a legacy backend
+    // row had `currency = "₹"` (U+20B9). `usePreferencesStore` happily
+    // stored it; on the next page boot `apiFetch` then threw "Cannot
+    // convert value in record<ByteString>" because the value falls
+    // outside the 0x00–0xFF header range. `preferenceHeaders()` now
+    // sanitizes at the wire so a poisoned store can't take login down.
+    usePreferencesStore.setState({
+      currency: '₹',
+      country: 'India',
+      timezone: 'Asia/Kolkata',
+    });
+
+    const h = await captureHeaders('/api/health/prefs-poison');
+    expect(h.get('x-user-currency')).toBe('USD');
+    expect(h.get('x-user-timezone')).toBe('Asia/Kolkata');
+  });
+
   it('does not let caller-provided headers override the prefs headers', async () => {
     usePreferencesStore.getState().setPreferences({
       currency: 'EUR',

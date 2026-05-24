@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
 import {
-  PREFERENCES_DEFAULTS,
+  sanitizePreferences,
   usePreferencesStore,
 } from '../../../shared/state/preferences.store';
 import {
@@ -11,7 +12,6 @@ import {
   registerRequest,
   type TokenResponse,
 } from '../api/mutations';
-import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
 import { fetchCurrentUser, fetchUserPreferences } from '../api/queries';
 import type { LoginInput, RegisterPayload } from '../api/schemas';
 
@@ -38,11 +38,11 @@ function clearTokens() {
 export async function hydratePreferences(): Promise<void> {
   try {
     const prefs = await fetchUserPreferences();
-    usePreferencesStore.getState().setPreferences({
-      currency: prefs.currency ?? PREFERENCES_DEFAULTS.currency,
-      country: prefs.country ?? PREFERENCES_DEFAULTS.country,
-      timezone: prefs.timezone ?? PREFERENCES_DEFAULTS.timezone,
-    });
+    // sanitizePreferences applies the printable-ASCII filter (so a
+    // legacy backend row with currency="₹" can't poison the store and
+    // break every subsequent fetch) and the missing/null → defaults
+    // coercion in one step.
+    usePreferencesStore.getState().setPreferences(sanitizePreferences(prefs));
   } catch (err) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console

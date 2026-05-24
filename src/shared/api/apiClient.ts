@@ -1,4 +1,7 @@
-import { usePreferencesStore } from '../state/preferences.store';
+import {
+  sanitizePreferences,
+  usePreferencesStore,
+} from '../state/preferences.store';
 
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -19,7 +22,15 @@ export type ApiError = {
 // Read via getState() — outside the React render path so non-component
 // callers (apiFetch is a module-level function) work without hooks.
 function preferenceHeaders(): Record<string, string> {
-  const { currency, timezone } = usePreferencesStore.getState();
+  // Sanitize at the wire boundary — even if the in-memory store has been
+  // poisoned (e.g. legacy backend row with the currency *symbol* "₹"
+  // instead of the ISO code "INR"), the headers stay ByteString-safe so
+  // `fetch()` never throws a `Cannot convert value in record<ByteString…>`.
+  // Defaults to USD / UTC for any field that fails the printable-ASCII
+  // check. See shared/state/preferences.store.ts:isHeaderSafe for why.
+  const { currency, timezone } = sanitizePreferences(
+    usePreferencesStore.getState()
+  );
   return {
     'x-user-currency': currency,
     'x-user-timezone': timezone,
