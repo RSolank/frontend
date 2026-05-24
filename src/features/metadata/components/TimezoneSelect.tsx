@@ -21,27 +21,6 @@ interface TimezoneSelectProps {
   required?: boolean;
 }
 
-const FALLBACK_INPUT_STYLE = {
-  width: '100%',
-  padding: '0.5rem',
-  marginTop: 4,
-} as const;
-
-const READ_ONLY_STYLE = {
-  ...FALLBACK_INPUT_STYLE,
-  background: '#f5f5f5',
-} as const;
-
-const LINK_BUTTON_STYLE = {
-  marginTop: 4,
-  background: 'transparent',
-  border: 'none',
-  color: '#2563eb',
-  cursor: 'pointer',
-  padding: 0,
-  fontSize: '0.85rem',
-} as const;
-
 export function TimezoneSelect({
   countryName,
   countryDefaultTimezone,
@@ -74,7 +53,7 @@ export function TimezoneSelect({
           value={tz}
           readOnly
           aria-readonly
-          style={READ_ONLY_STYLE}
+          className="form-input"
         />
         <button
           type="button"
@@ -82,7 +61,7 @@ export function TimezoneSelect({
             setShowFallback(true);
             onChange(tz);
           }}
-          style={LINK_BUTTON_STYLE}
+          className="btn-link !w-auto !justify-start !px-0 !py-1 !text-xs"
         >
           Use a different timezone
         </button>
@@ -105,7 +84,7 @@ export function TimezoneSelect({
           value={initial}
           onChange={(e) => onChange(e.target.value)}
           required={required}
-          style={FALLBACK_INPUT_STYLE}
+          className="form-input"
         >
           {countryTimezones.map((tz) => (
             <option key={tz} value={tz}>
@@ -116,7 +95,7 @@ export function TimezoneSelect({
         <button
           type="button"
           onClick={() => setShowFallback(true)}
-          style={LINK_BUTTON_STYLE}
+          className="btn-link !w-auto !justify-start !px-0 !py-1 !text-xs"
         >
           Use a different timezone
         </button>
@@ -133,7 +112,7 @@ export function TimezoneSelect({
       value={selected}
       onChange={(e) => onChange(e.target.value)}
       required={required}
-      style={FALLBACK_INPUT_STYLE}
+      className="form-input"
     >
       {allTimezones.map((tz) => (
         <option key={tz} value={tz}>

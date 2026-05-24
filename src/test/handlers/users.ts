@@ -1,9 +1,9 @@
 import { http, HttpResponse } from 'msw';
 
-// Placeholder for the full users-feature handler set (Batch 3). For now
-// just exposes `/api/users/me` and `/api/users/preferences` so the Batch 2
-// login flow (refreshAuthUser + hydratePreferences) has predictable
-// responses in tests.
+// Users feature handlers. Covers /api/users/me (GET + PATCH) and
+// /api/users/preferences (GET) — the surface the Batch 2 login flow and
+// the Batch 3 Profile page both depend on. Tests override per-case via
+// `server.use(...)` for assertions on request bodies.
 
 export const usersHandlers = [
   http.get('http://localhost:4000/api/users/me', () =>
@@ -16,6 +16,10 @@ export const usersHandlers = [
       },
     })
   ),
+  http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ user: { user_id: 1, ...body } });
+  }),
   http.get('http://localhost:4000/api/users/preferences', () =>
     HttpResponse.json({
       currency: 'INR',

@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { renderWithProviders } from '../../../test/renderWithProviders';
 
 import { RegisterPage } from './RegisterPage';
 
@@ -39,14 +39,14 @@ describe('RegisterPage', () => {
   });
 
   it('renders required register fields and defaults country from MSW metadata', async () => {
-    render(
-      <MemoryRouter>
+    renderWithProviders(
+      <>
         <RegisterPage />
-      </MemoryRouter>
+      </>
     );
 
     await waitFor(() =>
-      expect(screen.getByDisplayValue('India')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('(+91) India')).toBeInTheDocument()
     );
 
     expect(
@@ -82,13 +82,13 @@ describe('RegisterPage', () => {
       )
     );
 
-    render(
-      <MemoryRouter>
+    renderWithProviders(
+      <>
         <RegisterPage />
-      </MemoryRouter>
+      </>
     );
     await waitFor(() =>
-      expect(screen.getByDisplayValue('India')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('(+91) India')).toBeInTheDocument()
     );
 
     fireEvent.change(screen.getByLabelText(/First name/), {
@@ -122,13 +122,13 @@ describe('RegisterPage', () => {
   });
 
   it('disables submit while password fails the validation rules', async () => {
-    render(
-      <MemoryRouter>
+    renderWithProviders(
+      <>
         <RegisterPage />
-      </MemoryRouter>
+      </>
     );
     await waitFor(() =>
-      expect(screen.getByDisplayValue('India')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('(+91) India')).toBeInTheDocument()
     );
 
     const passwordInput = screen.getByLabelText(/Password/);

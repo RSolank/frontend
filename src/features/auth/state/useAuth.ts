@@ -12,7 +12,10 @@ import {
   registerRequest,
   type TokenResponse,
 } from '../api/mutations';
-import { fetchCurrentUser, fetchUserPreferences } from '../api/queries';
+import {
+  fetchCurrentUser,
+  fetchUserPreferences,
+} from '../../users/api/queries';
 import type { LoginInput, RegisterPayload } from '../api/schemas';
 
 interface ApiErrorShape {

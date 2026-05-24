@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
 import { authRoutes } from '../features/auth/auth.routes';
+import { usersRoutes } from '../features/users/users.routes';
 import { BeneficiariesPage } from '../pages/beneficiaries/BeneficiariesPage.jsx';
 import { BeneficiaryDetailPage } from '../pages/beneficiaries/BeneficiaryDetailPage.jsx';
 import { BudgetsPage } from '../pages/budgets/BudgetsPage.jsx';
@@ -11,7 +12,6 @@ import { AddTransactionPage } from '../pages/transactions/AddTransaction.jsx';
 import { EditTransactionPage } from '../pages/transactions/EditTransaction.jsx';
 import { TransactionsPage } from '../pages/transactions/TransactionsPage.jsx';
 import { UploadStatementPage } from '../pages/transactions/UploadStatement.jsx';
-import { ProfilePage } from '../pages/user/ProfilePage.jsx';
 import { SettingsPage } from '../pages/user/settings/SettingsPage.jsx';
 
 import { App } from './App';
@@ -33,7 +33,7 @@ const publicRoutes: RouteObject[] = [
 // Until then, the legacy pages live inline.
 const authedRoutes: RouteObject[] = protectedRoutes([
   { path: '/dashboard', element: <DashboardPage /> },
-  { path: '/profile', element: <ProfilePage /> },
+  ...usersRoutes,
   { path: '/transactions', element: <TransactionsPage /> },
   { path: '/add-transaction', element: <AddTransactionPage /> },
   { path: '/transactions/:id/edit', element: <EditTransactionPage /> },

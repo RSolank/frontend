@@ -55,6 +55,26 @@ chunk instead of the initial bundle.
 | `dist/assets/LoginPage-*.js` | 1.81 kB | new | Login form + RecoveryFlow. |
 | `dist/assets/index-*.css` | 4.07 kB | 0 | Auth pages still use inline styles; Tailwind utilities unchanged. |
 
+## Snapshot — Batch 3 close (2026-05-25)
+
+Build: `npm run build` after the users + metadata features landed.
+`users.routes.tsx` lazy-imports `ProfilePage`; `TimezoneSelect` now
+ships in its own shared chunk consumed by both `RegisterPage` and
+`ProfilePage`.
+
+| Surface | Size (gzipped) | Δ vs Batch 2 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 109.16 kB | −0.91 kB | `countries-and-timezones` graph moved out of the initial bundle into the new `TimezoneSelect-*.js` shared chunk. |
+| `dist/assets/TimezoneSelect-*.js` | 14.29 kB | new | Shared chunk: the `countries-and-timezones` graph + the picker component. Loaded by Register or Profile, whichever the user opens first. |
+| `dist/assets/RegisterPage-*.js` | 2.14 kB | −9.87 kB | Lost its TimezoneSelect weight to the shared chunk; just the Register form + locale defaulting now. |
+| `dist/assets/LoginPage-*.js` | 2.04 kB | +0.23 kB | Picked up the `PasswordRequirements` chunk split. |
+| `dist/assets/ProfilePage-*.js` | 3.12 kB | new | Profile form + the post-save hydration wiring. |
+| `dist/assets/PasswordRequirements-*.js` | 0.65 kB | new | Vite auto-split because Login + Register + Profile all import it. |
+| `dist/assets/index-*.css` | 5.35 kB | +1.28 kB | `.form-input` etc. now applied to TimezoneSelect; ProfilePage adds Tailwind chrome (header, section card, status text). |
+
+`npm run size` reports initial JS 108.91 kB gz (headroom 11.09 kB) and
+initial CSS 5.34 kB gz (headroom 9.66 kB).
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

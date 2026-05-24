@@ -8,7 +8,7 @@ import { routes } from './routes';
 // src/test/handlers/users.ts + metadata.ts). No apiFetch mock needed.
 
 describe('App shell', () => {
-  it('mounts the root layout (header + brand link) at /', async () => {
+  it('mounts the root layout (header + home link) at /', async () => {
     const router = createMemoryRouter(routes, {
       initialEntries: ['/'],
     });
@@ -16,7 +16,7 @@ describe('App shell', () => {
     render(<RouterProvider router={router} />);
 
     expect(
-      await screen.findByRole('link', { name: /personal budget/i })
+      await screen.findByRole('link', { name: /home/i })
     ).toBeInTheDocument();
   });
 });

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
-import { apiFetch } from '../../../shared/api/apiClient';
 import {
   getBrowserRegion,
   getBrowserTimezone,
@@ -10,23 +9,21 @@ import {
   getTimezonesForCountryName,
 } from '../../../shared/utils/countryTimezones';
 import { validatePassword } from '../../../shared/utils/validation';
+import {
+  fetchCountries,
+  fetchCurrencies,
+  type CountryOption,
+  type CurrencyOption,
+} from '../../metadata/api/queries';
+import {
+  COUNTRY_PREFER_NOT_SAY,
+  CountrySelect,
+} from '../../metadata/components/CountrySelect';
+import { CurrencySelect } from '../../metadata/components/CurrencySelect';
 import { TimezoneSelect } from '../../metadata/components/TimezoneSelect';
 import { useAuth } from '../state/useAuth';
 
-interface CountryOption {
-  name: string;
-  country_code?: string | null;
-  default_currency?: string | null;
-  timezone?: string | null;
-}
-
-interface CurrencyOption {
-  code: string;
-  label: string;
-  symbol?: string | null;
-}
-
-const PREFER_NOT_SAY = '__PREFER_NOT_SAY__';
+const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first school?',
@@ -79,8 +76,8 @@ export function RegisterPage() {
     async function load() {
       try {
         const [countriesResp, currenciesResp] = await Promise.all([
-          apiFetch<{ countries?: CountryOption[] }>('/api/metadata/countries'),
-          apiFetch<{ currencies?: CurrencyOption[] }>('/api/metadata/currencies'),
+          fetchCountries(),
+          fetchCurrencies(),
         ]);
         if (cancelled) return;
 
@@ -145,32 +142,7 @@ export function RegisterPage() {
   ) {
     const { name, value } = e.target;
 
-    if (name === 'country') {
-      if (value === PREFER_NOT_SAY) {
-        setForm((f) => ({
-          ...f,
-          country: PREFER_NOT_SAY,
-          timezone: f.timezone || getBrowserTimezone(),
-        }));
-      } else {
-        const found = countries.find((c) => c.name === value);
-        if (found) {
-          setDialCode(found.country_code || '+00');
-          const tz =
-            found.timezone ||
-            getTimezonesForCountryName(found.name)[0] ||
-            getBrowserTimezone();
-          setForm((f) => ({
-            ...f,
-            country: found.name,
-            currency: found.default_currency || f.currency,
-            timezone: tz,
-          }));
-        } else {
-          setForm((f) => ({ ...f, country: value }));
-        }
-      }
-    } else if (name === 'dialCode') {
+    if (name === 'dialCode') {
       if (!form.country || form.country === PREFER_NOT_SAY) {
         setDialCode(value);
       }
@@ -178,6 +150,34 @@ export function RegisterPage() {
       setForm((f) => ({ ...f, [name]: value }));
     }
 
+    if (error) setError(null);
+  }
+
+  function handleCountryChange(value: string, country: CountryOption | null) {
+    if (country) {
+      setDialCode(country.country_code || '+00');
+      const tz =
+        country.timezone ||
+        getTimezonesForCountryName(country.name)[0] ||
+        getBrowserTimezone();
+      setForm((f) => ({
+        ...f,
+        country: country.name,
+        currency: country.default_currency || f.currency,
+        timezone: tz,
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        country: value,
+        timezone: f.timezone || getBrowserTimezone(),
+      }));
+    }
+    if (error) setError(null);
+  }
+
+  function handleCurrencyChange(code: string) {
+    setForm((f) => ({ ...f, currency: code }));
     if (error) setError(null);
   }
 
@@ -384,40 +384,23 @@ export function RegisterPage() {
             <label htmlFor="register-country" className="form-label">
               Country
             </label>
-            <select
+            <CountrySelect
               id="register-country"
-              name="country"
               value={form.country}
-              onChange={handleChange}
-              className="form-input"
-            >
-              <option value="">— Select country —</option>
-              <option value={PREFER_NOT_SAY}>Rather not say</option>
-              {countries.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={handleCountryChange}
+              countries={countries}
+            />
           </div>
           <div style={{ flex: 1 }}>
             <label htmlFor="register-currency" className="form-label">
               Currency
             </label>
-            <select
+            <CurrencySelect
               id="register-currency"
-              name="currency"
               value={form.currency}
-              onChange={handleChange}
-              className="form-input"
-            >
-              <option value="">— Select currency —</option>
-              {currencies.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              onChange={handleCurrencyChange}
+              currencies={currencies}
+            />
           </div>
         </div>
         <div style={{ marginTop: '0.75rem' }}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { LogOut, UserRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { useAuthStore } from '../state/auth.store';
 
@@ -56,17 +57,12 @@ export function UserMenu({ onLogout }: UserMenuProps) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Account menu"
+        title={email}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-2 text-sm text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:ring-offset-slate-950"
       >
-        <span
-          aria-hidden="true"
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white"
-        >
-          {initials}
-        </span>
-        <span className="hidden max-w-[14rem] truncate sm:inline">{email}</span>
-        <ChevronDown aria-hidden="true" size={14} />
+        {initials}
       </button>
 
       {open && (
@@ -80,6 +76,15 @@ export function UserMenu({ onLogout }: UserMenuProps) {
               {email}
             </div>
           </div>
+          <Link
+            to="/profile"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 no-underline transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+          >
+            <UserRound aria-hidden="true" size={14} />
+            Profile
+          </Link>
           <button
             type="button"
             role="menuitem"
