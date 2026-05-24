@@ -16,5 +16,29 @@
  * across multiple features.
  */
 @layer components {
-  /* Empty — patterns added per feature batch. */
+  /*
+   * Form-control primitives. Pair `<label class="form-label" htmlFor="x">`
+   * with `<input id="x" class="form-input">` so the focus / disabled /
+   * read-only states stay consistent across every form in the app. Both
+   * variants are tuned to pass WCAG AA contrast in light and dark mode.
+   */
+  .form-label {
+    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+
+  .form-input {
+    @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors;
+    @apply placeholder:text-slate-400;
+    @apply focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+    @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+    @apply read-only:bg-slate-100 read-only:text-slate-700;
+    @apply dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply dark:focus:border-indigo-400 dark:focus-visible:ring-indigo-400;
+    @apply dark:disabled:bg-slate-800 dark:disabled:text-slate-400;
+    @apply dark:read-only:bg-slate-800 dark:read-only:text-slate-300;
+  }
+
+  .form-error {
+    @apply text-sm text-rose-600 dark:text-rose-400;
+  }
 }

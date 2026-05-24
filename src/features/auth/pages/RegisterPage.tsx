@@ -244,173 +244,184 @@ export function RegisterPage() {
     >
       <h1>Register</h1>
       {error && (
-        <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>
+        <div className="form-error" style={{ marginBottom: '0.5rem' }}>
+          {error}
+        </div>
       )}
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <div style={{ flex: 1 }}>
-            <label>
+            <label htmlFor="register-first-name" className="form-label">
               First name <span style={{ color: 'red' }}>*</span>
-              <input
-                name="first_name"
-                value={form.first_name}
-                onChange={handleChange}
-                required
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
             </label>
+            <input
+              id="register-first-name"
+              name="first_name"
+              value={form.first_name}
+              onChange={handleChange}
+              required
+              className="form-input"
+            />
           </div>
           <div style={{ flex: 1 }}>
-            <label>
+            <label htmlFor="register-last-name" className="form-label">
               Last name <span style={{ color: 'red' }}>*</span>
-              <input
-                name="last_name"
-                value={form.last_name}
-                onChange={handleChange}
-                required
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
             </label>
+            <input
+              id="register-last-name"
+              name="last_name"
+              value={form.last_name}
+              onChange={handleChange}
+              required
+              className="form-input"
+            />
           </div>
         </div>
         <div style={{ marginTop: '0.75rem' }}>
-          <label>
+          <label htmlFor="register-email" className="form-label">
             Email <span style={{ color: 'red' }}>*</span>
-            <input
-              type="email"
-              name="email_id"
-              value={form.email_id}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-            />
           </label>
+          <input
+            id="register-email"
+            type="email"
+            name="email_id"
+            value={form.email_id}
+            onChange={handleChange}
+            required
+            className="form-input"
+          />
         </div>
         <div style={{ marginTop: '0.75rem' }}>
-          <label>
+          <label htmlFor="register-password" className="form-label">
             Password <span style={{ color: 'red' }}>*</span>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-            />
           </label>
+          <input
+            id="register-password"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="form-input"
+          />
           <PasswordRequirements password={form.password} />
         </div>
         <div style={{ marginTop: '0.75rem' }}>
-          <label>
+          <label htmlFor="register-security-question" className="form-label">
             Security question
-            <select
-              name="security_question"
-              value={form.security_question}
+          </label>
+          <select
+            id="register-security-question"
+            name="security_question"
+            value={form.security_question}
+            onChange={handleChange}
+            className="form-input"
+          >
+            <option value="">— Select a question (optional) —</option>
+            {SECURITY_QUESTIONS.map((q) => (
+              <option key={q} value={q}>
+                {q}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="register-security-answer" className="form-label">
+            Answer to security question
+          </label>
+          <input
+            id="register-security-answer"
+            name="security_answer"
+            value={form.security_answer}
+            onChange={handleChange}
+            className="form-input"
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="register-dob" className="form-label">
+              Date of birth
+            </label>
+            <input
+              id="register-dob"
+              type="date"
+              name="dob"
+              value={form.dob}
               onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
+              className="form-input"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="register-contact" className="form-label">
+              Contact (phone)
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                name="dialCode"
+                aria-label="Dial code"
+                value={dialCode}
+                onChange={handleChange}
+                readOnly={countryLocked}
+                className="form-input"
+                style={{ width: '4.5rem' }}
+              />
+              <input
+                id="register-contact"
+                type="tel"
+                name="contact_local"
+                value={form.contact_local}
+                onChange={handleChange}
+                placeholder="Phone number (optional)"
+                className="form-input"
+                style={{ flex: 1 }}
+              />
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor="register-country" className="form-label">
+              Country
+            </label>
+            <select
+              id="register-country"
+              name="country"
+              value={form.country}
+              onChange={handleChange}
+              className="form-input"
             >
-              <option value="">— Select a question (optional) —</option>
-              {SECURITY_QUESTIONS.map((q) => (
-                <option key={q} value={q}>
-                  {q}
+              <option value="">— Select country —</option>
+              <option value={PREFER_NOT_SAY}>Rather not say</option>
+              {countries.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
                 </option>
               ))}
             </select>
-          </label>
-        </div>
-        <div style={{ marginTop: '0.75rem' }}>
-          <label>
-            Answer to security question
-            <input
-              name="security_answer"
-              value={form.security_answer}
-              onChange={handleChange}
-              style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-            />
-          </label>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <div style={{ flex: 1 }}>
-            <label>
-              Date of birth
-              <input
-                type="date"
-                name="dob"
-                value={form.dob}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
-            </label>
           </div>
           <div style={{ flex: 1 }}>
-            <label>
-              Contact (phone)
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: 4 }}>
-                <input
-                  type="text"
-                  name="dialCode"
-                  value={dialCode}
-                  onChange={handleChange}
-                  readOnly={countryLocked}
-                  style={{
-                    width: '4rem',
-                    padding: '0.5rem',
-                    background: countryLocked ? '#f5f5f5' : 'white',
-                  }}
-                />
-                <input
-                  type="tel"
-                  name="contact_local"
-                  value={form.contact_local}
-                  onChange={handleChange}
-                  placeholder="Phone number (optional)"
-                  style={{ flex: 1, padding: '0.5rem' }}
-                />
-              </div>
-            </label>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <div style={{ flex: 1 }}>
-            <label>
-              Country
-              <select
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              >
-                <option value="">— Select country —</option>
-                <option value={PREFER_NOT_SAY}>Rather not say</option>
-                {countries.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label>
+            <label htmlFor="register-currency" className="form-label">
               Currency
-              <select
-                name="currency"
-                value={form.currency}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              >
-                <option value="">— Select currency —</option>
-                {currencies.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
             </label>
+            <select
+              id="register-currency"
+              name="currency"
+              value={form.currency}
+              onChange={handleChange}
+              className="form-input"
+            >
+              <option value="">— Select currency —</option>
+              {currencies.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div style={{ marginTop: '0.75rem' }}>
-          <label htmlFor="register-timezone">
+          <label htmlFor="register-timezone" className="form-label">
             Timezone <span style={{ color: 'red' }}>*</span>
           </label>
           <TimezoneSelect

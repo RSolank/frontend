@@ -134,19 +134,20 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
           }}
         >
           <div style={{ marginBottom: '0.75rem' }}>
-            <label>
+            <label htmlFor="recovery-email" className="form-label">
               Registered email <span style={{ color: 'red' }}>*</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  clearError();
-                }}
-                required
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
             </label>
+            <input
+              id="recovery-email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearError();
+              }}
+              required
+              className="form-input"
+            />
           </div>
           <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>
             Continue
@@ -199,34 +200,32 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
         <>
           <form onSubmit={handleVerifyAnswer}>
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>
-                Security question
-                <div
-                  style={{
-                    marginTop: 4,
-                    marginBottom: 4,
-                    color: '#374151',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {question}
-                </div>
-              </label>
+              <span className="form-label">Security question</span>
+              <div
+                style={{
+                  marginBottom: 4,
+                  color: '#374151',
+                  fontWeight: 'bold',
+                }}
+              >
+                {question}
+              </div>
             </div>
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>
+              <label htmlFor="recovery-answer" className="form-label">
                 Answer <span style={{ color: 'red' }}>*</span>
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => {
-                    setAnswer(e.target.value);
-                    clearError();
-                  }}
-                  required
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
               </label>
+              <input
+                id="recovery-answer"
+                type="text"
+                value={answer}
+                onChange={(e) => {
+                  setAnswer(e.target.value);
+                  clearError();
+                }}
+                required
+                className="form-input"
+              />
             </div>
             <button
               type="submit"
@@ -271,20 +270,21 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
             >
               A 6-digit code has been sent to {email}.
             </p>
-            <label>
+            <label htmlFor="recovery-otp" className="form-label">
               OTP <span style={{ color: 'red' }}>*</span>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value);
-                  clearError();
-                }}
-                required
-                maxLength={6}
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
             </label>
+            <input
+              id="recovery-otp"
+              type="text"
+              value={otp}
+              onChange={(e) => {
+                setOtp(e.target.value);
+                clearError();
+              }}
+              required
+              maxLength={6}
+              className="form-input"
+            />
           </div>
           <button
             type="submit"
@@ -335,16 +335,17 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
             >
               Identity verified! Set your new password below.
             </p>
-            <label>
+            <label htmlFor="recovery-new-password" className="form-label">
               New password <span style={{ color: 'red' }}>*</span>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-              />
             </label>
+            <input
+              id="recovery-new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              className="form-input"
+            />
             <PasswordRequirements password={newPassword} />
           </div>
           <button

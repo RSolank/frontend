@@ -4,9 +4,9 @@ import { Link, Navigate } from 'react-router-dom';
 import { RecoveryFlow } from '../recovery/components/RecoveryFlow';
 import { useAuth } from '../state/useAuth';
 
-// Inline-styled while the visual upgrade for the auth pages is staged
-// alongside the rest of the auth feature batch. Recovery (forgot-password)
-// is delegated to <RecoveryFlow /> in features/auth/recovery/.
+// Page container + button styles remain inline pending the auth-shell visual
+// pass; the label + input pair use the shared form-control classes from
+// src/index.css so contrast holds in both light and dark mode.
 
 export function LoginPage() {
   const { user, loading, login, error, setError } = useAuth();
@@ -62,36 +62,40 @@ export function LoginPage() {
     >
       <h1>{forgotMode ? 'Reset password' : 'Login'}</h1>
       {error && (
-        <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>
+        <div className="form-error" style={{ marginBottom: '0.5rem' }}>
+          {error}
+        </div>
       )}
       {!forgotMode && (
         <>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>
+              <label htmlFor="login-email" className="form-label">
                 Email <span style={{ color: 'red' }}>*</span>
-                <input
-                  type="email"
-                  name="email_id"
-                  value={form.email_id}
-                  onChange={handleChange}
-                  required
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
               </label>
+              <input
+                id="login-email"
+                type="email"
+                name="email_id"
+                value={form.email_id}
+                onChange={handleChange}
+                required
+                className="form-input"
+              />
             </div>
             <div style={{ marginBottom: '0.75rem' }}>
-              <label>
+              <label htmlFor="login-password" className="form-label">
                 Password <span style={{ color: 'red' }}>*</span>
-                <input
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  style={{ width: '100%', padding: '0.5rem', marginTop: 4 }}
-                />
               </label>
+              <input
+                id="login-password"
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                className="form-input"
+              />
             </div>
             <button
               type="submit"
