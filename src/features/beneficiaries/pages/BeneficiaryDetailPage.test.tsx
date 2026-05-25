@@ -1,15 +1,12 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch } from '../../shared/api/apiClient';
+import { server } from '../../../test/server';
 
-import { BeneficiaryDetailPage } from './BeneficiaryDetailPage.jsx';
-
-vi.mock('../../shared/api/apiClient', () => ({
-  apiFetch: vi.fn(),
-}));
+import { BeneficiaryDetailPage } from './BeneficiaryDetailPage';
 
 const mockBeneficiary = {
   uid: 5,
@@ -25,31 +22,45 @@ const mockList = [
   { uid: 6, name: 'Other', aliases: [], beneficiary_type: 'merchant' },
 ];
 
-const renderDetail = () =>
-  render(
-    <MemoryRouter
-      initialEntries={['/beneficiaries/5']}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-    >
-      <Routes>
-        <Route path="/beneficiaries/:id" element={<BeneficiaryDetailPage />} />
-      </Routes>
-    </MemoryRouter>
+function renderDetail() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/beneficiaries/5']}>
+        <Routes>
+          <Route
+            path="/beneficiaries/:id"
+            element={<BeneficiaryDetailPage />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+}
+
+beforeEach(() => {
+  window.confirm = vi.fn(() => true);
+  server.use(
+    http.get('http://localhost:4000/api/beneficiaries/5', () =>
+      HttpResponse.json(mockBeneficiary)
+    ),
+    http.get('http://localhost:4000/api/beneficiaries', () =>
+      HttpResponse.json(mockList)
+    ),
+    http.get('http://localhost:4000/api/beneficiaries/relationships', () =>
+      HttpResponse.json(['friend', 'family'])
+    ),
+    http.get('http://localhost:4000/api/categorization-rules', () =>
+      HttpResponse.json({ rules: [] })
+    ),
+    http.get('http://localhost:4000/api/tags', () =>
+      HttpResponse.json({ tags: [] })
+    )
+  );
+});
 
 describe('BeneficiaryDetailPage', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    window.confirm = vi.fn(() => true);
-  });
-
   it('renders read-only beneficiary with alias chips', async () => {
-    apiFetch.mockImplementation(async (url) => {
-      if (url === '/api/beneficiaries/5') return mockBeneficiary;
-      if (url === '/api/beneficiaries') return mockList;
-      return {};
-    });
-
     renderDetail();
 
     await waitFor(() => {
@@ -66,16 +77,28 @@ describe('BeneficiaryDetailPage', () => {
   });
 
   it('shows merge form in edit mode and checks alias uniqueness', async () => {
-    apiFetch.mockImplementation(async (url, options) => {
-      if (url === '/api/beneficiaries/5') return mockBeneficiary;
-      if (url === '/api/beneficiaries') return mockList;
-      if (url.includes('/check-alias'))
-        return { alias: 'NewAlias', unique: true };
-      if (url === '/api/beneficiaries/5' && options?.method === 'PATCH') {
-        return { ...mockBeneficiary, aliases: ['Jio', 'Airtel', 'NewAlias'] };
-      }
-      return {};
-    });
+    const patchSpy = vi.fn();
+    server.use(
+      http.get(
+        'http://localhost:4000/api/beneficiaries/check-alias',
+        ({ request }) => {
+          const url = new URL(request.url);
+          const alias = url.searchParams.get('alias') ?? '';
+          return HttpResponse.json({ alias, unique: alias === 'NewAlias' });
+        }
+      ),
+      http.patch(
+        'http://localhost:4000/api/beneficiaries/5',
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          patchSpy(body);
+          return HttpResponse.json({
+            ...mockBeneficiary,
+            aliases: ['Jio', 'Airtel', 'NewAlias'],
+          });
+        }
+      )
+    );
 
     renderDetail();
 
@@ -109,31 +132,39 @@ describe('BeneficiaryDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(
-        '/api/beneficiaries/5',
+      expect(patchSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'PATCH',
-          body: expect.stringContaining('NewAlias'),
+          aliases: expect.arrayContaining(['NewAlias']),
         })
       );
     });
   });
 
   it('switches form fields when the beneficiary type changes', async () => {
-    apiFetch.mockImplementation(async (url) => {
-      if (url === '/api/beneficiaries/5') {
-        return {
+    const patchSpy = vi.fn();
+    server.use(
+      http.get('http://localhost:4000/api/beneficiaries/5', () =>
+        HttpResponse.json({
           ...mockBeneficiary,
           merchant: {
             category: 'utility',
             contact: '9999999999',
             upi_id: 'store@upi',
           },
-        };
-      }
-      if (url === '/api/beneficiaries') return mockList;
-      return {};
-    });
+        })
+      ),
+      http.patch(
+        'http://localhost:4000/api/beneficiaries/5',
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          patchSpy(body);
+          return HttpResponse.json({
+            ...mockBeneficiary,
+            beneficiary_type: 'person',
+          });
+        }
+      )
+    );
 
     renderDetail();
 
@@ -156,23 +187,16 @@ describe('BeneficiaryDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(
-        '/api/beneficiaries/5',
-        expect.objectContaining({
-          method: 'PATCH',
-          body: expect.stringContaining('"beneficiary_type":"person"'),
-        })
+      expect(patchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ beneficiary_type: 'person' })
       );
     });
   });
 
   it('warns when merge source and target types differ', async () => {
-    apiFetch.mockImplementation(async (url) => {
-      if (url === '/api/beneficiaries/5') {
-        return mockBeneficiary;
-      }
-      if (url === '/api/beneficiaries') {
-        return [
+    server.use(
+      http.get('http://localhost:4000/api/beneficiaries', () =>
+        HttpResponse.json([
           mockBeneficiary,
           {
             uid: 6,
@@ -181,10 +205,9 @@ describe('BeneficiaryDetailPage', () => {
             beneficiary_type: 'person',
             person: { relationship_type: 'friend' },
           },
-        ];
-      }
-      return {};
-    });
+        ])
+      )
+    );
 
     renderDetail();
 

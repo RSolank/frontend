@@ -16,9 +16,10 @@ import { useAuthStore } from '../shared/state/auth.store';
 //   [home] Hello, <firstname>                  [theme] [⚙ settings] [avatar]
 // Header layout (unauthed):
 //   [home]                                                              [theme]
-// The Settings gear links to /categories — populated by Batch 4 (tags
-// + beneficiaries); until then the route is unmapped and falls through
-// the catch-all redirect.
+// The Settings gear links to /categories — owned by the tags feature
+// (features/tags/tags.routes.tsx). It's the entry point for tag
+// management; Settings now keeps only the rules tabs (categorization,
+// taxation) until those features land in Batches 6 and 7.
 export function App() {
   const user = useAuthStore((s) => s.user);
   const { logout } = useAuth();

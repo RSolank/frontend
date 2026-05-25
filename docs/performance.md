@@ -75,6 +75,38 @@ ships in its own shared chunk consumed by both `RegisterPage` and
 `npm run size` reports initial JS 108.91 kB gz (headroom 11.09 kB) and
 initial CSS 5.34 kB gz (headroom 9.66 kB).
 
+## Snapshot — Batch 4 close (2026-05-25)
+
+Build: `npm run build` after the tags + beneficiaries features landed.
+`tags.routes.tsx` and `beneficiaries.routes.tsx` lazy-import both
+pages; the beneficiary form (shared by the list and detail pages)
+splits naturally into a `BeneficiaryFormFields-*.js` chunk.
+
+| Surface | Size (gzipped) | Δ vs Batch 3 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 102.11 kB | −7.05 kB | The two large pre-refactor surfaces (CategoriesTab + BeneficiariesPage + BeneficiaryDetailPage) moved out of the initial bundle into lazy chunks. |
+| `dist/assets/TagsPage-*.js` | 3.42 kB | new | Standalone Categories & tags page reached via the header Settings gear. |
+| `dist/assets/BeneficiariesPage-*.js` | 1.82 kB | new | Just the list view + filter + create CTA. |
+| `dist/assets/BeneficiaryDetailPage-*.js` | 2.97 kB | new | Detail view + action dropdown + merge form mount. |
+| `dist/assets/BeneficiaryFormFields-*.js` | 3.50 kB | new | Shared between list-create and detail-edit; auto-split by Vite. |
+| `dist/assets/index-*.css` | 6.73 kB | +1.38 kB | TagsPage + beneficiaries pages now use the shared `.form-input` / `.form-label` / `.btn-primary` primitives + Tailwind utilities for the tag-tree row stripes, alias chips, merge banner, and the responsive `sm:p-6` / `sm:flex-nowrap` / `sm:grid-cols-2` variants added during the responsive pass. |
+
+`npm run size` reports initial JS 102.10 kB gz (headroom 17.90 kB) and
+initial CSS 6.68 kB gz (headroom 8.32 kB).
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **TagsPage** — header + section header use `flex-wrap items-start gap-3`; tag rows stack content above the Update / Delete buttons below `sm` (`flex-wrap items-start ... sm:flex-nowrap sm:items-center`) with `min-w-0` on the content area so long alias chips wrap instead of pushing the row past the card. Section card padding is `p-4 sm:p-6`.
+- **BeneficiariesPage** — table is wrapped in `overflow-x-auto` with `min-w-[28rem]` so phone widths get a scroll-inside-the-surface fallback rather than crushed columns; header + filter rows already used `flex-wrap`.
+- **BeneficiaryDetailPage** — header is `flex-wrap items-start justify-between gap-3`; form card padding is `p-4 sm:p-6`. ActionDropdown stays inline with the title at all widths.
+- **MergeBeneficiariesForm** — restructured: source / target render as a `grid grid-cols-1 sm:grid-cols-2` (eliminating the prior orphaned-swap-arrow wrap at `<sm`); Swap + Merge buttons share a separate action row below.
+- **BeneficiaryFormFields** — `Set Primary` is no longer hover-only; it's always visible on non-primary chips when the form is editable, so touch viewports can reach it.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on the
+four Batch 4 routes.
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

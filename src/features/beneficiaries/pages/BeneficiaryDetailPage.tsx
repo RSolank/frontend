@@ -1,68 +1,74 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { apiFetch } from '../../shared/api/apiClient';
-
+import { beneficiaryKeys } from '../api/keys';
 import {
-  BeneficiaryFormFields,
+  deleteBeneficiaryRequest,
+  mergeBeneficiariesRequest,
+  updateBeneficiaryRequest,
+} from '../api/mutations';
+import {
+  fetchBeneficiaries,
+  fetchBeneficiary,
+  fetchCategorizationRules,
+  type Beneficiary,
+} from '../api/queries';
+import {
   beneficiaryToForm,
   formToPayload,
-} from './BeneficiaryFormFields.jsx';
-import { MergeBeneficiariesForm } from './MergeBeneficiariesForm.jsx';
+  type BeneficiaryFormInput,
+} from '../api/schemas';
+import { BeneficiaryFormFields } from '../components/BeneficiaryFormFields';
+import { MergeBeneficiariesForm } from '../components/MergeBeneficiariesForm';
 
-const ActionDropdown = ({ editing, onEdit, onCancel, onDelete }) => {
+interface ApiErrorShape {
+  detail?: string;
+  error?: string;
+}
+
+interface ActionDropdownProps {
+  editing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}
+
+function ActionDropdown({
+  editing,
+  onEdit,
+  onCancel,
+  onDelete,
+}: ActionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (ref.current && !ref.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
-    };
+    }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          background: '#f1f5f9',
-          borderRadius: '8px',
-          overflow: 'hidden',
-        }}
-      >
+    <div ref={ref} className="relative inline-block">
+      <div className="flex items-center overflow-hidden rounded-md border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900">
         <button
           type="button"
           onClick={editing ? onCancel : onEdit}
-          style={{
-            padding: '0.5rem 1rem',
-            background: 'none',
-            border: 'none',
-            color: '#2563eb',
-            fontWeight: 700,
-            cursor: 'pointer',
-            borderRight: '1px solid #e2e8f0',
-          }}
+          className="border-r border-slate-200 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-indigo-950/40"
         >
           {editing ? 'Cancel' : 'Edit'}
         </button>
         {!editing && (
           <button
             type="button"
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => setIsOpen((v) => !v)}
             aria-label="More actions"
-            style={{
-              padding: '0.5rem 0.6rem',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#64748b',
-              fontSize: '0.7rem',
-            }}
+            className="px-2.5 py-2 text-xs text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             ▼
           </button>
@@ -70,36 +76,14 @@ const ActionDropdown = ({ editing, onEdit, onCancel, onDelete }) => {
       </div>
 
       {isOpen && !editing && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: '100%',
-            marginTop: '4px',
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-            border: '1px solid #f1f5f9',
-            zIndex: 10,
-            minWidth: '100px',
-          }}
-        >
+        <div className="absolute top-full right-0 z-10 mt-1 min-w-[110px] overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
           <button
             type="button"
             onClick={() => {
               onDelete();
               setIsOpen(false);
             }}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '0.6rem 0.75rem',
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="w-full px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
           >
             Delete
           </button>
@@ -107,46 +91,44 @@ const ActionDropdown = ({ editing, onEdit, onCancel, onDelete }) => {
       )}
     </div>
   );
-};
+}
 
 export function BeneficiaryDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [beneficiary, setBeneficiary] = useState(null);
-  const [allBeneficiaries, setAllBeneficiaries] = useState([]);
-  const [form, setForm] = useState(null);
+  const queryClient = useQueryClient();
+  const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
+  const [allBeneficiaries, setAllBeneficiaries] = useState<Beneficiary[]>([]);
+  const [form, setForm] = useState<BeneficiaryFormInput | null>(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [mergeSource, setMergeSource] = useState('');
   const [mergeTarget, setMergeTarget] = useState('');
   const [aliasInvalid, setAliasInvalid] = useState(false);
 
   const loadBeneficiary = () => {
+    if (!id) return;
     setLoading(true);
-    Promise.all([
-      apiFetch(`/api/beneficiaries/${id}`),
-      apiFetch('/api/beneficiaries'),
-    ])
+    Promise.all([fetchBeneficiary(id), fetchBeneficiaries()])
       .then(([b, list]) => {
         setBeneficiary(b);
         setForm(beneficiaryToForm(b));
         setAllBeneficiaries(list);
         setMergeSource(String(b.uid));
       })
-      .catch((err) => setError(err.detail || 'Failed to load beneficiary'))
+      .catch((err: ApiErrorShape) =>
+        setError(err.detail || 'Failed to load beneficiary')
+      )
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    loadBeneficiary();
-  }, [id]);
+  useEffect(loadBeneficiary, [id]);
 
-  const handleSave = async (e) => {
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (aliasInvalid) return;
+    if (aliasInvalid || !beneficiary || !form || !id) return;
 
-    // 1. Check type switch from Merchant to Person
     if (
       beneficiary.beneficiary_type === 'merchant' &&
       form.beneficiary_type === 'person'
@@ -157,13 +139,12 @@ export function BeneficiaryDetailPage() {
       if (!proceed) return;
     }
 
-    // 2. Check category change to a completely new tag
     if (form.beneficiary_type === 'merchant') {
       const originalCategory = beneficiary.merchant?.category || '';
       const newCategory = form.category || '';
       if (originalCategory !== newCategory && newCategory !== '') {
         try {
-          const res = await apiFetch('/api/categorization-rules');
+          const res = await fetchCategorizationRules();
           const rule = (res.rules || []).find(
             (r) => r.beneficiary_id === beneficiary.uid
           );
@@ -184,34 +165,36 @@ export function BeneficiaryDetailPage() {
     }
 
     try {
-      const updated = await apiFetch(`/api/beneficiaries/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(formToPayload(form)),
-      });
+      const updated = await updateBeneficiaryRequest(id, formToPayload(form));
       setBeneficiary(updated);
       setForm(beneficiaryToForm(updated));
       setEditing(false);
+      await queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all });
     } catch (err) {
-      alert(err.detail || 'Update failed');
+      const e = err as ApiErrorShape;
+      alert(e.detail || 'Update failed');
     }
-  };
+  }
 
-  const handleDelete = async () => {
+  async function handleDelete() {
+    if (!beneficiary || !id) return;
     if (
       !window.confirm(
-        `Delete beneficiary "${beneficiary?.name}"? This cannot be undone.`
+        `Delete beneficiary "${beneficiary.name}"? This cannot be undone.`
       )
     )
       return;
     try {
-      await apiFetch(`/api/beneficiaries/${id}`, { method: 'DELETE' });
+      await deleteBeneficiaryRequest(id);
+      await queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all });
       navigate('/beneficiaries');
     } catch (err) {
-      alert(err.detail || 'Delete failed');
+      const e = err as ApiErrorShape;
+      alert(e.detail || 'Delete failed');
     }
-  };
+  }
 
-  const handleMerge = async () => {
+  async function handleMerge() {
     if (!mergeSource || !mergeTarget) return;
     if (mergeSource === mergeTarget) return;
     if (
@@ -221,13 +204,11 @@ export function BeneficiaryDetailPage() {
     )
       return;
     try {
-      await apiFetch('/api/beneficiaries/merge', {
-        method: 'POST',
-        body: JSON.stringify({
-          source_uid: parseInt(mergeSource, 10),
-          target_uid: parseInt(mergeTarget, 10),
-        }),
+      await mergeBeneficiariesRequest({
+        source_uid: parseInt(mergeSource, 10),
+        target_uid: parseInt(mergeTarget, 10),
       });
+      await queryClient.invalidateQueries({ queryKey: beneficiaryKeys.all });
       if (mergeSource === String(id)) {
         navigate(`/beneficiaries/${mergeTarget}`);
       } else {
@@ -235,30 +216,24 @@ export function BeneficiaryDetailPage() {
         setMergeTarget('');
       }
     } catch (err) {
-      alert(err.detail || 'Merge failed');
+      const e = err as ApiErrorShape;
+      alert(e.detail || 'Merge failed');
     }
-  };
+  }
 
-  const handleSwap = () => {
+  function handleSwap() {
     setMergeSource(mergeTarget);
     setMergeTarget(mergeSource);
-  };
+  }
 
-  const handleCancelEdit = () => {
-    setForm(beneficiaryToForm(beneficiary));
+  function handleCancelEdit() {
+    if (beneficiary) setForm(beneficiaryToForm(beneficiary));
     setEditing(false);
-  };
+  }
 
   if (loading) {
     return (
-      <div
-        style={{
-          maxWidth: '800px',
-          margin: '2rem auto',
-          padding: '1rem',
-          color: '#94a3b8',
-        }}
-      >
+      <div className="mx-auto my-8 max-w-2xl px-4 text-sm text-slate-400 dark:text-slate-500">
         Loading...
       </div>
     );
@@ -266,44 +241,31 @@ export function BeneficiaryDetailPage() {
 
   if (error || !beneficiary || !form) {
     return (
-      <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem' }}>
-        <p style={{ color: '#ef4444' }}>{error || 'Beneficiary not found'}</p>
-        <Link to="/beneficiaries">← Back to All Beneficiaries</Link>
+      <div className="mx-auto my-8 max-w-2xl px-4">
+        <p className="form-error mb-3">{error || 'Beneficiary not found'}</p>
+        <Link
+          to="/beneficiaries"
+          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        >
+          ← Back to All Beneficiaries
+        </Link>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '800px',
-        margin: '2rem auto',
-        padding: '1rem',
-        fontFamily: 'Inter, sans-serif',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '1.5rem',
-          gap: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
+    <div className="mx-auto my-8 max-w-2xl px-4">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
             to="/beneficiaries"
-            style={{
-              color: '#2563eb',
-              textDecoration: 'none',
-              fontSize: '0.9rem',
-            }}
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
           >
             ← Back to All Beneficiaries
           </Link>
-          <h1 style={{ margin: '0.5rem 0 0' }}>{beneficiary.name}</h1>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {beneficiary.name}
+          </h1>
         </div>
         <ActionDropdown
           editing={editing}
@@ -315,31 +277,20 @@ export function BeneficiaryDetailPage() {
 
       <form
         onSubmit={handleSave}
-        style={{
-          background: '#f8fafc',
-          padding: '1.5rem',
-          borderRadius: '12px',
-        }}
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none"
       >
         <BeneficiaryFormFields
           form={form}
           setForm={setForm}
           readOnly={!editing}
-          excludeUid={parseInt(id, 10)}
+          excludeUid={parseInt(id ?? '0', 10) || null}
           onAliasValidityChange={setAliasInvalid}
         />
         {editing && (
           <button
             type="submit"
             disabled={aliasInvalid}
-            style={{
-              padding: '0.6rem 1.2rem',
-              background: aliasInvalid ? '#94a3b8' : '#2563eb',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: aliasInvalid ? 'not-allowed' : 'pointer',
-            }}
+            className="btn-primary !w-auto"
           >
             Save Changes
           </button>

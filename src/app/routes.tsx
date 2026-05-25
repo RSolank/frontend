@@ -1,9 +1,9 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
 import { authRoutes } from '../features/auth/auth.routes';
+import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
+import { tagsRoutes } from '../features/tags/tags.routes';
 import { usersRoutes } from '../features/users/users.routes';
-import { BeneficiariesPage } from '../pages/beneficiaries/BeneficiariesPage.jsx';
-import { BeneficiaryDetailPage } from '../pages/beneficiaries/BeneficiaryDetailPage.jsx';
 import { BudgetsPage } from '../pages/budgets/BudgetsPage.jsx';
 import { DashboardPage } from '../pages/Dashboard.jsx';
 import { HomePage } from '../pages/Home.jsx';
@@ -34,14 +34,14 @@ const publicRoutes: RouteObject[] = [
 const authedRoutes: RouteObject[] = protectedRoutes([
   { path: '/dashboard', element: <DashboardPage /> },
   ...usersRoutes,
+  ...tagsRoutes,
+  ...beneficiariesRoutes,
   { path: '/transactions', element: <TransactionsPage /> },
   { path: '/add-transaction', element: <AddTransactionPage /> },
   { path: '/transactions/:id/edit', element: <EditTransactionPage /> },
   { path: '/upload-statement', element: <UploadStatementPage /> },
   { path: '/budgets', element: <BudgetsPage /> },
   { path: '/consumption-tax', element: <ConsumptionTaxPage /> },
-  { path: '/beneficiaries', element: <BeneficiariesPage /> },
-  { path: '/beneficiaries/:id', element: <BeneficiaryDetailPage /> },
   { path: '/settings', element: <SettingsPage /> },
 ]);
 

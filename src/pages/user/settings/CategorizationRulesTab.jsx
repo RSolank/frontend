@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import { formatAliasesDisplay } from '../../../features/beneficiaries/api/aliases';
 import { apiFetch } from '../../../shared/api/apiClient';
-import { formatAliasesDisplay } from '../../beneficiaries/aliasUtils.js';
 
 import {
   buildRuleName,

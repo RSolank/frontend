@@ -364,6 +364,19 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
       Any hits get refactored to use `shared/utils/currency.ts` or
       `shared/utils/dateUtils.ts` before sign-off. Add a lint rule via
       `no-restricted-syntax` if drift is observed.
+- [ ] **Responsive audit** — verify the responsive-design contract from
+      [CONTRIBUTING.md §6 "Responsive design"](../../CONTRIBUTING.md#visual-design-language)
+      holds project-wide:
+      - Walk every shipped feature at three viewports: `sm` (375 px),
+        `md` (768 px), desktop (≥ 1280 px). No horizontal scrollbar on
+        `body` at any viewport ≥ 320 px.
+      - Tap targets ≥ 44 px on interactive controls.
+      - Tables / dense surfaces have a card-or-scroll fallback at `sm`.
+      - Header chrome collapses non-essential elements (greeting,
+        breadcrumbs) at `sm` per the contract.
+      - File follow-ups for anything that slipped through per-batch
+        ownership; fix small misses inline, schedule larger redesigns
+        as their own mini-batches.
 - [ ] Monitor risky surfaces in production / dev usage: **Statement Upload**
       (file parsing, multi-step async) and **Weekly Tax generation**
       (background work, cross-module data). If either crashes more than

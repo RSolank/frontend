@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { formatAliasesDisplay, buildAliasCheckUrl } from './aliasUtils.js';
+import { buildAliasCheckUrl, formatAliasesDisplay } from './aliases';
 
-describe('aliasUtils', () => {
+describe('alias utilities', () => {
   it('formatAliasesDisplay returns parenthesized comma-separated values', () => {
     expect(formatAliasesDisplay(['Jio', 'Airtel'])).toBe('(Jio, Airtel)');
     expect(formatAliasesDisplay([])).toBe('');

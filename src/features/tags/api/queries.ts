@@ -1,0 +1,49 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { apiFetch } from '../../../shared/api/apiClient';
+
+import { tagKeys } from './keys';
+
+// One node in the hierarchical tree returned by /api/tags. Children are
+// recursive; aliases / created_by / tag_type / parent are flat fields on
+// each node.
+export interface TagNode {
+  tag_id: number;
+  tag_name: string;
+  parent: number | null;
+  tag_type: string;
+  aliases: string[];
+  created_by: number | null;
+  children?: TagNode[];
+}
+
+export interface TagsResponse {
+  tags: TagNode[];
+}
+
+// System constants the tags UI needs to decide which rows are read-only.
+// Sourced from /api/metadata/constants — the same payload used elsewhere
+// for category and rule IDs. Kept here (not in features/metadata/) so a
+// tag-only query doesn't reach across feature boundaries.
+export interface TagConstants {
+  SYSTEM_USER_ID?: number;
+  TOTAL_TAG_ID?: number;
+  MISCELLANEOUS_TAG_ID?: number;
+  CONSUMPTION_TAX_TAG_ID?: number;
+  [key: string]: unknown;
+}
+
+export function fetchTags(): Promise<TagsResponse> {
+  return apiFetch<TagsResponse>('/api/tags');
+}
+
+export function fetchTagConstants(): Promise<TagConstants> {
+  return apiFetch<TagConstants>('/api/metadata/constants');
+}
+
+export function useTagsQuery() {
+  return useQuery({
+    queryKey: tagKeys.list(),
+    queryFn: fetchTags,
+  });
+}

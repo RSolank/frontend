@@ -1,15 +1,11 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch } from '../../shared/api/apiClient';
+import { renderWithProviders } from '../../../test/renderWithProviders';
+import { server } from '../../../test/server';
 
-import { BeneficiariesPage } from './BeneficiariesPage.jsx';
-
-vi.mock('../../shared/api/apiClient', () => ({
-  apiFetch: vi.fn(),
-}));
+import { BeneficiariesPage } from './BeneficiariesPage';
 
 const mockBeneficiaries = [
   {
@@ -30,21 +26,26 @@ const mockBeneficiaries = [
   },
 ];
 
+beforeEach(() => {
+  server.use(
+    http.get('http://localhost:4000/api/beneficiaries', () =>
+      HttpResponse.json(mockBeneficiaries)
+    ),
+    http.get('http://localhost:4000/api/beneficiaries/relationships', () =>
+      HttpResponse.json(['friend', 'family'])
+    ),
+    http.get('http://localhost:4000/api/categorization-rules', () =>
+      HttpResponse.json({ rules: [] })
+    ),
+    http.get('http://localhost:4000/api/tags', () =>
+      HttpResponse.json({ tags: [] })
+    )
+  );
+});
+
 describe('BeneficiariesPage', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it('renders beneficiaries with aliases in bracket format', async () => {
-    apiFetch.mockResolvedValue(mockBeneficiaries);
-
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <BeneficiariesPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<BeneficiariesPage />);
 
     await waitFor(() => {
       expect(screen.getByText('Mobile Recharged')).toBeInTheDocument();
@@ -57,15 +58,7 @@ describe('BeneficiariesPage', () => {
   });
 
   it('filters by search and type', async () => {
-    apiFetch.mockResolvedValue(mockBeneficiaries);
-
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <BeneficiariesPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<BeneficiariesPage />);
 
     await waitFor(() => expect(screen.getByText('Jane')).toBeInTheDocument());
 
@@ -78,7 +71,7 @@ describe('BeneficiariesPage', () => {
     fireEvent.change(screen.getByPlaceholderText(/Search by name or alias/i), {
       target: { value: '' },
     });
-    fireEvent.change(screen.getByDisplayValue('All types'), {
+    fireEvent.change(screen.getByLabelText('Filter by type'), {
       target: { value: 'person' },
     });
     expect(screen.getByText('Jane')).toBeInTheDocument();
@@ -86,27 +79,32 @@ describe('BeneficiariesPage', () => {
   });
 
   it('creates merchant with alias chips after uniqueness check', async () => {
-    apiFetch.mockImplementation(async (url, options) => {
-      if (url === '/api/beneficiaries' && !options) return mockBeneficiaries;
-      if (url.includes('/check-alias')) return { alias: 'EKART', unique: true };
-      if (url === '/api/beneficiaries' && options?.method === 'POST') {
-        return {
-          uid: 99,
-          name: 'New Store',
-          aliases: ['EKART'],
-          beneficiary_type: 'merchant',
-        };
-      }
-      return {};
-    });
-
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <BeneficiariesPage />
-      </MemoryRouter>
+    const postSpy = vi.fn();
+    server.use(
+      http.get(
+        'http://localhost:4000/api/beneficiaries/check-alias',
+        ({ request }) => {
+          const url = new URL(request.url);
+          const alias = url.searchParams.get('alias') ?? '';
+          return HttpResponse.json({ alias, unique: alias === 'EKART' });
+        }
+      ),
+      http.post(
+        'http://localhost:4000/api/beneficiaries',
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          postSpy(body);
+          return HttpResponse.json({
+            uid: 99,
+            name: 'New Store',
+            aliases: ['EKART'],
+            beneficiary_type: 'merchant',
+          });
+        }
+      )
     );
+
+    renderWithProviders(<BeneficiariesPage />);
 
     await waitFor(() =>
       expect(
@@ -139,11 +137,11 @@ describe('BeneficiariesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith(
-        '/api/beneficiaries',
+      expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"aliases":["EKART"]'),
+          name: 'New Store',
+          aliases: ['EKART'],
+          beneficiary_type: 'merchant',
         })
       );
     });

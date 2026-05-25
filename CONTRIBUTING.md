@@ -32,6 +32,29 @@ lines up across the wire.
   `backend/app/modules/` (auth, users, metadata, tags, beneficiaries,
   transactions, categorization, taxation, budgets).
 
+### Platform target
+
+The app is **web-first** for the current roadmap — the canonical
+experience is a desktop browser. A native mobile app is a planned
+future track (separate codebase / project), **not** part of this
+refactor.
+
+However, the web app must **resize gracefully so users opening it in
+a phone or tablet browser can use it comfortably**. Concretely:
+
+- No horizontal scrolling on `body` at any viewport ≥ 320 px.
+- Every interactive control is reachable and large enough to tap
+  (target ≥ 44 px on touch viewports).
+- Tables and other data-dense surfaces degrade to a usable form on
+  narrow viewports (horizontal scroll inside the surface, or a
+  card/list fallback — the owning feature batch decides which fits
+  its data).
+- Modals, dropdowns, headers, and forms reflow rather than overflow.
+
+The concrete breakpoint contract + per-batch responsibility lives in
+§6 "Visual design language → Responsive design". Batch 9's verification
+pass audits that every shipped feature honors it.
+
 ---
 
 ## 📁 2. Frontend Directory Structure (target)
@@ -343,6 +366,33 @@ upgrade in one batch is cheaper than two passes.
   infrastructure and a header `<ThemeToggle />` (light / dark / system)
   land in Batch 1 alongside the app shell, so every subsequent batch's
   dark styling is verifiable as it's written.
+- **Responsive design from day one** — same posture as dark mode. The
+  app is web-first today and a native mobile app is a future track
+  (see §1 "Platform target"), but **every batch must make its surfaces
+  resize comfortably to phone / tablet browser widths and to narrow
+  desktop windows** (split-screen, docked panels). Retrofitting
+  responsive at Batch 9 is the trap to avoid; the feature author knows
+  best how their layout should degrade.
+  - **Breakpoint contract** (Tailwind defaults): `sm` 640 px,
+    `md` 768 px, `lg` 1024 px, `xl` 1280 px. Design mobile-first —
+    base styles target the narrowest viewport, breakpoints layer on
+    desktop niceties.
+  - **Touch targets ≥ 44 px** on interactive controls (matches iOS HIG
+    / Android 48 dp guidance). Smaller is acceptable on `md+` if a
+    larger pointer-friendly equivalent is also reachable.
+  - **Tables and data-dense surfaces** must handle narrow viewports:
+    horizontal scroll inside the surface OR a card/list fallback at
+    `sm` — the owning feature picks what reads better for its data.
+    Tables should never force `body` to scroll horizontally.
+  - **Header / navigation collapse rules** — non-essential elements
+    (e.g. "Hello, *firstname*" greeting, breadcrumbs) get
+    `hidden sm:inline` / `hidden md:flex` so the icon row stays
+    uncrowded on narrow screens. Don't ship a hamburger pattern until
+    a screen genuinely needs it.
+  - **Per-batch responsibility** — at the close of each batch, the
+    handoff note records that the touched feature was checked at
+    `sm` (375 px), `md` (768 px), and a desktop viewport. Batch 9
+    re-verifies the contract project-wide as part of its audit pass.
 - **Loading and empty states** are first-class. Skeletons for any list
   fetch > 200 ms (per §8); thoughtful empty states with a clear next
   action (not just "No data").

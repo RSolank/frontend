@@ -1,21 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { apiFetch } from '../../shared/api/apiClient';
+import { apiFetch } from '../../../shared/api/apiClient';
+import { buildAliasCheckUrl } from '../api/aliases';
+import type { AliasUniqueResponse } from '../api/queries';
 
-import { buildAliasCheckUrl } from './aliasUtils.js';
+type CheckStatus = null | 'checking' | 'unique' | 'taken' | 'duplicate';
 
-const chipStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px',
-  background: '#eff6ff',
-  color: '#2563eb',
-  padding: '4px 10px',
-  borderRadius: '20px',
-  fontSize: '0.85rem',
-  fontWeight: 600,
-  border: '1px solid #dbeafe',
-};
+interface AliasChipsInputProps {
+  aliases?: string[];
+  onChange: (next: string[]) => void;
+  readOnly?: boolean;
+  excludeUid?: number | null;
+  onValidityChange?: (invalid: boolean) => void;
+}
 
 export function AliasChipsInput({
   aliases = [],
@@ -23,9 +20,9 @@ export function AliasChipsInput({
   readOnly = false,
   excludeUid = null,
   onValidityChange,
-}) {
+}: AliasChipsInputProps) {
   const [aliasTemp, setAliasTemp] = useState('');
-  const [checkStatus, setCheckStatus] = useState(null); // null | checking | unique | taken | duplicate | empty
+  const [checkStatus, setCheckStatus] = useState<CheckStatus>(null);
 
   useEffect(() => {
     if (readOnly) return;
@@ -44,8 +41,10 @@ export function AliasChipsInput({
     setCheckStatus('checking');
     const timer = setTimeout(async () => {
       try {
-        const result = await apiFetch(buildAliasCheckUrl(val, excludeUid));
-        const status = result.unique ? 'unique' : 'taken';
+        const result = await apiFetch<AliasUniqueResponse>(
+          buildAliasCheckUrl(val, excludeUid)
+        );
+        const status: CheckStatus = result.unique ? 'unique' : 'taken';
         setCheckStatus(status);
         onValidityChange?.(status === 'taken');
       } catch {
@@ -57,7 +56,7 @@ export function AliasChipsInput({
     return () => clearTimeout(timer);
   }, [aliasTemp, aliases, excludeUid, readOnly, onValidityChange]);
 
-  const handleAdd = async () => {
+  async function handleAdd() {
     const val = aliasTemp.trim();
     if (!val) return;
     if (aliases.some((a) => a.toLowerCase() === val.toLowerCase())) {
@@ -67,7 +66,9 @@ export function AliasChipsInput({
     }
     if (checkStatus !== 'unique') {
       try {
-        const result = await apiFetch(buildAliasCheckUrl(val, excludeUid));
+        const result = await apiFetch<AliasUniqueResponse>(
+          buildAliasCheckUrl(val, excludeUid)
+        );
         if (!result.unique) {
           setCheckStatus('taken');
           onValidityChange?.(true);
@@ -82,62 +83,55 @@ export function AliasChipsInput({
     setAliasTemp('');
     setCheckStatus(null);
     onValidityChange?.(false);
-  };
+  }
 
-  const handleRemove = (val) => {
+  function handleRemove(val: string) {
     onChange(aliases.filter((a) => a !== val));
     onValidityChange?.(false);
-  };
+  }
 
   const statusMessage = () => {
     if (readOnly || !aliasTemp.trim()) return null;
     if (checkStatus === 'checking')
       return (
-        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           Checking availability…
         </span>
       );
     if (checkStatus === 'unique')
       return (
-        <span style={{ color: '#10b981', fontSize: '0.8rem' }}>
+        <span className="text-xs text-emerald-600 dark:text-emerald-400">
           Alias is available
         </span>
       );
     if (checkStatus === 'taken')
       return (
-        <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>
+        <span className="text-xs text-rose-600 dark:text-rose-400">
           Alias already in use
         </span>
       );
     if (checkStatus === 'duplicate')
       return (
-        <span style={{ color: '#ef4444', fontSize: '0.8rem' }}>
+        <span className="text-xs text-rose-600 dark:text-rose-400">
           Alias already added
         </span>
       );
     return null;
   };
 
-  const canAdd = !readOnly && aliasTemp.trim() && checkStatus === 'unique';
+  const canAdd = !readOnly && !!aliasTemp.trim() && checkStatus === 'unique';
+  const invalidBorder =
+    checkStatus === 'taken' || checkStatus === 'duplicate'
+      ? '!border-rose-400 dark:!border-rose-700'
+      : '';
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      <span
-        style={{
-          display: 'block',
-          marginBottom: '4px',
-          fontWeight: 600,
-          fontSize: '0.85rem',
-        }}
-      >
-        Aliases
-      </span>
+    <div className="mb-4">
+      <span className="form-label">Aliases</span>
 
       {!readOnly && (
         <>
-          <div
-            style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
-          >
+          <div className="mb-2 flex gap-2">
             <input
               value={aliasTemp}
               onChange={(e) => setAliasTemp(e.target.value)}
@@ -148,71 +142,39 @@ export function AliasChipsInput({
                 }
               }}
               placeholder="Enter alias (e.g. Jio, Airtel)"
-              style={{
-                flex: 1,
-                padding: '0.6rem',
-                borderRadius: '8px',
-                border: `1px solid ${checkStatus === 'taken' || checkStatus === 'duplicate' ? '#fca5a5' : '#e2e8f0'}`,
-              }}
+              className={`form-input flex-1 ${invalidBorder}`}
             />
             <button
               type="button"
               onClick={handleAdd}
               disabled={!canAdd}
-              style={{
-                padding: '0.6rem 1.2rem',
-                background: canAdd ? '#f1f5f9' : '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: canAdd ? 'pointer' : 'not-allowed',
-                color: canAdd ? '#475569' : '#94a3b8',
-              }}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:disabled:bg-slate-900/40 dark:disabled:text-slate-500"
             >
               Add alias
             </button>
           </div>
-          <div style={{ marginBottom: '0.5rem', minHeight: '1.2rem' }}>
-            {statusMessage()}
-          </div>
+          <div className="mb-2 min-h-[1.2rem]">{statusMessage()}</div>
         </>
       )}
 
-      <div
-        style={{
-          padding: '0.75rem',
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          borderRadius: '8px',
-          minHeight: '3rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-        }}
-      >
+      <div className="flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/40">
         {aliases.length === 0 ? (
-          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+          <span className="text-sm text-slate-400 dark:text-slate-500">
             No aliases added
           </span>
         ) : (
           aliases.map((a) => (
-            <span key={a} style={chipStyle}>
+            <span
+              key={a}
+              className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+            >
               {a}
               {!readOnly && (
                 <button
                   type="button"
                   onClick={() => handleRemove(a)}
                   aria-label={`Remove alias ${a}`}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#2563eb',
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    lineHeight: 1,
-                  }}
+                  className="ml-0.5 text-base leading-none font-bold text-indigo-500 dark:text-indigo-400"
                 >
                   ×
                 </button>

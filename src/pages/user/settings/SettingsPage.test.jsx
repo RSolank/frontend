@@ -5,13 +5,9 @@ import { vi } from 'vitest';
 
 import { SettingsPage } from './SettingsPage';
 
-// Mock sub-components
-vi.mock('../ProfilePage.jsx', () => ({
-  ProfilePage: () => <div data-testid="profile-tab">Profile</div>,
-}));
-vi.mock('./CategoriesTab.jsx', () => ({
-  CategoriesTab: () => <div data-testid="categories-tab">Categories</div>,
-}));
+// Mock sub-components so the SettingsPage test stays scoped to tab
+// orchestration and doesn't depend on the rule-tab internals (those get
+// their own tests when categorization/taxation extract in B6/B7).
 vi.mock('./CategorizationRulesTab.jsx', () => ({
   CategorizationRulesTab: () => <div data-testid="rules-tab">Rules</div>,
 }));
@@ -20,29 +16,19 @@ vi.mock('./TaxationRulesTab.jsx', () => ({
 }));
 
 describe('SettingsPage', () => {
-  it('renders and allows switching tabs via navigation', () => {
+  it('defaults to the categorization rules tab now that categories has its own page', () => {
     render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter>
         <SettingsPage />
       </MemoryRouter>
     );
 
-    // Default tab is now categories
-    expect(screen.getByTestId('categories-tab')).toBeInTheDocument();
-
-    // Click Categorization Rules
-    fireEvent.click(screen.getByText('Categorization Rules'));
     expect(screen.getByTestId('rules-tab')).toBeInTheDocument();
   });
 
   it('initializes with tab from URL query', () => {
     render(
-      <MemoryRouter
-        initialEntries={['/settings?tab=taxation_rules']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter initialEntries={['/settings?tab=taxation_rules']}>
         <SettingsPage />
       </MemoryRouter>
     );
@@ -50,18 +36,24 @@ describe('SettingsPage', () => {
     expect(screen.getByTestId('taxation-tab')).toBeInTheDocument();
   });
 
-  it('does not render profile or budgets tabs anymore', () => {
+  it('falls back to default when query points at the removed categories tab', () => {
     render(
-      <MemoryRouter
-        initialEntries={['/settings?tab=profile']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <MemoryRouter initialEntries={['/settings?tab=categories']}>
         <SettingsPage />
       </MemoryRouter>
     );
 
-    // Should fall back to categories
-    expect(screen.queryByTestId('profile-tab')).not.toBeInTheDocument();
-    expect(screen.getByTestId('categories-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('rules-tab')).toBeInTheDocument();
+  });
+
+  it('switches tabs on click', () => {
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText('Taxation Rules'));
+    expect(screen.getByTestId('taxation-tab')).toBeInTheDocument();
   });
 });

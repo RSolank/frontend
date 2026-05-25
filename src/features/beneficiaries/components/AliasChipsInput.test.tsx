@@ -1,25 +1,29 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch } from '../../shared/api/apiClient';
+import { server } from '../../../test/server';
 
-import { AliasChipsInput } from './AliasChipsInput.jsx';
-
-vi.mock('../../shared/api/apiClient', () => ({
-  apiFetch: vi.fn(),
-}));
+import { AliasChipsInput } from './AliasChipsInput';
 
 describe('AliasChipsInput', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    server.use(
+      http.get(
+        'http://localhost:4000/api/beneficiaries/check-alias',
+        ({ request }) => {
+          const url = new URL(request.url);
+          const alias = url.searchParams.get('alias') ?? '';
+          const unique = alias === 'EKART';
+          return HttpResponse.json({ alias, unique });
+        }
+      )
+    );
   });
 
   it('debounces realtime uniqueness check and blocks taken aliases', async () => {
     const onChange = vi.fn();
     const onValidityChange = vi.fn();
-
-    apiFetch.mockResolvedValue({ alias: 'Jio', unique: false });
 
     render(
       <AliasChipsInput
@@ -38,18 +42,11 @@ describe('AliasChipsInput', () => {
       expect(screen.getByText('Alias already in use')).toBeInTheDocument();
     });
 
-    expect(apiFetch).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '/api/beneficiaries/check-alias?alias=Jio&exclude_uid=1'
-      )
-    );
     expect(screen.getByRole('button', { name: 'Add alias' })).toBeDisabled();
   });
 
   it('adds chip when alias is unique', async () => {
     const onChange = vi.fn();
-    apiFetch.mockResolvedValue({ alias: 'EKART', unique: true });
-
     render(<AliasChipsInput aliases={[]} onChange={onChange} />);
 
     fireEvent.change(screen.getByPlaceholderText(/Enter alias/i), {
