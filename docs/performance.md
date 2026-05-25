@@ -107,6 +107,49 @@ Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 No `body` horizontal scroll observed at any viewport ≥ 320 px on the
 four Batch 4 routes.
 
+## Snapshot — Batch 5 close (2026-05-25)
+
+Build: `npm run build` after the transactions + statement-upload
+features landed. `transactions.routes.tsx` lazy-imports four pages —
+TransactionsPage, AddTransactionPage, EditTransactionPage,
+UploadStatementPage. The `BeneficiarySearch` + `TagSelector` shared
+components live in the transactions feature and Vite auto-splits
+TagSelector into its own chunk (consumed by both Add + Edit).
+
+| Surface | Size (gzipped) | Δ vs Batch 4 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 96.21 kB | −5.90 kB | Four legacy transaction pages (TransactionsPage + Add + Edit + UploadStatement) moved out of the initial bundle into per-route lazy chunks. |
+| `dist/assets/TransactionsPage-*.js` | 3.36 kB | new | Table + filters + ActionDropdown + currency lookup via metadata. |
+| `dist/assets/AddTransactionPage-*.js` | 1.81 kB | new | Add form orchestrator; shared form components ship in the TagSelector chunk. |
+| `dist/assets/EditTransactionPage-*.js` | 2.21 kB | new | Edit form orchestrator + statement-source restriction logic. |
+| `dist/assets/UploadStatementPage-*.js` | 2.72 kB | new | Three-step pipeline page + ProblematicTxnRow review widget. |
+| `dist/assets/TagSelector-*.js` | 1.13 kB | new | Shared between Add + Edit; Vite auto-split. |
+| `dist/assets/index-*.css` | 7.29 kB | +0.56 kB | New Tailwind variants used by the transactions surfaces (`flex-wrap`, `sm:grid-cols-2`, file-input chrome, action-dropdown shadows). |
+
+`npm run size` reports initial JS 96.05 kB gz (headroom 23.95 kB) and
+initial CSS 7.22 kB gz (headroom 7.78 kB).
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **TransactionsPage** — table scrolls *inside* its card
+  (`overflow-x-auto` on the wrapper + `min-w-[36rem]` on `<table>`)
+  so phone widths never force body overflow; header action buttons
+  + filter row use `flex-wrap gap-2` so the controls stack on narrow
+  viewports.
+- **AddTransactionPage / EditTransactionPage** — outer card padding
+  is `p-4 sm:p-6`; amount + type are a `grid-cols-1 sm:grid-cols-2`
+  pair so they stack on phones; submit + cancel buttons flip from
+  inline (`flex-row`) to stacked (`flex-col`) below `sm`.
+- **UploadStatementPage** — header uses `flex-wrap items-center
+  justify-between`; per-row review cards stay full-width on phones;
+  finalize actions row uses `flex-wrap gap-3` so the three CTAs
+  (Commit / Set Misc / Rollback) stack rather than overflow.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on the
+four Batch 5 routes.
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

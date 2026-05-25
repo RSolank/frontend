@@ -57,3 +57,30 @@ export function deleteCategorizationRule(ruleUid: number): Promise<unknown> {
     method: 'DELETE',
   });
 }
+
+// POST helper used by the Add / Edit transaction flows in
+// features/transactions/: when the user assigns tags to a transaction
+// that has a beneficiary, we offer to crystallise that pair as a
+// reusable categorization rule. Same ownership rationale as the
+// update/delete helpers above (Batch 4 note 2).
+export interface CreateCategorizationRulePayload {
+  name: string;
+  beneficiary_id: number | string;
+  tag_ids: number[];
+}
+
+export interface CreateCategorizationRuleResponse {
+  rule: { uid: number };
+}
+
+export function createCategorizationRule(
+  payload: CreateCategorizationRulePayload
+): Promise<CreateCategorizationRuleResponse> {
+  return apiFetch<CreateCategorizationRuleResponse>(
+    '/api/categorization-rules',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}

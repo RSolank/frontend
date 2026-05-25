@@ -3,15 +3,12 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { tagsRoutes } from '../features/tags/tags.routes';
+import { transactionsRoutes } from '../features/transactions/transactions.routes';
 import { usersRoutes } from '../features/users/users.routes';
 import { BudgetsPage } from '../pages/budgets/BudgetsPage.jsx';
 import { DashboardPage } from '../pages/Dashboard.jsx';
 import { HomePage } from '../pages/Home.jsx';
 import { ConsumptionTaxPage } from '../pages/tax/ConsumptionTaxPage.jsx';
-import { AddTransactionPage } from '../pages/transactions/AddTransaction.jsx';
-import { EditTransactionPage } from '../pages/transactions/EditTransaction.jsx';
-import { TransactionsPage } from '../pages/transactions/TransactionsPage.jsx';
-import { UploadStatementPage } from '../pages/transactions/UploadStatement.jsx';
 import { SettingsPage } from '../pages/user/settings/SettingsPage.jsx';
 
 import { App } from './App';
@@ -28,18 +25,15 @@ const publicRoutes: RouteObject[] = [
 // via the protectedRoutes() helper so feature batches just append to
 // this list without remembering to wrap each entry.
 //
-// Each feature batch (2–8) will eventually extract its slice into
-// features/<feature>/<feature>.routes.tsx and import the array here.
-// Until then, the legacy pages live inline.
+// Remaining legacy entries (Dashboard, Budgets, ConsumptionTax,
+// Settings) ship inline until their owning batch (6/7/8/9) extracts
+// them.
 const authedRoutes: RouteObject[] = protectedRoutes([
   { path: '/dashboard', element: <DashboardPage /> },
   ...usersRoutes,
   ...tagsRoutes,
   ...beneficiariesRoutes,
-  { path: '/transactions', element: <TransactionsPage /> },
-  { path: '/add-transaction', element: <AddTransactionPage /> },
-  { path: '/transactions/:id/edit', element: <EditTransactionPage /> },
-  { path: '/upload-statement', element: <UploadStatementPage /> },
+  ...transactionsRoutes,
   { path: '/budgets', element: <BudgetsPage /> },
   { path: '/consumption-tax', element: <ConsumptionTaxPage /> },
   { path: '/settings', element: <SettingsPage /> },
