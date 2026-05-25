@@ -150,6 +150,45 @@ Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 No `body` horizontal scroll observed at any viewport ≥ 320 px on the
 four Batch 5 routes.
 
+## Snapshot — Batch 6 close (2026-05-25)
+
+Build: `npm run build` after the categorization feature landed.
+`categorization.routes.tsx` lazy-imports `CategorizationRulesPage` so
+the rule editor (chips + beneficiary search + per-row tag edit) only
+ships when a user opens `/categorization-rules`.
+
+| Surface | Size (gzipped) | Δ vs Batch 5 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 93.09 kB | −3.12 kB | The legacy `CategorizationRulesTab` carried inside the initial bundle (it shipped via `SettingsPage`); extracting it to a lazy `/categorization-rules` route removed that weight. |
+| `dist/assets/CategorizationRulesPage-*.js` | 4.03 kB | new | The full rule editor: form + beneficiary search dropdown + chip widgets + existing-rules list. |
+| `dist/assets/index-*.css` | 7.37 kB | +0.08 kB | New Tailwind utilities used by the rule chips and dropdown shadows. |
+
+`npm run size` reports initial JS 92.95 kB gz (headroom 27.05 kB) and
+initial CSS 7.30 kB gz (headroom 7.70 kB).
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **CategorizationRulesPage header** — `flex-wrap items-start
+  justify-between gap-3` so the title block and the dashboard back
+  link stack cleanly at phone widths.
+- **Rule-management section header** — title and the Re-run /
+  Add Rule button cluster wrap with `flex-wrap gap-2`; the CTA
+  cluster itself uses `flex-wrap gap-2` so Re-run drops under
+  Add Rule on narrow widths.
+- **Tag select + Add row** — `flex-wrap gap-2 sm:flex-nowrap` so the
+  Add button drops under the select rather than squeezing it on
+  phones; chip surfaces inside the form + existing-rule list use
+  `flex-wrap` so long chip rows wrap inside their container.
+- **Existing-rule card head** — `flex-wrap items-start
+  justify-between gap-2` for the title + Edit/Delete row so the
+  action buttons fall under long rule names on narrow widths.
+- **Section cards** — `p-4 sm:p-6` padding.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on
+`/categorization-rules`.
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

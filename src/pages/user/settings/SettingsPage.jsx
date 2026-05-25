@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { CategorizationRulesTab } from './CategorizationRulesTab.jsx';
 import { TaxationRulesTab } from './TaxationRulesTab.jsx';
 
-// Categories moved out to its own page at /categories under
-// features/tags/ in Batch 4. Settings now hosts only the rule tabs
-// until categorization (Batch 6) and taxation (Batch 7) extract.
+// Categorization rules moved to /categorization-rules in Batch 6 under
+// features/categorization/. Tags already split to /categories in Batch 4.
+// Settings now hosts only the taxation rules tab until Batch 7 extracts
+// that surface as well.
 const TABS = {
-  categorization_rules: 'Categorization Rules',
   taxation_rules: 'Taxation Rules',
 };
 
@@ -19,7 +18,7 @@ export function SettingsPage() {
   const activeTab = useMemo(() => {
     const tab = new URLSearchParams(location.search).get('tab');
     if (TABS[tab]) return tab;
-    return 'categorization_rules';
+    return 'taxation_rules';
   }, [location.search]);
 
   return (
@@ -89,7 +88,6 @@ export function SettingsPage() {
       </nav>
 
       <div style={{ background: 'white', borderRadius: '12px' }}>
-        {activeTab === 'categorization_rules' && <CategorizationRulesTab />}
         {activeTab === 'taxation_rules' && <TaxationRulesTab />}
       </div>
     </div>

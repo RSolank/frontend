@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 
 import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
+import { categorizationRoutes } from '../features/categorization/categorization.routes';
 import { tagsRoutes } from '../features/tags/tags.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
 import { usersRoutes } from '../features/users/users.routes';
@@ -34,6 +35,7 @@ const authedRoutes: RouteObject[] = protectedRoutes([
   ...tagsRoutes,
   ...beneficiariesRoutes,
   ...transactionsRoutes,
+  ...categorizationRoutes,
   { path: '/budgets', element: <BudgetsPage /> },
   { path: '/consumption-tax', element: <ConsumptionTaxPage /> },
   { path: '/settings', element: <SettingsPage /> },
