@@ -393,6 +393,23 @@ upgrade in one batch is cheaper than two passes.
     handoff note records that the touched feature was checked at
     `sm` (375 px), `md` (768 px), and a desktop viewport. Batch 9
     re-verifies the contract project-wide as part of its audit pass.
+  - **Effort tiers by surface density.** The *check* is always per
+    batch; the *implementation work* scales with what the feature
+    actually contains:
+    - **Form / list / chip surfaces** (auth pages, profile, tags,
+      beneficiaries, settings): usually a 5-minute viewport smoke
+      test — open at 375 px and desktop, click around, fix anything
+      visibly broken. Often nothing needs to change; record the
+      check in the handoff and move on.
+    - **Table, grid, multi-step, and dense surfaces** (transactions
+      list, statement upload, taxation bills, budget grids,
+      Dashboard, statement-parse review tables): require deliberate
+      responsive design *upfront* — pick the degradation strategy
+      (horizontal-scroll-inside-card, card-stack, column-hide) before
+      writing the markup, not after. Tables don't degrade naturally;
+      retrofitting is painful.
+    - The handoff note should be honest about which tier the
+      surface fell into and what (if anything) needed work.
 - **Loading and empty states** are first-class. Skeletons for any list
   fetch > 200 ms (per §8); thoughtful empty states with a clear next
   action (not just "No data").
