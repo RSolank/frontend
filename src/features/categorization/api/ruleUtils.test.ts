@@ -64,14 +64,20 @@ describe('categorization ruleUtils', () => {
     expect(formatTagAssignment(999, flat)).toBe('999');
   });
 
-  it('buildRuleName joins multiple tag assignments', () => {
+  it('buildRuleName uses ONLY the primary (index 0) when multiple tags exist', () => {
     expect(buildRuleName('TestShop', [12, 22], flat)).toBe(
-      'TestShop -> Food (Groceries), Utilities (Internet)'
+      'TestShop -> Food (Groceries)'
     );
   });
 
-  it('buildRuleName returns empty string with no tags', () => {
-    expect(buildRuleName('TestShop', [], flat)).toBe('');
+  it('buildRuleName updates when the primary changes (different tag at index 0)', () => {
+    expect(buildRuleName('TestShop', [22, 12], flat)).toBe(
+      'TestShop -> Utilities (Internet)'
+    );
+  });
+
+  it('buildRuleName returns just the beneficiary name when no tags are picked yet', () => {
+    expect(buildRuleName('TestShop', [], flat)).toBe('TestShop');
   });
 
   it('buildRuleName returns empty string with blank beneficiary', () => {

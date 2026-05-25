@@ -189,6 +189,43 @@ Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 No `body` horizontal scroll observed at any viewport ≥ 320 px on
 `/categorization-rules`.
 
+## Snapshot — Post-Batch-6 close (2026-05-26)
+
+Build: `npm run build` after the inline add-beneficiary modal +
+rule grouping landed on top of Batch 6. The categorization chunk
+absorbs the new grouping logic + `GroupedRulesList` component; the
+new shared `Modal` and the `CreateBeneficiaryDialog` come along on
+the categorization chunk for now (the dialog is currently consumed
+only here).
+
+| Surface | Size (gzipped) | Δ vs Batch 6 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 93.08 kB | −0.01 kB | Initial bundle unchanged in practice. |
+| `dist/assets/CategorizationRulesPage-*.js` | 6.56 kB | +2.29 kB | Grouping logic + `GroupedRulesList` + dialog import. |
+| `dist/assets/index-*.css` | 7.65 kB | +0.21 kB | Modal portal, chevron, indigo CTA, ring utilities. |
+
+`npm run size` reports initial JS 92.95 kB gz (headroom 27.05 kB)
+and initial CSS 7.65 kB gz (headroom 7.35 kB).
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **CreateBeneficiaryDialog** — modal panel snaps to a bottom-sheet
+  treatment on `<sm` (`items-end` + `rounded-t-xl` + full-width
+  panel) and centers as a card on `sm+`. Backdrop scroll-locks the
+  page; click-outside + Escape close. Internal form scrolls inside
+  the panel rather than overflowing the viewport.
+- **Multi-rule group header** — chip row uses `flex-wrap` + `min-w-0`
+  on the content area so long chip rows wrap inside the card; the
+  chevron stays pinned right via `shrink-0`.
+- **Expanded group rows** — `flex-wrap items-center justify-between
+  gap-2` so the Edit/Delete buttons fall under the beneficiary
+  name when the row is narrow.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on
+`/categorization-rules`, including with the modal open.
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

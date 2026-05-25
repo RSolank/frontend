@@ -1,19 +1,20 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { CreateBeneficiaryDialog } from '../../beneficiaries/components/CreateBeneficiaryDialog';
 import {
   fetchBeneficiaries,
   type Beneficiary,
 } from '../../beneficiaries/api/queries';
-import { formatAliasesDisplay } from '../../beneficiaries/api/aliases';
 import {
   createCategorizationRule,
   deleteCategorizationRule,
-  updateCategorizationRuleTags,
 } from '../../beneficiaries/api/mutations';
 import { fetchTagConstants, fetchTags } from '../../tags/api/queries';
+import { GroupedRulesList } from '../components/GroupedRulesList';
 import { categorizationKeys } from '../api/keys';
+import { tagSetKey } from '../api/grouping';
 import {
   reRunCategorizationRequest,
   updateCategorizationRuleRequest,
@@ -57,6 +58,11 @@ const EMPTY_FORM: FormState = {
   notes: '',
 };
 
+// How long the post-save indigo ring stays on the destination rule row
+// before fading out. Long enough for the user to spot it after the list
+// rebuckets; short enough not to feel like a stuck loading state.
+const HIGHLIGHT_DURATION_MS = 1500;
+
 function errorMessage(err: unknown, fallback: string): string {
   const e = err as ApiErrorShape;
   return e?.detail || e?.error || fallback;
@@ -78,29 +84,50 @@ export function CategorizationRulesPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [bSearch, setBSearch] = useState('');
   const [bSearchFocused, setBSearchFocused] = useState(false);
-  const [tempTagId, setTempTagId] = useState('');
   const [beneficiaryConflict, setBeneficiaryConflict] = useState<string | null>(
     null
   );
 
+  // Create-beneficiary modal state. Pre-fill is the current search text
+  // so a user typing a brand-new name doesn't retype it.
+  const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
+
+  // Post-save UX: auto-expand the destination group + ring the saved
+  // rule row briefly so the user can see where the rule landed after a
+  // potential group rebucket.
+  const [highlightedGroupKey, setHighlightedGroupKey] = useState<string | null>(
+    null
+  );
+  const [highlightedRuleUid, setHighlightedRuleUid] = useState<number | null>(
+    null
+  );
+  const highlightTimer = useRef<number | null>(null);
+
   const isEditing = form.uid != null;
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const [tagsRes, bList, c] = await Promise.all([
-          fetchTags(),
-          fetchBeneficiaries(),
-          fetchTagConstants(),
-        ]);
-        setTags(flattenTags(tagsRes.tags));
-        setBeneficiaries(bList);
-        setConstants(c as Constants);
-      } catch (err) {
-        setError(errorMessage(err, 'Failed to load reference data'));
+    void loadReferenceData();
+    return () => {
+      if (highlightTimer.current != null) {
+        window.clearTimeout(highlightTimer.current);
       }
-    })();
+    };
   }, []);
+
+  async function loadReferenceData() {
+    try {
+      const [tagsRes, bList, c] = await Promise.all([
+        fetchTags(),
+        fetchBeneficiaries(),
+        fetchTagConstants(),
+      ]);
+      setTags(flattenTags(tagsRes.tags));
+      setBeneficiaries(bList);
+      setConstants(c as Constants);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to load reference data'));
+    }
+  }
 
   useEffect(() => {
     if (!form.beneficiary_id) {
@@ -124,11 +151,7 @@ export function CategorizationRulesPage() {
       tags.filter(
         (t) =>
           t.tag_id !== constants?.TOTAL_TAG_ID &&
-          t.tag_id !== constants?.MISCELLANEOUS_TAG_ID &&
-          // Only top-level entries are excluded from the picker if they
-          // have no parent (root rows are the parents themselves).
-          // Children + roots both qualify; the dropdown sorts naturally.
-          true
+          t.tag_id !== constants?.MISCELLANEOUS_TAG_ID
       ),
     [tags, constants]
   );
@@ -161,40 +184,51 @@ export function CategorizationRulesPage() {
   function resetForm() {
     setForm(EMPTY_FORM);
     setBSearch('');
-    setTempTagId('');
     setBeneficiaryConflict(null);
     setIsFormVisible(false);
   }
 
-  function handleSelectBeneficiary(b: Beneficiary) {
-    setBSearch(b.name);
+  function selectBeneficiaryById(id: number, name: string) {
+    setBSearch(name);
     setForm((f) => ({
       ...f,
-      beneficiary_id: b.uid,
-      beneficiary_name: b.name,
+      beneficiary_id: id,
+      beneficiary_name: name,
     }));
+    setBSearchFocused(false);
   }
 
-  // Stub: the dropdown's "+ Add new beneficiary" CTA. The real
-  // mechanism (popup vs same-tab nav vs modal) and target URL are
-  // deferred to a follow-up session — see the Batch 6 handoff in
-  // `.scratch/task-frontend.md`. Until then this just no-ops so the
-  // dropdown entry's wiring is in place.
+  function handleSelectBeneficiary(b: Beneficiary) {
+    selectBeneficiaryById(b.uid, b.name);
+  }
+
   function handleAddNewBeneficiary() {
-    // TODO(batch-6-followup): wire the chosen Add-Beneficiary surface
-    // here and re-open this dropdown with the newly-created
-    // beneficiary pre-selected.
-    console.warn(
-      '[categorization] Add-new-beneficiary CTA clicked — wiring TBD'
-    );
+    setCreateBeneficiaryOpen(true);
+    setBSearchFocused(false);
   }
 
-  function handleAddTag() {
-    if (!tempTagId) return;
-    const tid = parseInt(tempTagId, 10);
+  async function handleBeneficiaryCreated(b: Beneficiary) {
+    // Refresh the local list so the new id appears in the dropdown +
+    // any future search, then auto-select it for the in-flight rule.
+    try {
+      const next = await fetchBeneficiaries();
+      setBeneficiaries(next);
+    } catch (err) {
+      console.warn('Failed to refresh beneficiaries after create', err);
+    }
+    selectBeneficiaryById(b.uid, b.name);
+  }
+
+  // One-click tag pick — fires immediately on dropdown change. The
+  // dropdown is value-bound to '' so it resets to the prompt after
+  // every pick. Already-selected tags are filtered out of the
+  // options below so re-picking the same tag isn't possible. Undo =
+  // chip × button.
+  function handlePickTag(raw: string) {
+    if (!raw) return;
+    const tid = parseInt(raw, 10);
     if (Number.isNaN(tid) || form.tag_ids.includes(tid)) return;
     setForm((f) => ({ ...f, tag_ids: [...f.tag_ids, tid] }));
-    setTempTagId('');
   }
 
   function handleRemoveTag(tid: number) {
@@ -209,6 +243,19 @@ export function CategorizationRulesPage() {
       ...f,
       tag_ids: [tid, ...f.tag_ids.filter((id) => id !== tid)],
     }));
+  }
+
+  function highlightRule(uid: number, tagIds: readonly number[]) {
+    setHighlightedGroupKey(tagSetKey(tagIds));
+    setHighlightedRuleUid(uid);
+    if (highlightTimer.current != null) {
+      window.clearTimeout(highlightTimer.current);
+    }
+    highlightTimer.current = window.setTimeout(() => {
+      setHighlightedRuleUid(null);
+      // Keep the group expanded; the user can collapse it manually.
+      // Only the ring fades.
+    }, HIGHLIGHT_DURATION_MS);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -240,13 +287,17 @@ export function CategorizationRulesPage() {
 
     try {
       setBusy(true);
+      let savedUid: number;
       if (isEditing && form.uid != null) {
         await updateCategorizationRuleRequest(form.uid, payload);
+        savedUid = form.uid;
       } else {
-        await createCategorizationRule(payload);
+        const res = await createCategorizationRule(payload);
+        savedUid = res.rule.uid;
       }
       resetForm();
       await invalidateRules();
+      highlightRule(savedUid, payload.tag_ids);
     } catch (err) {
       setError(errorMessage(err, 'Failed to save rule'));
     } finally {
@@ -279,37 +330,6 @@ export function CategorizationRulesPage() {
       setError(errorMessage(err, 'Failed to delete rule'));
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function handleRemoveTagFromRule(rule: CategorizationRule, tid: number) {
-    const nextTags = (rule.tag_ids || []).filter((id) => id !== tid);
-    try {
-      if (nextTags.length === 0) {
-        const confirmed = window.confirm(
-          `Deleting the last tag will delete the categorization rule for "${rule.beneficiary_name}". Proceed?`
-        );
-        if (!confirmed) return;
-        await deleteCategorizationRule(rule.uid);
-      } else {
-        await updateCategorizationRuleTags(rule.uid, nextTags);
-      }
-      await invalidateRules();
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to update rule'));
-    }
-  }
-
-  async function handleSetPrimaryInRule(
-    rule: CategorizationRule,
-    tid: number
-  ) {
-    const nextTags = [tid, ...(rule.tag_ids || []).filter((id) => id !== tid)];
-    try {
-      await updateCategorizationRuleTags(rule.uid, nextTags);
-      await invalidateRules();
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to update rule'));
     }
   }
 
@@ -377,18 +397,23 @@ export function CategorizationRulesPage() {
             className="grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
           >
             <div>
-              <label htmlFor="rule-name" className="form-label">
-                Rule name
-              </label>
-              <input
-                id="rule-name"
-                readOnly
-                tabIndex={-1}
-                aria-readonly="true"
-                value={generatedRuleName}
-                className="form-input cursor-default border-dashed bg-slate-100 text-slate-600 focus:ring-0 focus:outline-none dark:bg-slate-800/70 dark:text-slate-300"
-              />
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <span className="form-label">Rule name</span>
+              {/* Computed display, not an input. Renders on the form
+                  panel's own background so it doesn't masquerade as an
+                  editable field. Min-height matches a form-input so
+                  the row doesn't shift when the placeholder text
+                  swaps in. */}
+              <output
+                aria-live="polite"
+                className="block min-h-[2.5rem] px-1 py-2 text-sm leading-6 break-words text-slate-700 dark:text-slate-200"
+              >
+                {generatedRuleName || (
+                  <span className="text-slate-400 italic dark:text-slate-500">
+                    Select a beneficiary and at least one tag…
+                  </span>
+                )}
+              </output>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 Auto-generated from the selected beneficiary and tags.
               </p>
             </div>
@@ -441,7 +466,7 @@ export function CategorizationRulesPage() {
                         {b.name}
                         {b.aliases?.length > 0 && (
                           <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
-                            {formatAliasesDisplay(b.aliases)}
+                            ({b.aliases.join(', ')})
                           </span>
                         )}
                       </div>
@@ -456,28 +481,26 @@ export function CategorizationRulesPage() {
 
             <div>
               <span className="form-label mb-1 block">Tags to apply</span>
-              <div className="mb-2 flex flex-wrap gap-2 sm:flex-nowrap">
-                <select
-                  aria-label="Select tag"
-                  value={tempTagId}
-                  onChange={(e) => setTempTagId(e.target.value)}
-                  className="form-input flex-1"
-                >
-                  <option value="">Select a tag</option>
-                  {filteredTags.map((t) => (
+              {/* One-click select: picking an option fires
+                  handlePickTag immediately and the select resets to
+                  the prompt (value bound to ''). Already-picked tags
+                  are excluded from the options so they can't be
+                  re-added; the chip × button is the undo path. */}
+              <select
+                aria-label="Add a tag"
+                value=""
+                onChange={(e) => handlePickTag(e.target.value)}
+                className="form-input mb-2"
+              >
+                <option value="">＋ Add a tag…</option>
+                {filteredTags
+                  .filter((t) => !form.tag_ids.includes(t.tag_id))
+                  .map((t) => (
                     <option key={t.tag_id} value={t.tag_id}>
                       {formatTagAssignment(t.tag_id, tags)}
                     </option>
                   ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Add
-                </button>
-              </div>
+              </select>
               <div className="flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
                 {form.tag_ids.length === 0 ? (
                   <span className="text-sm text-slate-400 dark:text-slate-500">
@@ -570,113 +593,29 @@ export function CategorizationRulesPage() {
           </span>
         </div>
 
-        {rules.length === 0 && !rulesLoading ? (
+        {rulesLoading && rules.length === 0 ? (
           <p className="text-sm text-slate-400 dark:text-slate-500">
-            No rules found.
+            Loading rules…
           </p>
         ) : (
-          <ul className="grid list-none gap-3 p-0">
-            {rules.map((r) => {
-              const aliasText = formatAliasesDisplay(r.beneficiary_aliases);
-              const userRule = isUserRule(r);
-              return (
-                <li
-                  key={r.uid}
-                  className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <span className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                      {r.rule_name}
-                    </span>
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(r)}
-                        className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        Edit
-                      </button>
-                      {userRule && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(r.uid)}
-                          className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      Beneficiary:
-                    </span>{' '}
-                    {r.beneficiary_name}
-                    {aliasText && (
-                      <>
-                        <br />
-                        <span className="font-medium text-slate-700 dark:text-slate-200">
-                          Aliases:
-                        </span>{' '}
-                        <span className="text-slate-400 dark:text-slate-500">
-                          {aliasText}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      Tags:
-                    </span>
-                    {(r.tag_ids || []).map((tid, idx) => {
-                      const isPrimary = idx === 0;
-                      const chipBase =
-                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold border';
-                      const chipColor = isPrimary
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
-                      return (
-                        <span key={tid} className={`${chipBase} ${chipColor}`}>
-                          {formatTagAssignment(tid, tags)}
-                          {isPrimary ? (
-                            <span className="rounded-sm bg-emerald-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
-                              Primary
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleSetPrimaryInRule(r, tid)}
-                              className="rounded-sm bg-indigo-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-indigo-700"
-                            >
-                              Set Primary
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTagFromRule(r, tid)}
-                            aria-label={`Remove tag ${formatTagAssignment(tid, tags)}`}
-                            className="ml-0.5 text-sm leading-none font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                  {r.notes && (
-                    <p className="mt-2 text-sm text-slate-500 italic dark:text-slate-400">
-                      &ldquo;{r.notes}&rdquo;
-                    </p>
-                  )}
-                  <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                    Created by: {userRule ? `User ${r.created_by}` : 'System'}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
+          <GroupedRulesList
+            rules={rules}
+            flatTags={tags}
+            isUserRule={isUserRule}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            highlightedGroupKey={highlightedGroupKey}
+            highlightedRuleUid={highlightedRuleUid}
+          />
         )}
       </section>
+
+      <CreateBeneficiaryDialog
+        open={createBeneficiaryOpen}
+        onClose={() => setCreateBeneficiaryOpen(false)}
+        onCreated={handleBeneficiaryCreated}
+        initialName={bSearch}
+      />
     </div>
   );
 }

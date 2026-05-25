@@ -39,17 +39,29 @@ export function formatTagAssignment(
   return tag.tag_name;
 }
 
-// Rule name: `Beneficiary_Name -> Parent (Tag), Parent2 (Tag2), ...`.
-// Empty string short-circuits when the beneficiary or tags are
-// missing so the input renders its placeholder.
+// Rule name progressive display:
+//   - no beneficiary             → '' (caller renders a placeholder)
+//   - beneficiary, no tags       → '${name}'  (name appears as soon
+//                                  as the user picks a beneficiary)
+//   - beneficiary + ≥1 tags      → '${name} -> ${primary}'  (only
+//                                  the primary tag at index 0 is
+//                                  included regardless of how many
+//                                  tags are selected; promoting a
+//                                  different tag via "Set Primary"
+//                                  changes the name)
+//
+// Backend convention: tag_ids[0] is always the primary (the rule
+// engine uses it to derive txn_type). The rule_name we POST mirrors
+// that — including secondary tags in the label was historic noise
+// from the legacy form.
 export function buildRuleName(
   beneficiaryName: string,
   tagIds: readonly number[],
   flatTags: readonly FlatTag[]
 ): string {
-  if (!beneficiaryName?.trim() || !tagIds?.length) return '';
-  const parts = tagIds
-    .map((tid) => formatTagAssignment(tid, flatTags))
-    .filter(Boolean);
-  return `${beneficiaryName.trim()} -> ${parts.join(', ')}`;
+  const name = beneficiaryName?.trim();
+  if (!name) return '';
+  const primary = tagIds?.[0];
+  if (primary == null) return name;
+  return `${name} -> ${formatTagAssignment(primary, flatTags)}`;
 }

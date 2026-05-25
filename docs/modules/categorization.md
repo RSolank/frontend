@@ -30,12 +30,100 @@ extraction matches the Batch 4 pattern (`CategoriesTab → /categories`)
 so each rule set is a first-class route with its own bundle. `/settings`
 now hosts only the taxation tab until Batch 7 extracts that too.
 
+## Rule-name conventions
+
+The auto-generated rule name renders progressively in the form:
+
+- No beneficiary selected → italic placeholder
+- Beneficiary picked, no tags → just `${beneficiary}` (the name
+  surfaces as soon as the beneficiary is chosen)
+- Beneficiary + ≥ 1 tag → `${beneficiary} -> ${primary}` — uses
+  **only** the primary tag (index 0 of `tag_ids`), regardless of
+  how many tags are selected. Promoting a different tag via
+  `Set Primary` (or removing the primary chip so another auto-
+  promotes) updates the rule name in place.
+
+Backend invariant: `tag_ids[0]` is **always** the primary — the
+taxation engine derives `txn_type` from it. Removing the primary
+chip while other tags remain is safe: the next tag in `tag_ids`
+shifts to index 0 and becomes the new primary. The page never
+allows a rule to enter a "no primary" state — the only way to drop
+all primaries is to remove every tag, which is the same as
+deleting the rule.
+
 ## Components
 
 - `pages/CategorizationRulesPage.tsx` — full standalone page with
   header, create / update form, beneficiary search dropdown, tag
   chip editor (with `Set Primary` + remove affordances), and the
-  existing-rules list. Tailwind-styled with dark-mode parity.
+  grouped existing-rules list. Tailwind-styled with dark-mode
+  parity.
+- `components/GroupedRulesList.tsx` — bucketed rule renderer.
+  Single-rule groups render as the full rule card; multi-rule
+  groups render as a collapsible header (chip row + count) with
+  compact per-rule rows when expanded.
+
+## Rule grouping
+
+Rules with the **same set of `tag_ids`** (order-insensitive) bucket
+into one group:
+
+- **Group key:** sorted-dedup'd `tag_ids` joined with `,`. `[12, 15]`
+  and `[15, 12]` share the same group key.
+- **Single-rule groups** render as the same rule card the page
+  shipped in Batch 6 — no UX regression for the simple case.
+- **Multi-rule groups** collapse by default. Header shows the
+  tag chips + "Applied to N beneficiaries" + chevron; expanded
+  renders compact per-rule rows (beneficiary name + aliases +
+  primary chip + Edit/Delete).
+- **Representative primary in the collapsed header** is chosen by
+  `chooseRepresentativePrimary(rules, flatTags)`:
+  1. Count how many rules in the group list each tag as their
+     primary (position 0 in `tag_ids`).
+  2. The tag with the highest count wins.
+  3. Ties: if all tied tags share a parent, render the parent
+     instead (caller gets `isParentFallback: true` so it can label
+     the chip without the child suffix).
+  4. No shared parent → pick the smallest tag id deterministically.
+- **Group sort:** single-rule groups first, multi-rule groups
+  after; alphabetical by representative tag name within each band.
+  The singletons-first ordering gives a cleaner visual rhythm
+  (rows that look identical sit together; the condensed cluster
+  sits below).
+- **Section sub-headings:** "Standalone rules (N)" and "Grouped
+  rules (N)" render whenever the corresponding band has entries —
+  independent of whether the other band exists. Even a
+  seed-data-only page (mostly singletons) gets the anchor.
+- **"Show N more" disclosure caps:** 5 singletons + 6 groups
+  visible by first paint. The asymmetry is intentional: each
+  singleton card costs ~140px to render one rule, while a
+  collapsed group card costs ~80px to represent N rules — so
+  singletons are ~4–7× costlier per rule and get the tighter cap.
+  Beyond the cap, a dashed-border button expands the band;
+  clicking again collapses back. Caps live in
+  `components/GroupedRulesList.tsx` as `SINGLETON_VISIBLE_CAP` +
+  `GROUP_VISIBLE_CAP` — bump in place if usage proves the
+  defaults too tight.
+- **Rules within a group:** alphabetical by `beneficiary_name`.
+
+On save, the page auto-expands the destination group and applies a
+brief indigo ring (~1.5 s) to the saved rule row so the user can
+see where the rule landed — useful when an edit shifts a rule
+between groups.
+
+## Add new beneficiary inline
+
+The beneficiary search dropdown has an `＋ Add new beneficiary`
+CTA pinned at the top. Click → opens
+`features/beneficiaries/components/CreateBeneficiaryDialog.tsx`
+(a portaled modal wrapping the shared `BeneficiaryFormFields` +
+Save/Cancel footer). The Name field pre-fills from whatever's in
+the search box.
+
+On success, the dialog closes, the page refetches
+`/api/beneficiaries`, and the rule form's beneficiary fields
+auto-select to the newly-created entry. The user's in-flight rule
+state (tags, notes, etc.) survives untouched.
 
 ## Responsive
 
@@ -71,6 +159,7 @@ so the rule list refreshes after a write.
 | `queries.ts` | `fetchCategorizationRules`, `useCategorizationRulesQuery`, `CategorizationRule`, `CategorizationRulesResponse` |
 | `mutations.ts` | `updateCategorizationRuleRequest` (full PUT), `reRunCategorizationRequest` |
 | `ruleUtils.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName`, `FlatTag` |
+| `grouping.ts` | `tagSetKey`, `chooseRepresentativePrimary`, `groupRules`, `RuleGroup` |
 
 Endpoints touched:
 
@@ -106,8 +195,9 @@ Endpoints touched:
 
 | File | Covers |
 |---|---|
-| `pages/CategorizationRulesPage.test.tsx` | Rule list renders + alias suffixes, Edit / Delete affordance per row, create-rule end-to-end with auto-generated name, delete confirms + hits the API |
+| `pages/CategorizationRulesPage.test.tsx` | Singleton rules render + alias suffixes, Edit / Delete affordance per row, create-rule end-to-end with auto-generated name, delete confirms + hits the API, multi-rule group collapses + expands, add-beneficiary dialog opens from the dropdown CTA + pre-fills Name |
 | `api/ruleUtils.test.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName` |
+| `api/grouping.test.ts` | `tagSetKey` (order/dedupe invariance), `chooseRepresentativePrimary` (unique winner, shared-parent fallback, no-shared-parent fallback to smallest id), `groupRules` (bucketing, group sort, within-group sort) |
 
 MSW handlers for `/api/categorization-rules`, `/api/tags`,
 `/api/beneficiaries`, `/api/metadata/constants` live in the test
@@ -115,13 +205,6 @@ file's `beforeEach`; per-test overrides via `server.use(...)`.
 
 ## Follow-ups
 
-- **"+ Add new beneficiary" CTA in the dropdown is a shell stub.**
-  Click handler is `handleAddNewBeneficiary` in
-  `pages/CategorizationRulesPage.tsx` — currently `console.warn` +
-  `TODO(batch-6-followup)`. The mechanism (popup-window vs same-tab
-  nav with `?return=` + `?select=` query plumbing vs in-page
-  `<Dialog>` reusing
-  `features/beneficiaries/components/BeneficiaryFormFields.tsx`)
-  and the target URL are deferred to a dedicated session. The
-  shell + styling already lands so the wiring is the only piece
-  left.
+- Both Batch 6 follow-ups (add-beneficiary inline + rule grouping)
+  landed in the Post-Batch-6 commit. No outstanding TODOs on this
+  feature surface.

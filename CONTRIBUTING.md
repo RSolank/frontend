@@ -410,6 +410,35 @@ upgrade in one batch is cheaper than two passes.
       retrofitting is painful.
     - The handoff note should be honest about which tier the
       surface fell into and what (if anything) needed work.
+- **Modals over secondary routes for create/edit sub-flows.**
+  `shared/components/Modal.tsx` (added in the Post-Batch-6 commit)
+  is the **preferred surface** for any flow that creates or edits a
+  sub-entity from within a parent context — adding a beneficiary
+  while filling a categorization rule, editing a budget limit from
+  the budgets overview, etc. Reasons: the parent's in-flight form
+  state survives the round trip; no cross-window juggling; mobile
+  reflows to a bottom-sheet automatically; keyboard-trap-free
+  Escape + click-outside close. Consumer pattern: caller component
+  owns the open/close state and a typed `onCreated` /
+  `onSaved` callback; the dialog wraps the shared form-fields
+  component + a Save/Cancel footer.
+  - **Auth on the landing page** is a planned application of this
+    pattern: `/` (HomePage) gets primary CTAs that open Login /
+    Register as modals reusing the existing form components from
+    `features/auth/pages/`. **Keep `/login` and `/register` as
+    routes alongside the modal entry points** — they remain the
+    canonical surface for deep links (password-reset emails →
+    "Sign in to continue"), browser password-manager detection,
+    SEO/indexing controls, and back-button semantics. The modal is
+    an additional entry path, not a replacement. Concretely: extract
+    the form bodies from `LoginPage` / `RegisterPage` into reusable
+    `<LoginForm>` / `<RegisterForm>` components, then mount them
+    inside both the route page and a `<Modal>` on Home. Slated for
+    a Post-Batch-9 polish session.
+  - **Don't use a modal for primary-content surfaces** (dashboards,
+    list views, detail pages). Modals are for *secondary, focused
+    actions* — anything that would also work as "open in a new tab"
+    belongs on a route, not in a modal.
 - **Loading and empty states** are first-class. Skeletons for any list
   fetch > 200 ms (per §8); thoughtful empty states with a clear next
   action (not just "No data").
