@@ -1,95 +1,58 @@
-import React, { useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-import { TaxationRulesTab } from './TaxationRulesTab.jsx';
+// Husk page kept intentionally thin per the Batch 7 user override
+// (2026-05-26): we do NOT redirect /settings anywhere — Batch 9 will
+// build the proper SettingsLayout shell with sidebar + tab navigation
+// and at that point /settings → /settings/categories becomes the
+// canonical redirect. Until then, /settings renders this placeholder
+// listing the available settings surfaces.
+//
+// Tabs moved out:
+//  - Categories      → /categories     (Batch 4)
+//  - Categorization Rules → /categorization-rules (Batch 6)
+//  - Taxation Rules  → /settings/taxation-rules (Batch 7)
 
-// Categorization rules moved to /categorization-rules in Batch 6 under
-// features/categorization/. Tags already split to /categories in Batch 4.
-// Settings now hosts only the taxation rules tab until Batch 7 extracts
-// that surface as well.
-const TABS = {
-  taxation_rules: 'Taxation Rules',
-};
+const LINKS = [
+  { to: '/settings/taxation-rules', label: 'Taxation Rules', desc: 'Per-txn-type base tax + default penalty rates.' },
+  { to: '/categorization-rules', label: 'Categorization Rules', desc: 'Auto-tagging rules for incoming transactions.' },
+  { to: '/categories', label: 'Categories', desc: 'Manage your tag tree and aliases.' },
+];
 
 export function SettingsPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const activeTab = useMemo(() => {
-    const tab = new URLSearchParams(location.search).get('tab');
-    if (TABS[tab]) return tab;
-    return 'taxation_rules';
-  }, [location.search]);
-
   return (
-    <div
-      style={{
-        maxWidth: 1000,
-        margin: '2rem auto',
-        padding: '1.5rem',
-        fontFamily: 'Inter, sans-serif',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h1 style={{ fontWeight: 800 }}>Settings</h1>
-        <Link
-          to="/dashboard"
-          style={{
-            textDecoration: 'none',
-            color: '#2563eb',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-          }}
-        >
-          ← Back to dashboard
-        </Link>
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Settings
+        </h1>
+        <p className="mt-1 max-w-xl text-sm text-slate-500 dark:text-slate-400">
+          Configuration surfaces. Batch 9 will replace this index with a
+          proper sidebar shell; until then each settings page is reached
+          via the top-nav Settings menu or the list below.
+        </p>
       </header>
 
-      <nav
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid #f1f5f9',
-          marginBottom: '2rem',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-        }}
-      >
-        {Object.entries(TABS).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => navigate(`/settings?tab=${key}`)}
-            style={{
-              padding: '0.75rem 1.25rem',
-              border: 'none',
-              borderBottom:
-                activeTab === key
-                  ? '3px solid #2563eb'
-                  : '3px solid transparent',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontWeight: activeTab === key ? 700 : 500,
-              color: activeTab === key ? '#2563eb' : '#64748b',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s',
-              fontSize: '0.9rem',
-            }}
-          >
-            {label}
-          </button>
+      <ul className="flex flex-col gap-2" data-testid="settings-index">
+        {LINKS.map((l) => (
+          <li key={l.to}>
+            <Link
+              to={l.to}
+              className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 no-underline transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30"
+            >
+              <span>
+                <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {l.label}
+                </span>
+                <span className="mt-0.5 block text-sm text-slate-500 dark:text-slate-400">
+                  {l.desc}
+                </span>
+              </span>
+              <span aria-hidden className="text-slate-400 dark:text-slate-500">→</span>
+            </Link>
+          </li>
         ))}
-      </nav>
-
-      <div style={{ background: 'white', borderRadius: '12px' }}>
-        {activeTab === 'taxation_rules' && <TaxationRulesTab />}
-      </div>
+      </ul>
     </div>
   );
 }

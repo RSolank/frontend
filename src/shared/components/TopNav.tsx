@@ -39,10 +39,13 @@ const MAIN_LINKS: NavLinkSpec[] = [
 ];
 
 // Settings — Radix DropdownMenu on ≥lg, SETTINGS section in the drawer.
+// Taxation Rules moved to its canonical /settings/* URL in Batch 7;
+// Categories + Categorization Rules follow in Batch 9 when the full
+// SettingsLayout shell lands.
 const SETTINGS_LINKS: NavLinkSpec[] = [
   { to: '/categories', label: 'Categories' },
   { to: '/categorization-rules', label: 'Categorization Rules' },
-  { to: '/settings', label: 'Taxation Rules' },
+  { to: '/settings/taxation-rules', label: 'Taxation Rules' },
 ];
 
 function initialsFor(email: string, firstName?: string, lastName?: string) {

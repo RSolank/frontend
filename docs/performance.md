@@ -226,6 +226,82 @@ Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 No `body` horizontal scroll observed at any viewport ≥ 320 px on
 `/categorization-rules`, including with the modal open.
 
+## Snapshot — Batch 7 close (2026-05-26)
+
+Build: `npm run build` after the taxation move + Tax Tracker
+enhancement landed. Two new lazy chunks ship — `TaxTrackerPage` (bills
+list + bill detail modal + current-week tracker card) and
+`TaxationRulesPage` (flat rule list with inline edit).
+
+| Surface | Size (gzipped) | Δ vs Batch 6.5 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 121.60 kB | ~0 kB | Initial bundle steady; the size-limit ceiling sits at 125 kB so 3.4 kB of headroom remains. |
+| `dist/assets/TaxTrackerPage-*.js` | 5.45 kB | +5.45 kB (new chunk) | Replaces the legacy `pages/tax/ConsumptionTaxPage.jsx` that previously bundled into the initial chunk. |
+| `dist/assets/TaxationRulesPage-*.js` | 2.56 kB | +2.56 kB (new chunk) | Replaces the legacy `TaxationRulesTab` that bundled into the initial chunk via `SettingsPage`. |
+| `dist/assets/index-*.css` | 10.09 kB | +2.44 kB | Status-pill / progress-bar / nav-breadcrumb utilities. |
+
+`npm run size` reports initial JS **121.45 kB** gz (≤ 125 kB
+budget — 3.55 kB of headroom) and initial CSS **10.09 kB** gz
+(≤ 15 kB — 4.91 kB of headroom).
+
+Note: the initial JS sits close to the budget. The headroom is the
+intentional Modal + ConfirmDialog Radix overhead absorbed in Batch
+6.5; Batch 9 will revisit budget sizing once `size-limit` becomes a
+CI gate.
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **TaxTrackerPage** — bills list rows wrap their action cluster
+  (View / Pay buttons) below the date + status row at narrow
+  viewports via `flex-wrap items-center justify-between gap-3`. The
+  generate-bills card switches from `grid-cols-1` to
+  `grid-cols-1 sm:grid-cols-2` for the date-range mode.
+- **CurrentWeekTracker** — stat grid is `grid-cols-2 sm:grid-cols-4`
+  so the four numeric tiles stack 2×2 on mobile and 1×4 on desktop.
+  The week-progress bar reflows to the parent's width.
+- **BillDetailDialog** — `<Modal size="xl">` opens as a centered card
+  on `sm+` and as a bottom-sheet on `<sm`. The per-txn items table
+  sits inside `overflow-x-auto` with `min-w-[44rem]` so the rows
+  don't squash; the whole table scrolls inside the dialog rather
+  than forcing the body to scroll.
+- **TaxationRulesPage** — `<RuleCard />` switches from single-column
+  display to 2-up edit grid (`grid-cols-1 sm:grid-cols-2`). Number
+  inputs use `inputMode="decimal"` for better mobile keyboards;
+  Edit / Save / Cancel buttons all clear the 44 px tap-target floor.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on
+either `/consumption-tax` or `/settings/taxation-rules`.
+
+### Refinement pass (2026-05-26 design lock)
+
+Mid-batch refinement folded into the same Batch 7 commit. Reasons +
+shape captured in `docs/modules/taxation.md`; numbers below.
+
+| Surface | Size (gzipped) | Δ vs first Batch 7 build | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 121.59 kB | ~0 kB | New helpers (`formatBillDate`, GenerateBillsDialog, TaxationRuleFormDialog) tree-shake into lazy chunks. |
+| `dist/assets/TaxTrackerPage-*.js` | ~5.4 kB | flat | Generate UI moved out of the page into `<GenerateBillsDialog />`. |
+| `dist/assets/TaxationRulesPage-*.js` | ~2.6 kB | flat | Card body simplified to label/value; modal logic in shared dialog. |
+| `dist/assets/index-*.css` | 10.23 kB | +0.14 kB | Adds `.btn-primary` modifier overrides for `!w-auto` callers in the new dialogs. |
+
+Test count: **183 / 183** (+4 vs first Batch 7 close; full breakdown in
+the tracker handoff).
+
+### Backend coordination
+
+`useTrackerCurrentWeekQuery` calls
+`/api/consumption-tax/tracker/current-week` — an endpoint the backend
+hasn't shipped yet. The query swallows 404 / 501 so the page renders
+the pending empty state instead of an error. The contract is
+captured in
+[`docs/refactor/backend-handoff/tax-tracker.md`](refactor/backend-handoff/tax-tracker.md);
+a sibling copy lives at
+`.scratch/task-backend-platform-handoff-tax-tracker.md` for the
+backend team to pick up. No frontend follow-up is needed once the
+endpoint ships — the card lights up automatically.
+
 ## Future (Batch 9)
 
 - Wire `npm run size` into CI as a hard gate.

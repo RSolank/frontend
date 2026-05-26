@@ -93,7 +93,10 @@ describe('TopNav', () => {
     expect(within(drawer).getByText('Settings')).toBeInTheDocument();
     expect(within(drawer).getByRole('link', { name: 'Categories' })).toBeInTheDocument();
     expect(within(drawer).getByRole('link', { name: 'Categorization Rules' })).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Taxation Rules' })).toBeInTheDocument();
+    // Batch 7: Taxation Rules now points at /settings/taxation-rules.
+    expect(
+      within(drawer).getByRole('link', { name: 'Taxation Rules' })
+    ).toHaveAttribute('href', '/settings/taxation-rules');
     // Accessibility section header.
     expect(within(drawer).getByText(/^Accessibility$/i)).toBeInTheDocument();
     // ThemeOptions segmented row (3 icon buttons).

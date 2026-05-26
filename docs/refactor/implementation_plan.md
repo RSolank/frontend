@@ -600,27 +600,81 @@ Scope expanded 2026-05-26 to include the **Settings shell
 consolidation** (locked option C from the 2026-05-26 conversation:
 `/settings/*` with in-page sidebar, Beneficiaries stays at top-level).
 
-- [ ] **Settings shell consolidation:**
-      - `src/features/settings/components/SettingsLayout.tsx` — shared
-        layout component: top of page is a breadcrumb (Settings →
-        active section); body splits into left sidebar (≥1024 px) or
-        top tabs (<1024 px) + content area on the right.
-      - **Sidebar contents (3 items):** Categories
-        (→ `/settings/categories`), Categorization Rules
-        (→ `/settings/categorization-rules`), Taxation Rules
+- [ ] **Settings shell consolidation (Option A, locked 2026-05-27):**
+
+      Shape decision (was: A vs B vs C — A wins):
+      A full `<SettingsLayout />` shell with sidebar / tabs is the
+      pick. Reasoning per the 2026-05-27 review:
+      1. **Reusable shell pays off twice.** Same primitive (or its
+         extracted `<SectionedPageLayout />`) drives Batch 9.5's
+         `/account/*` (5 sections). De-loads Batch 9.5, which was
+         already a heavy batch.
+      2. **Anticipated growth.** Bank / UPI accounts (queued
+         alongside the async statement-import pipeline) + future
+         config surfaces will cluster under Settings; each new
+         section is a same-day drop-in once the shell exists.
+      3. **Mobile-drawer scrolling.** The hamburger drawer's
+         SETTINGS subsection grows linearly with item count;
+         relocating sub-nav into the settings page itself keeps
+         the drawer compact.
+
+      Concrete shape:
+      - `src/features/settings/components/SettingsLayout.tsx` —
+        shared layout. Top breadcrumb on every viewport:
+        `Settings › *Active Section*`. Then:
+        - **`≥lg` (desktop):** two-column body — left sidebar with
+          the section list + content area on the right. Sidebar
+          is sticky inside the page (not the viewport) so it stays
+          visible as the content area scrolls.
+        - **`<lg` (mobile / tablet):** stacked — a
+          horizontal-scrolling tab bar pinned **directly under the
+          breadcrumb**, then content area below it. No sidebar,
+          no secondary drawer. (The 2026-05-27 review explicitly
+          rejected the "drawer-below-the-top-navbar" shape as
+          heavy: opening hamburger → tapping Settings → tapping
+          a second drawer to switch sub-pages is two drawers in
+          series. Slack/Linear edge-tab drawers fit context
+          switches, not sibling sub-pages.)
+      - **Mobile tab bar contract** (<lg):
+        - Pinned directly below the breadcrumb.
+        - Touch-friendly chips / pills, ≥44 px tap target.
+        - Active tab gets an indigo underline (matches the §6
+          accent contract for main nav).
+        - Horizontal-scroll overflow on the tab row when item
+          count outgrows the viewport width — works to ~8 items
+          before feeling crowded; revisit at 10+ (likely switch
+          to a dropdown / accordion then).
+      - **Sidebar contents (3 items at Batch 9 landing):**
+        Categories (→ `/settings/categories`), Categorization
+        Rules (→ `/settings/categorization-rules`), Taxation Rules
         (→ `/settings/taxation-rules`). Beneficiaries **stays at
-        top-level** `/beneficiaries` to preserve heavy cross-feature
-        deep-linking from transactions and categorization rules.
-      - **Route moves:** `/tags` (or wherever Categories lives today)
-        → `/settings/categories`; `/categorization-rules` →
-        `/settings/categorization-rules`. Taxation Rules already
-        moved in Batch 7 to `/settings/taxation-rules`.
-      - **Top-nav Settings dropdown still lists all 4** (the 3 under
-        `/settings/*` + Beneficiaries) — dropdown is for discovery;
-        the URL structure separately consolidates the configure-once
-        items.
-      - Redirects from old URLs → new (`/tags` → `/settings/categories`,
-        etc.) so bookmarks don't 404 immediately.
+        top-level** `/beneficiaries` (heavy cross-feature deep-
+        linking from transactions + categorization rules); not in
+        the sidebar.
+      - **Default landing:** `/settings` → redirect to
+        `/settings/categories` (first sidebar item). Or render a
+        minimal landing card under the shell — but redirect is
+        simpler.
+      - **Route moves:** `/categories` → `/settings/categories`;
+        `/categorization-rules` → `/settings/categorization-rules`.
+        Taxation Rules already moved in Batch 7 to
+        `/settings/taxation-rules` (see Batch 7 setup primer in
+        `.scratch/task-frontend.md`).
+      - **Top-nav Settings dropdown lists the 3 sidebar items
+        only.** Beneficiaries already lives in MAIN nav per the
+        Batch 6.5 follow-up (2026-05-26); it does NOT appear in
+        the Settings dropdown. (This corrects a stale "all 4"
+        line in earlier drafts of this plan.)
+      - **Redirects from old URLs → new** (`/categories` →
+        `/settings/categories`, `/categorization-rules` →
+        `/settings/categorization-rules`) so pre-Batch-9
+        bookmarks don't 404. Implement as `<Navigate to=... replace />`
+        route elements; same pattern as `/add-transaction` →
+        `/transactions?add=true` from Batch 6.5.
+      - **Growth path:** when Bank / UPI accounts land (or any
+        future settings-shaped surface), they slot in as another
+        sidebar item — no shell rework. The mobile tab bar
+        gains a new chip in the scroll row.
 - [ ] Delete the now-empty `src/{pages,components,state,utils}/` directories.
 - [ ] Verify zero remaining imports from the old paths (ESLint
       `import/no-restricted-paths` should already enforce this, but grep
@@ -796,6 +850,16 @@ below. Track these as separate backend tasks after the refactor merges.
   columns land; until then the relevant defaults stay hardcoded
   (login → /dashboard, Add Transaction → debit, dates → tz-derived
   via Intl, numbers → locale-derived).
+  - **Batch 7 anchor for `date_format`:** the taxation surfaces
+    are the first to display dates that should honor the user's
+    preferred format. They currently render via
+    `features/taxation/api/billPeriod.ts:formatBillDate`, hardcoded
+    to `dd/mon/yyyy`. When the `date_format` column ships, that
+    single helper is the swap point — lift the format string from
+    `usePreferencesStore.dateFormat` and pass it through. Other
+    feature batches (transactions, budgets, dashboard) should
+    adopt the same helper rather than rolling their own date
+    rendering, so the Batch 9.5 swap is truly single-file.
 
 ---
 

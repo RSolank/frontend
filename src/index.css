@@ -23,6 +23,22 @@
   }
 
   /*
+   * Surface the active theme to the user-agent so native widgets
+   * (calendar picker on <input type="date">, scrollbars, form
+   * controls, file pickers) pick the matching color palette
+   * automatically. Without this, the date-picker calendar inside
+   * the GenerateBillsDialog renders white-on-dark — visually
+   * jarring on a slate-900 modal panel. Mirrors the `html.dark`
+   * class painted by index.html's no-FOUC script + the theme store.
+   */
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /*
    * Accessibility — user-controlled reduced motion override
    * (shared/state/motion.store.ts). Sits on top of OS-level
    * prefers-reduced-motion (which Tailwind's motion-reduce:
