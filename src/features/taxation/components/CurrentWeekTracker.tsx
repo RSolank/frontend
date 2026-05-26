@@ -13,7 +13,7 @@ import {
 // Single-card surface for the in-progress week's tax accrual. Reads
 // /api/consumption-tax/tracker/current-week when the backend supports
 // it; if the endpoint 404s (still pending — see
-// docs/refactor/backend-handoff/tax-tracker.md), falls back to a
+// `.scratch/task-handoff-fe-to-be.md §1`), falls back to a
 // "pending" empty state with the active week label so the surface still
 // looks structurally complete.
 //

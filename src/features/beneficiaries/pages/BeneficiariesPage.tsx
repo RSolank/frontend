@@ -296,6 +296,11 @@ export function BeneficiariesPage() {
         onSaved={handleSaved}
         beneficiary={editingBeneficiary}
         onRequestMerge={handleRequestMerge}
+        onRequestRemove={
+          editingBeneficiary
+            ? () => setConfirmDelete(editingBeneficiary)
+            : undefined
+        }
       />
       <MergeBeneficiariesDialog
         open={mergeModal.isOpen}
@@ -307,7 +312,14 @@ export function BeneficiariesPage() {
       <ConfirmDialog
         open={confirmDelete != null}
         onClose={() => setConfirmDelete(null)}
-        onConfirm={handleDelete}
+        onConfirm={async () => {
+          await handleDelete();
+          // Close the edit modal if Remove was triggered from inside
+          // it (Modal-header convention). Row-button deletes already
+          // close cleanly; the modal-Trash path needs the explicit
+          // dismiss so the user doesn't see a stale "not found" state.
+          editModal.close();
+        }}
         intent="danger"
         title="Delete beneficiary"
         message={

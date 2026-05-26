@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
@@ -42,6 +43,11 @@ interface TagFormDialogProps {
   // omitted. Most callers only need the side-effect (invalidate
   // queries) so the argument is optional.
   onSaved: (createdTag?: CreatedTag) => void | Promise<void>;
+  // Modal-header Remove-in-edit convention (see CONTRIBUTING.md §6
+  // "Modal header destructive actions"). When set, an icon-only Trash
+  // button renders in the modal header for edit mode. Parent owns the
+  // confirm + mutation flow — keeps the dialog focused on the form.
+  onRequestRemove?: () => void;
   // When set, the dialog edits the matching tag; when null, it creates.
   editingTag?: TagNode | null;
   isSystemTag?: boolean;
@@ -55,6 +61,7 @@ export function TagFormDialog({
   editingTag = null,
   isSystemTag = false,
   flatTags,
+  onRequestRemove,
 }: TagFormDialogProps) {
   const [form, setForm] = useState<TagFormInput>(EMPTY_FORM);
   const [aliasTemp, setAliasTemp] = useState('');
@@ -135,6 +142,21 @@ export function TagFormDialog({
       onClose={onClose}
       size="md"
       title={isEditing ? 'Edit tag' : 'Create tag'}
+      headerActions={
+        isEditing && !isSystemTag && onRequestRemove ? (
+          <button
+            type="button"
+            onClick={onRequestRemove}
+            disabled={saving}
+            aria-label="Remove tag"
+            title="Remove tag"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            data-testid="tag-form-remove"
+          >
+            <Trash2 aria-hidden size={16} />
+          </button>
+        ) : null
+      }
       footer={
         <>
           <button

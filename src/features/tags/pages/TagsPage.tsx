@@ -143,17 +143,27 @@ function TagRow({
               ))}
             </span>
           )}
-          {isSystem && (
-            <span className="text-xs text-slate-400 dark:text-slate-500">
-              (system)
-            </span>
-          )}
+          {/*
+           * No always-on "(system)" badge per the 2026-05-27 design
+           * lock — system-tag context surfaces on-demand: the Update
+           * button gets a tooltip explaining the partial-edit rule,
+           * the Delete button is hidden, and the modal's disabled
+           * fields communicate the limitation when the user opens
+           * the edit dialog. Keeps the row chrome quiet for the
+           * common case (system tags outnumber user tags after
+           * fresh signup).
+           */}
         </button>
         <div className="ml-0 flex shrink-0 gap-2 sm:ml-3">
           {!isRestricted && (
             <button
               type="button"
               onClick={() => onEdit(tag)}
+              title={
+                isSystem
+                  ? 'System tag — only aliases are editable'
+                  : undefined
+              }
               className="rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Update
@@ -371,11 +381,21 @@ export function TagsPage() {
         editingTag={editingTag}
         isSystemTag={isSystemEditingTag}
         flatTags={flatTags}
+        onRequestRemove={
+          editingTag ? () => setDeletingTag(editingTag) : undefined
+        }
       />
       <ConfirmDialog
         open={deletingTag != null}
         onClose={() => setDeletingTag(null)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={async () => {
+          await handleConfirmDelete();
+          // Close the edit modal if the delete was triggered from inside
+          // it (Remove-in-header convention). Row-button deletes already
+          // closed cleanly; the modal-Trash path needs the explicit
+          // dismiss so the user doesn't see a "Tag not found" state.
+          editModal.close();
+        }}
         title="Delete tag"
         message={
           deletingTag

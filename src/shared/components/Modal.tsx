@@ -20,6 +20,12 @@ interface ModalProps {
   // the panel. New code should use `size` — `panelClassName` exists so
   // pre-Batch-6.5 callers keep compiling without a refactor.
   panelClassName?: string;
+  // Optional slot for modal-level actions (e.g. a Trash icon button
+  // for destructive actions). Renders between the title block and the
+  // close X — so the action is discoverable at the top of the modal
+  // without crowding the footer's Cancel / Save cluster. Use icon-only
+  // buttons sized 32×32 to match the close button's chrome.
+  headerActions?: React.ReactNode;
 }
 
 const SIZE_CAP: Record<ModalSize, string> = {
@@ -43,6 +49,7 @@ export function Modal({
   confirmOnDirty = false,
   isDirty = false,
   panelClassName,
+  headerActions,
 }: ModalProps) {
   const cap = panelClassName ?? SIZE_CAP[size];
 
@@ -81,15 +88,18 @@ export function Modal({
                 </Dialog.Description>
               )}
             </div>
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                aria-label="Close"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-              >
-                <X aria-hidden="true" size={18} />
-              </button>
-            </Dialog.Close>
+            <div className="flex shrink-0 items-center gap-1">
+              {headerActions}
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                >
+                  <X aria-hidden="true" size={18} />
+                </button>
+              </Dialog.Close>
+            </div>
           </header>
           <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
           {footer && (

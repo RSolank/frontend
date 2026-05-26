@@ -139,10 +139,11 @@ Write endpoints consumed:
 
 The current-week tracker surface depends on a new backend endpoint
 that's not yet shipped. Spec lives at
-[`docs/refactor/backend-handoff/tax-tracker.md`](../refactor/backend-handoff/tax-tracker.md)
-— drop the same file next to the backend platform tracker
-(`.scratch/task-backend-platform.md`) so the backend team picks it up
-as part of Phase 0.7's incremental taxation engine work.
+`.scratch/task-handoff-fe-to-be.md` §1 — the
+`.scratch/` folder is the canonical coordination point between
+frontend and backend tracks during the platform plan, sitting next
+to `task-backend-platform.md` so the backend team picks it up as
+part of Phase 0.7's incremental taxation engine work.
 
 Until the endpoint ships:
 - The CurrentWeekTracker card renders a pending empty state showing

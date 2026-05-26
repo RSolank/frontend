@@ -295,12 +295,61 @@ the tracker handoff).
 `/api/consumption-tax/tracker/current-week` — an endpoint the backend
 hasn't shipped yet. The query swallows 404 / 501 so the page renders
 the pending empty state instead of an error. The contract is
-captured in
-[`docs/refactor/backend-handoff/tax-tracker.md`](refactor/backend-handoff/tax-tracker.md);
-a sibling copy lives at
-`.scratch/task-backend-platform-handoff-tax-tracker.md` for the
-backend team to pick up. No frontend follow-up is needed once the
-endpoint ships — the card lights up automatically.
+captured in `.scratch/task-handoff-fe-to-be.md` §1
+(the `.scratch/` folder is the frontend ↔ backend coordination
+point during the platform plan). No frontend follow-up is needed
+once the endpoint ships — the card lights up automatically.
+
+## Snapshot — Batch 8 close (2026-05-26)
+
+Build: `npm run build` after the budgets / Expense Tracker move. The
+legacy `pages/budgets/BudgetsPage.jsx` (762 lines, eagerly bundled)
+was replaced by a lazy `ExpenseTrackerPage` chunk; the initial
+bundle drops as a result.
+
+| Surface | Size (gzipped) | Δ vs Batch 7 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 119.32 kB | −2.27 kB | Legacy BudgetsPage eviction. Initial bundle now has 5.68 kB of headroom vs the 125 kB ceiling. |
+| `dist/assets/ExpenseTrackerPage-*.js` | 4.44 kB | new chunk | New lazy chunk for the page + `BudgetCategoryCard` + `BudgetFormDialog`. |
+| `dist/assets/index-*.css` | 10.24 kB | +0.01 kB | Tiny additions for indigo emphasis variant + rose over-budget pill utilities (most utilities already present). |
+
+`npm run size` reports initial JS **119.19 kB** gz (budget 125 kB —
+5.81 kB headroom) and initial CSS **10.24 kB** gz (budget 15 kB —
+4.76 kB headroom). Both gates green.
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
+
+- **ExpenseTrackerPage** — Total card spans full width; categories
+  grid switches from `grid-cols-1` to `grid-cols-2` at `lg+`. Each
+  card's metric strip is `grid-cols-2 sm:grid-cols-4` so the four
+  numeric tiles stack 2×2 on mobile and 1×4 on desktop. Month
+  picker stays in the header at every viewport (no collapse — the
+  control is small enough).
+- **BudgetCategoryCard** — header row wraps the Edit affordance
+  below the tag-name + chips at narrow viewports via
+  `flex-wrap items-start justify-between gap-3`. Progress bar
+  reflows to the card width; no horizontal-scroll cases observed.
+- **BudgetFormDialog** — modal switches between centered-card
+  (`sm+`) and bottom-sheet (`<sm`) automatically via the Modal
+  shell. Limit/Penalty inputs use `inputMode="decimal"` for better
+  mobile keyboards.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on
+`/budgets`.
+
+### Dark-mode audit
+
+Ran an automated grep audit of every `className` literal under
+`src/features/budgets/` looking for `text-` / `bg-` / `border-` /
+`ring-` / `placeholder-` / `accent-` utilities without a paired
+`dark:` variant (excluding auto-themed primitives like `.btn-primary`
+and `.form-input`). **0 potential issues found.**
+
+The dark-mode miss in Batch 7's `GenerateBillsDialog` (radio labels
+inheriting from `<body>`) prompted the audit; running it as part of
+the close gate from Batch 8 onwards.
 
 ## Future (Batch 9)
 

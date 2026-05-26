@@ -104,7 +104,7 @@ export function useBillQuery(billId: number | null) {
 
 // Scaffold shape for the Tax Tracker enhancement. Backend will implement
 // GET /api/consumption-tax/tracker/current-week (see
-// docs/refactor/backend-handoff/tax-tracker.md for the spec). Until then
+// `.scratch/task-handoff-fe-to-be.md §1` for the spec). Until then
 // the query falls back to a client-side aggregation built from the
 // transactions list — `useTrackerCurrentWeekQuery` swallows the 404 and
 // returns an empty payload so the page renders the "Backend pending"
@@ -145,7 +145,7 @@ export async function fetchTrackerCurrentWeek(): Promise<
   } catch (err) {
     // Endpoint not yet implemented (HTTP 404 / 501). The page treats
     // this as "no data" rather than an error so the rest of the Tax
-    // Tracker still renders. See backend-handoff/tax-tracker.md.
+    // Tracker still renders. See `.scratch/task-handoff-fe-to-be.md §1`.
     const e = err as { status?: number };
     if (e?.status === 404 || e?.status === 501) return null;
     throw err;

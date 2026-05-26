@@ -77,8 +77,8 @@ graph TD
     G2 --> H[Batch 7: taxation move + enhancement]
     H --> I[Batch 8: budgets / Expense Tracker]
     I --> I2[Batch 8.5: Dashboard]
-    I2 --> J[Batch 9: cleanup + Settings shell + docs + perf]
-    J --> J2[Batch 9.5: Account surface - Profile/Security/Privacy/Preferences]
+    I2 --> J[Batch 9: Settings shell + Account surface - combined SectionedPageLayout]
+    J --> K[Batch 10: final cleanup + audits + central routes + merge prep + tag]
 ```
 
 ### Batch 0 — Tooling & Baseline
@@ -594,11 +594,19 @@ not interim ones.
       open the feature's modal in-place).
 - [ ] `npm test` green; write `docs/modules/dashboard.md`.
 
-### Batch 9 — Cleanup, Settings shell, Docs, Performance
+### Batch 9 — Settings shell + Account surface (combined SectionedPageLayout)
 
-Scope expanded 2026-05-26 to include the **Settings shell
-consolidation** (locked option C from the 2026-05-26 conversation:
-`/settings/*` with in-page sidebar, Beneficiaries stays at top-level).
+Scope restructured 2026-05-27: Settings shell (from the 2026-05-26
+expansion) and Account surface (previously a standalone Batch 9.5) are
+**combined into a single batch**. They share the `SectionedPageLayout`
+primitive — building both consumers in the same session means the
+primitive is designed-against-two-uses from the start, not extracted
+later. Cleanup work (legacy dir removal, audits, central routes file,
+complexity gates, README TOC, Lighthouse, merge prep + tag) **moves
+out of Batch 9 to a dedicated final Batch 10**.
+
+Locked option C from the 2026-05-26 conversation still holds:
+`/settings/*` with in-page sidebar, Beneficiaries stays at top-level.
 
 - [ ] **Settings shell consolidation (Option A, locked 2026-05-27):**
 
@@ -675,61 +683,18 @@ consolidation** (locked option C from the 2026-05-26 conversation:
         future settings-shaped surface), they slot in as another
         sidebar item — no shell rework. The mobile tab bar
         gains a new chip in the scroll row.
-- [ ] Delete the now-empty `src/{pages,components,state,utils}/` directories.
-- [ ] Verify zero remaining imports from the old paths (ESLint
-      `import/no-restricted-paths` should already enforce this, but grep
-      `src/(pages|components|state|utils)/` to be safe).
-- [ ] Final docs pass — every `docs/modules/<feature>.md` page mirrors the
-      backend's per-module page in shape (Purpose / Pages / Components /
-      Hooks / API / Tests).
-- [ ] Promote `size-limit` from local-only to a CI gate. Fail the build if
-      the initial bundle exceeds 120 KB gz or any per-feature lazy chunk
-      exceeds 80 KB gz.
-- [ ] Lighthouse audit; record numbers in `docs/performance.md`.
-- [ ] Wire `vitest --coverage` with the §7 targets (80% critical-path,
-      60% elsewhere). Record in `docs/testing.md`.
-- [ ] **User-preferences audit** — grep-based verification that the
-      contract from
-      [CONTRIBUTING.md §5 "User preferences contract"](../../CONTRIBUTING.md#user-preferences-contract-currency--timezone)
-      holds across `src/features/`:
-      ```bash
-      # zero non-helper hits expected in src/features/
-      git grep -nE '\.toLocaleString\(' src/features/
-      git grep -nE 'new Date\(' src/features/ | grep -v dateUtils
-      git grep -nE 'toISOString\(\)\.split' src/features/
-      ```
-      Any hits get refactored to use `shared/utils/currency.ts` or
-      `shared/utils/dateUtils.ts` before sign-off. Add a lint rule via
-      `no-restricted-syntax` if drift is observed.
-- [ ] **Responsive audit** — verify the responsive-design contract from
-      [CONTRIBUTING.md §6 "Responsive design"](../../CONTRIBUTING.md#visual-design-language)
-      holds project-wide:
-      - Walk every shipped feature at three viewports: `sm` (375 px),
-        `md` (768 px), desktop (≥ 1280 px). No horizontal scrollbar on
-        `body` at any viewport ≥ 320 px.
-      - Tap targets ≥ 44 px on interactive controls.
-      - Tables / dense surfaces have a card-or-scroll fallback at `sm`.
-      - Header chrome collapses non-essential elements (greeting,
-        breadcrumbs) at `sm` per the contract.
-      - File follow-ups for anything that slipped through per-batch
-        ownership; fix small misses inline, schedule larger redesigns
-        as their own mini-batches.
-- [ ] Monitor risky surfaces in production / dev usage: **Statement Upload**
-      (file parsing, multi-step async) and **Weekly Tax generation**
-      (background work, cross-module data). If either crashes more than
-      occasionally, add a sub-route `<ErrorBoundary>` inside the page rather
-      than relying only on the per-feature `errorElement`.
-- [ ] Run `npm test` + `npm run build` + full app smoke test against a live
-      backend before signing off.
+_(Cleanup, audits, README TOC, central routes file, ESLint complexity
+gates, size-limit CI promotion, Lighthouse, merge prep + tag — all
+moved to **Batch 10**. Batch 9 stops at "Settings + Account shells
+built; SectionedPageLayout shared between them.")_
 
----
+#### Account surface portion (was Batch 9.5; folded into Batch 9 on 2026-05-27)
 
-### Batch 9.5 — Account surface (Profile / Security / Privacy / Preferences)
-
-Inserted 2026-05-26. Runs after Batch 9 cleanup. Restructures the
-user-related surface from a single ProfilePage into a multi-section
-`/account/*` (or `/profile/*`) area with a shared layout + sidebar,
-mirroring the Settings shell pattern from Batch 9.
+Restructures the user-related surface from a single ProfilePage into a
+multi-section `/account/*` area with a shared layout + sidebar,
+mirroring the Settings shell built in the first half of this batch.
+**`SectionedPageLayout` is the shared primitive** — extracted from
+Settings shell, consumed here.
 
 - [ ] **Layout primitive:** reuse Batch 9's `SettingsLayout`
       component (or extract its sidebar pattern into a generic
@@ -798,6 +763,118 @@ mirroring the Settings shell pattern from Batch 9.
       data export / deletion (backend follow-up); building i18n
       (separate project); building notification system (separate
       project). This batch lays the surface; future work fills it.
+
+---
+
+### Batch 10 — Final cleanup, audits, central routes, merge prep + tag
+
+Inserted 2026-05-27 as the unambiguous "ship it" batch. Receives all
+the cleanup / audit / structural-debt items that previously lived in
+Batch 9. Closes with the `git merge --no-ff` into submodule `main` and
+tags `frontend-v1.0-refactor`.
+
+- [ ] **Central API routes file** — new
+      `src/shared/api/routes.ts` exporting all backend paths as typed
+      builder functions, with a single `const V = '/api'` knob at the
+      top so v1 cutover is a one-line edit. Builders match the
+      OpenAPI shape (e.g. `routes.beneficiaries.byId(uid)`,
+      `routes.taxation.payBill(billId)`). Migrate all ~15 feature
+      files (queries.ts + mutations.ts across auth, beneficiaries,
+      budgets, categorization, metadata, tags, taxation, transactions)
+      to use the new routes module. Mechanical search-and-replace
+      with light cleanup for URLSearchParams cases.
+- [ ] **v1 prefix application — conditional:** if backend's `/api/v1/*`
+      has been cut over by the time this batch starts, change the single
+      `const V` line to `'/api/v1'` and ship. If not, leave at `'/api'`
+      — the prefix change becomes a one-line post-refactor commit
+      whenever backend ships v1. Coordinate via
+      `.scratch/task-backend-platform-handoff-v1-prefix.md` per the
+      [[scratch-as-coordination-point]] memory.
+- [ ] **ESLint complexity gates + SonarJS** — add to `eslint.config.js`:
+      ```js
+      'complexity': ['warn', { max: 12 }],
+      'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
+      'max-depth': ['warn', 4],
+      'max-nested-callbacks': ['warn', 4],
+      'max-params': ['warn', 5],
+      ```
+      Plus install `eslint-plugin-sonarjs` and enable its recommended
+      set (cognitive-complexity, no-identical-functions,
+      no-duplicate-string). Warnings, not errors, on initial land —
+      surface drift without blocking. Promote to errors in a follow-up
+      after the initial pass cleans up flagged items.
+- [ ] **KISS / DRY manual audit** (one-time, alongside the lint gates):
+      - Files > 300 LOC — review for split candidates.
+      - Hooks > 80 LOC — business logic creeping into hooks.
+      - Components with >5 `useState` + `useEffect` calls combined —
+        often a state machine in disguise.
+      - Grep for repeated literal strings (status codes, magic
+        numbers) — extract to constants.
+      - Walk open `// TODO` and `// HACK` markers — close or schedule
+        explicitly. Empty target.
+- [ ] **User-preferences audit** (moved from old Batch 9 spec) —
+      grep-based verification of CONTRIBUTING.md §5 contract:
+      ```bash
+      git grep -nE '\.toLocaleString\(' src/features/
+      git grep -nE 'new Date\(' src/features/ | grep -v dateUtils
+      git grep -nE 'toISOString\(\)\.split' src/features/
+      ```
+      Zero non-helper hits expected; refactor any to use
+      `shared/utils/currency.ts` / `dateUtils.ts`. Add a lint rule via
+      `no-restricted-syntax` if drift is observed.
+- [ ] **Responsive audit** (moved from old Batch 9 spec) — walk every
+      shipped feature at three viewports (375 px, 768 px, ≥1280 px) in
+      light + dark. No horizontal body scroll ≥ 320 px. Tap targets
+      ≥ 44 px. Tables degrade. Header chrome collapses non-essential
+      elements per §6. Fix small misses inline; larger redesigns get
+      their own follow-up commits.
+- [ ] **Promote `size-limit` to a CI gate** — fail the build if the
+      initial bundle exceeds 120 KB gz or any per-feature lazy chunk
+      exceeds 80 KB gz. Until now `size-limit` was local-only.
+- [ ] **Lighthouse audit** — run, record numbers in
+      `docs/performance.md`.
+- [ ] **Coverage gate** — wire `vitest --coverage` with §7 targets
+      (80% critical-path, 60% elsewhere). Record in `docs/testing.md`.
+- [ ] **`docs/modules/README.md` refactor** — replace the obsolete
+      "Folder is empty during Batch 0" content with a thin TOC: one
+      paragraph + a table linking to each module page (auth, users,
+      metadata, tags, beneficiaries, transactions, categorization,
+      taxation, budgets, dashboard, account). Stays useful as the
+      per-feature index on GitHub.
+- [ ] **Final docs pass** — verify every `docs/modules/<feature>.md`
+      page matches the shipped code (no rot from late polish commits).
+      `docs/architecture.md` updated with final shell + routing +
+      shared layout primitives.
+- [ ] **Delete the now-empty legacy directories** —
+      `src/{pages,components,state,utils}/`. Grep
+      `src/(pages|components|state|utils)/` returns zero non-test
+      hits before deletion. ESLint's `import/no-restricted-paths`
+      should already enforce this; the grep is belt-and-suspenders.
+- [ ] **Regenerate `frontend/README.md`** from the now-final docs.
+- [ ] **Risky-surface monitor follow-ups** — for Statement Upload
+      (file parsing, multi-step async) and Weekly Tax generation
+      (background, cross-module), add sub-route `<ErrorBoundary>`
+      *only if* dev usage has surfaced crashes more than occasionally
+      since Batches 5 / 7 shipped. If no signal, leave as-is.
+- [ ] **Final gates** — `npm test` green, `npm run lint` 0 errors
+      (warnings tolerated, especially the newly-added complexity
+      warnings), `npm run build` succeeds, `npm run size` green
+      against the CI gates, full manual smoke test against a live
+      backend at 375 / 768 / 1280 px in light + dark.
+- [ ] **Merge prep + tag:**
+      ```bash
+      git log --oneline 8021ab4..HEAD   # final history review
+      git checkout main
+      git merge --no-ff refactor/feature-architecture \
+        -m "Frontend feature-architecture refactor: Batches 0–10"
+      git tag -a frontend-v1.0-refactor -m "Frontend refactor complete"
+      git push origin main --follow-tags
+      ```
+      Then the parent monorepo bumps its submodule pointer (separate
+      commit on monorepo `main`).
+- [ ] **Auto-revoke blanket auth** — at merge,
+      [[frontend-refactor-blanket-auth]] memory auto-expires per its
+      own spec. Update or delete the memory.
 
 ---
 

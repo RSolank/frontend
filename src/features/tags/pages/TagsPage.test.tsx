@@ -59,7 +59,10 @@ describe('TagsPage', () => {
     expect(screen.getByText('Groceries')).toBeInTheDocument();
     expect(screen.getByText('Dining')).toBeInTheDocument();
     expect(screen.getByText('Restaurants')).toBeInTheDocument();
-    expect(screen.getByText('(system)')).toBeInTheDocument();
+    // (system) badge dropped per the 2026-05-27 design lock — system
+    // context now surfaces only via the Update button's tooltip + the
+    // disabled fields inside the edit modal.
+    expect(screen.queryByText('(system)')).not.toBeInTheDocument();
   });
 
   it('submits a new tag with aliases and reloads the list', async () => {

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { FileUp } from 'lucide-react';
+import { FileUp, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -202,6 +202,10 @@ export function TransactionsPage() {
       await deleteTransactionRequest(confirmDeleteId);
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       setConfirmDeleteId(null);
+      // Close the edit modal if Remove was triggered from inside it
+      // (modal-header convention). Row-button deletes already close
+      // cleanly; the modal-Trash path needs the explicit dismiss.
+      editModal.close();
     } catch (err) {
       const e = err as ApiErrorShape;
       setDeleteError(e.detail || e.error || 'Delete failed');
@@ -209,6 +213,16 @@ export function TransactionsPage() {
       setDeleting(false);
     }
   }
+
+  // Editing-txn lookup for the modal-header Remove gate. Only manual
+  // transactions are deletable per the row-dropdown rule; the modal
+  // mirrors that gate (no Trash for statement-imported rows).
+  const editingTxn: TransactionDTO | null = useMemo(() => {
+    if (editModal.value == null) return null;
+    const id = Number(editModal.value);
+    return transactions.find((t) => t.txn_id === id) ?? null;
+  }, [editModal.value, transactions]);
+  const editingIsManual = editingTxn?.source === 'manual';
 
   function handleEdit(id: number) {
     editModal.openWith(String(id));
@@ -614,6 +628,20 @@ export function TransactionsPage() {
         onClose={editModal.close}
         size="lg"
         title="Edit transaction"
+        headerActions={
+          editingIsManual && editingTxn ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteId(editingTxn.txn_id)}
+              aria-label="Remove transaction"
+              title="Remove transaction"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              data-testid="transaction-form-remove"
+            >
+              <Trash2 aria-hidden size={16} />
+            </button>
+          ) : null
+        }
       >
         {editModal.value && (
           <EditTransactionPage

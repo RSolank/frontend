@@ -39,6 +39,39 @@
   }
 
   /*
+   * Chrome / Edge paint saved-password autofills with a yellow
+   * highlight by default. Once `color-scheme` (above) is set,
+   * Chrome's autofill rendering no longer harmonizes with the
+   * page's slate background — the yellow becomes visually jarring,
+   * especially on dark mode where it fights the slate-900 panel.
+   *
+   * Workaround (the standard one): paint over the autofill bg with
+   * a huge inset box-shadow that matches `.form-input`. The shadow
+   * is preserved by `:-webkit-autofill` while the bg is replaced;
+   * `-webkit-text-fill-color` keeps the text legible on top.
+   * `caret-color` keeps the cursor visible after focus.
+   */
+  input.form-input:-webkit-autofill,
+  input.form-input:-webkit-autofill:hover,
+  input.form-input:-webkit-autofill:focus,
+  input.form-input:-webkit-autofill:active,
+  textarea.form-input:-webkit-autofill {
+    -webkit-text-fill-color: rgb(15 23 42); /* slate-900 */
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    caret-color: rgb(15 23 42);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  html.dark input.form-input:-webkit-autofill,
+  html.dark input.form-input:-webkit-autofill:hover,
+  html.dark input.form-input:-webkit-autofill:focus,
+  html.dark input.form-input:-webkit-autofill:active,
+  html.dark textarea.form-input:-webkit-autofill {
+    -webkit-text-fill-color: rgb(241 245 249); /* slate-100 */
+    -webkit-box-shadow: 0 0 0 1000px rgb(15 23 42) inset !important; /* slate-900 */
+    caret-color: rgb(241 245 249);
+  }
+
+  /*
    * Accessibility — user-controlled reduced motion override
    * (shared/state/motion.store.ts). Sits on top of OS-level
    * prefers-reduced-motion (which Tailwind's motion-reduce:

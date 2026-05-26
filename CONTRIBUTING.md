@@ -592,6 +592,63 @@ copy-paste keeps each surface free to apply feature-specific chip
 rendering (Primary tag, alias bracket display) without a shared-API
 re-design.
 
+### Modal-header destructive actions (Remove-in-edit)
+
+Locked in the 2026-05-27 Batch 8 follow-up review. **Every edit
+modal that operates on a deletable entity surfaces an icon-only
+Remove (Trash) button in the modal header, between the title block
+and the close X.** Discoverable inside the edit context without
+crowding the Cancel / Save footer.
+
+**Anchor invariants:**
+
+- **Render only in edit mode.** Add-mode (no `editing*` prop) hides
+  the Remove button — there's nothing to remove yet.
+- **Icon-only, sized 32×32.** Matches the close X chrome. Rose tint
+  (`text-rose-600 dark:text-rose-400` with `hover:bg-rose-50 /
+  dark:hover:bg-rose-950/40`) differentiates from the close X
+  without dominating the header.
+- **`title` + `aria-label` carry the text label** (e.g. "Remove
+  beneficiary") — keyboard / screen-reader friendly; tooltip
+  surfaces on hover.
+- **Click opens an existing `<ConfirmDialog intent="danger">`** —
+  never a direct delete. The page owns the confirm + mutation flow;
+  the dialog stays focused on the form. Pattern: pass a
+  `onRequestRemove` prop into the form dialog that the parent
+  wires to `setConfirmDelete(entity)`.
+- **Closes the edit modal on successful delete.** The page's
+  `onConfirm` handler calls both the existing delete mutation AND
+  `editModal.close()` so the user doesn't see a stale "not found"
+  state after the row is gone.
+- **Row-level Delete coexists.** List pages keep their per-row
+  Delete buttons (BeneficiariesPage, TagsPage,
+  CategorizationRulesPage, TransactionsPage). Two valid paths: row
+  Delete for quick wipes; modal Trash for "while I'm editing, I
+  want to delete instead". Mental model is consistent because the
+  same `ConfirmDialog` fires in both cases.
+
+**Where the convention applies:**
+
+| Modal | Status | Notes |
+|---|---|---|
+| `BudgetFormDialog` | ✅ | Modal is the primary delete surface (no row-level delete on the cards). |
+| `BeneficiaryFormDialog` | ✅ | Row + modal both available. |
+| `TagFormDialog` | ✅ | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`). |
+| Transactions edit modal | ✅ | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate). |
+| `TaxationRuleFormDialog` | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete". |
+| `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete. |
+
+**Shared infra:** `shared/components/Modal.tsx` exposes a
+`headerActions?: React.ReactNode` slot rendered between the title
+block and the close X. Future modals that need a destructive header
+action consume this slot — no new infra per surface.
+
+**System / restricted entities:** when a class of entities can't
+be deleted (system tags, locked rows, etc.), the parent omits
+`onRequestRemove` in the form dialog and the icon doesn't render.
+Avoids the disabled-button-with-tooltip pattern that suggests "you
+might be able to do this later" — the action is genuinely absent.
+
 ### Row highlight on save
 
 Locked in the 2026-05-26 Batch 6.5 follow-up review. **Every list

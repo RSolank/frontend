@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
@@ -33,6 +34,10 @@ interface BeneficiaryFormDialogProps {
   // the footer. The caller owns the merge UI (typically by opening
   // <MergeBeneficiariesDialog />) and provides this handler.
   onRequestMerge?: () => void;
+  // Modal-header Remove-in-edit convention (CONTRIBUTING.md §6).
+  // When set, an icon-only Trash button renders in the modal header
+  // for edit mode. Parent owns the confirm + mutation flow.
+  onRequestRemove?: () => void;
 }
 
 // Unified create/edit dialog for beneficiaries. Replaces the
@@ -46,6 +51,7 @@ export function BeneficiaryFormDialog({
   initialName = '',
   initialType = 'merchant',
   onRequestMerge,
+  onRequestRemove,
 }: BeneficiaryFormDialogProps) {
   const isEditing = beneficiary != null;
   const [form, setForm] = useState<BeneficiaryFormInput>(() =>
@@ -101,6 +107,21 @@ export function BeneficiaryFormDialog({
       onClose={onClose}
       size="md"
       title={isEditing ? 'Edit beneficiary' : 'Add new beneficiary'}
+      headerActions={
+        isEditing && onRequestRemove ? (
+          <button
+            type="button"
+            onClick={onRequestRemove}
+            disabled={saving}
+            aria-label="Remove beneficiary"
+            title="Remove beneficiary"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            data-testid="beneficiary-form-remove"
+          >
+            <Trash2 aria-hidden size={16} />
+          </button>
+        ) : null
+      }
       footer={
         <>
           {isEditing && onRequestMerge && (

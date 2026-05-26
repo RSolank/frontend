@@ -6,7 +6,7 @@
 // The trackerWeek / trackerSummary keys cover the Tax Tracker enhancement
 // surfaces (current-week running tax + per-category + projection). They
 // point at scaffold endpoints the backend will fill in — see
-// docs/refactor/backend-handoff/tax-tracker.md for the API contract.
+// `.scratch/task-handoff-fe-to-be.md §1` for the API contract.
 export const taxationKeys = {
   all: ['taxation'] as const,
 
