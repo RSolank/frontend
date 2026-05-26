@@ -10,6 +10,8 @@ import {
   fetchBeneficiaries,
   type Beneficiary,
 } from '../../beneficiaries/api/queries';
+import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
+import type { CreatedTag } from '../../tags/api/mutations';
 import {
   fetchTagConstants,
   fetchTags,
@@ -17,6 +19,7 @@ import {
   type TagNode,
 } from '../../tags/api/queries';
 import { tagKeys } from '../../tags/api/keys';
+import { TagFormDialog } from '../../tags/components/TagFormDialog';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import { transactionKeys } from '../api/keys';
@@ -42,10 +45,29 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
   return out;
 }
 
-export function AddTransactionPage() {
+interface AddTransactionPageProps {
+  // When provided, the form calls `onClose` after success / cancel
+  // instead of navigating to /transactions — used when mounted inside
+  // the list-page modal. Standalone route entry leaves this undefined
+  // and falls back to navigate-based dismissal.
+  onClose?: () => void;
+  // Optional — invoked after a successful create with the new txn id
+  // so the parent list can flash the row (Row highlight on save).
+  onSaved?: (txnId: number) => void;
+  // Hide the redundant page-level chrome (outer card + h1) when
+  // mounted inside a <Modal /> that already supplies them.
+  embedded?: boolean;
+}
+
+export function AddTransactionPage({
+  onClose,
+  onSaved,
+  embedded = false,
+}: AddTransactionPageProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const timezone = usePreferencesStore((s) => s.timezone);
+  const dismiss = () => (onClose ? onClose() : navigate('/transactions'));
 
   const [tags, setTags] = useState<FlatTag[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
@@ -62,6 +84,11 @@ export function AddTransactionPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Inline create modals for beneficiary + tag (Batch 6.5 follow-up).
+  // Open them from the picker dropdowns rather than navigating away.
+  const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
+  const [createTagOpen, setCreateTagOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +110,31 @@ export function AddTransactionPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleBeneficiaryCreated(b: Beneficiary) {
+    // Refresh the local list so the dropdown shows the new row, then
+    // auto-select it for the in-flight transaction.
+    try {
+      const next = await fetchBeneficiaries();
+      setBeneficiaries(next);
+    } catch (err) {
+      console.warn('Failed to refresh beneficiaries after create', err);
+    }
+    setBeneficiaryName(b.name);
+    setBeneficiaryId(b.uid);
+  }
+
+  async function handleTagCreated(created?: CreatedTag) {
+    // Refresh tags so the new id is available in the picker, then
+    // auto-add it to the in-flight selection.
+    try {
+      const next = await fetchTags();
+      setTags(flattenTags(next.tags));
+    } catch (err) {
+      console.warn('Failed to refresh tags after create', err);
+    }
+    if (created?.tag_id != null) handleAddTag(created.tag_id);
+  }
 
   function handleAddTag(tagId: number) {
     setTagIds((prev) => {
@@ -133,7 +185,7 @@ export function AddTransactionPage() {
         }
       }
 
-      await createTransactionRequest(
+      const res = await createTransactionRequest(
         {
           amount: parseFloat(amount),
           debit_credit: debitCredit,
@@ -153,7 +205,8 @@ export function AddTransactionPage() {
 
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      navigate('/transactions');
+      if (res?.transaction?.txn_id != null) onSaved?.(res.transaction.txn_id);
+      dismiss();
     } catch (err) {
       const e = err as ApiErrorShape;
       setError(e.detail || e.error || 'Failed to create');
@@ -162,16 +215,12 @@ export function AddTransactionPage() {
     }
   }
 
-  return (
-    <div className="mx-auto my-6 max-w-xl px-4 sm:my-10">
-      <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6 dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-        <h1 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-100">
-          Add Transaction
-        </h1>
-        {loadError && <div className="form-error mb-3">{loadError}</div>}
-        {error && <div className="form-error mb-3">{error}</div>}
+  const body = (
+    <>
+      {loadError && <div className="form-error mb-3">{loadError}</div>}
+      {error && <div className="form-error mb-3">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           <BeneficiarySearch
             value={beneficiaryName}
             beneficiaryId={beneficiaryId}
@@ -180,6 +229,7 @@ export function AddTransactionPage() {
               setBeneficiaryName(name);
               setBeneficiaryId(id);
             }}
+            onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
             required
           />
 
@@ -240,6 +290,7 @@ export function AddTransactionPage() {
             totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
             onAdd={handleAddTag}
             onRemove={handleRemoveTag}
+            onRequestAddTag={() => setCreateTagOpen(true)}
           />
 
           <div>
@@ -266,13 +317,38 @@ export function AddTransactionPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/transactions')}
+              onClick={dismiss}
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
           </div>
         </form>
+
+        <BeneficiaryFormDialog
+          open={createBeneficiaryOpen}
+          onClose={() => setCreateBeneficiaryOpen(false)}
+          onSaved={handleBeneficiaryCreated}
+          initialName={beneficiaryName}
+        />
+        <TagFormDialog
+          open={createTagOpen}
+          onClose={() => setCreateTagOpen(false)}
+          onSaved={handleTagCreated}
+          flatTags={tags}
+        />
+      </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div className="mx-auto my-6 max-w-xl px-4 sm:my-10">
+      <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6 dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h1 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-100">
+          Add Transaction
+        </h1>
+        {body}
       </div>
     </div>
   );

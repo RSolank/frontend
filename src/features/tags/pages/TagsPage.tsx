@@ -2,39 +2,24 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
+import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
+import type { CreatedTag } from '../api/mutations';
 import { tagKeys } from '../api/keys';
-import {
-  createTagRequest,
-  deleteTagRequest,
-  updateTagRequest,
-} from '../api/mutations';
+import { deleteTagRequest } from '../api/mutations';
 import {
   fetchTagConstants,
   useTagsQuery,
   type TagConstants,
   type TagNode,
 } from '../api/queries';
-import { tagFormToPayload, type TagFormInput } from '../api/schemas';
+import { TagFormDialog } from '../components/TagFormDialog';
 
 interface ApiErrorShape {
   detail?: string;
   error?: string;
 }
-
-const TAG_TYPES: { value: TagFormInput['tag_type']; label: string }[] = [
-  { value: 'essential', label: 'Essential' },
-  { value: 'discretionary', label: 'Discretionary' },
-  { value: 'committed', label: 'Committed' },
-  { value: 'exempted', label: 'Exempted' },
-  { value: 'income', label: 'Income' },
-];
-
-const EMPTY_FORM: TagFormInput = {
-  tag_name: '',
-  parent: '',
-  tag_type: 'discretionary',
-  aliases: [],
-};
 
 function sortTagsById(nodes: TagNode[]): TagNode[] {
   return [...nodes]
@@ -69,12 +54,20 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
 interface TagRowProps {
   tag: TagNode;
   onEdit: (tag: TagNode) => void;
-  onDelete: (tagId: number) => void;
+  onDelete: (tag: TagNode) => void;
   constants: TagConstants | null;
   level: number;
+  highlightTagId: number | null;
 }
 
-function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
+function TagRow({
+  tag,
+  onEdit,
+  onDelete,
+  constants,
+  level,
+  highlightTagId,
+}: TagRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasChildren = !!tag.children && tag.children.length > 0;
 
@@ -89,31 +82,45 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
     level % 2 === 0
       ? 'bg-transparent'
       : 'bg-slate-50 dark:bg-slate-900/40';
+  const highlightClass =
+    highlightTagId === tag.tag_id
+      ? 'bg-indigo-50/60 ring-2 ring-indigo-500 ring-inset dark:bg-indigo-950/30'
+      : '';
 
-  // Mobile-first: rows wrap content + action buttons vertically when
-  // the inline layout can't fit (deep nesting + long names + chips).
-  // `min-w-0` lets the inner content area shrink past its intrinsic
-  // width so flex-wrap inside it can break long alias chip rows
-  // instead of forcing horizontal overflow.
+  // Toggle the expansion when the row content area is clicked. The
+  // chevron stays as a visual affordance but is no longer the only
+  // hit target. Disabled when the tag has no children so clicking a
+  // leaf row is a no-op rather than a non-interactive button.
+  function handleRowToggle() {
+    if (hasChildren) setIsExpanded((v) => !v);
+  }
+
   return (
     <>
       <li
-        className={`flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 px-3 py-2 sm:flex-nowrap sm:items-center dark:border-slate-800 ${stripeClass}`}
+        className={`flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 px-3 py-2 transition-colors sm:flex-nowrap sm:items-center dark:border-slate-800 ${stripeClass} ${highlightClass}`}
       >
-        <div
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+        <button
+          type="button"
+          onClick={handleRowToggle}
+          aria-label={
+            hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : undefined
+          }
+          aria-expanded={hasChildren ? isExpanded : undefined}
+          disabled={!hasChildren}
+          className={`flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-sm text-left transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+            hasChildren ? 'cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40' : 'cursor-default'
+          } disabled:opacity-100`}
           style={{ paddingLeft: `${level * 1.5}rem` }}
         >
-          <button
-            type="button"
-            onClick={() => setIsExpanded((v) => !v)}
-            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          <span
             className={`flex h-5 w-5 items-center justify-center text-xs text-slate-500 transition-transform dark:text-slate-400 ${
               isExpanded ? 'rotate-0' : '-rotate-90'
             } ${hasChildren ? 'visible' : 'invisible'}`}
+            aria-hidden="true"
           >
             ▼
-          </button>
+          </span>
           <span
             className={`text-sm text-slate-800 dark:text-slate-100 ${
               tag.parent == null ? 'font-semibold' : 'font-normal'
@@ -125,7 +132,7 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
             [{tag.tag_type}]
           </span>
           {tag.aliases && tag.aliases.length > 0 && (
-            <div className="ml-1 flex flex-wrap gap-1">
+            <span className="ml-1 flex flex-wrap gap-1">
               {tag.aliases.map((a) => (
                 <span
                   key={a}
@@ -134,14 +141,14 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
                   {a}
                 </span>
               ))}
-            </div>
+            </span>
           )}
           {isSystem && (
             <span className="text-xs text-slate-400 dark:text-slate-500">
               (system)
             </span>
           )}
-        </div>
+        </button>
         <div className="ml-0 flex shrink-0 gap-2 sm:ml-3">
           {!isRestricted && (
             <button
@@ -155,7 +162,7 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
           {!isSystem && (
             <button
               type="button"
-              onClick={() => onDelete(tag.tag_id)}
+              onClick={() => onDelete(tag)}
               className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
             >
               Delete
@@ -170,6 +177,7 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
           onDelete={onDelete}
           constants={constants}
           level={level + 1}
+          highlightTagId={highlightTagId}
         />
       )}
     </>
@@ -179,12 +187,20 @@ function TagRow({ tag, onEdit, onDelete, constants, level }: TagRowProps) {
 interface TagTreeProps {
   tags: TagNode[];
   onEdit: (tag: TagNode) => void;
-  onDelete: (tagId: number) => void;
+  onDelete: (tag: TagNode) => void;
   constants: TagConstants | null;
   level?: number;
+  highlightTagId: number | null;
 }
 
-function TagTree({ tags, onEdit, onDelete, constants, level = 0 }: TagTreeProps) {
+function TagTree({
+  tags,
+  onEdit,
+  onDelete,
+  constants,
+  level = 0,
+  highlightTagId,
+}: TagTreeProps) {
   if (!tags || tags.length === 0) return null;
   return (
     <ul className="m-0 list-none p-0">
@@ -196,6 +212,7 @@ function TagTree({ tags, onEdit, onDelete, constants, level = 0 }: TagTreeProps)
           onDelete={onDelete}
           constants={constants}
           level={level}
+          highlightTagId={highlightTagId}
         />
       ))}
     </ul>
@@ -209,11 +226,14 @@ export function TagsPage() {
   const flatTags = useMemo(() => flattenTags(tags), [tags]);
 
   const [constants, setConstants] = useState<TagConstants | null>(null);
-  const [isFormVisible, setIsFormVisible] = useState(false);
-  const [editingTagId, setEditingTagId] = useState<number | null>(null);
-  const [form, setForm] = useState<TagFormInput>(EMPTY_FORM);
-  const [aliasTemp, setAliasTemp] = useState('');
+  const [editingTag, setEditingTag] = useState<TagNode | null>(null);
+  const [deletingTag, setDeletingTag] = useState<TagNode | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const addModal = useModal({ urlKey: 'add' });
+  const editModal = useUrlValueModal('edit');
+  const { id: highlightTagId, flash } = useRowHighlight<number>();
 
   useEffect(() => {
     void (async () => {
@@ -225,82 +245,50 @@ export function TagsPage() {
     })();
   }, []);
 
-  function resetForm() {
-    setForm(EMPTY_FORM);
-    setAliasTemp('');
-    setEditingTagId(null);
-    setIsFormVisible(false);
-    setError(null);
-  }
+  // Sync editingTag with the URL value so reload-on-?edit=<id> reopens.
+  useEffect(() => {
+    if (!editModal.value) {
+      setEditingTag(null);
+      return;
+    }
+    const tid = parseInt(editModal.value, 10);
+    const tag = flatTagsToNodes(flatTags, tid, tags);
+    setEditingTag(tag);
+  }, [editModal.value, flatTags, tags]);
 
   function handleEdit(tag: TagNode) {
-    setEditingTagId(tag.tag_id);
-    setForm({
-      tag_name: tag.tag_name,
-      parent: tag.parent != null ? String(tag.parent) : '',
-      tag_type:
-        (tag.tag_type as TagFormInput['tag_type']) ?? 'discretionary',
-      aliases: tag.aliases ?? [],
-    });
-    setAliasTemp('');
-    setIsFormVisible(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setError(null);
+    editModal.openWith(String(tag.tag_id));
   }
 
-  async function handleDelete(tagId: number) {
-    if (!window.confirm('Are you sure you want to delete this tag?')) return;
+  async function handleConfirmDelete() {
+    if (!deletingTag) return;
+    setError(null);
+    setDeleting(true);
     try {
-      await deleteTagRequest(tagId);
+      await deleteTagRequest(deletingTag.tag_id);
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      setDeletingTag(null);
     } catch (err) {
       const e = err as ApiErrorShape;
       setError(e.detail || e.error || 'Failed to delete tag');
+    } finally {
+      setDeleting(false);
     }
   }
 
-  function handleAddAlias() {
-    const val = aliasTemp.trim();
-    if (!val) return;
-    if (form.aliases.includes(val)) {
-      setAliasTemp('');
-      return;
-    }
-    setForm((f) => ({ ...f, aliases: [...f.aliases, val] }));
-    setAliasTemp('');
+  async function handleSaved(saved?: CreatedTag) {
+    await queryClient.invalidateQueries({ queryKey: tagKeys.all });
+    if (saved?.tag_id != null) flash(saved.tag_id);
   }
 
-  function handleRemoveAlias(val: string) {
-    setForm((f) => ({ ...f, aliases: f.aliases.filter((a) => a !== val) }));
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    if (!form.tag_name.trim()) return;
-
-    const payload = tagFormToPayload(form);
-    try {
-      if (editingTagId) {
-        await updateTagRequest(editingTagId, payload);
-      } else {
-        await createTagRequest(payload);
-      }
-      resetForm();
-      await queryClient.invalidateQueries({ queryKey: tagKeys.all });
-    } catch (err) {
-      const e = err as ApiErrorShape;
-      setError(e.detail || e.error || 'Failed to save tag');
-    }
-  }
-
-  const isSystemTag = useMemo(() => {
-    if (!editingTagId) return false;
-    const tag = flatTags.find((t) => t.tag_id === editingTagId);
+  const isSystemEditingTag = useMemo(() => {
+    if (!editingTag) return false;
     return (
-      tag?.created_by === null ||
-      tag?.created_by === constants?.SYSTEM_USER_ID
+      editingTag.created_by === null ||
+      editingTag.created_by === constants?.SYSTEM_USER_ID
     );
-  }, [editingTagId, flatTags, constants]);
+  }, [editingTag, constants]);
 
   return (
     <div className="mx-auto my-8 max-w-3xl px-4">
@@ -328,10 +316,10 @@ export function TagsPage() {
           </h2>
           <button
             type="button"
-            onClick={() => (isFormVisible ? resetForm() : setIsFormVisible(true))}
+            onClick={addModal.open}
             className="btn-primary !w-auto"
           >
-            {isFormVisible ? 'Cancel' : 'Add Tag'}
+            Add Tag
           </button>
         </div>
 
@@ -344,143 +332,6 @@ export function TagsPage() {
             transactions correctly.
           </strong>
         </p>
-
-        {isFormVisible && (
-          <form
-            onSubmit={handleSubmit}
-            className="mb-6 grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
-          >
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <label htmlFor="tag-name" className="form-label">
-                  Tag name
-                </label>
-                <input
-                  id="tag-name"
-                  value={form.tag_name}
-                  disabled={isSystemTag}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, tag_name: e.target.value }))
-                  }
-                  placeholder="e.g. Subscriptions"
-                  className="form-input"
-                />
-              </div>
-              <div>
-                <label htmlFor="tag-type" className="form-label">
-                  Tag Type
-                </label>
-                <select
-                  id="tag-type"
-                  value={form.tag_type}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      tag_type: e.target.value as TagFormInput['tag_type'],
-                    }))
-                  }
-                  className="form-input"
-                >
-                  {TAG_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="tag-parent" className="form-label">
-                  Parent (optional)
-                </label>
-                <select
-                  id="tag-parent"
-                  value={form.parent}
-                  disabled={isSystemTag}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, parent: e.target.value }))
-                  }
-                  className="form-input"
-                >
-                  <option value="">— None (top-level) —</option>
-                  {flatTags
-                    .filter((t) => t.tag_id !== editingTagId)
-                    .map((t) => (
-                      <option key={t.tag_id} value={t.tag_id}>
-                        {t.tag_name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="tag-alias" className="form-label">
-                Aliases
-              </label>
-              <div className="mb-2 flex gap-2">
-                <input
-                  id="tag-alias"
-                  value={aliasTemp}
-                  onChange={(e) => setAliasTemp(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAlias();
-                    }
-                  }}
-                  placeholder="Enter alias (e.g. Netflix, Spotify)"
-                  className="form-input flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddAlias}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-                {form.aliases.length === 0 ? (
-                  <span className="text-sm text-slate-400 dark:text-slate-500">
-                    No aliases added
-                  </span>
-                ) : (
-                  form.aliases.map((a) => (
-                    <span
-                      key={a}
-                      className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
-                    >
-                      {a}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAlias(a)}
-                        aria-label={`Remove alias ${a}`}
-                        className="ml-0.5 text-base leading-none font-bold text-indigo-500 dark:text-indigo-400"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button type="submit" className="btn-primary !w-auto">
-                {editingTagId ? 'Update Tag' : 'Create Tag'}
-              </button>
-              {editingTagId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        )}
 
         {error && <div className="form-error mb-4">{error}</div>}
 
@@ -499,12 +350,64 @@ export function TagsPage() {
             <TagTree
               tags={tags}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={setDeletingTag}
               constants={constants}
+              highlightTagId={highlightTagId}
             />
           )}
         </div>
       </section>
+
+      <TagFormDialog
+        open={addModal.isOpen}
+        onClose={addModal.close}
+        onSaved={handleSaved}
+        flatTags={flatTags}
+      />
+      <TagFormDialog
+        open={editModal.isOpen && !!editingTag}
+        onClose={editModal.close}
+        onSaved={handleSaved}
+        editingTag={editingTag}
+        isSystemTag={isSystemEditingTag}
+        flatTags={flatTags}
+      />
+      <ConfirmDialog
+        open={deletingTag != null}
+        onClose={() => setDeletingTag(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete tag"
+        message={
+          deletingTag
+            ? `Delete tag "${deletingTag.tag_name}"? Existing transactions retain their tag history.`
+            : ''
+        }
+        confirmLabel="Delete"
+        intent="danger"
+        busy={deleting}
+      />
     </div>
   );
+}
+
+// Walk the (already-sorted) tag tree to find a TagNode by id. The
+// edit-modal needs the full node (including `created_by`) — flatTags
+// alone is enough but we keep the parent chain intact for completeness.
+function flatTagsToNodes(
+  flat: FlatTag[],
+  id: number,
+  tree: TagNode[]
+): TagNode | null {
+  const flatHit = flat.find((t) => t.tag_id === id);
+  if (!flatHit) return null;
+  // Recover the matching tree node so caller has access to children.
+  function find(nodes: TagNode[]): TagNode | null {
+    for (const n of nodes) {
+      if (n.tag_id === id) return n;
+      const sub = find(n.children ?? []);
+      if (sub) return sub;
+    }
+    return null;
+  }
+  return find(tree);
 }

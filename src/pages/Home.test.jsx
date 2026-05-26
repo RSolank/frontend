@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { useAuth } from '../features/auth/state/useAuth';
@@ -11,16 +11,8 @@ vi.mock('../features/auth/state/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: vi.fn(),
-  };
-});
-
 describe('HomePage', () => {
-  it('renders landing page content for unauthenticated users', () => {
+  it('renders the unauthenticated CTAs when no user', () => {
     useAuth.mockReturnValue({ user: null });
 
     render(
@@ -34,13 +26,14 @@ describe('HomePage', () => {
     expect(
       screen.getByText(/Smart budgeting for future you/i)
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/Log in/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Register/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Register/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Go to dashboard/i })
+    ).not.toBeInTheDocument();
   });
 
-  it('redirects authenticated users to dashboard', async () => {
-    const mockNavigate = vi.fn();
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+  it('shows a single Go-to-dashboard CTA when authenticated', () => {
     useAuth.mockReturnValue({ user: { first_name: 'John' } });
 
     render(
@@ -51,10 +44,12 @@ describe('HomePage', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
-        replace: true,
-      });
-    });
+    // Authed visitors no longer auto-redirect; the landing page stays
+    // accessible and the CTAs collapse into one "Go to dashboard"
+    // link.
+    const cta = screen.getByRole('link', { name: /Go to dashboard/i });
+    expect(cta).toHaveAttribute('href', '/dashboard');
+    expect(screen.queryByRole('button', { name: /Sign in/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Register/i })).toBeNull();
   });
 });

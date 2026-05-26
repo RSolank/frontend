@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -168,15 +168,17 @@ describe('CategorizationRulesPage', () => {
     const option = await screen.findByRole('option', { name: /NewShop/i });
     fireEvent.mouseDown(option);
 
-    // One-click tag selection: dropdown onChange appends the tag
-    // immediately (no Add button anymore). The select resets to its
-    // "＋ Add a tag…" prompt afterwards.
-    const tagSelect = screen.getByRole('combobox', { name: /Add a tag/i });
-    fireEvent.change(tagSelect, { target: { value: '12' } });
+    // Tag picker uses the SearchableList pattern (Batch 6.5 follow-up):
+    // focus the Tags search input, then mousedown the matching option
+    // in the dropdown. The "+ Add new tag" CTA is the sticky first
+    // item; tag options follow.
+    const tagSearch = screen.getByPlaceholderText(/Search tags/i);
+    fireEvent.focus(tagSearch);
+    const tagOption = await screen.findByRole('button', {
+      name: 'Food (Groceries)',
+    });
+    fireEvent.mouseDown(tagOption);
 
-    // Rule name is now a computed text display (not an input), so
-    // assert via getByText. The text appears inside the <output>
-    // element wired to the form's beneficiary + tag selections.
     await waitFor(() =>
       expect(
         screen.getByText('NewShop -> Food (Groceries)')
@@ -208,12 +210,18 @@ describe('CategorizationRulesPage', () => {
       )
     );
 
-    window.confirm = vi.fn(() => true);
-
     renderWithProviders(<CategorizationRulesPage />);
 
     const deleteBtn = await screen.findByRole('button', { name: 'Delete' });
     fireEvent.click(deleteBtn);
+
+    // Confirmation modal opens — find its "Delete" button (the one
+    // inside role=dialog, not the row trigger we already clicked).
+    const dialog = await screen.findByRole('dialog', {
+      name: /Delete categorization rule/i,
+    });
+    const confirmBtn = within(dialog).getByRole('button', { name: 'Delete' });
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
       expect(deleteSpy).toHaveBeenCalledTimes(1);
@@ -309,18 +317,23 @@ describe('CategorizationRulesPage', () => {
     // Progressive: beneficiary alone shows just the name (no arrow).
     expect(await screen.findByText('NewShop')).toBeInTheDocument();
 
-    // Pick a primary tag → name fills in.
-    const tagSelect = screen.getByRole('combobox', { name: /Add a tag/i });
-    fireEvent.change(tagSelect, { target: { value: '12' } });
+    // SearchableList tag picker (Batch 6.5 follow-up): focus, find the
+    // option, mousedown to add. The dropdown closes on blur but the
+    // search re-focuses for the next pick.
+    const tagSearch = screen.getByPlaceholderText(/Search tags/i);
+    fireEvent.focus(tagSearch);
+    fireEvent.mouseDown(
+      await screen.findByRole('button', { name: 'Food (Groceries)' })
+    );
     expect(
       await screen.findByText('NewShop -> Food (Groceries)')
     ).toBeInTheDocument();
 
     // Add a second tag — rule name MUST stay on the primary (12).
-    // (The secondary tag IS rendered as a chip in the picker widget;
-    // we only assert that the rule-name <output> still shows the
-    // primary's label, not that "Dining" is absent from the DOM.)
-    fireEvent.change(tagSelect, { target: { value: '13' } });
+    fireEvent.focus(tagSearch);
+    fireEvent.mouseDown(
+      await screen.findByRole('button', { name: 'Food (Dining)' })
+    );
     expect(
       await screen.findByText('NewShop -> Food (Groceries)')
     ).toBeInTheDocument();

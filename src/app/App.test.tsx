@@ -8,15 +8,16 @@ import { routes } from './routes';
 // src/test/handlers/users.ts + metadata.ts). No apiFetch mock needed.
 
 describe('App shell', () => {
-  it('mounts the root layout (header + home link) at /', async () => {
+  it('mounts the root layout (TopNav brand) at /', async () => {
     const router = createMemoryRouter(routes, {
       initialEntries: ['/'],
     });
 
     render(<RouterProvider router={router} />);
 
-    expect(
-      await screen.findByRole('link', { name: /home/i })
-    ).toBeInTheDocument();
+    // The Batch 6.5 TopNav brand link surfaces with the "Personal Budget"
+    // aria-label on every route — confirms the shell mounted.
+    const brands = await screen.findAllByLabelText(/personal budget/i);
+    expect(brands.length).toBeGreaterThan(0);
   });
 });

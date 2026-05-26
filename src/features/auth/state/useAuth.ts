@@ -152,7 +152,11 @@ export function useAuth() {
       clearTokens();
       useAuthStore.getState().reset();
       usePreferencesStore.getState().reset();
-      navigate('/login');
+      // After logout no tokens remain, so the session-redirect contract
+      // (shared/utils/sessionRedirect) lands the user on the landing
+      // page rather than the login form. They can re-enter via the
+      // Sign-In CTA / modal or by typing /login.
+      navigate('/');
     }
   }
 

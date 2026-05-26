@@ -155,3 +155,29 @@ All MSW handlers register per-test via `server.use(...)` — the
 transactions feature doesn't yet have permissive defaults in
 `src/test/handlers/`. Future batches that hit the same endpoints can
 promote a shared `transactions.ts` handler if convergence emerges.
+
+## Batch 6.5 — modal-first CRUD on the list
+
+`TransactionsPage.tsx` now hosts add / edit / delete as modals over
+the list:
+
+- **Add** — `+ Add Transaction` button calls
+  `useModal({ urlKey: 'add' }).open()`. The modal mounts
+  `<AddTransactionPage embedded onClose={...} />` (same component
+  that ships on the legacy route, now with optional `embedded` +
+  `onClose` props).
+- **Edit** — row Edit button calls `useUrlValueModal('edit').openWith(txn_id)`.
+  Modal mounts `<EditTransactionPage embedded idOverride={...} onClose={...} />`.
+- **Delete** — `<ConfirmDialog intent="danger" />` replaces
+  `window.confirm()`.
+
+The legacy routes `/add-transaction` and `/transactions/:id/edit`
+have become **redirects** (`transactions.routes.tsx`) that bounce to
+`/transactions?add=true` and `/transactions?edit=<id>` respectively.
+Deep links from older bookmarks still land on the canonical modal
+surface; the route URL renames are deferred to Batch 9 per the plan.
+
+The `AddTransactionPage` / `EditTransactionPage` modules remain
+mount-as-page-able because of the `embedded` flag — when `true` they
+skip their outer card + h1 (the modal supplies them); when `false`
+(default) they render with their original page chrome.

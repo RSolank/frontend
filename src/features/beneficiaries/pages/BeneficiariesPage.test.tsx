@@ -134,7 +134,7 @@ describe('BeneficiariesPage', () => {
       expect(screen.getByText('EKART')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save beneficiary' }));
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(

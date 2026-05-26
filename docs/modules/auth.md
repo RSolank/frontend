@@ -116,3 +116,28 @@ MSW handlers live at
 [`src/test/handlers/{auth,users,metadata}.ts`](../../src/test/handlers/)
 with permissive defaults; tests override via `server.use(...)` to
 assert error paths.
+
+## Batch 6.5 — hybrid auth + extracted form components
+
+The form bodies moved out of `pages/LoginPage.tsx` and
+`pages/RegisterPage.tsx` into shared
+`components/LoginForm.tsx` + `components/RegisterForm.tsx`. The page
+wrappers shrink to thin shells; the same forms also mount inside
+`components/AuthModal.tsx`, which `pages/Home.tsx` lazy-loads on Sign
+In / Register CTA clicks. Switching between login and register inside
+the modal does not close it.
+
+`pages/Home.tsx` lazy-imports `AuthModal` so the ~30 KB
+`countries-and-timezones` dep stays in the auth chunk rather than the
+first-paint bundle.
+
+### Session-expiry redirect contract
+
+- Helper `shared/utils/sessionRedirect.ts → unauthenticatedRedirect()`
+  is the single source of truth used by `<ProtectedRoute>` and the
+  unknown-path catch-all.
+- Has access OR refresh token → **/login** (session expired).
+- No tokens → **/** (true unauthenticated visitor or post-logout).
+- `apiClient`'s 401-then-refresh-fail path lands on `/login` (matches
+  case 1 by construction).
+- `useAuth.logout()` clears tokens and navigates to `/` (case 2).

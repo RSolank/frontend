@@ -124,9 +124,10 @@ describe('TransactionsPage', () => {
 
     expect(screen.getAllByText('Food').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: 'Beneficiaries' })
-    ).toHaveAttribute('href', '/beneficiaries');
+    // Beneficiaries + Dashboard header buttons were removed in the
+    // Batch 6.5 follow-up (TopNav owns those now). The row-level
+    // beneficiary link still navigates to /beneficiaries/<uid>, which
+    // is itself a redirect into ?edit=<uid> on the list page.
     expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute(
       'href',
       '/beneficiaries/10'
@@ -237,8 +238,6 @@ describe('TransactionsPage', () => {
       })
     );
 
-    window.confirm = vi.fn(() => true);
-
     renderWithProviders(<TransactionsPage />);
 
     await waitFor(() =>
@@ -248,7 +247,13 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(window.confirm).toHaveBeenCalled();
+    // Batch 6.5: delete now opens a ConfirmDialog instead of
+    // window.confirm. The "Delete" button inside the dialog drives
+    // the API call.
+    const dialog = await screen.findByRole('dialog', {
+      name: /Delete transaction/i,
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => {
       expect(deleted).toBe(true);

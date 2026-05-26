@@ -2,8 +2,21 @@ import { apiFetch } from '../../../shared/api/apiClient';
 
 import type { TagPayload } from './schemas';
 
-export function createTagRequest(payload: TagPayload): Promise<unknown> {
-  return apiFetch<unknown>('/api/tags', {
+export interface CreatedTag {
+  tag_id: number;
+  tag_name?: string;
+  tag_type?: string;
+  parent?: number | null;
+}
+
+export interface CreateTagResponse {
+  tag: CreatedTag;
+}
+
+export function createTagRequest(
+  payload: TagPayload
+): Promise<CreateTagResponse> {
+  return apiFetch<CreateTagResponse>('/api/tags', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

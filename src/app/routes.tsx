@@ -8,7 +8,7 @@ import { transactionsRoutes } from '../features/transactions/transactions.routes
 import { usersRoutes } from '../features/users/users.routes';
 import { BudgetsPage } from '../pages/budgets/BudgetsPage.jsx';
 import { DashboardPage } from '../pages/Dashboard.jsx';
-import { HomePage } from '../pages/Home.jsx';
+import { HomePage } from '../pages/Home';
 import { ConsumptionTaxPage } from '../pages/tax/ConsumptionTaxPage.jsx';
 import { SettingsPage } from '../pages/user/settings/SettingsPage.jsx';
 
@@ -47,7 +47,11 @@ export const routes: RouteObject[] = [
     children: [
       ...publicRoutes,
       ...authedRoutes,
-      { path: '*', element: <Navigate to="/login" replace /> },
+      // Unknown paths fall back to the landing page; visitors with a
+      // stale token bounce to /login via the apiClient's 401 refresh
+      // chain or via <ProtectedRoute> on any gated path they were
+      // trying to reach. See shared/utils/sessionRedirect.ts.
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ];

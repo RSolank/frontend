@@ -403,9 +403,29 @@ export function DashboardPage() {
                   border: '1px dashed #cbd5e1',
                 }}
               >
-                <div>📄</div>
+                {/* Lucide FileUp via inline SVG so Dashboard.jsx stays
+                    pure JSX without dragging the icon dep into the legacy
+                    pages bucket. Strokes match the desktop top-bar
+                    icon scale. */}
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ margin: '0 auto 0.25rem', color: '#475569' }}
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <polyline points="9 15 12 12 15 15" />
+                </svg>
                 <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                  Upload CSV
+                  Import Statement
                 </div>
               </Card>
             </Link>

@@ -208,3 +208,14 @@ file's `beforeEach`; per-test overrides via `server.use(...)`.
 - Both Batch 6 follow-ups (add-beneficiary inline + rule grouping)
   landed in the Post-Batch-6 commit. No outstanding TODOs on this
   feature surface.
+
+## Batch 6.5 — modal-first CRUD
+
+The inline form on `CategorizationRulesPage.tsx` is now mounted
+inside a `<Modal size="lg">` ("Add categorization rule" / "Edit
+categorization rule"). Add and Edit reuse the same form state
+machine. Delete opens `<ConfirmDialog intent="danger" />` instead
+of `window.confirm()`. The grouped rules list itself stays inline.
+The "+ Add new beneficiary" CTA in the beneficiary search dropdown
+now opens `BeneficiaryFormDialog` (replaces the legacy
+`CreateBeneficiaryDialog`).

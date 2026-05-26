@@ -21,6 +21,41 @@
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
   }
+
+  /*
+   * Accessibility — user-controlled reduced motion override
+   * (shared/state/motion.store.ts). Sits on top of OS-level
+   * prefers-reduced-motion (which Tailwind's motion-reduce:
+   * already honors): when the user explicitly turns the toggle ON,
+   * every transition + animation collapses to ~instant, regardless
+   * of OS preference.
+   */
+  html.reduce-motion *,
+  html.reduce-motion *::before,
+  html.reduce-motion *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  /*
+   * Privacy — when html.mask-amounts is present (driven by
+   * shared/state/privacy.store.ts), every element marked with the
+   * .money class blurs out. Hovering an individual element reveals
+   * it so the user can peek without flipping the toggle off. The
+   * money-rendering surfaces opt in by adding className="money"
+   * — see CONTRIBUTING.md §6 "Privacy mask".
+   */
+  html.mask-amounts .money {
+    filter: blur(6px);
+    transition: filter 0.15s ease-out;
+    user-select: none;
+  }
+  html.mask-amounts .money:hover,
+  html.mask-amounts .money:focus-within {
+    filter: none;
+  }
 }
 
 /*

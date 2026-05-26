@@ -8,12 +8,17 @@ import type {
 
 // POST /api/transactions[?rule_id=…] — backend optionally links a
 // freshly-created categorization rule to the new transaction.
+// Response shape: { transaction: { txn_id, ... } }.
+export interface CreateTransactionResponse {
+  transaction: { txn_id: number };
+}
+
 export function createTransactionRequest(
   payload: TransactionCreatePayload,
   ruleId?: number | null
-): Promise<unknown> {
+): Promise<CreateTransactionResponse> {
   const qs = ruleId ? `?rule_id=${ruleId}` : '';
-  return apiFetch<unknown>(`/api/transactions${qs}`, {
+  return apiFetch<CreateTransactionResponse>(`/api/transactions${qs}`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

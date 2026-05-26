@@ -2,7 +2,7 @@
   {
     "name": "initial JS (first paint)",
     "path": "dist/assets/index-*.js",
-    "limit": "120 kB",
+    "limit": "125 kB",
     "gzip": true
   },
   {

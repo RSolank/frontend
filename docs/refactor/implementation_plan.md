@@ -73,9 +73,12 @@ graph TD
     D --> E[Batch 4: tags + beneficiaries]
     E --> F[Batch 5: transactions + statement_upload]
     F --> G[Batch 6: categorization]
-    G --> H[Batch 7: taxation]
-    H --> I[Batch 8: budgets]
-    I --> J[Batch 9: cleanup + docs + perf]
+    G --> G2[Batch 6.5: Shell upgrade + modal migration]
+    G2 --> H[Batch 7: taxation move + enhancement]
+    H --> I[Batch 8: budgets / Expense Tracker]
+    I --> I2[Batch 8.5: Dashboard]
+    I2 --> J[Batch 9: cleanup + Settings shell + docs + perf]
+    J --> J2[Batch 9.5: Account surface - Profile/Security/Privacy/Preferences]
 ```
 
 ### Batch 0 — Tooling & Baseline
@@ -324,20 +327,300 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
       `src/features/categorization/`.
 - [ ] `npm test` green.
 
-### Batch 7 — `taxation`
+### Batch 6.5 — Shell upgrade + modal-first CRUD migration
 
-- [ ] Move `src/pages/tax/*` → `src/features/taxation/pages/`.
-- [ ] Surface taxation rules + consumption-tax bills under a single feature
-      route group.
-- [ ] `npm test` green.
+Inserted mid-refactor (planned 2026-05-26) after Batch 6 surfaced two
+gaps: (1) Batch 6's modal pattern for adding beneficiaries / grouping
+rules is a clear UX win that earlier batches' page-based CRUD doesn't
+share; (2) several module routes are orphaned without a unified
+navigation surface. Lands **before** Batch 7 so Batches 7–8 adopt the
+new shell + modal pattern natively rather than being retrofitted later.
 
-### Batch 8 — `budgets`
+**Scope is structural, not visual polish.** Touches `src/shared/`
+heavily, `src/app/` for the layout root, and retrofits Batches 2–6's
+features to use the new pattern. Estimated 1–2 focused sessions
+(comparable to a regular batch).
+
+- [ ] **Layout shell — top-nav-primary, 4-group IA, no desktop sidebar.**
+  Locked 2026-05-26. Top bar is the only navigation surface on both
+  desktop and mobile. Conceptual grouping: (1) Brand/Home, (2) Main
+  features, (3) Settings, (4) User. Dashboard's existing in-page
+  summary cards cover any "glance value" use case the sidebar would
+  have provided.
+
+  - `src/shared/components/TopNav.tsx` — replaces the current minimal
+    header. Built on `@radix-ui/react-dropdown-menu` for both the
+    Settings and User dropdowns (~3 KB gz; same Radix family as the
+    Dialog dep). Active route in the Main group gets indigo bottom
+    border (per §6 accent lock).
+
+  - **Desktop (≥1024 px) layout:**
+    ```
+    [Brand]  Transactions  Expense Tracker  Tax Tracker   [☼] [About] [⚙ ▾] [👤 ▾]
+              \____________ Group 2 (Main) ____________/   ↑    ↑       ↑      ↑
+                                                         theme  link   Settings  User
+    ```
+    - **3 inline Main-feature links** (Group 2). Labels:
+      `Transactions` (route `/transactions`), `Expense Tracker` (route
+      `/budgets` — renamed for clarity per the user's framing;
+      route URL stays `/budgets` to avoid breaking deep-links and
+      bookmarks; consider URL rename as a separate Batch 9 audit item),
+      `Tax Tracker` (route `/taxation` — same URL-stays rationale).
+    - **Theme toggle (`☼`)** — existing pattern, kept.
+    - **About** — single href to `/` (landing page). Visible only when
+      authenticated (logged-out users are already on `/` or auth pages
+      and don't need the link).
+    - **Settings dropdown (`⚙ ▾`)** — Radix DropdownMenu, click to
+      open. Items: Categories (→ `/settings/categories`), Categorization
+      Rules (→ `/settings/categorization-rules`), Beneficiaries
+      (→ `/beneficiaries`), Taxation Rules (→ `/taxation/rules` or
+      whatever the current route is — verify against Batch 7 plan).
+    - **User dropdown (`👤 ▾`)** — Radix DropdownMenu, click to open.
+      Items: Profile (→ `/profile`), Sign Out (action, no route).
+      Preferences merged into ProfilePage as a section rather than its
+      own route (decision 2026-05-26 — sharper separation deferred).
+
+  - **Brand link 3-state behavior:**
+    - `localStorage.getItem('refresh_token')` present + valid →
+      `/dashboard`.
+    - `refresh_token` present but invalid (returning visitor, session
+      expired) → `/login`. apiClient.ts's existing 401-then-refresh
+      flow handles this automatically when the user tries to load
+      `/dashboard`, so the brand can simply link to `/dashboard` in
+      this case and the redirect chain does the work.
+    - No `refresh_token` at all (true first visit) → `/` (landing).
+
+  - **Mobile (<1024 px) layout:** `[☰] [Brand]   [☼] [👤 ▾]` —
+    hamburger left, brand next to it, theme + user dropdown right.
+    Drawer contents below.
+
+  - **Mobile drawer (grouped):**
+    ```
+    [Brand]                                    ×
+    ─────────────────────
+    MAIN
+      Transactions
+      Expense Tracker
+      Tax Tracker
+    ─────────────────────
+    SETTINGS
+      Categories
+      Categorization Rules
+      Beneficiaries
+      Taxation Rules
+    ─────────────────────
+    ABOUT
+    ─────────────────────
+    Profile
+    Sign Out
+    ```
+    - Group labels are visual section dividers (small caps, muted
+      text-xs). Items below each label are full-tap-target rows
+      (≥44 px per §1 Platform target).
+    - Theme toggle stays in the top bar (not in the drawer) so users
+      don't need to open the drawer to switch theme.
+    - User dropdown's Profile / Sign Out items appear both in the top
+      bar dropdown (when avatar is tapped) AND in the drawer bottom
+      section — redundancy is fine here; both are common reach paths.
+
+  - **No `useUIStore`** anymore — drawer state is local component
+    state in the mobile hamburger only; no cross-page persistence
+    value.
+
+  - Responsive contract from CONTRIBUTING.md §1 "Platform target" is
+    honored: no horizontal body scroll ≥ 320 px, ≥ 44 px touch
+    targets in the drawer, top bar reflows cleanly at every breakpoint.
+
+- [ ] **Modal primitive in `shared/`.**
+  - `src/shared/components/Modal.tsx` — focus trap, escape-key close,
+    backdrop click close (configurable), ARIA `dialog` semantics,
+    sizing variants (`sm` / `md` / `lg` / `xl`). Built on **Radix UI's
+    Dialog** (`@radix-ui/react-dialog`, ~5 KB gz) for battle-tested
+    accessibility — adding the dep is justified by the breadth of
+    modal usage in this batch.
+  - `src/shared/hooks/useModal.ts` — open/close state management with
+    optional URL-state sync for deep-linking (e.g.,
+    `/transactions?add=true` opens the add-transaction modal).
+  - Pattern documented in CONTRIBUTING.md §6 "Modal pattern" so
+    Batches 7–8 follow it natively.
+
+- [ ] **Modal-first CRUD migration — content features (Batches 4–6 retrofit).**
+  - **Transactions** (Batch 5 retrofit): list page hosts add / edit /
+    view modals. Routes `/transactions/add` and `/transactions/edit/:id`
+    get rewritten as the list route with modal-state in the URL
+    (`?add=true`, `?edit=<id>`). Page-based fallback removed.
+  - **Beneficiaries** (Batch 4 retrofit): list page hosts add / edit /
+    view / delete-confirm modals. The add-beneficiary modal already
+    landed in `8db2861` (post-Batch 6) — extend to edit/view/delete.
+  - **Tags** (Batch 4 retrofit): settings tab hosts add / edit / delete
+    modals; rule grouping modal from `8db2861` stays.
+  - **Categorization** (Batch 6 retrofit): rules tab hosts add / edit /
+    delete-rule modals.
+
+- [ ] **Hybrid auth: keep `/login` and `/register` pages, add modal
+      flow from Home.**
+  - Home page gains "Sign In" CTA → opens `<LoginModal />`; modal has
+    "Register" link → switches to `<RegisterModal />`. Successful
+    auth: close modal, redirect to `/dashboard` (matches page-flow
+    behavior).
+  - `/login` and `/register` routes preserved for deep-links, password
+    manager autofill, and screen-reader users who prefer page-based
+    flows.
+  - Auth form components extracted from `LoginPage` / `RegisterPage`
+    into shared `<LoginForm />` / `<RegisterForm />` under
+    `features/auth/components/`. Both the page wrapper and the modal
+    wrapper compose the same form. **No form-state duplication.**
+
+- [ ] **Verification.**
+  - `npm test` green (existing tests + new modal smoke tests + sidebar
+    state tests + URL-state hook tests).
+  - Manual click-through: at viewports 320 / 768 / 1024 / 1440 px in
+    both light and dark mode. Every CRUD flow modal opens, accepts
+    input, submits, closes; sidebar collapses/expands; theme toggle
+    works; user menu works.
+  - `npm run build` + `npm run size` — bundle stays within budgets
+    (`@radix-ui/react-dialog` adds ~5 KB gz to shared chunk).
+
+- [ ] **Searchable list with inline create** — cross-app UX pattern
+      locked in the 2026-05-26 Batch 6.5 follow-up review (full
+      contract in CONTRIBUTING.md §6 "Searchable list with inline
+      create"). **Apply this pattern in any picker meeting BOTH:**
+      1. A finite list of candidate values to choose from.
+      2. The user is allowed to add new values to that same list.
+      The picker is a search input + dropdown of filtered matches,
+      with `+ Add new <singular>` as the always-visible sticky first
+      item in the dropdown. Clicking the CTA opens the corresponding
+      `<FooFormDialog />`; on save, the source list refreshes and
+      the new entry is auto-selected (single) or auto-appended
+      (multi). Batch 6.5 applies it to the beneficiary picker
+      (transactions + categorization rules) and the tag picker
+      (categorization rules + transactions); Batches 7–8 must use
+      it natively wherever the conditions hold (e.g. budget-tag
+      picker, taxation-rule tag picker). DO NOT apply to fixed
+      catalog selects (country, currency, timezone) where the user
+      cannot add entries — a plain `<select>` stays correct there.
+      Reason to extract a shared `<SearchableList />` component:
+      only when a fourth surface adopts the same single/multi
+      shape; until then the copy-paste keeps each surface free to
+      paint feature-specific chip enrichment (Primary tag, alias
+      bracket display) without a shared-API redesign.
+
+- [ ] Doc updates as part of the batch commit:
+  - CONTRIBUTING.md §6 — new "Modal pattern" subsection (when to use,
+    when not, accessibility, URL-state sync) AND new "Searchable
+    list with inline create" subsection (anchor invariants +
+    reference implementations).
+  - `docs/architecture.md` — sidebar / topbar / modal sections added
+    to the shell description.
+  - `docs/modules/<feature>.md` for each retrofitted feature — list /
+    detail / modal flow described.
+
+### Batch 7 — `taxation` (move + Tax Tracker enhancement)
+
+Scope expanded 2026-05-26 from "move only" to include enhancement.
+Reason: Batch 8.5 (Dashboard) needs a "Tax Tracker" card surface, and
+the current bills-list-only view doesn't give Dashboard enough to
+show. Building those surfaces in Batch 7 means Dashboard's card lands
+in 8.5 against the final shape.
+
+- [ ] Move `src/pages/tax/*` → `src/features/taxation/pages/` (adopts
+      Batch 6.5's shell + modal pattern natively; no retrofit needed).
+- [ ] Surface taxation rules + consumption-tax bills under a single
+      feature route group.
+- [ ] **Tax Tracker enhancement** (new surfaces added during the move):
+      - **Current week running tax** — live accrual against
+        in-progress week's transactions (not just past finalized bills).
+        Pulls from `consumption_tax_txns` + an as-yet-unbilled
+        aggregator endpoint (verify backend exposes this; if not,
+        queue as a backend follow-up and ship with finalized bills
+        only for now).
+      - **Per-category tax contribution** — breakdown of the current
+        week's tax by tag (which categories are driving the bill).
+      - **Forecast / projection** — extrapolation of week-to-date
+        spending to predicted week-end tax. Simple linear projection
+        based on day-of-week elapsed.
+      - **Penalty breakdown** — for finalized bills, which budget
+        breaches triggered penalties + the marginal-rate detail
+        (matches the taxation engine's
+        `choose_penalty_tag_and_rate` logic).
+- [ ] **Taxation Rules route move:** `/taxation/rules` →
+      `/settings/taxation-rules` (settings consolidation lands in
+      Batch 9 — this batch only renames the route; the shared settings
+      shell is built in Batch 9).
+- [ ] Modal-first CRUD for rules (per Batch 6.5 pattern).
+- [ ] `npm test` green; write `docs/modules/taxation.md` with the new
+      surfaces documented.
+
+### Batch 8 — `budgets` (a.k.a. Expense Tracker)
 
 - [ ] Move `src/pages/budgets/*` → `src/features/budgets/`.
-- [ ] `npm test` green.
+- [ ] Adopt Batch 6.5's shell + modal pattern natively; budget create /
+      edit / breach-penalty editing via modals.
+- [ ] Nav label is "Expense Tracker" (per Batch 6.5 4-group IA); route
+      URL stays `/budgets` until Batch 9's audit considers a rename.
+- [ ] `npm test` green; write `docs/modules/budgets.md`.
 
-### Batch 9 — Cleanup, Docs, Performance
+### Batch 8.5 — Dashboard
 
+Inserted 2026-05-26 after Batch 6.5 surfaced that Dashboard hadn't
+been assigned to any batch and the user wants 3-card layout for the
+Main features (Transactions / Expense Tracker / Tax Tracker). Lands
+after Batches 7–8 so cards are built against the final feature shapes,
+not interim ones.
+
+- [ ] Move legacy `src/pages/Dashboard.jsx` → `src/features/dashboard/`
+      (new feature folder). Retire any cross-feature aggregation logic
+      that's now redundant with the per-feature query hooks.
+- [ ] **Three primary cards**, each linking to its full module page:
+      - **Transactions card** — last N transactions snapshot + total
+        spent this week + "Add transaction" CTA opening the
+        transactions feature's modal (URL-state synced).
+      - **Expense Tracker card** — current month's budget vs.
+        actual per top categories; breach warnings if any. Uses
+        Batch 8's budgets query hooks.
+      - **Tax Tracker card** — current week's running tax (Batch 7
+        enhancement surface) + per-category top contributors +
+        projection. Click → `/taxation`.
+- [ ] **Secondary widgets** (below the 3 cards, only on desktop):
+      - Recent activity (last 5–10 events across all features).
+      - Budget breach alerts (sticky-prominent if any active).
+      - "This week" mini-summary (date range + 1-line totals).
+- [ ] Responsive: 3 cards stack vertically on `<1024 px`, side-by-side
+      on `≥1024 px`. Secondary widgets hidden on mobile (focus on the
+      3 cards).
+- [ ] Brand link in the top bar (per Batch 6.5 3-state spec) routes
+      authenticated users here — verify the wiring is intact.
+- [ ] Adopts Batch 6.5's shell + modal pattern (cards' "Add X" CTAs
+      open the feature's modal in-place).
+- [ ] `npm test` green; write `docs/modules/dashboard.md`.
+
+### Batch 9 — Cleanup, Settings shell, Docs, Performance
+
+Scope expanded 2026-05-26 to include the **Settings shell
+consolidation** (locked option C from the 2026-05-26 conversation:
+`/settings/*` with in-page sidebar, Beneficiaries stays at top-level).
+
+- [ ] **Settings shell consolidation:**
+      - `src/features/settings/components/SettingsLayout.tsx` — shared
+        layout component: top of page is a breadcrumb (Settings →
+        active section); body splits into left sidebar (≥1024 px) or
+        top tabs (<1024 px) + content area on the right.
+      - **Sidebar contents (3 items):** Categories
+        (→ `/settings/categories`), Categorization Rules
+        (→ `/settings/categorization-rules`), Taxation Rules
+        (→ `/settings/taxation-rules`). Beneficiaries **stays at
+        top-level** `/beneficiaries` to preserve heavy cross-feature
+        deep-linking from transactions and categorization rules.
+      - **Route moves:** `/tags` (or wherever Categories lives today)
+        → `/settings/categories`; `/categorization-rules` →
+        `/settings/categorization-rules`. Taxation Rules already
+        moved in Batch 7 to `/settings/taxation-rules`.
+      - **Top-nav Settings dropdown still lists all 4** (the 3 under
+        `/settings/*` + Beneficiaries) — dropdown is for discovery;
+        the URL structure separately consolidates the configure-once
+        items.
+      - Redirects from old URLs → new (`/tags` → `/settings/categories`,
+        etc.) so bookmarks don't 404 immediately.
 - [ ] Delete the now-empty `src/{pages,components,state,utils}/` directories.
 - [ ] Verify zero remaining imports from the old paths (ESLint
       `import/no-restricted-paths` should already enforce this, but grep
@@ -387,6 +670,83 @@ granularity is batch-level — see [`.scratch/task-frontend.md`](../../../.scrat
 
 ---
 
+### Batch 9.5 — Account surface (Profile / Security / Privacy / Preferences)
+
+Inserted 2026-05-26. Runs after Batch 9 cleanup. Restructures the
+user-related surface from a single ProfilePage into a multi-section
+`/account/*` (or `/profile/*`) area with a shared layout + sidebar,
+mirroring the Settings shell pattern from Batch 9.
+
+- [ ] **Layout primitive:** reuse Batch 9's `SettingsLayout`
+      component (or extract its sidebar pattern into a generic
+      `<SectionedPageLayout />` that both consume). Same responsive
+      behavior: sidebar on ≥1024 px, top tabs on <1024 px.
+- [ ] **Five sections, in order:**
+      - **Profile** (`/account/profile`) — existing ProfilePage
+        content moves here: name, email, dob, contact, country,
+        currency, timezone. Route alias `/profile` → `/account/profile`.
+      - **Security** (`/account/security`) — change password (currently
+        only available via recovery flow); active sessions list
+        (backend has `user_sessions` table — list + revoke per
+        session). If TOTP/2FA lands per the backend platform plan,
+        this section gets that too.
+      - **Privacy** (`/account/privacy`) — placeholder page if backend
+        endpoints aren't ready yet. Future scope: data export,
+        account deletion, data retention. Ships as a "coming soon"
+        section initially.
+      - **Accessibility** (`/account/accessibility`) — surfaces the
+        frontend-persisted UX prefs as a settled in-app page: theme,
+        text size (zoom), reduced motion, privacy mask (added in the
+        Batch 6.5 follow-up, currently surfaced via the mobile
+        drawer's "Accessibility" section + the desktop
+        `<AccessibilityPopover />`). All four still persist locally
+        only — no backend column. Naming is deliberate: this section
+        is for *frontend-only* knobs; data-shape preferences live
+        under "Preferences" below. See CONTRIBUTING.md §6
+        "Accessibility vs Preferences".
+      - **Preferences** (`/account/preferences`) — backend-persisted
+        defaults that follow the user across devices. Initial scope:
+        the **defaults cluster** captured in the 2026-05-26 follow-up
+        review — default landing route after login (`/dashboard` vs
+        `/transactions` vs `/budgets`), default debit/credit on Add
+        Transaction, date-format override (override the timezone-
+        derived default from §5), number-format / decimal-separator
+        override. Some of these need backend columns; tracked as the
+        "Defaults cluster persistence" entry under Backend
+        follow-ups. Notification settings + i18n / language land
+        when those systems exist.
+- [ ] **User dropdown in top bar updates:** "Profile" item still links
+      to `/account/profile`. Add no other items — the dropdown stays
+      Profile + Sign Out (the section sidebar inside `/account/*`
+      reveals the other 4: Profile / Security / Privacy /
+      Accessibility / Preferences).
+- [ ] **AccessibilityPopover + drawer stay; `/account/accessibility`
+      becomes the canonical page.** Batch 6.5 surfaces theme /
+      text-size / motion / privacy in the popover (desktop) + the
+      mobile drawer's "Accessibility" section. Batch 9.5 adds the
+      Profile page version. **All three surfaces subscribe to the
+      same Zustand stores** (`useThemeStore`, `useZoomStore`,
+      `useMotionStore`, `usePrivacyStore`); no extra wiring needed.
+      A user can toggle reduced motion in the drawer and the
+      `/account/accessibility` page reflects the change live (and
+      vice versa), because the same `persist`-backed store is the
+      source of truth in all three places. The popover + drawer
+      stay as quick-access shortcuts; the Profile page becomes the
+      authoritative edit surface with help text and explanatory
+      copy.
+- [ ] **Tests:** layout + each section's smoke test. Placeholder
+      sections still get a route test that asserts they render.
+- [ ] **Docs:** `docs/modules/account.md` covering the 4 sections;
+      `docs/architecture.md` updated to reference the shared sectioned
+      page layout (Batch 9's settings shell + this batch's account
+      shell are two consumers of one pattern).
+- [ ] **What's NOT in scope for this batch:** building out Privacy's
+      data export / deletion (backend follow-up); building i18n
+      (separate project); building notification system (separate
+      project). This batch lays the surface; future work fills it.
+
+---
+
 ## Backend follow-ups (queued — out of scope for this refactor)
 
 These are backend changes the frontend would benefit from. None block
@@ -410,6 +770,32 @@ below. Track these as separate backend tasks after the refactor merges.
   persist. Frontend already sends `x-user-timezone` on every request
   (per the §5 contract) and includes `timezone` in the Register
   payload from Batch 2; backend just needs to store + return it.
+- **Zoom / text-size preference sync.** The 2026-05-26 follow-up
+  added a frontend zoom slider (`useZoomStore` in
+  `src/shared/state/zoom.store.ts`) that paints `<html>` font-size
+  for accessibility. Current scope: **local persistence only** via
+  Zustand `persist` ⇒ `localStorage["zoom"]`; survives reloads on
+  the same device but does NOT follow the user across devices. To
+  sync, backend needs a `font_size` (or `zoom_factor`) column on
+  `UserProfile` and the corresponding hydrate path in
+  `/api/users/preferences`. Frontend swap is one file — extend
+  `hydratePreferences()` to call `useZoomStore.setZoom(...)`
+  alongside the existing currency / timezone hydration. **Same
+  shape applies to the other Batch-6.5 accessibility stores** —
+  `useThemeStore`, `useMotionStore`, `usePrivacyStore`. If you want
+  any of them to follow users across devices, the same one-file
+  extension works for each.
+- **Defaults cluster persistence (for Batch 9.5 Preferences page).**
+  Backend columns needed on `UserProfile` (or a `user_preferences`
+  table if preferred): `default_landing_route` (text), `default_txn_kind`
+  (enum: 'debit' / 'credit'), `date_format` (text, IANA-ish format
+  string), `number_format` (locale BCP-47 tag or explicit
+  group/decimal separator pair). Hydration mirrors the existing
+  currency/timezone flow. Frontend has no fallback workaround for
+  these — they ship as part of Batch 9.5 only after backend
+  columns land; until then the relevant defaults stay hardcoded
+  (login → /dashboard, Add Transaction → debit, dates → tz-derived
+  via Intl, numbers → locale-derived).
 
 ---
 

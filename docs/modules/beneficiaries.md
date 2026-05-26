@@ -119,3 +119,23 @@ All MSW handlers are registered per-test via `server.use(...)` —
 the beneficiary endpoints don't yet have permissive defaults in
 `src/test/handlers/`; future batches that touch the same endpoints
 can promote a shared `beneficiaries.ts` handler if convergence emerges.
+
+## Batch 6.5 — modal-first CRUD on the list
+
+`BeneficiariesPage.tsx` now hosts all CRUD flows as modals over the
+list (Batch 6.5 retrofit):
+
+- **Add** — `+ Add New` button calls `useModal({ urlKey: 'add' }).open()`;
+  `?add=true` survives reloads / share-links.
+- **Edit / View** — row name + Edit button call
+  `useUrlValueModal('edit').openWith(uid)`; `?edit=<uid>` is shareable.
+- **Delete** — opens `<ConfirmDialog intent="danger" />` instead of
+  `window.confirm()`.
+- **Details** — row "Details" link still routes to
+  `/beneficiaries/:id` (preserved for deep-links + the full
+  merge / type-switch workflow, which lives on the detail page).
+
+`components/BeneficiaryFormDialog.tsx` is the unified create/edit
+dialog (replaces the post-Batch-6 create-only `CreateBeneficiaryDialog`).
+The categorization rules page consumes it as the inline "Add new
+beneficiary" entry point.

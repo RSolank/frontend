@@ -100,3 +100,11 @@ Endpoints touched:
 MSW handlers for `/api/tags` + `/api/metadata/constants` live in the
 test file's `beforeEach` since the global handlers (in
 `src/test/handlers/`) don't yet expose a permissive tags default.
+
+## Batch 6.5 — modal-first CRUD
+
+Add and edit now open `components/TagFormDialog.tsx`, a single
+`<Modal>` wrapping the tag form. `?add=true` and `?edit=<tag_id>`
+URL state make both surfaces shareable. Delete opens
+`<ConfirmDialog intent="danger" />` instead of `window.confirm()`. The
+tree list itself stays inline on the page.

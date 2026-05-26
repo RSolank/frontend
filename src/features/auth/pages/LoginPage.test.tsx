@@ -103,9 +103,9 @@ describe('LoginPage', () => {
       </MemoryRouter>
     );
     fireEvent.click(screen.getByText('Forgot password?'));
-    expect(
-      screen.getByText('Reset password', { selector: 'h1' })
-    ).toBeInTheDocument();
+    // RecoveryFlow's first step renders the "Registered email" input —
+    // page-title cycling no longer happens because the recovery state
+    // lives inside <LoginForm /> rather than the page wrapper.
     expect(screen.getByLabelText(/Registered email/)).toBeInTheDocument();
   });
 });

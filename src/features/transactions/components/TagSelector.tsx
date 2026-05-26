@@ -12,13 +12,20 @@ interface TagSelectorProps {
   totalTagId?: number;
   onAdd: (tagId: number) => void;
   onRemove: (tagId: number) => void;
+  // Optional handler for the "+ Add new tag" CTA. When provided the
+  // dropdown surfaces a sticky first item that calls it (parent opens
+  // a <TagFormDialog /> inline). Mirrors BeneficiarySearch's
+  // onRequestAddBeneficiary; see CONTRIBUTING.md §6 "Searchable list
+  // with inline create" for the pattern contract.
+  onRequestAddTag?: () => void;
 }
 
-// Shared by Add + Edit transaction. Owns the search input + dropdown +
-// chip rail. The miscellaneous-tag rule (if any non-misc tag is
-// present, misc is dropped; if no tags remain, misc is re-added) lives
-// in the parent's `onAdd` / `onRemove` since they also own the form
-// state. This component is dumb — it just emits intents.
+// SearchableList pattern (CONTRIBUTING.md §6). Search input + dropdown
+// of filtered matches + sticky "+ Add new tag" first item (when
+// `onRequestAddTag` is provided). Multi-select; chips render below.
+// The miscellaneous-tag rule (if any non-misc tag is present, misc is
+// dropped; if no tags remain, misc is re-added) lives in the parent's
+// `onAdd` / `onRemove`. This component just emits intents.
 export function TagSelector({
   tags,
   selectedTagIds,
@@ -26,6 +33,7 @@ export function TagSelector({
   totalTagId,
   onAdd,
   onRemove,
+  onRequestAddTag,
 }: TagSelectorProps) {
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
@@ -62,21 +70,37 @@ export function TagSelector({
           className="form-input"
           autoComplete="off"
         />
-        {focused && available.length > 0 && (
+        {focused && (
           <div className="absolute left-0 right-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
-            {available.map((t) => (
+            {onRequestAddTag && (
               <button
-                key={t.tag_id}
                 type="button"
-                onMouseDown={() => {
-                  onAdd(t.tag_id);
-                  setSearch('');
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                onMouseDown={onRequestAddTag}
+                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
               >
-                {t.tag_name}
+                <span aria-hidden="true">＋</span>
+                Add new tag
               </button>
-            ))}
+            )}
+            {available.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+                No matches
+              </div>
+            ) : (
+              available.map((t) => (
+                <button
+                  key={t.tag_id}
+                  type="button"
+                  onMouseDown={() => {
+                    onAdd(t.tag_id);
+                    setSearch('');
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {t.tag_name}
+                </button>
+              ))
+            )}
           </div>
         )}
       </div>

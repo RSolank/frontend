@@ -2,7 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { CreateBeneficiaryDialog } from '../../beneficiaries/components/CreateBeneficiaryDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { Modal } from '../../../shared/components/Modal';
+import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
+import { TagFormDialog } from '../../tags/components/TagFormDialog';
+import type { CreatedTag } from '../../tags/api/mutations';
 import {
   fetchBeneficiaries,
   type Beneficiary,
@@ -81,6 +85,9 @@ export function CategorizationRulesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<CategorizationRule | null>(
+    null
+  );
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [bSearch, setBSearch] = useState('');
   const [bSearchFocused, setBSearchFocused] = useState(false);
@@ -88,9 +95,19 @@ export function CategorizationRulesPage() {
     null
   );
 
+  // Tag picker (SearchableList pattern — see CONTRIBUTING.md §6).
+  // Text-input search + dropdown + sticky "+ Add new tag" as the
+  // first item; selections shown as chips below.
+  const [tagSearch, setTagSearch] = useState('');
+  const [tagSearchFocused, setTagSearchFocused] = useState(false);
+
   // Create-beneficiary modal state. Pre-fill is the current search text
   // so a user typing a brand-new name doesn't retype it.
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
+
+  // Create-tag modal — mirrors the beneficiary CTA so users can mint a
+  // missing tag inline without losing their in-flight rule draft.
+  const [createTagOpen, setCreateTagOpen] = useState(false);
 
   // Post-save UX: auto-expand the destination group + ring the saved
   // rule row briefly so the user can see where the rule landed after a
@@ -219,6 +236,21 @@ export function CategorizationRulesPage() {
     selectBeneficiaryById(b.uid, b.name);
   }
 
+  async function handleTagCreated(created?: CreatedTag) {
+    // Refresh the local tag list so the new tag is selectable. Then
+    // auto-pick it into the in-flight rule (same UX as the
+    // beneficiary auto-select after CreateBeneficiaryDialog).
+    try {
+      const next = await fetchTags();
+      setTags(flattenTags(next.tags));
+    } catch (err) {
+      console.warn('Failed to refresh tags after create', err);
+    }
+    if (created?.tag_id != null && !form.tag_ids.includes(created.tag_id)) {
+      setForm((f) => ({ ...f, tag_ids: [...f.tag_ids, created.tag_id] }));
+    }
+  }
+
   // One-click tag pick — fires immediately on dropdown change. The
   // dropdown is value-bound to '' so it resets to the prompt after
   // every pick. Already-selected tags are filtered out of the
@@ -319,13 +351,20 @@ export function CategorizationRulesPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function handleDelete(uid: number) {
-    if (!window.confirm('Delete this categorization rule?')) return;
+  function handleDelete(uid: number) {
+    const rule = rules.find((r) => r.uid === uid);
+    if (!rule) return;
+    setConfirmDelete(rule);
+  }
+
+  async function handleConfirmDelete() {
+    if (!confirmDelete) return;
     setError(null);
     setBusy(true);
     try {
-      await deleteCategorizationRule(uid);
+      await deleteCategorizationRule(confirmDelete.uid);
       await invalidateRules();
+      setConfirmDelete(null);
     } catch (err) {
       setError(errorMessage(err, 'Failed to delete rule'));
     } finally {
@@ -383,18 +422,23 @@ export function CategorizationRulesPage() {
             </button>
             <button
               type="button"
-              onClick={() => (isFormVisible ? resetForm() : setIsFormVisible(true))}
+              onClick={() => setIsFormVisible(true)}
               className="btn-primary !w-auto"
             >
-              {isFormVisible ? 'Cancel' : 'Add Rule'}
+              Add Rule
             </button>
           </div>
         </div>
 
-        {isFormVisible && (
+        <Modal
+          open={isFormVisible}
+          onClose={resetForm}
+          size="lg"
+          title={isEditing ? 'Edit categorization rule' : 'Add categorization rule'}
+        >
           <form
             onSubmit={handleSubmit}
-            className="grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+            className="grid gap-4"
           >
             <div>
               <span className="form-label">Rule name</span>
@@ -479,29 +523,76 @@ export function CategorizationRulesPage() {
               )}
             </div>
 
-            <div>
-              <span className="form-label mb-1 block">Tags to apply</span>
-              {/* One-click select: picking an option fires
-                  handlePickTag immediately and the select resets to
-                  the prompt (value bound to ''). Already-picked tags
-                  are excluded from the options so they can't be
-                  re-added; the chip × button is the undo path. */}
-              <select
-                aria-label="Add a tag"
-                value=""
-                onChange={(e) => handlePickTag(e.target.value)}
-                className="form-input mb-2"
-              >
-                <option value="">＋ Add a tag…</option>
-                {filteredTags
-                  .filter((t) => !form.tag_ids.includes(t.tag_id))
-                  .map((t) => (
-                    <option key={t.tag_id} value={t.tag_id}>
-                      {formatTagAssignment(t.tag_id, tags)}
-                    </option>
-                  ))}
-              </select>
-              <div className="flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+            <div className="relative">
+              <label htmlFor="rule-tag-search" className="form-label">
+                Tags
+              </label>
+              {/*
+                SearchableList (CONTRIBUTING.md §6 "Searchable list with
+                inline create"). Text input filters the dropdown; the
+                "+ Add new tag" CTA is the sticky first item and stays
+                visible even when zero tags match the query. Already-
+                selected tag ids are filtered out of the dropdown; the
+                chip × button is the undo path.
+              */}
+              <input
+                id="rule-tag-search"
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                onFocus={() => setTagSearchFocused(true)}
+                onBlur={() =>
+                  window.setTimeout(() => setTagSearchFocused(false), 200)
+                }
+                placeholder="Search tags..."
+                className="form-input"
+                autoComplete="off"
+              />
+              {tagSearchFocused &&
+                (() => {
+                  const q = tagSearch.trim().toLowerCase();
+                  const matches = filteredTags.filter((t) => {
+                    if (form.tag_ids.includes(t.tag_id)) return false;
+                    if (!q) return true;
+                    return formatTagAssignment(t.tag_id, tags)
+                      .toLowerCase()
+                      .includes(q);
+                  });
+                  return (
+                    <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          setCreateTagOpen(true);
+                          setTagSearchFocused(false);
+                        }}
+                        className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+                      >
+                        <span aria-hidden="true">＋</span>
+                        Add new tag
+                      </button>
+                      {matches.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+                          No matches
+                        </div>
+                      ) : (
+                        matches.map((t) => (
+                          <button
+                            key={t.tag_id}
+                            type="button"
+                            onMouseDown={() => {
+                              handlePickTag(String(t.tag_id));
+                              setTagSearch('');
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
+                          >
+                            {formatTagAssignment(t.tag_id, tags)}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  );
+                })()}
+              <div className="mt-2 flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
                 {form.tag_ids.length === 0 ? (
                   <span className="text-sm text-slate-400 dark:text-slate-500">
                     No tags selected
@@ -561,24 +652,22 @@ export function CategorizationRulesPage() {
 
             <div className="flex flex-wrap gap-3">
               <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
                 type="submit"
                 disabled={busy || !!beneficiaryConflict || !form.beneficiary_id}
                 className="btn-primary !w-auto"
               >
                 {isEditing ? 'Update Rule' : 'Create Rule'}
               </button>
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
-              )}
             </div>
           </form>
-        )}
+        </Modal>
 
         {error && <div className="form-error mt-4">{error}</div>}
       </section>
@@ -610,11 +699,33 @@ export function CategorizationRulesPage() {
         )}
       </section>
 
-      <CreateBeneficiaryDialog
+      <BeneficiaryFormDialog
         open={createBeneficiaryOpen}
         onClose={() => setCreateBeneficiaryOpen(false)}
-        onCreated={handleBeneficiaryCreated}
+        onSaved={handleBeneficiaryCreated}
         initialName={bSearch}
+      />
+
+      <TagFormDialog
+        open={createTagOpen}
+        onClose={() => setCreateTagOpen(false)}
+        onSaved={handleTagCreated}
+        flatTags={tags.map((t) => ({ tag_id: t.tag_id, tag_name: t.tag_name }))}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete != null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleConfirmDelete}
+        intent="danger"
+        title="Delete categorization rule"
+        message={
+          confirmDelete
+            ? `Delete the rule for "${confirmDelete.beneficiary_name || 'this beneficiary'}"? Existing transactions keep their tags.`
+            : ''
+        }
+        confirmLabel="Delete"
+        busy={busy}
       />
     </div>
   );

@@ -89,7 +89,7 @@ describe('TagsPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create Tag' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create tag' }));
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(

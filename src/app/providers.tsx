@@ -3,7 +3,13 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense, useEffect, type ReactNode } from 'react';
 
 import { ErrorBoundary } from '../shared/components/ErrorBoundary';
+import { applyMotion, useMotionStore } from '../shared/state/motion.store';
+import {
+  applyPrivacyMask,
+  usePrivacyStore,
+} from '../shared/state/privacy.store';
 import { applyTheme, useThemeStore } from '../shared/state/theme.store';
+import { applyZoom, useZoomStore } from '../shared/state/zoom.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +44,30 @@ function ThemeBridge() {
   return null;
 }
 
+function ZoomBridge() {
+  const zoom = useZoomStore((s) => s.zoom);
+  useEffect(() => {
+    applyZoom(zoom);
+  }, [zoom]);
+  return null;
+}
+
+function MotionBridge() {
+  const reduced = useMotionStore((s) => s.reducedMotion);
+  useEffect(() => {
+    applyMotion(reduced);
+  }, [reduced]);
+  return null;
+}
+
+function PrivacyBridge() {
+  const mask = usePrivacyStore((s) => s.mask);
+  useEffect(() => {
+    applyPrivacyMask(mask);
+  }, [mask]);
+  return null;
+}
+
 interface ProvidersProps {
   children: ReactNode;
 }
@@ -47,6 +77,9 @@ export function Providers({ children }: ProvidersProps) {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeBridge />
+        <ZoomBridge />
+        <MotionBridge />
+        <PrivacyBridge />
         <Suspense fallback={null}>{children}</Suspense>
         {import.meta.env.DEV ? (
           <ReactQueryDevtools initialIsOpen={false} />

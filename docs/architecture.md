@@ -38,7 +38,7 @@ src/
 └── setupTests.ts              # jest-dom + MSW lifecycle (listen/reset/close)
 ```
 
-## App shell, top-to-bottom
+## App shell, top-to-bottom (as of Batch 6.5)
 
 ```text
 ReactDOM.createRoot(...)
@@ -50,16 +50,87 @@ ReactDOM.createRoot(...)
         │   ├── <Suspense fallback={null}>
         │   │   └── <RouterProvider router={router}>     src/app/routes.tsx
         │   │       └── <App>                            src/app/App.tsx  (root layout)
-        │   │           └── <AuthProvider>               src/state/AuthContext.jsx  (legacy; Batch 2 ⇒ Zustand)
-        │   │               └── <div min-h-screen flex flex-col>
-        │   │                   ├── <header> brand + <ThemeToggle/> </header>
-        │   │                   └── <main> <Outlet/> </main>     ← every route renders here
+        │   │           └── <div min-h-screen flex flex-col>
+        │   │               ├── <AuthInit/>              ← hydrates auth + preferences
+        │   │               ├── <TopNav/>                ← Batch 6.5 — top-nav-primary
+        │   │               └── <main> <Outlet/> </main>
         │   └── <ReactQueryDevtools/> (dev only)
 ```
 
-`AuthProvider` sits **inside** the router because it calls
-`useNavigate()`. The Providers / RouterProvider / App nesting is exactly
-the wiring that pattern requires under `createBrowserRouter`.
+### TopNav (Batch 6.5)
+
+`shared/components/TopNav.tsx` is the single navigation surface on every
+viewport — there is **no desktop sidebar**.
+
+**Desktop (≥1024 px)** layout:
+
+```
+[Brand] Transactions  Expense Tracker  Tax Tracker   [☼] [About] [⚙▾] [👤▾]
+```
+
+- **Brand** (left). 3-state link target:
+  - active user present → `/dashboard`
+  - `refresh_token` in localStorage but no user (returning visitor /
+    session expired) → also `/dashboard`; apiClient's 401-then-refresh
+    chain converts that into `/login` automatically
+  - no tokens → `/`
+- **Main feature links** (Group 2). Three inline `NavLink`s; the active
+  route gets an indigo bottom border per the §6 accent contract.
+- **ThemeToggle** (☼).
+- **About** link → `/`.
+- **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.
+  Items: Categories, Categorization Rules, Beneficiaries, Taxation
+  Rules.
+- **User dropdown** (👤▾) — Radix DropdownMenu. Items: Profile,
+  Sign Out.
+
+**Mobile (<1024 px)** layout: `[☰] [Brand]  [☼] [👤▾]` — hamburger opens
+a left-slide drawer with grouped sections (MAIN / SETTINGS / ABOUT) plus
+Profile + Sign Out rows. Drawer state is **local component state** —
+no `useUIStore`. The drawer closes automatically on route change.
+
+### Modal primitive (Batch 6.5)
+
+`shared/components/Modal.tsx` wraps `@radix-ui/react-dialog` — focus
+trap, escape-key, ARIA dialog semantics, scroll lock come from Radix.
+The primitive adds sizing variants (`sm` / `md` / `lg` / `xl`),
+optional `confirmOnDirty` interception, and a responsive default
+(bottom-sheet on `<sm`, centered card on `sm+`).
+
+`shared/components/ConfirmDialog.tsx` is the standard confirmation
+modal (replaces every `window.confirm()` across the retrofitted
+features). Intent is `'primary'` (indigo) or `'danger'` (rose).
+
+`shared/hooks/useModal.ts`:
+
+- **`useModal({ urlKey })`** — boolean modal whose open-state mirrors
+  to `?<urlKey>=true` so the modal survives reloads and is shareable.
+- **`useUrlValueModal(urlKey)`** — value-carrying variant for
+  `?edit=<id>` / `?view=<id>` flows.
+- Either hook used without `urlKey` falls back to plain local state.
+
+### Hybrid auth (Batch 6.5)
+
+`/login` and `/register` routes remain the canonical surface (password
+managers, deep links). Home additionally exposes Sign-In / Register CTAs
+that mount `features/auth/components/AuthModal.tsx`. The modal switches
+between `<LoginForm />` and `<RegisterForm />` (both extracted in
+Batch 6.5 from the old page-only forms) without closing. AuthModal is
+**lazy-loaded** in `pages/Home.tsx` so the ~30 KB `countries-and-timezones`
+dep stays in the auth chunk rather than first-paint.
+
+### Session-expiry redirect contract (Batch 6.5)
+
+Single source of truth: `shared/utils/sessionRedirect.ts`.
+
+- Any `access_token` OR `refresh_token` present → **/login** (session
+  expired).
+- Neither present → **/** (true unauthenticated visitor or post-logout).
+- `<ProtectedRoute>` and the unknown-path catch-all both consume the
+  helper.
+- `apiClient`'s refresh-fail path lands on `/login` (matches case 1, by
+  construction — refresh fails only when a token was present).
+- Logout clears tokens and lands on `/` (no tokens → case 2).
 
 ## Routing model
 

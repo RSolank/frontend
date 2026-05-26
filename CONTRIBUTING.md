@@ -464,6 +464,219 @@ color, choosing between two layout structures for a complex screen),
 pause and surface options — this is exactly the kind of taste decision
 that benefits from user input rather than autonomous choice.
 
+### Modal pattern (CRUD-first surfaces)
+
+Locked in Batch 6.5 (planned 2026-05-26). **Modal-first CRUD is the
+default for content features** (transactions, beneficiaries, tags,
+categorization rules, taxation rules, budget limits). Add / edit /
+view / delete-confirm flows open as modals over the list page rather
+than navigating to a dedicated page. Auth (Login / Register / Recovery)
+is **hybrid** — full pages preserved for deep-links and password
+manager autofill, modal flow offered from Home as a convenience layer.
+
+**Why modals over pages for CRUD:**
+
+- **Context preservation.** Users see the list behind the modal —
+  they don't lose their place.
+- **Faster perceived flow.** No route transition; modal open is
+  instantaneous, route transitions trigger a re-mount of the list
+  and refetch.
+- **Mobile-friendly.** A full-viewport modal on narrow viewports
+  reads identically to a page; on desktop the side-by-side context
+  is a clear win.
+
+**Implementation rules:**
+
+- All modals use `src/shared/components/Modal.tsx` (wraps Radix UI's
+  Dialog). Never roll a custom modal — accessibility correctness
+  (focus trap, escape-key, ARIA dialog semantics, scroll lock) is too
+  error-prone to redo per feature.
+- Sizing variants: `sm` (~400 px, confirmation dialogs), `md` (~600 px,
+  most CRUD forms), `lg` (~800 px, dense forms or detail views),
+  `xl` (~1024 px, statement upload preview). Stick to the four; don't
+  invent new sizes.
+- **URL-state sync for shareable modals.** Modals that represent a
+  primary user intent (add-transaction, edit-budget) sync state to
+  the URL via `useModal({ urlKey: 'add' })` so `/transactions?add=true`
+  reopens the modal on reload and is shareable. Modals that are
+  ephemeral (delete confirmation, error details) don't need URL sync.
+- **Forms inside modals use react-hook-form normally** — Zod schema +
+  resolver, same pattern as page forms. The form component should be
+  extractable: a single `<XyzForm />` mounted in both a page wrapper
+  and a modal wrapper (no form-state duplication).
+- **Modal close confirmations** when the form is dirty — built into
+  `Modal.tsx` via a `confirmOnDirty` prop; never let users lose typed
+  input to a stray backdrop click.
+
+**When NOT to use a modal:**
+
+- **Auth flows on first visit** — full pages are friendlier to
+  password managers and screen readers (hybrid auth keeps both).
+- **Multi-step wizards** beyond ~3 steps — promote to a page with
+  step indicators.
+- **Long-form editing** where the user needs persistent navigation
+  (rare in this app).
+
+### Searchable list with inline create
+
+Locked in the 2026-05-26 Batch 6.5 follow-up. **When a form field
+asks the user to pick from a list AND the user can extend that list,
+the picker uses the SearchableList pattern.** Use it for beneficiary
+pickers, tag pickers, categorization-rule beneficiary + tag pickers,
+and any future surface meeting both conditions.
+
+**Apply only when both invariants hold:**
+
+1. There is a finite list of candidate values to choose from.
+2. The user is allowed to *add* new values to that same list.
+
+If a field only searches a fixed catalog (country / currency /
+timezone — the user can pick, not add), use a plain `<select>` or
+typeahead instead. This pattern is reserved for the pick-or-create
+case.
+
+**Anchor invariants of the pattern:**
+
+- **Search input.** Single text input, `placeholder="Search <plural>..."`
+  (e.g. `Search tags...`, `Search beneficiary...`). Filters the
+  dropdown as the user types.
+- **Dropdown opens on focus**, closes shortly after blur (use a
+  ~200 ms setTimeout so click handlers on options can fire before
+  the dropdown unmounts).
+- **`+ Add new <singular>` is the FIRST item** in the dropdown
+  (sticky-top, visually distinct from the list options). It must
+  **always be visible** — including when search returns zero
+  matches. The user should never be stuck because what they want
+  to add doesn't exist yet.
+- **Empty / no-match state** appears below the Add CTA, not in
+  place of it: `"No matches"`.
+- **Clicking Add** opens the corresponding `<XyzFormDialog />`
+  (modal pattern above). On save, the parent **refreshes the
+  source list** and, for single-select, **auto-selects** the new
+  entry; for multi-select, **auto-appends** it.
+- **Selection-state rendering depends on cardinality:**
+  - **Single-select:** the chosen value lives *inside* the search
+    input — pick replaces the search text with the value's label;
+    the dropdown closes; the parent is responsible for caching the
+    chosen id alongside the visible name. No chip rail.
+    Reference: `BeneficiarySearch`.
+  - **Multi-select:** every pick appends a chip to a rail rendered
+    *below* the input. Chips carry a `×` remove button. Already-
+    selected ids are filtered out of the dropdown so the same
+    value can't be re-picked.
+    Reference: `TagSelector`, categorization-rules tag picker.
+  - **Feature-specific chip enrichment** (e.g. "Primary" badge +
+    "Set Primary" buttons on categorization-rule tag chips, alias
+    bracket display on beneficiary chips) is allowed on top of the
+    multi-select base. It's a *layer over* the pattern, not a
+    deviation from it.
+- **Type-then-create flow:** if the user types a name not in the
+  list, the Add CTA stays at top of the dropdown. Optionally
+  pre-fill the dialog's Name with the current search text so the
+  user doesn't retype (see `BeneficiaryFormDialog` `initialName`).
+
+**Reference implementations (live in the repo):**
+
+- `features/transactions/components/BeneficiarySearch.tsx` — single-
+  select, opens `BeneficiaryFormDialog`.
+- `features/transactions/components/TagSelector.tsx` — multi-select,
+  opens `TagFormDialog`.
+- `features/categorization/pages/CategorizationRulesPage.tsx`
+  inline tag picker — multi-select with Primary semantics, opens
+  `TagFormDialog`.
+
+**Reason to extract a shared component later:** when a fourth
+surface adopts this pattern with the same single/multi shape, fold
+into `shared/components/SearchableList.tsx`. Until then the
+copy-paste keeps each surface free to apply feature-specific chip
+rendering (Primary tag, alias bracket display) without a shared-API
+re-design.
+
+### Row highlight on save
+
+Locked in the 2026-05-26 Batch 6.5 follow-up review. **Every list
+page that hosts add / edit modals briefly highlights the row that
+was just created or saved.** The intent is to neutralize the
+surprise of a modal closing into a re-rendered list — the user's
+eye lands on the changed row instead of scanning the table.
+
+**Anchor invariants:**
+
+- Highlight kicks in on **both create AND edit** success, not just
+  edit. Symmetric UX: every save → glow.
+- Visual: **indigo ring** that fades after ~1500 ms. Use
+  `ring-2 ring-indigo-500 ring-inset` (or equivalent), conditional
+  on `highlightId === row.id`.
+- **Best-effort, no scrolling.** If the user has filtered or
+  sorted the row out of view, the highlight still fires but the
+  user may not see it. Don't auto-scroll — surprise scrolling is
+  worse than a missed highlight.
+- The highlight **does not block subsequent interactions** —
+  clicking another row, opening another modal, or sorting the
+  list cancels the timer cleanly.
+- **One timer, one row at a time.** Triggering the highlight on a
+  new row cancels the previous timer.
+
+**Shared hook:** `shared/hooks/useRowHighlight.ts` returns
+`{ id, flash }`. Callers wire `flash(id)` into the modal's
+`onSaved` and compare `id === row.id` in row className. Reference
+implementations: `BeneficiariesPage`, `TagsPage`,
+`TransactionsPage`. (`CategorizationRulesPage` has a feature-
+specific variant that also handles group rebucket-and-expand on
+top of the base highlight; it predates the shared hook and is
+left in place.)
+
+### Accessibility vs Preferences
+
+Locked in the 2026-05-26 Batch 6.5 follow-up review. Two
+distinct user-pref classes live in this app — they look similar
+but persist and surface differently:
+
+- **Accessibility** — frontend-only, no backend column. Survive
+  reloads via `localStorage` (Zustand `persist`), do NOT follow
+  the user across devices. Implemented as small Zustand stores
+  with a `bridge` in `app/providers.tsx` that mirrors store state
+  onto the `<html>` element (class or style). No-FOUC inline in
+  `index.html` paints the initial state before React mounts.
+  Examples: theme (light / dark / system), text size (zoom),
+  reduced motion, privacy mask. Surfaced under a single
+  **Accessibility** group — `<AccessibilityPopover />` on desktop
+  (a single icon button in the top bar opening a popover with all
+  four controls) and a dedicated **ACCESSIBILITY** section in the
+  mobile drawer.
+- **Preferences** — backend-persisted, follow the user across
+  devices via the `UserPreferencesMiddleware` headers contract
+  (§5 above). Examples: currency, country, timezone. Surfaced on
+  the ProfilePage as the canonical edit surface. When Batch 9.5
+  lands the Profile reorganization, the "defaults" cluster
+  (default landing route, default debit/credit on Add
+  Transaction, date-format / number-format overrides) joins this
+  group; some of those *may* gain backend columns in a later
+  batch (queued in implementation_plan.md "Backend follow-ups").
+
+**Pattern for new Accessibility surfaces** (in case more get
+added):
+
+1. Zustand store with `persist` middleware + an `apply<X>(value)`
+   imperative that mirrors state onto `<html>` (class, style, or
+   data attribute).
+2. `<XBridge />` in `app/providers.tsx` that calls `apply<X>` on
+   mount + every store change.
+3. No-FOUC inline `<script>` in `index.html` that paints the
+   initial state from `localStorage` before React mounts.
+4. CSS rule (when applicable) under `@layer base` in
+   `src/index.css` that observes the `<html>` class.
+5. UI control (`<XToggle />` or similar) shaped as a single
+   labeled row — label on the left, control on the right — so it
+   slots into both the drawer and the AccessibilityPopover.
+
+**Money rendering for privacy mask compatibility.** Any element
+that renders a currency amount must carry `className="money"` so
+the privacy-mask CSS rule (`html.mask-amounts .money`) can blur
+it. Examples in `features/transactions/pages/TransactionsPage.tsx`
+amount cells. Future surfaces that render money adopt this
+className as they're touched.
+
 ---
 
 ## 🧪 7. Testing

@@ -12,6 +12,8 @@ import {
   type Beneficiary,
   type CategorizationRule,
 } from '../../beneficiaries/api/queries';
+import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
+import type { CreatedTag } from '../../tags/api/mutations';
 import {
   fetchTagConstants,
   fetchTags,
@@ -19,6 +21,7 @@ import {
   type TagNode,
 } from '../../tags/api/queries';
 import { tagKeys } from '../../tags/api/keys';
+import { TagFormDialog } from '../../tags/components/TagFormDialog';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
 import { transactionKeys } from '../api/keys';
 import { updateTransactionRequest } from '../api/mutations';
@@ -53,10 +56,29 @@ function sortedKey(ids: number[]): string {
   return JSON.stringify([...ids].sort((a, b) => a - b));
 }
 
-export function EditTransactionPage() {
-  const { id } = useParams();
+interface EditTransactionPageProps {
+  // Override the URL :id when mounted from a modal on the list page.
+  idOverride?: string;
+  // Replace the navigate-back behavior when mounted inside a modal.
+  onClose?: () => void;
+  // Optional — invoked after a successful save with the edited txn id
+  // so the parent list can flash the row (Row highlight on save).
+  onSaved?: (txnId: number) => void;
+  // Skip the outer card + h1 — caller modal owns the chrome.
+  embedded?: boolean;
+}
+
+export function EditTransactionPage({
+  idOverride,
+  onClose,
+  onSaved,
+  embedded = false,
+}: EditTransactionPageProps = {}) {
+  const params = useParams();
+  const id = idOverride ?? params.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const dismiss = () => (onClose ? onClose() : navigate('/transactions'));
 
   const [txn, setTxn] = useState<TransactionDTO | null>(null);
   const [tags, setTags] = useState<FlatTag[]>([]);
@@ -75,6 +97,31 @@ export function EditTransactionPage() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
+
+  // Inline create modals for beneficiary + tag (Batch 6.5 follow-up).
+  const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
+  const [createTagOpen, setCreateTagOpen] = useState(false);
+
+  async function handleBeneficiaryCreated(b: Beneficiary) {
+    try {
+      const next = await fetchBeneficiaries();
+      setBeneficiaries(next);
+    } catch (err) {
+      console.warn('Failed to refresh beneficiaries after create', err);
+    }
+    setBeneficiaryName(b.name);
+    setBeneficiaryId(b.uid);
+  }
+
+  async function handleTagCreated(created?: CreatedTag) {
+    try {
+      const next = await fetchTags();
+      setTags(flattenTags(next.tags));
+    } catch (err) {
+      console.warn('Failed to refresh tags after create', err);
+    }
+    if (created?.tag_id != null) handleAddTag(created.tag_id);
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -207,7 +254,9 @@ export function EditTransactionPage() {
       await updateTransactionRequest(id, payload, ruleIdToLink);
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      navigate('/transactions');
+      const numericId = Number(id);
+      if (Number.isFinite(numericId)) onSaved?.(numericId);
+      dismiss();
     } catch (err) {
       const e = err as ApiErrorShape;
       setError(e.detail || e.error || 'Failed to update');
@@ -216,39 +265,37 @@ export function EditTransactionPage() {
     }
   }
 
-  if (!loaded) {
+  const isStatement = txn?.source === 'statement';
+
+  function wrap(content: React.ReactNode) {
+    if (embedded) return content;
     return (
-      <div className="mx-auto my-10 max-w-xl px-4">
-        <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Loading...
-          </p>
+      <div className="mx-auto my-6 max-w-xl px-4 sm:my-10">
+        <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6 dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+          <h1 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-100">
+            Edit Transaction
+          </h1>
+          {content}
         </div>
       </div>
+    );
+  }
+
+  if (!loaded) {
+    return wrap(
+      <p className="text-sm text-slate-500 dark:text-slate-400">Loading...</p>
     );
   }
 
   if (notFound) {
-    return (
-      <div className="mx-auto my-10 max-w-xl px-4">
-        <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-          <p className="form-error">Transaction not found</p>
-        </div>
-      </div>
-    );
+    return wrap(<p className="form-error">Transaction not found</p>);
   }
 
-  const isStatement = txn?.source === 'statement';
+  return wrap(
+    <>
+      {error && <div className="form-error mb-3">{error}</div>}
 
-  return (
-    <div className="mx-auto my-6 max-w-xl px-4 sm:my-10">
-      <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6 dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-        <h1 className="mb-6 text-xl font-bold text-slate-900 dark:text-slate-100">
-          Edit Transaction
-        </h1>
-        {error && <div className="form-error mb-3">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           {!isStatement && (
             <>
               <BeneficiarySearch
@@ -259,6 +306,7 @@ export function EditTransactionPage() {
                   setBeneficiaryName(name);
                   setBeneficiaryId(bid);
                 }}
+                onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
                 required
               />
 
@@ -319,6 +367,7 @@ export function EditTransactionPage() {
             totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
             onAdd={handleAddTag}
             onRemove={handleRemoveTag}
+            onRequestAddTag={() => setCreateTagOpen(true)}
           />
 
           <div>
@@ -345,14 +394,26 @@ export function EditTransactionPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/transactions')}
+              onClick={dismiss}
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
           </div>
         </form>
-      </div>
-    </div>
+
+        <BeneficiaryFormDialog
+          open={createBeneficiaryOpen}
+          onClose={() => setCreateBeneficiaryOpen(false)}
+          onSaved={handleBeneficiaryCreated}
+          initialName={beneficiaryName}
+        />
+        <TagFormDialog
+          open={createTagOpen}
+          onClose={() => setCreateTagOpen(false)}
+          onSaved={handleTagCreated}
+          flatTags={tags}
+        />
+    </>
   );
 }
