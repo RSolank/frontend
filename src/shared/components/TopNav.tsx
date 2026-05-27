@@ -15,6 +15,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
+import { ContrastToggle } from './ContrastToggle';
 import { MotionToggle } from './MotionToggle';
 import { PrivacyToggle } from './PrivacyToggle';
 import { ThemeOptions } from './ThemeOptions';
@@ -39,12 +40,12 @@ const MAIN_LINKS: NavLinkSpec[] = [
 ];
 
 // Settings — Radix DropdownMenu on ≥lg, SETTINGS section in the drawer.
-// Taxation Rules moved to its canonical /settings/* URL in Batch 7;
-// Categories + Categorization Rules follow in Batch 9 when the full
-// SettingsLayout shell lands.
+// All three live under the /settings/* shell as of Batch 9; legacy
+// /categories and /categorization-rules redirect to their /settings/*
+// counterparts (see features/settings/settings.routes.tsx).
 const SETTINGS_LINKS: NavLinkSpec[] = [
-  { to: '/categories', label: 'Categories' },
-  { to: '/categorization-rules', label: 'Categorization Rules' },
+  { to: '/settings/categories', label: 'Categories' },
+  { to: '/settings/categorization-rules', label: 'Categorization Rules' },
   { to: '/settings/taxation-rules', label: 'Taxation Rules' },
 ];
 
@@ -305,12 +306,16 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           <ZoomSlider />
           <MotionToggle />
           <PrivacyToggle />
+          <ContrastToggle />
 
           <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
-          <Link to="/profile" className={drawerLinkClass({ isActive: false })}>
+          <Link
+            to="/account/profile"
+            className={drawerLinkClass({ isActive: false })}
+          >
             <UserRound aria-hidden="true" size={16} className="mr-2" />
-            Profile
+            Account
           </Link>
           <button
             type="button"
@@ -389,11 +394,11 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
           </div>
           <DropdownMenu.Item asChild>
             <Link
-              to="/profile"
+              to="/account/profile"
               className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
             >
               <UserRound aria-hidden="true" size={14} />
-              Profile
+              Account
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild>

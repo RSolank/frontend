@@ -1,16 +1,14 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
+import { accountRoutes } from '../features/account/account.routes';
 import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { budgetsRoutes } from '../features/budgets/budgets.routes';
-import { categorizationRoutes } from '../features/categorization/categorization.routes';
 import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
-import { tagsRoutes } from '../features/tags/tags.routes';
+import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
-import { usersRoutes } from '../features/users/users.routes';
 import { HomePage } from '../pages/Home';
-import { SettingsPage } from '../pages/user/settings/SettingsPage.jsx';
 
 import { App } from './App';
 import { protectedRoutes } from './routeHelpers';
@@ -24,20 +22,18 @@ const publicRoutes: RouteObject[] = [
 
 // Routes that require an authenticated user. Wrapped in <ProtectedRoute>
 // via the protectedRoutes() helper so feature batches just append to
-// this list without remembering to wrap each entry.
-//
-// Remaining legacy entry (Settings) ships inline until its owning
-// Batch 9 extracts it into a feature module.
+// this list without remembering to wrap each entry. The settings shell
+// (Batch 9) owns /settings/* and the /categories + /categorization-rules
+// legacy-URL redirects; the account shell (Batch 9) owns /account/* and
+// the /profile legacy-URL redirect.
 const authedRoutes: RouteObject[] = protectedRoutes([
   ...dashboardRoutes,
-  ...usersRoutes,
-  ...tagsRoutes,
+  ...accountRoutes,
   ...beneficiariesRoutes,
   ...transactionsRoutes,
-  ...categorizationRoutes,
   ...taxationRoutes,
   ...budgetsRoutes,
-  { path: '/settings', element: <SettingsPage /> },
+  ...settingsRoutes,
 ]);
 
 export const routes: RouteObject[] = [

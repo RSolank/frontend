@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
@@ -385,27 +384,12 @@ export function CategorizationRulesPage() {
     }
   }
 
+  // Card-anchored layout (Batch 9 polish): page mounted under
+  // SettingsLayout shell — outer gutter + breadcrumb + sidebar are
+  // already provided. Page renders only its cards so card top aligns
+  // with sidebar first NavLink.
   return (
-    <div className="mx-auto my-8 max-w-5xl px-4">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Categorization rules
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Map beneficiaries to tags for{' '}
-            <span className="font-semibold">statement</span> transactions.
-            Beneficiary identification is handled separately.
-          </p>
-        </div>
-        <Link
-          to="/dashboard"
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
-        >
-          ← Back to dashboard
-        </Link>
-      </header>
-
+    <>
       <section className="mb-6 rounded-xl bg-white p-4 shadow-sm sm:p-6 dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -727,6 +711,6 @@ export function CategorizationRulesPage() {
         confirmLabel="Delete"
         busy={busy}
       />
-    </div>
+    </>
   );
 }

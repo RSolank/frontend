@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
@@ -121,35 +120,16 @@ export function TaxationRulesPage() {
     flash(savedType);
   }
 
+  // Card-anchored layout (Batch 9 polish): page mounted under
+  // SettingsLayout shell. Outer gutter + breadcrumb ("Settings ›
+  // Taxation Rules") are already provided; the in-page hand-rolled
+  // breadcrumb + h1 + description block is gone. Add-rule CTA lives
+  // in a compact top toolbar so the rule cards still align with the
+  // sidebar's first NavLink.
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <nav className="text-sm text-slate-500 dark:text-slate-400">
-            <Link
-              to="/dashboard"
-              className="text-indigo-600 hover:underline dark:text-indigo-300"
-            >
-              Dashboard
-            </Link>
-            <span className="mx-1.5">/</span>
-            <span>Settings</span>
-            <span className="mx-1.5">/</span>
-            <span className="text-slate-700 dark:text-slate-200">
-              Taxation Rules
-            </span>
-          </nav>
-          <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Taxation Rules
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Configure the base tax rate and the default penalty rate for each
-            transaction type. Individual budgets override the default penalty
-            rate in the Expense Tracker. Exempted transactions are hardcoded
-            to skip taxation entirely.
-          </p>
-        </div>
-        {missingTypes.length > 0 && (
+    <>
+      {missingTypes.length > 0 && (
+        <div className="mb-4 flex justify-end">
           <button
             type="button"
             onClick={() => setAddOpen(true)}
@@ -158,8 +138,8 @@ export function TaxationRulesPage() {
           >
             Add rule
           </button>
-        )}
-      </header>
+        </div>
+      )}
 
       {error && (
         <div
@@ -205,6 +185,6 @@ export function TaxationRulesPage() {
         onSaved={handleSaved}
         editingRule={editingRule}
       />
-    </div>
+    </>
   );
 }

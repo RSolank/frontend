@@ -29,15 +29,19 @@ export const profileFormSchema = z.object({
 });
 export type ProfileFormInput = z.infer<typeof profileFormSchema>;
 
-// Server-shape PATCH payload for /api/users/me.
+// Server-shape PATCH payload for /api/users/me. Every field is optional
+// because the Account surface (Batch 9) ships split pages that each
+// PATCH only their own slice — Profile sends name/dob/contact,
+// Preferences sends country/currency/timezone. The backend's PATCH
+// handler accepts a partial body.
 export interface ProfileUpdatePayload {
-  first_name: string;
-  last_name: string;
-  dob: string | null;
-  contact: string | null;
-  country: string | null;
-  currency: string | null;
-  timezone: string;
+  first_name?: string;
+  last_name?: string;
+  dob?: string | null;
+  contact?: string | null;
+  country?: string | null;
+  currency?: string | null;
+  timezone?: string;
 }
 
 export const changePasswordSchema = z.object({

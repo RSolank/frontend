@@ -351,7 +351,75 @@ The dark-mode miss in Batch 7's `GenerateBillsDialog` (radio labels
 inheriting from `<body>`) prompted the audit; running it as part of
 the close gate from Batch 8 onwards.
 
-## Future (Batch 9)
+## Snapshot — Batch 9 close (2026-05-27)
+
+Build: `npm run build` after the Settings shell + Account surface
+shipped. The monolithic ProfilePage (eagerly bundled through the
+users.routes lazy import) was split into five lazy account chunks
+that share the new SectionedPageLayout primitive — same primitive
+also backs the settings shell, so neither consumer pays setup cost
+twice. Tags + categorization-rule pages re-mount under
+`/settings/*` via the shell (their lazy chunks are unchanged).
+
+| Surface | Size (gzipped) | Δ vs Batch 8 close | Notes |
+|---|---|---|---|
+| `dist/assets/index-*.js` | 120.85 kB | +1.53 kB | SectionedPageLayout + Settings/Account shells + six new on-device preference stores + three new visual-class bridges (Contrast/LinkUnderline/FocusRing) all enter the initial graph. Headroom vs the 125 kB ceiling: 4.15 kB. |
+| `dist/assets/AccountProfilePage-*.js` | ~1.6 kB | new chunk | Profile basics form alone. |
+| `dist/assets/AccountPreferencesPage-*.js` | ~1.6 kB | new chunk | Pulls metadata selects (`CountrySelect` / `CurrencySelect` / `TimezoneSelect`) shared with auth. |
+| `dist/assets/AccountSecurityPage-*.js` | ~1.8 kB | new chunk | Password + recovery-question forms. |
+| `dist/assets/AccountAccessibilityPage-*.js` | ~1.2 kB | new chunk | Composes the seven Display & motion controls + the three Data formatting selects. |
+| `dist/assets/AccountPrivacyPage-*.js` | ~0.6 kB | new chunk | Placeholder card. |
+| `dist/assets/index-*.css` | 10.93 kB | +0.69 kB | Sidebar / tab-row utilities + new high-contrast / underline-links / focus-always rules under `@layer base`. |
+
+`npm run size` reports initial JS **120.7 kB** gz (budget 125 kB —
+4.3 kB headroom) and initial CSS **10.93 kB** gz (budget 15 kB —
+4.07 kB headroom). Both gates green.
+
+Test count: **248 / 248** (+38 net vs Batch 8.5; +44 new across the
+batch, −4 from the deleted ProfilePage.test.tsx and SettingsPage
+husk test, −2 from the dropped legacy `/categories` /
+`/categorization-rules` redirect tests). The +44 split: 22 for the
+shell + account-page surface (Batch 9 first draft) and 22 for the
+six on-device preference stores + their helper-override paths +
+the refreshed AccessibilityPage assertion.
+
+### Responsive check (per CONTRIBUTING.md §6)
+
+Verified the shells render cleanly at 375 px (`sm`), 768 px (`md`),
+and ≥ 1280 px (`lg+`):
+
+- **SectionedPageLayout** — breadcrumb wraps gracefully when the
+  active section label is long. Horizontal-scroll tab row at `<lg`
+  bleeds into the page gutter via `-mx-3 sm:-mx-6` so chips never
+  abruptly clip; the row scrolls horizontally without ever forcing
+  body scroll. Desktop sidebar uses `position: sticky` anchored at
+  `top-20` so it stays visible as the content area scrolls.
+- **SettingsLayout** — three sections fit comfortably in the
+  desktop sidebar at any reasonable label length; mobile tab row
+  shows all three without overflow at 375 px.
+- **AccountLayout** — five sections also fit at desktop. Mobile
+  tab row mildly overflows at 375 px (deliberate — horizontal
+  scroll picks up the rest, matching the spec).
+- **Account pages** — each page renders inside the shell's content
+  column with `min-w-0` so dense form rows reflow correctly without
+  forcing the grid wider. Form-input full-bleed at narrow viewports;
+  cards have `p-6` for breathing room.
+
+No `body` horizontal scroll observed at any viewport ≥ 320 px on
+`/settings/*` or `/account/*`.
+
+### Dark-mode audit
+
+Automated grep audit of every `className` literal under
+`src/features/{settings,account}/` and the new
+`shared/components/SectionedPageLayout.tsx` looking for `text-` /
+`bg-` / `border-` / `ring-` / `placeholder-` utilities without a
+paired `dark:` variant (excluding `.btn-primary` / `.form-input` /
+`.form-label` / `.form-error` which auto-theme). **0 issues
+found** — both shells and all five account pages were authored
+with dark-aware classes from the start.
+
+## Future (Batch 10)
 
 - Wire `npm run size` into CI as a hard gate.
 - Reintroduce the per-feature lazy-chunk entry to `.size-limit.json`

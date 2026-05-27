@@ -3,6 +3,15 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense, useEffect, type ReactNode } from 'react';
 
 import { ErrorBoundary } from '../shared/components/ErrorBoundary';
+import { applyContrast, useContrastStore } from '../shared/state/contrast.store';
+import {
+  applyFocusRing,
+  useFocusRingStore,
+} from '../shared/state/focusRing.store';
+import {
+  applyLinkUnderline,
+  useLinkUnderlineStore,
+} from '../shared/state/linkUnderline.store';
 import { applyMotion, useMotionStore } from '../shared/state/motion.store';
 import {
   applyPrivacyMask,
@@ -68,6 +77,30 @@ function PrivacyBridge() {
   return null;
 }
 
+function ContrastBridge() {
+  const high = useContrastStore((s) => s.high);
+  useEffect(() => {
+    applyContrast(high);
+  }, [high]);
+  return null;
+}
+
+function LinkUnderlineBridge() {
+  const underline = useLinkUnderlineStore((s) => s.underline);
+  useEffect(() => {
+    applyLinkUnderline(underline);
+  }, [underline]);
+  return null;
+}
+
+function FocusRingBridge() {
+  const alwaysVisible = useFocusRingStore((s) => s.alwaysVisible);
+  useEffect(() => {
+    applyFocusRing(alwaysVisible);
+  }, [alwaysVisible]);
+  return null;
+}
+
 interface ProvidersProps {
   children: ReactNode;
 }
@@ -80,6 +113,9 @@ export function Providers({ children }: ProvidersProps) {
         <ZoomBridge />
         <MotionBridge />
         <PrivacyBridge />
+        <ContrastBridge />
+        <LinkUnderlineBridge />
+        <FocusRingBridge />
         <Suspense fallback={null}>{children}</Suspense>
         {import.meta.env.DEV ? (
           <ReactQueryDevtools initialIsOpen={false} />

@@ -67,4 +67,24 @@ describe('TimezoneSelect', () => {
     const select = screen.getByRole('combobox') as HTMLSelectElement;
     expect(select.options.length).toBeGreaterThan(100);
   });
+
+  it('alwaysFullList=true renders the full IANA dropdown even with a known single-tz country', () => {
+    render(
+      <TimezoneSelect
+        countryName="India"
+        countryDefaultTimezone="Asia/Kolkata"
+        value="UTC"
+        onChange={() => {}}
+        alwaysFullList
+      />
+    );
+    // No read-only input, no "Use a different timezone" affordance —
+    // the user lands directly on the full dropdown.
+    expect(
+      screen.queryByRole('button', { name: /Use a different timezone/ })
+    ).not.toBeInTheDocument();
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('UTC');
+    expect(select.options.length).toBeGreaterThan(100);
+  });
 });

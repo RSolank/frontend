@@ -1,51 +1,37 @@
 # Users feature
 
-> Mirrors `backend/app/modules/users`. Owns the authenticated user's
-> profile surface — personal info, password change, security question.
-> Lives at [`src/features/users/`](../../src/features/users/).
+> Mirrors `backend/app/modules/users`. As of Batch 9 this feature
+> ships **no pages of its own** — the Profile UI was split into the
+> [Account surface](account.md) at `/account/*`. The feature still
+> owns the `/api/users/me` and `/api/users/preferences` API hooks
+> (plus a couple of `/api/auth/*` helpers exclusively consumed by the
+> account pages). Lives at
+> [`src/features/users/`](../../src/features/users/).
 
 ## Purpose
 
-- Render the `/profile` page where users edit their personal data,
-  currency / timezone preferences, and account-security settings.
 - Own the `/api/users/me` and `/api/users/preferences` query surface
-  consumed by both the Profile page (for editing) and the auth flow
-  (for boot-time + post-login hydration).
-- Drive currency / timezone changes through the
-  [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
-  contract — the store mirrors the backend's `UserPreferencesMiddleware`
-  inputs (see [CONTRIBUTING.md §5](../../CONTRIBUTING.md#user-preferences-contract-currency--timezone)).
-
-## Pages
-
-| Path | Component | Notes |
-|---|---|---|
-| `/profile` | `pages/ProfilePage.tsx` | Profile + change password + security question, all on one screen. Lazy-loaded via `users.routes.tsx`. |
-
-Routes are exported from
-[`features/users/users.routes.tsx`](../../src/features/users/users.routes.tsx)
-and composed into the root router by `src/app/routes.tsx` (`<Profile>`
-is wrapped by `protectedRoutes()`). The route lazy-imports
-`ProfilePage` so the `countries-and-timezones` graph (~14 KB gz) used by
-`TimezoneSelect` ships in a separate chunk instead of the initial bundle.
-
-## Components
-
-- `pages/ProfilePage.tsx` — orchestrates the three forms (profile,
-  password, security question). Mounts the metadata selects
-  (`CountrySelect`, `CurrencySelect`, `TimezoneSelect`) from
-  `features/metadata/components/`.
+  consumed by both the [account pages](account.md) (for editing) and
+  the auth flow (for boot-time + post-login hydration).
+- Hold the canonical `userKeys` cache-key factory so any mutation
+  across the app can invalidate the user query graph with one key.
+- Expose the `/api/auth/change-password` and `/api/auth/recovery`
+  mutation helpers — they live under the auth backend prefix but are
+  consumed only by `AccountSecurityPage`, so the helper placement
+  follows the calling page rather than the URL prefix.
 
 ## State
 
-The users feature itself holds no Zustand state — every store lives in
-`shared/state/` because shared/api needs to read them:
+The users feature holds no Zustand state. The two account-adjacent
+stores live in `shared/state/` because `shared/api/apiClient.ts`
+reads from them:
 
-- `useAuthStore` (`shared/state/auth.store.ts`) — the user object the
-  header / nav reads from after `refreshAuthUser()` populates it.
-- `usePreferencesStore` (`shared/state/preferences.store.ts`) —
-  rewritten on profile save via `hydratePreferences()`. Headers + every
-  `formatMoney` / `formatDate` call observe the change.
+- [`useAuthStore`](../../src/shared/state/auth.store.ts) — the user
+  object the header / nav reads from after `refreshAuthUser()`
+  populates it.
+- [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
+  — rewritten on Preferences save via `hydratePreferences()`. Headers
+  + every `formatMoney` / `formatDate` call observe the change.
 
 ## API
 
@@ -54,7 +40,7 @@ The users feature itself holds no Zustand state — every store lives in
 | File | Exports |
 |---|---|
 | `keys.ts` | `userKeys` — `all`, `me()`, `preferences()` |
-| `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` |
+| `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` (every field optional — pages PATCH partial payloads) |
 | `queries.ts` | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `useCurrentUserQuery`, `useUserPreferencesQuery` |
 | `mutations.ts` | `updateProfileRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest` |
 
@@ -62,38 +48,40 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/users/me` | `ProfilePage` load, `refreshAuthUser` (auth boot) |
-| `PATCH /api/users/me` | `ProfilePage` save |
-| `GET /api/users/preferences` | `hydratePreferences` (auth boot + post-login + post-profile-save) |
-| `GET /api/auth/recovery` | `ProfilePage` security-question section |
-| `POST /api/auth/recovery` | `ProfilePage` security-question save |
-| `POST /api/auth/change-password` | `ProfilePage` change-password form |
-
-Note that the `/api/auth/recovery` + `/api/auth/change-password`
-endpoints live under the auth prefix on the backend but are consumed
-exclusively by the Profile page, so the mutation helpers live here in
-`features/users/api/mutations.ts` rather than in `features/auth/api/`.
-The endpoint stays addressable by either feature; the helper placement
-follows the page that uses it.
+| `GET /api/users/me` | `AccountProfilePage` + `AccountPreferencesPage` hydrate, `refreshAuthUser` (auth boot) |
+| `PATCH /api/users/me` | `AccountProfilePage` save (partial), `AccountPreferencesPage` save (partial) |
+| `GET /api/users/preferences` | `hydratePreferences` (auth boot + post-login + post-Preferences-save) |
+| `GET /api/auth/recovery` | `AccountSecurityPage` |
+| `POST /api/auth/recovery` | `AccountSecurityPage` |
+| `POST /api/auth/change-password` | `AccountSecurityPage` |
 
 ## Cross-feature seams
 
 - **`features/auth/state/useAuth.ts`** imports `fetchCurrentUser` +
-  `fetchUserPreferences` from `features/users/api/queries.ts`. This is
-  intentional: the auth flow drives hydration, but the queries belong
-  to the users feature so a profile mutation can invalidate them
-  through the canonical `userKeys.all` namespace. See Batch 3's
-  "Composition" notes in the implementation plan for the rationale.
-- **`ProfilePage`** uses TanStack Query's `queryClient.invalidateQueries({ queryKey: userKeys.all })`
-  after a successful save, then re-runs `hydratePreferences()` so the
-  `usePreferencesStore` reflects the new currency / timezone in the
-  same tick.
+  `fetchUserPreferences` from this feature's `queries.ts`. The auth
+  flow drives hydration; the queries belong here so a profile
+  mutation can invalidate them through the canonical `userKeys.all`
+  namespace.
+- **`features/account/pages/AccountProfilePage`** and
+  **`AccountPreferencesPage`** both call
+  `queryClient.invalidateQueries({ queryKey: userKeys.all })` after a
+  successful save. Preferences additionally re-runs
+  `hydratePreferences()` so `usePreferencesStore` reflects the new
+  currency / timezone in the same tick.
 
 ## Tests
 
-| File | Covers |
+The users feature itself has no pages and therefore no page tests.
+The behavior the feature backs is covered by the consuming features:
+
+| Coverage | Test file |
 |---|---|
-| `pages/ProfilePage.test.tsx` | Hydration from `/api/users/me`, PATCH body shape (timezone included), post-save preferences hydration, password-rules validation |
+| `GET /api/users/me` hydration | [`features/account/pages/AccountProfilePage.test.tsx`](../../src/features/account/pages/AccountProfilePage.test.tsx), [`features/account/pages/AccountPreferencesPage.test.tsx`](../../src/features/account/pages/AccountPreferencesPage.test.tsx) |
+| `PATCH /api/users/me` partial payloads | Same |
+| `hydratePreferences` round-trip | `AccountPreferencesPage.test.tsx` |
+| `/api/auth/change-password` validation | [`features/account/pages/AccountSecurityPage.test.tsx`](../../src/features/account/pages/AccountSecurityPage.test.tsx) |
+| `/api/auth/recovery` hydrate | Same |
+| Login-time + boot-time preferences hydration | [`features/auth/pages/LoginPage.test.tsx`](../../src/features/auth/pages/LoginPage.test.tsx) |
 
 `src/test/handlers/users.ts` exposes GET + PATCH `/api/users/me` and
 GET `/api/users/preferences` permissively; individual tests override

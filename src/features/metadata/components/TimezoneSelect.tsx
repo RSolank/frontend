@@ -19,6 +19,13 @@ interface TimezoneSelectProps {
   onChange: (timezone: string) => void;
   id?: string;
   required?: boolean;
+  // When true, skip all country-scoped modes and render the full IANA
+  // dropdown directly. The country still informs the initial value
+  // (passed via `value`) but the user can pick any of the ~400 IANA
+  // zones without an "override" click. Used by the Account /
+  // Preferences page so frequent travelers can lock to UTC without
+  // changing their country of residence.
+  alwaysFullList?: boolean;
 }
 
 export function TimezoneSelect({
@@ -28,6 +35,7 @@ export function TimezoneSelect({
   onChange,
   id,
   required,
+  alwaysFullList = false,
 }: TimezoneSelectProps) {
   const [showFallback, setShowFallback] = useState(false);
 
@@ -36,6 +44,27 @@ export function TimezoneSelect({
     () => getTimezonesForCountryName(countryName),
     [countryName]
   );
+
+  // alwaysFullList consumers skip every country-scoped mode below and
+  // fall through to the full IANA dropdown at the bottom.
+  if (alwaysFullList) {
+    const selected = value || getBrowserTimezone();
+    return (
+      <select
+        id={id}
+        value={selected}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className="form-input"
+      >
+        {allTimezones.map((tz) => (
+          <option key={tz} value={tz}>
+            {tz}
+          </option>
+        ))}
+      </select>
+    );
+  }
 
   // Country known + has exactly one timezone → read-only display.
   if (

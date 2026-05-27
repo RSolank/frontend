@@ -89,11 +89,14 @@ describe('TopNav', () => {
     expect(within(drawer).getByRole('link', { name: 'Expense Tracker' })).toBeInTheDocument();
     expect(within(drawer).getByRole('link', { name: 'Tax Tracker' })).toBeInTheDocument();
     expect(within(drawer).getByRole('link', { name: 'Beneficiaries' })).toBeInTheDocument();
-    // SETTINGS section
+    // SETTINGS section — Batch 9 moved all three under /settings/*.
     expect(within(drawer).getByText('Settings')).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Categories' })).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Categorization Rules' })).toBeInTheDocument();
-    // Batch 7: Taxation Rules now points at /settings/taxation-rules.
+    expect(
+      within(drawer).getByRole('link', { name: 'Categories' })
+    ).toHaveAttribute('href', '/settings/categories');
+    expect(
+      within(drawer).getByRole('link', { name: 'Categorization Rules' })
+    ).toHaveAttribute('href', '/settings/categorization-rules');
     expect(
       within(drawer).getByRole('link', { name: 'Taxation Rules' })
     ).toHaveAttribute('href', '/settings/taxation-rules');
@@ -118,8 +121,14 @@ describe('TopNav', () => {
     expect(
       within(drawer).getByRole('switch', { name: /hide amounts/i })
     ).toBeInTheDocument();
-    // Profile + Sign Out.
-    expect(within(drawer).getByRole('link', { name: /Profile/i })).toBeInTheDocument();
+    // Account + Sign Out. "Account" links to /account/profile (the
+    // default landing tab); the sectioned-page sidebar inside
+    // /account/* reveals Profile / Security / Privacy /
+    // Accessibility / Preferences. The label changed from "Profile"
+    // → "Account" in Batch 9 polish to reflect the broader surface.
+    expect(
+      within(drawer).getByRole('link', { name: /Account/i })
+    ).toHaveAttribute('href', '/account/profile');
     expect(within(drawer).getByRole('button', { name: /Sign Out/i })).toBeInTheDocument();
   });
 

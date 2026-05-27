@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { useDateFormatStore } from '../state/dateFormat.store';
 
 import {
   formatDate,
@@ -25,6 +27,39 @@ describe('formatDate (tz-aware)', () => {
 
   it('returns the em dash for an unparseable string', () => {
     expect(formatDate('not-a-date', 'UTC')).toBe('—');
+  });
+});
+
+describe('formatDate honors useDateFormatStore', () => {
+  afterEach(() => {
+    useDateFormatStore.setState({ format: 'system' });
+  });
+
+  it('dmy mode renders dd/mm/yyyy (en-GB shape)', () => {
+    useDateFormatStore.setState({ format: 'dmy' });
+    expect(formatDate('2026-05-27T12:00:00Z', 'UTC')).toBe('27/05/2026');
+  });
+
+  it('ymd mode renders yyyy-mm-dd (en-CA shape)', () => {
+    useDateFormatStore.setState({ format: 'ymd' });
+    expect(formatDate('2026-05-27T12:00:00Z', 'UTC')).toBe('2026-05-27');
+  });
+
+  it('mdy mode renders mm/dd/yyyy (en-US shape)', () => {
+    useDateFormatStore.setState({ format: 'mdy' });
+    expect(formatDate('2026-05-27T12:00:00Z', 'UTC')).toBe('05/27/2026');
+  });
+
+  it('respectUserFormat: false bypasses the store override', () => {
+    useDateFormatStore.setState({ format: 'dmy' });
+    expect(
+      formatDate(
+        '2026-05-27T12:00:00Z',
+        'UTC',
+        { year: 'numeric', month: 'short', day: 'numeric' },
+        false
+      )
+    ).toBe('May 27, 2026');
   });
 });
 

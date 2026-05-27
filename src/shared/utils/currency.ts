@@ -9,17 +9,41 @@
 // symbol comes from the backend anyway. Numeric formatting (thousands +
 // decimals) is still delegated to Intl.NumberFormat with no currency
 // style.
+//
+// Thousands/decimal-separator preference is read from
+// `useNumberFormatStore` (shared/state/numberFormat.store.ts), a
+// frontend-only Zustand `persist` store. The store is read via
+// `getState()` on every call (cheap; no React subscription) so the
+// pre-built FORMATTERS cache keys by the current mode.
+
+import {
+  intlConfigForNumberFormat,
+  useNumberFormatStore,
+  type NumberFormatMode,
+} from '../state/numberFormat.store';
 
 const FORMATTERS = new Map<string, Intl.NumberFormat>();
 
-function numberFormatter(maximumFractionDigits: number): Intl.NumberFormat {
-  const key = `n:${maximumFractionDigits}`;
+function numberFormatter(
+  maximumFractionDigits: number,
+  mode: NumberFormatMode
+): Intl.NumberFormat {
+  const key = `n:${maximumFractionDigits}:${mode}`;
   let fmt = FORMATTERS.get(key);
   if (!fmt) {
-    fmt = new Intl.NumberFormat(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits,
-    });
+    const config = intlConfigForNumberFormat(mode);
+    if (config) {
+      fmt = new Intl.NumberFormat(config.locale, {
+        ...config.opts,
+        minimumFractionDigits: 2,
+        maximumFractionDigits,
+      });
+    } else {
+      fmt = new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits,
+      });
+    }
     FORMATTERS.set(key, fmt);
   }
   return fmt;
@@ -32,7 +56,8 @@ export function formatMoney(
 ): string {
   const n = typeof amount === 'string' ? Number(amount) : (amount ?? 0);
   const safe = Number.isFinite(n) ? n : 0;
-  const formatted = numberFormatter(2).format(safe);
+  const { format } = useNumberFormatStore.getState();
+  const formatted = numberFormatter(2, format).format(safe);
   return symbol ? `${symbol}${formatted}` : `${code} ${formatted}`;
 }
 

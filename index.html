@@ -78,6 +78,48 @@
           /* localStorage unavailable — amounts render unmasked. */
         }
       })();
+      // No-FOUC high-contrast bootstrap. Mirrors contrast.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('contrast');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.high) {
+              document.documentElement.classList.add('high-contrast');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — default neutral palette. */
+        }
+      })();
+      // No-FOUC link-underline bootstrap. Mirrors linkUnderline.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('underline-links');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.underline) {
+              document.documentElement.classList.add('underline-links');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — links keep color-only cue. */
+        }
+      })();
+      // No-FOUC focus-ring bootstrap. Mirrors focusRing.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('focus-ring');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.alwaysVisible) {
+              document.documentElement.classList.add('focus-always');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — :focus-visible default. */
+        }
+      })();
     </script>
   </head>
   <body>

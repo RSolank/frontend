@@ -79,10 +79,13 @@ viewport — there is **no desktop sidebar**.
 - **ThemeToggle** (☼).
 - **About** link → `/`.
 - **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.
-  Items: Categories, Categorization Rules, Beneficiaries, Taxation
-  Rules.
+  Items: Categories, Categorization Rules, Taxation Rules — all
+  pointing at their canonical `/settings/*` URLs as of Batch 9.
+  (Beneficiaries lives in MAIN, not Settings, so it isn't listed
+  here.)
 - **User dropdown** (👤▾) — Radix DropdownMenu. Items: Profile,
-  Sign Out.
+  Sign Out. Profile points at `/account/profile`; the legacy
+  `/profile` URL is preserved as a redirect alias.
 
 **Mobile (<1024 px)** layout: `[☰] [Brand]  [☼] [👤▾]` — hamburger opens
 a left-slide drawer with grouped sections (MAIN / SETTINGS / ABOUT) plus
@@ -118,6 +121,71 @@ between `<LoginForm />` and `<RegisterForm />` (both extracted in
 Batch 6.5 from the old page-only forms) without closing. AuthModal is
 **lazy-loaded** in `pages/Home.tsx` so the ~30 KB `countries-and-timezones`
 dep stays in the auth chunk rather than first-paint.
+
+### Sectioned page shell (Batch 9)
+
+`shared/components/SectionedPageLayout.tsx` is the two-pane primitive
+that backs both the Settings shell (`/settings/*`) and the Account
+surface (`/account/*`). Same component, two consumers — see
+[`docs/modules/settings.md`](modules/settings.md) and
+[`docs/modules/account.md`](modules/account.md).
+
+Layout contract:
+
+- **Breadcrumb** on every viewport: `Root › *Active Section*` with
+  the root as a back-link and the section as `aria-current="page"`.
+- **Desktop (≥lg)**: sticky 14-rem sidebar + content column in a
+  2-col grid. Sidebar's `position: sticky` anchors to `top-20`
+  (header height + 1rem breathing room) so it stays visible as the
+  content scrolls.
+- **Mobile / tablet (<lg)**: horizontal-scroll tab row pinned under
+  the breadcrumb. Chips are ≥44 px tap targets (per CONTRIBUTING.md
+  §1 Platform target). Active tab gets the indigo accent
+  underline.
+
+Routes consuming the shell are nested: the parent route's `element`
+is the layout wrapper (e.g. `<SettingsLayout />`) and the
+child routes render into its `<Outlet />`. `protectedRoutes()`
+wraps the parent's element, so children inherit auth-gating without
+needing to be re-wrapped individually. Each child stays
+lazy-imported for code-splitting.
+
+**Alignment standard (card-anchored):** every page mounted as a
+child of a sectioned shell renders **only cards / content** — no
+in-page `<header>`, no in-page `<h1>`, no in-page breadcrumb, no
+outer `mx-auto max-w-* px-* my-*` wrapper. The page's first card
+becomes the first element in the main column and its top edge
+aligns with the sidebar's first NavLink top edge — that's the
+visual cue that the sidebar is *of* the content area.
+
+Why this and not the GitHub-style h1-anchored layout (sidebar first
+item aligns with main's `<h1>`)? Two reasons:
+
+1. **The breadcrumb already names the section.** The shell renders
+   "Settings › Categories" / "Account › Profile" / etc. — page
+   identity is unambiguous. A page-level `<h1>` duplicating that
+   tail is visual noise.
+2. **Single-source page title.** Section labels live exactly once
+   (in `SETTINGS_SECTIONS` / `ACCOUNT_SECTIONS`). Pages don't
+   re-state their title in-content, so renaming a section is a
+   one-line edit.
+
+What this means for page authors mounting under a sectioned shell:
+
+- Root JSX is a `<>` fragment or a `<div className="space-y-6">`,
+  not a `<div className="mx-auto max-w-3xl my-8 px-4">`.
+- No top-level `<header>` block. No back-link (the top-nav Home
+  icon + breadcrumb root link cover both).
+- Page-level action CTAs (e.g. Taxation Rules' "Add rule" button)
+  live in a compact `mb-4 flex justify-end` toolbar above the
+  cards, not in a header.
+- Descriptive context belongs inside the first card (as a
+  `<p className="text-sm text-slate-500">` row), inside an
+  empty-state card, or omitted entirely.
+
+Pages NOT mounted under a sectioned shell (standalone routes like
+`/transactions`, `/budgets`, `/consumption-tax`, `/beneficiaries`)
+keep their own page chrome — the shell only owns its consumers.
 
 ### Session-expiry redirect contract (Batch 6.5)
 
@@ -186,6 +254,30 @@ graph. Currently:
     placeholder dropped in Batch 0; Batch 2 fills it in with real
     login/logout/refresh actions + `persist` for the access token and
     replaces `AuthContext.jsx`.
+  - **Accessibility / on-device preference stores** (all
+    Zustand + `persist`, `localStorage` only, mirrored to `<html>`
+    via a `XBridge` in `app/providers.tsx` + no-FOUC inline script
+    in `index.html` where paint-time):
+    - [`useZoomStore`](../src/shared/state/zoom.store.ts) — text
+      size override (`<html>` fontSize).
+    - [`useMotionStore`](../src/shared/state/motion.store.ts) —
+      reduce-motion override (`html.reduce-motion`).
+    - [`usePrivacyStore`](../src/shared/state/privacy.store.ts) —
+      privacy mask (`html.mask-amounts`, blurs `.money` elements).
+    - [`useContrastStore`](../src/shared/state/contrast.store.ts)
+      — high-contrast palette (`html.high-contrast`).
+    - [`useLinkUnderlineStore`](../src/shared/state/linkUnderline.store.ts)
+      — force `<a>` underlines (`html.underline-links`).
+    - [`useFocusRingStore`](../src/shared/state/focusRing.store.ts)
+      — always-visible focus ring (`html.focus-always`).
+    - [`useDateFormatStore`](../src/shared/state/dateFormat.store.ts)
+      — date order/shape; read by `formatDate` /
+      `formatDateTime`.
+    - [`useNumberFormatStore`](../src/shared/state/numberFormat.store.ts)
+      — thousands + decimal separator; read by `formatMoney`.
+    - [`useLandingRouteStore`](../src/shared/state/landingRoute.store.ts)
+      — where login lands; read by `useAuth.login` and the
+      already-authed `<LoginPage>` redirect.
 
 ## User preferences contract
 

@@ -105,6 +105,66 @@
   html.mask-amounts .money:focus-within {
     filter: none;
   }
+
+  /*
+   * Accessibility — high-contrast override
+   * (shared/state/contrast.store.ts). Boosts secondary text from
+   * slate-500/400 to slate-700/200, low-contrast borders from
+   * slate-200/800 to slate-400/700, and indigo accents from 600/400
+   * to 700/300. Mostly affects dark mode where the default sits
+   * closest to the WCAG AA floor.
+   */
+  html.high-contrast .text-slate-500,
+  html.high-contrast .text-slate-400 {
+    color: rgb(51 65 85); /* slate-700 */
+  }
+  html.dark.high-contrast .text-slate-500,
+  html.dark.high-contrast .text-slate-400 {
+    color: rgb(226 232 240); /* slate-200 */
+  }
+  html.high-contrast .border-slate-200 {
+    border-color: rgb(148 163 184); /* slate-400 */
+  }
+  html.dark.high-contrast .border-slate-800 {
+    border-color: rgb(71 85 105); /* slate-600 */
+  }
+  html.high-contrast .text-indigo-600 {
+    color: rgb(55 48 163); /* indigo-800 */
+  }
+  html.dark.high-contrast .text-indigo-400,
+  html.dark.high-contrast .text-indigo-300 {
+    color: rgb(199 210 254); /* indigo-200 */
+  }
+
+  /*
+   * Accessibility — force underlines on every link element so users
+   * with color-vision differences see the shape cue (WCAG 1.4.1).
+   * Driven by shared/state/linkUnderline.store.ts. The
+   * `no-underline` utility on individual elements (used by branded
+   * links + nav items where the shape would clash) still wins
+   * because Tailwind's `text-decoration: none` is more specific
+   * than this generic rule.
+   */
+  html.underline-links a {
+    text-decoration: underline;
+  }
+
+  /*
+   * Accessibility — always-visible focus ring
+   * (shared/state/focusRing.store.ts). The app's default uses
+   * `focus-visible:ring-*` everywhere, which the browser hides for
+   * mouse-click activation; keyboard-first + screen-reader users
+   * benefit from seeing the indicator on every `:focus`.
+   *
+   * `outline` (not box-shadow) is used so the ring sits outside the
+   * element's box even when the element clips overflow, and so it
+   * coexists with whatever ring-shadow the focused element ships
+   * via Tailwind utilities.
+   */
+  html.focus-always *:focus {
+    outline: 2px solid rgb(99 102 241); /* indigo-500 */
+    outline-offset: 2px;
+  }
 }
 
 /*

@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 
+import { getLandingRoute } from '../../../shared/state/landingRoute.store';
 import { LoginForm } from '../components/LoginForm';
 import { useAuth } from '../state/useAuth';
 
@@ -20,7 +21,10 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    // Honor useLandingRouteStore preference (frontend-only Zustand,
+    // /account/accessibility) — matches the post-login navigate in
+    // useAuth.login.
+    return <Navigate to={getLandingRoute()} replace />;
   }
 
   return (

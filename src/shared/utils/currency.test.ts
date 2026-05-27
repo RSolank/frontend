@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { useNumberFormatStore } from '../state/numberFormat.store';
 
 import { formatMoney, parseMoney } from './currency';
 
@@ -22,6 +24,28 @@ describe('formatMoney', () => {
     expect(formatMoney(undefined, 'USD', '$')).toBe('$0.00');
     expect(formatMoney(NaN, 'USD', '$')).toBe('$0.00');
     expect(formatMoney(Infinity, 'USD', '$')).toBe('$0.00');
+  });
+});
+
+describe('formatMoney honors useNumberFormatStore', () => {
+  afterEach(() => {
+    useNumberFormatStore.setState({ format: 'system' });
+  });
+
+  it('comma-dot mode renders en-US style', () => {
+    useNumberFormatStore.setState({ format: 'comma-dot' });
+    expect(formatMoney(1234567.89, 'USD', '$')).toBe('$1,234,567.89');
+  });
+
+  it('dot-comma mode renders de-DE style', () => {
+    useNumberFormatStore.setState({ format: 'dot-comma' });
+    // de-DE uses "." for thousands and "," for decimal.
+    expect(formatMoney(1234.56, 'EUR', '€')).toBe('€1.234,56');
+  });
+
+  it('plain mode suppresses thousands grouping', () => {
+    useNumberFormatStore.setState({ format: 'plain' });
+    expect(formatMoney(1234567.89, 'USD', '$')).toBe('$1234567.89');
   });
 });
 

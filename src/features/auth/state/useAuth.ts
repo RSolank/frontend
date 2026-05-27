@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { apiFetch } from '../../../shared/api/apiClient';
 import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
+import { getLandingRoute } from '../../../shared/state/landingRoute.store';
 import {
   sanitizePreferences,
   usePreferencesStore,
@@ -104,7 +105,10 @@ export function useAuth() {
       const data = await loginRequest(input);
       persistTokens(data);
       await Promise.all([refreshAuthUser(), hydratePreferences()]);
-      navigate('/dashboard');
+      // Honor the user's `useLandingRouteStore` preference (frontend-
+      // only Zustand, /account/accessibility). Defaults to '/dashboard'
+      // for first-time / unset visitors.
+      navigate(getLandingRoute());
     } catch (err) {
       const e = err as ApiErrorShape;
       setError(typeof e.detail === 'string' ? e.detail : 'Login failed');

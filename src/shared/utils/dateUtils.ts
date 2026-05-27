@@ -4,6 +4,18 @@
 // Intl.DateTimeFormat's `timeZone` option. Never call
 // `new Date(iso).toLocaleDateString()` from a component — that drops
 // the tz entirely.
+//
+// Date-order (dd/mm/yyyy vs mm/dd/yyyy vs yyyy-mm-dd vs dd MMM yyyy)
+// is read from `useDateFormatStore` (shared/state/dateFormat.store.ts),
+// a frontend-only Zustand `persist` store. The store is read via
+// `getState()` outside the React render path so non-React callers
+// (e.g. legacy `formatBillDate`) work too.
+
+import {
+  localeForDateFormat,
+  optsForDateFormat,
+  useDateFormatStore,
+} from '../state/dateFormat.store';
 
 const DEFAULT_DATE_OPTS: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -27,14 +39,24 @@ function safeDate(isoString: string | null | undefined): Date | null {
 
 // Render an ISO date/datetime in the user's timezone with sensible
 // defaults. `tz` is required so component code can't forget it.
+//
+// If the user has picked a non-system date format under
+// /account/accessibility, the override wins over `opts`. Pass
+// `respectUserFormat: false` to opt out (e.g. a calendar grid that
+// always needs short month names regardless of preference).
 export function formatDate(
   isoString: string | null | undefined,
   tz: string,
-  opts: Intl.DateTimeFormatOptions = DEFAULT_DATE_OPTS
+  opts: Intl.DateTimeFormatOptions = DEFAULT_DATE_OPTS,
+  respectUserFormat = true
 ): string {
   const d = safeDate(isoString);
   if (!d) return '—';
-  return new Intl.DateTimeFormat(undefined, { ...opts, timeZone: tz }).format(
+  const { format } = useDateFormatStore.getState();
+  const overrideOpts = respectUserFormat ? optsForDateFormat(format) : null;
+  const finalOpts = overrideOpts ?? opts;
+  const locale = respectUserFormat ? localeForDateFormat(format) : undefined;
+  return new Intl.DateTimeFormat(locale, { ...finalOpts, timeZone: tz }).format(
     d
   );
 }
@@ -42,11 +64,21 @@ export function formatDate(
 export function formatDateTime(
   isoString: string | null | undefined,
   tz: string,
-  opts: Intl.DateTimeFormatOptions = DEFAULT_DATETIME_OPTS
+  opts: Intl.DateTimeFormatOptions = DEFAULT_DATETIME_OPTS,
+  respectUserFormat = true
 ): string {
   const d = safeDate(isoString);
   if (!d) return '—';
-  return new Intl.DateTimeFormat(undefined, { ...opts, timeZone: tz }).format(
+  const { format } = useDateFormatStore.getState();
+  const overrideOpts = respectUserFormat ? optsForDateFormat(format) : null;
+  // Merge so the user's date-part shape combines with the default
+  // time opts. If the user wants ISO ymd dates with HH:mm, we get
+  // both.
+  const finalOpts = overrideOpts
+    ? { ...overrideOpts, hour: opts.hour, minute: opts.minute }
+    : opts;
+  const locale = respectUserFormat ? localeForDateFormat(format) : undefined;
+  return new Intl.DateTimeFormat(locale, { ...finalOpts, timeZone: tz }).format(
     d
   );
 }
