@@ -109,17 +109,19 @@ describe('AccountPreferencesPage', () => {
     });
   });
 
-  it('renders the Defaults card pointing at /account/accessibility', async () => {
-    // Batch 9 polish: defaults (date format / number format / landing
-    // route) now ship under /account/accessibility as frontend-only
-    // Zustand stores, so this card no longer reads "Coming soon" —
-    // it links to the Accessibility surface and notes cross-device
-    // sync is still a backend follow-up.
+  it('renders the Defaults card with the txn-kind control + pointer to /account/accessibility', async () => {
+    // Batch 9.1: the Defaults card now hosts the
+    // <DefaultTxnKindSelect /> (frontend-only Zustand persist) and
+    // still points at /account/accessibility for the older page-only
+    // stores (date / number / landing route).
     renderPage();
     await waitFor(() =>
       expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
     );
-    expect(screen.getByRole('heading', { name: 'Defaults' })).toBeInTheDocument();
+    expect(screen.getByText('Defaults')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Add transaction defaults to/i)
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Accessibility' })
     ).toHaveAttribute('href', '/account/accessibility');

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import {
+  formatTimezoneOption,
   getAllTimezones,
   getBrowserTimezone,
   getTimezonesForCountryName,
@@ -59,7 +60,7 @@ export function TimezoneSelect({
       >
         {allTimezones.map((tz) => (
           <option key={tz} value={tz}>
-            {tz}
+            {formatTimezoneOption(tz)}
           </option>
         ))}
       </select>
@@ -79,7 +80,7 @@ export function TimezoneSelect({
         <input
           id={id}
           type="text"
-          value={tz}
+          value={formatTimezoneOption(tz)}
           readOnly
           aria-readonly
           className="form-input"
@@ -117,7 +118,7 @@ export function TimezoneSelect({
         >
           {countryTimezones.map((tz) => (
             <option key={tz} value={tz}>
-              {tz}
+              {formatTimezoneOption(tz)}
             </option>
           ))}
         </select>
@@ -145,7 +146,7 @@ export function TimezoneSelect({
     >
       {allTimezones.map((tz) => (
         <option key={tz} value={tz}>
-          {tz}
+          {formatTimezoneOption(tz)}
         </option>
       ))}
     </select>

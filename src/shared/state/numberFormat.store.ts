@@ -16,6 +16,7 @@ export type NumberFormatMode =
   | 'comma-dot' // 1,234.56 — en-US / en-GB style.
   | 'dot-comma' // 1.234,56 — de-DE / es / it style.
   | 'space-comma' // 1 234,56 — fr-FR / sv style.
+  | 'indian' // 12,34,567.89 — Indian lakh/crore grouping (en-IN).
   | 'plain'; // 1234.56 — no thousands grouping.
 
 interface NumberFormatState {
@@ -45,6 +46,10 @@ export function intlConfigForNumberFormat(
       return { locale: 'de-DE', opts: {} };
     case 'space-comma':
       return { locale: 'fr-FR', opts: {} };
+    case 'indian':
+      // en-IN naturally groups by lakh/crore (3 digits then groups of
+      // 2): 12,34,567.89. Decimal stays '.'.
+      return { locale: 'en-IN', opts: {} };
     case 'plain':
       // Suppress thousands grouping; decimal stays `.` to match the
       // unambiguous ISO-ish render.

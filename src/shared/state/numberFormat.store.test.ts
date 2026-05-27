@@ -33,9 +33,25 @@ describe('numberFormat.store', () => {
       locale: 'fr-FR',
       opts: {},
     });
+    expect(intlConfigForNumberFormat('indian')).toEqual({
+      locale: 'en-IN',
+      opts: {},
+    });
     expect(intlConfigForNumberFormat('plain')).toEqual({
       locale: 'en-US',
       opts: { useGrouping: false },
     });
+  });
+
+  it('indian mode renders lakh/crore grouping via en-IN', () => {
+    const cfg = intlConfigForNumberFormat('indian');
+    expect(cfg).not.toBeNull();
+    const out = new Intl.NumberFormat(cfg!.locale, {
+      ...cfg!.opts,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(1234567.89);
+    // en-IN groups by lakh/crore: 12,34,567.89 (not 1,234,567.89).
+    expect(out).toBe('12,34,567.89');
   });
 });

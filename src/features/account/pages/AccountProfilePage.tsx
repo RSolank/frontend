@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
 import { useCurrentUserQuery } from '../../users/api/queries';
+import { UserStatsCard } from '../components/UserStatsCard';
 
 interface FormState {
   first_name: string;
@@ -218,6 +219,8 @@ export function AccountProfilePage() {
           </div>
         </form>
       </div>
+
+      <UserStatsCard />
     </div>
   );
 }

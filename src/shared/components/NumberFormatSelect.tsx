@@ -23,6 +23,11 @@ function previewFor(mode: NumberFormatMode): string {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(PREVIEW_VALUE);
+    case 'indian':
+      return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(PREVIEW_VALUE);
     case 'plain':
       return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
@@ -43,6 +48,7 @@ const OPTIONS: { value: NumberFormatMode; label: string }[] = [
   { value: 'comma-dot', label: '1,234,567.89' },
   { value: 'dot-comma', label: '1.234.567,89' },
   { value: 'space-comma', label: '1 234 567,89' },
+  { value: 'indian', label: '12,34,567.89 (Indian)' },
   { value: 'plain', label: '1234567.89 (no grouping)' },
 ];
 

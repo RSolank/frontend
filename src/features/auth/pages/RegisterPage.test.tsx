@@ -56,9 +56,13 @@ describe('RegisterPage', () => {
     expect(screen.getByLabelText(/Password/)).toBeInTheDocument();
     expect(screen.getByLabelText(/First name/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Last name/)).toBeInTheDocument();
-    // Timezone field present + populated.
+    // Timezone field present + populated. Batch 9.1 Q3: the read-only
+    // display now appends the current UTC offset
+    // ("Asia/Kolkata (UTC+5:30)") so the assertion matches either form.
     expect(screen.getByLabelText(/^Timezone/)).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Asia/Kolkata')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(/^Asia\/Kolkata(\s\(UTC.*\))?$/)
+    ).toBeInTheDocument();
   });
 
   it('submits with timezone included in the payload', async () => {

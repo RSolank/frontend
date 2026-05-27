@@ -27,4 +27,11 @@ export const usersHandlers = [
       timezone: 'Asia/Kolkata',
     })
   ),
+  // Stats endpoint is a Batch 9.1 backend ask — not yet implemented.
+  // Default handler returns 404 so the <UserStatsCard /> Profile-page
+  // placeholder renders its "Coming soon" empty state. Tests asserting
+  // the populated card override this handler via `server.use(...)`.
+  http.get('http://localhost:4000/api/users/me/stats', () =>
+    HttpResponse.json({ detail: 'Not implemented' }, { status: 404 })
+  ),
 ];

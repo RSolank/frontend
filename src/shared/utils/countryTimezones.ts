@@ -68,6 +68,44 @@ export function getAllTimezones(): string[] {
   return allTimezonesCache;
 }
 
+// Per-tz cache of the current UTC offset string (e.g. "UTC+5:30"). Computed
+// once per session via Intl.DateTimeFormat with `timeZoneName: 'shortOffset'`,
+// then formatted to a stable shape. Offsets reflect the *current* DST state
+// — users are calibrating "now"; if DST flips mid-session the labels go
+// slightly stale until the next reload, which is fine.
+const offsetCache = new Map<string, string>();
+
+export function getTimezoneOffsetLabel(tz: string): string {
+  const cached = offsetCache.get(tz);
+  if (cached !== undefined) return cached;
+  let label = '';
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date());
+    const namePart = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+    // Intl returns "GMT+5:30" / "GMT-8" / "GMT" — normalize to "UTC±H:MM".
+    // "GMT" alone (no sign) means offset zero.
+    if (namePart === 'GMT') {
+      label = 'UTC';
+    } else {
+      label = namePart.replace(/^GMT/, 'UTC');
+    }
+  } catch {
+    label = '';
+  }
+  offsetCache.set(tz, label);
+  return label;
+}
+
+// "Asia/Kolkata" + "UTC+5:30" → "Asia/Kolkata (UTC+5:30)".
+// Bare tz when the offset can't be resolved.
+export function formatTimezoneOption(tz: string): string {
+  const offset = getTimezoneOffsetLabel(tz);
+  return offset ? `${tz} (${offset})` : tz;
+}
+
 export function getBrowserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';

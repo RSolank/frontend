@@ -8,6 +8,7 @@ import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
+import { HelpPage } from '../pages/Help';
 import { HomePage } from '../pages/Home';
 
 import { App } from './App';
@@ -17,6 +18,7 @@ import { protectedRoutes } from './routeHelpers';
 // /register from Batch 2 onwards.
 const publicRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
+  { path: '/help', element: <HelpPage /> },
   ...authRoutes,
 ];
 

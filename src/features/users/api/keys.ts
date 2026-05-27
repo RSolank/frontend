@@ -7,4 +7,5 @@ export const userKeys = {
   all: ['users'] as const,
   me: () => [...userKeys.all, 'me'] as const,
   preferences: () => [...userKeys.all, 'preferences'] as const,
+  stats: () => [...userKeys.all, 'stats'] as const,
 } as const;

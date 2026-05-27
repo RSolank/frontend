@@ -15,7 +15,11 @@ describe('TimezoneSelect', () => {
       />
     );
 
-    const input = screen.getByDisplayValue('Asia/Kolkata') as HTMLInputElement;
+    // Display now includes the current UTC offset for clarity, e.g.
+    // "Asia/Kolkata (UTC+5:30)" (Batch 9.1 Q3 enhancement).
+    const input = screen.getByDisplayValue(
+      /^Asia\/Kolkata(\s\(UTC.*\))?$/
+    ) as HTMLInputElement;
     expect(input.readOnly).toBe(true);
     expect(
       screen.getByRole('button', { name: /Use a different timezone/ })

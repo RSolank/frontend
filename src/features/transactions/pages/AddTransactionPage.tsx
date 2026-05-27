@@ -20,6 +20,7 @@ import {
 } from '../../tags/api/queries';
 import { tagKeys } from '../../tags/api/keys';
 import { TagFormDialog } from '../../tags/components/TagFormDialog';
+import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import { transactionKeys } from '../api/keys';
@@ -75,7 +76,11 @@ export function AddTransactionPage({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [amount, setAmount] = useState('');
-  const [debitCredit, setDebitCredit] = useState<'debit' | 'credit'>('debit');
+  // Read once on mount via getState() — editing the preference later
+  // shouldn't flip an already-open form. See defaultTxnKind.store.ts.
+  const [debitCredit, setDebitCredit] = useState<'debit' | 'credit'>(() =>
+    getDefaultTxnKind()
+  );
   const [beneficiaryName, setBeneficiaryName] = useState('');
   const [beneficiaryId, setBeneficiaryId] = useState<number | string>('');
   const [txnDate, setTxnDate] = useState(() => todayInUserTz(timezone));

@@ -1,6 +1,8 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronDown,
+  ChevronRight,
+  HelpCircle,
   Home,
   LogOut,
   Menu,
@@ -175,6 +177,23 @@ export function TopNav({ onLogout }: TopNavProps) {
             </div>
           )}
 
+          {/*
+            Help / docs entry-point. Desktop-only — mobile users reach
+            the same page via the drawer's footer (placeholder; future
+            iteration). Repoint the `to` when a real docs surface
+            ships.
+          */}
+          {user && (
+            <Link
+              to="/help"
+              aria-label="Help"
+              title="Help"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            >
+              <HelpCircle aria-hidden="true" size={20} />
+            </Link>
+          )}
+
           {user && (
             <>
               {/* Settings dropdown — desktop only */}
@@ -298,10 +317,20 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             here. Backend-syncable preferences (currency / country /
             timezone) live on the Profile page instead. See
             CONTRIBUTING.md §6 "Accessibility vs Preferences".
+
+            The label itself is a Link to the full Accessibility page,
+            so users who want the page-only controls (link underline,
+            focus ring, date/number format, default landing route) can
+            reach them in one tap from the drawer. The 5 inline quick
+            toggles below stay where they are.
           */}
-          <div className="px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-            Accessibility
-          </div>
+          <Link
+            to="/account/accessibility"
+            className="flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+          >
+            <span>Accessibility</span>
+            <ChevronRight aria-hidden="true" size={14} />
+          </Link>
           <ThemeOptions />
           <ZoomSlider />
           <MotionToggle />
@@ -316,6 +345,13 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           >
             <UserRound aria-hidden="true" size={16} className="mr-2" />
             Account
+          </Link>
+          <Link
+            to="/help"
+            className={drawerLinkClass({ isActive: false })}
+          >
+            <HelpCircle aria-hidden="true" size={16} className="mr-2" />
+            Help
           </Link>
           <button
             type="button"

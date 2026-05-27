@@ -9,6 +9,7 @@ import {
 } from '../../metadata/components/CountrySelect';
 import { CurrencySelect } from '../../metadata/components/CurrencySelect';
 import { TimezoneSelect } from '../../metadata/components/TimezoneSelect';
+import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
 import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
@@ -187,30 +188,22 @@ export function AccountPreferencesPage() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-6 dark:border-slate-700 dark:bg-slate-900/40">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <div className="border-b border-slate-100 px-4 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:text-slate-400">
           Defaults
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        </div>
+        <DefaultTxnKindSelect />
+        <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
           Date format, number format, and the default landing route
-          after login are configurable today under{' '}
+          after login also live under{' '}
           <a
             href="/account/accessibility"
             className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             Accessibility
-          </a>{' '}
-          — they persist to this browser only. Cross-device sync
-          (along with default debit/credit on Add Transaction) needs
-          backend columns on{' '}
-          <code className="rounded bg-slate-200 px-1 py-0.5 text-xs dark:bg-slate-800">
-            UserProfile
-          </code>{' '}
-          — tracked in{' '}
-          <code className="rounded bg-slate-200 px-1 py-0.5 text-xs dark:bg-slate-800">
-            docs/refactor/implementation_plan.md
-          </code>{' '}
-          under &ldquo;Backend follow-ups&rdquo;.
+          </a>
+          . All defaults persist to this browser only — cross-device
+          sync is queued as a backend follow-up.
         </p>
       </div>
     </div>
