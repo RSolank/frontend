@@ -49,7 +49,14 @@ in favor of the modal-first CRUD locked across Batches 6.5 / 7.
   budget" when no limit; "Edit budget" otherwise). The same
   component renders the Total Budget surface with `emphasis` set,
   which paints an indigo-tinted background to mark it as the
-  top-level rollup.
+  top-level rollup. Carries an **anomaly badge** (Batch 9.5)
+  inline with the title that classifies the current month's spend
+  against `avg_expense` / `max_expense` into four bands —
+  `Below typical` (emerald, current ≤ avg×0.75),
+  `Typical` (slate, within ±25 % of avg),
+  `Near typical max` (amber, > avg×1.25 and ≤ max), and
+  `Above typical max` (rose, > max). The badge is hidden when no
+  historical baseline exists yet (`avg_expense ≤ 0`).
 - `components/BudgetFormDialog.tsx` — `<Modal size="md">` with two
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls

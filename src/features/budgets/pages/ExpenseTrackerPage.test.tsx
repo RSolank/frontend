@@ -573,4 +573,117 @@ describe('ExpenseTrackerPage', () => {
       expect(secondGetMonth).toBe('2026-01');
     });
   });
+
+  // Batch 9.5 — anomaly badges on category cards. Classification:
+  //   below typical   : current ≤ avg * 0.75
+  //   typical         : avg * 0.75 < current ≤ avg * 1.25
+  //   near typical max: avg * 1.25 < current ≤ max
+  //   above typical   : current > max
+  // Hidden when avg ≤ 0 (fresh signup) or current ≤ 0.
+  describe('anomaly badges', () => {
+    it('renders the typical / near / above bands per the fixture data', async () => {
+      renderWithProviders(<ExpenseTrackerPage />);
+      await waitFor(() =>
+        expect(screen.getByTestId('budget-card-11')).toBeInTheDocument()
+      );
+
+      // Groceries: current=300, avg=250 → 300 ≤ 312.5 → typical (slate).
+      expect(
+        within(screen.getByTestId('budget-card-11')).getByTestId(
+          'budget-anomaly-typical'
+        )
+      ).toHaveTextContent('Typical');
+
+      // Dining: current=220, avg=150 → 220 > 187.5 AND 220 ≤ max=220 → near.
+      expect(
+        within(screen.getByTestId('budget-card-12')).getByTestId(
+          'budget-anomaly-near'
+        )
+      ).toHaveTextContent('Near typical max');
+
+      // Hobbies: current=50, avg=60 → 50 ≥ 45 (0.75*60) → typical.
+      expect(
+        within(screen.getByTestId('budget-card-13')).getByTestId(
+          'budget-anomaly-typical'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('renders "above" band when current > max and "below" when current ≤ 0.75 * avg', async () => {
+      server.use(
+        http.get('http://localhost:4000/api/budget-limits/status', () =>
+          HttpResponse.json({
+            ...statusResponse,
+            categories: [
+              {
+                ...statusResponse.categories[0]!,
+                tag_id: 201,
+                tag_name: 'Above Max',
+                current_expense: 500,
+                avg_expense: 200,
+                min_expense: 150,
+                max_expense: 400,
+                limit_amt: 1000,
+              },
+              {
+                ...statusResponse.categories[0]!,
+                tag_id: 202,
+                tag_name: 'Quiet Month',
+                current_expense: 60,
+                avg_expense: 200,
+                min_expense: 150,
+                max_expense: 400,
+                limit_amt: 1000,
+              },
+            ],
+          })
+        )
+      );
+
+      renderWithProviders(<ExpenseTrackerPage />);
+      await waitFor(() =>
+        expect(screen.getByTestId('budget-card-201')).toBeInTheDocument()
+      );
+
+      expect(
+        within(screen.getByTestId('budget-card-201')).getByTestId(
+          'budget-anomaly-above'
+        )
+      ).toHaveTextContent('Above typical max');
+      expect(
+        within(screen.getByTestId('budget-card-202')).getByTestId(
+          'budget-anomaly-below'
+        )
+      ).toHaveTextContent('Below typical');
+    });
+
+    it('hides the badge when there is no historical baseline yet (avg = 0)', async () => {
+      server.use(
+        http.get('http://localhost:4000/api/budget-limits/status', () =>
+          HttpResponse.json({
+            ...statusResponse,
+            categories: [
+              {
+                ...statusResponse.categories[0]!,
+                tag_id: 301,
+                tag_name: 'Fresh',
+                current_expense: 100,
+                avg_expense: 0,
+                min_expense: 0,
+                max_expense: 0,
+                limit_amt: 500,
+              },
+            ],
+          })
+        )
+      );
+
+      renderWithProviders(<ExpenseTrackerPage />);
+      await waitFor(() =>
+        expect(screen.getByTestId('budget-card-301')).toBeInTheDocument()
+      );
+      const card = screen.getByTestId('budget-card-301');
+      expect(within(card).queryByTestId(/^budget-anomaly-/)).toBeNull();
+    });
+  });
 });

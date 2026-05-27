@@ -366,6 +366,60 @@ describe('DashboardPage', () => {
         await screen.findByTestId('dashboard-activity-placeholder')
       ).toBeInTheDocument();
     });
+
+    // Batch 9.5 — week-by-category strip aggregates the already-loaded
+    // weekly debits by `tag_ids[0]` (the primary tag). Tag names come
+    // from /api/tags. With the populated fixture (Coffee Shop=12+Lunch=18
+    // → Dining=$30; Supermarket=88 → Groceries=$88; Bus Pass=30 →
+    // Uncategorized) the top categories should be Groceries → Bus Pass
+    // (Uncategorized) → Dining.
+    it('Week-by-category strip aggregates weekly debits by primary tag', async () => {
+      server.use(
+        http.get('http://localhost:4000/api/tags', () =>
+          HttpResponse.json({
+            tags: [
+              {
+                tag_id: 11,
+                tag_name: 'Groceries',
+                parent: null,
+                tag_type: 'essential',
+                aliases: [],
+                created_by: 1,
+              },
+              {
+                tag_id: 12,
+                tag_name: 'Dining',
+                parent: null,
+                tag_type: 'discretionary',
+                aliases: [],
+                created_by: 1,
+              },
+            ],
+          })
+        )
+      );
+
+      renderWithProviders(<DashboardPage />);
+      const card = await screen.findByTestId('dashboard-expense-card');
+      const strip = await within(card).findByTestId(
+        'dashboard-expense-week-list'
+      );
+
+      // Groceries: 88 (one txn) — top.
+      const groceriesRow = within(strip).getByTestId(
+        'dashboard-expense-week-row-11'
+      );
+      expect(groceriesRow).toHaveTextContent('Groceries');
+      expect(groceriesRow).toHaveTextContent('$88.00');
+
+      // Dining: 12 + 18 = 30 (two txns).
+      const diningRow = within(strip).getByTestId(
+        'dashboard-expense-week-row-12'
+      );
+      expect(diningRow).toHaveTextContent('Dining');
+      expect(diningRow).toHaveTextContent('$30.00');
+      expect(diningRow).toHaveTextContent('2 txns');
+    });
   });
 
   describe('empty state', () => {

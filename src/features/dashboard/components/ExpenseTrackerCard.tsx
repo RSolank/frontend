@@ -9,6 +9,7 @@ import {
 } from '../../budgets/api/queries';
 
 import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
+import { WeekByCategoryStrip } from './WeekByCategoryStrip';
 
 // Dashboard snapshot of the current month's budget vs. actual. Bespoke
 // (not a reuse of BudgetCategoryCard) — the page card pairs each
@@ -121,19 +122,32 @@ export function ExpenseTrackerCard() {
       <TotalRollup category={total} money={money} />
 
       {visibleCategories.length > 0 ? (
-        <ul
-          className="mt-4 flex flex-col gap-3"
-          data-testid="dashboard-expense-category-list"
-        >
-          {visibleCategories.slice(0, TOP_CATEGORIES_LIMIT).map((cat) => (
-            <CategoryRow key={cat.tag_id} category={cat} money={money} />
-          ))}
-        </ul>
+        <>
+          <div className="mt-4 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            Top categories this month
+          </div>
+          <ul
+            className="mt-2 flex flex-col gap-3"
+            data-testid="dashboard-expense-category-list"
+          >
+            {visibleCategories.slice(0, TOP_CATEGORIES_LIMIT).map((cat) => (
+              <CategoryRow key={cat.tag_id} category={cat} money={money} />
+            ))}
+          </ul>
+        </>
       ) : (
         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
           No category spend yet this month.
         </p>
       )}
+
+      {/*
+       * Week-by-category strip — Batch 9.5. Sits below the month top-3
+       * list so the user sees "where money went this week" alongside
+       * the existing monthly view. Hides itself silently when there's
+       * no weekly spend.
+       */}
+      <WeekByCategoryStrip />
     </DashboardCard>
   );
 }

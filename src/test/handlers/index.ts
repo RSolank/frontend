@@ -1,6 +1,7 @@
 import { authHandlers } from './auth';
 import { healthHandlers } from './health';
 import { metadataHandlers } from './metadata';
+import { tagsHandlers } from './tags';
 import { usersHandlers } from './users';
 
 // Add per-feature handler arrays here as Batches 2-8 land. Tests can
@@ -10,4 +11,5 @@ export const handlers = [
   ...authHandlers,
   ...usersHandlers,
   ...metadataHandlers,
+  ...tagsHandlers,
 ];

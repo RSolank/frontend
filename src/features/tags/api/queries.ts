@@ -45,5 +45,12 @@ export function useTagsQuery() {
   return useQuery({
     queryKey: tagKeys.list(),
     queryFn: fetchTags,
+    // Tags rarely change in normal use — bump well past the global
+    // 30s default so the Dashboard's WeekByCategoryStrip (Batch 9.5)
+    // + TagSelector / CategorizationRulesPage don't re-fetch on every
+    // route change. Every mutation site already invalidates
+    // `tagKeys.all`, so manual edits propagate instantly regardless
+    // of staleTime.
+    staleTime: 5 * 60_000,
   });
 }

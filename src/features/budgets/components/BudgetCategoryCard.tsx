@@ -105,6 +105,7 @@ export function BudgetCategoryCard({
                 Over budget
               </span>
             )}
+            <AnomalyBadge category={category} />
           </div>
         </div>
         <button
@@ -243,6 +244,99 @@ const STATUS_STYLE: Record<
     label: 'Over budget',
   },
 };
+
+// Anomaly indicator — compares the current month's spend against the
+// historical avg / min / max columns the backend already produces on
+// the budget-status payload. Single-month signal; the spec lock for
+// Batch 9.5 (frontend-only, no backend change) classifies into 4
+// bands matching CONTRIBUTING §6 colour discipline.
+//
+//   below typical : current ≤ avg * 0.75              (emerald)
+//   typical       : avg * 0.75 < current ≤ avg * 1.25 (slate)
+//   near max      : avg * 1.25 < current ≤ max        (amber)
+//   above max     : current > max                     (rose)
+//
+// We render nothing when there's no historical signal to compare against
+// (avg null / 0 — fresh sign-up before a full month rolls over) so the
+// card doesn't carry a misleading "typical" chip on day 1.
+type AnomalyBand = 'below' | 'typical' | 'near' | 'above';
+
+interface AnomalyDescriptor {
+  band: AnomalyBand;
+  label: string;
+  className: string;
+  // Plain-language tooltip — surfaces "why this band" without a
+  // help-icon click. Helps users new to the avg/min/max model.
+  title: string;
+}
+
+function classifyAnomaly(
+  category: BudgetCategory
+): AnomalyDescriptor | null {
+  const current = category.current_expense ?? 0;
+  const avg = category.avg_expense ?? 0;
+  const max = category.max_expense ?? 0;
+  // No historical aggregate to compare against (or no current spend
+  // at all). Hide the badge.
+  if (avg <= 0 || current <= 0) return null;
+
+  // Order matters — `above` check must precede `near` since a value
+  // that is both > avg*1.25 AND > max would otherwise fall through to
+  // `near`. Max can be 0 if the backend hasn't surfaced it; treat that
+  // as "no upper bound" and skip the above/near distinction.
+  if (max > 0 && current > max) {
+    return {
+      band: 'above',
+      label: 'Above typical max',
+      className:
+        'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
+      title: `Spent ${pct((current - max) / Math.max(max, 1))} above the highest month on record.`,
+    };
+  }
+  if (current > avg * 1.25) {
+    return {
+      band: 'near',
+      label: 'Near typical max',
+      className:
+        'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200',
+      title: `Spent ${pct((current - avg) / avg)} above the average. Watch the rest of the month.`,
+    };
+  }
+  if (current < avg * 0.75) {
+    return {
+      band: 'below',
+      label: 'Below typical',
+      className:
+        'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+      title: `Spent ${pct((avg - current) / avg)} under the average. Quiet month so far.`,
+    };
+  }
+  return {
+    band: 'typical',
+    label: 'Typical',
+    className:
+      'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    title: 'Within the typical monthly range.',
+  };
+}
+
+function pct(fraction: number): string {
+  return `${Math.round(Math.abs(fraction) * 100)}%`;
+}
+
+function AnomalyBadge({ category }: { category: BudgetCategory }) {
+  const anomaly = classifyAnomaly(category);
+  if (!anomaly) return null;
+  return (
+    <span
+      title={anomaly.title}
+      data-testid={`budget-anomaly-${anomaly.band}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${anomaly.className}`}
+    >
+      {anomaly.label}
+    </span>
+  );
+}
 
 function ProgressBar({
   percent,

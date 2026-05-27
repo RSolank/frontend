@@ -52,7 +52,7 @@ card is in its empty state.
 | Card | Hook(s) | Content |
 |---|---|---|
 | `components/TransactionsCard.tsx` | `useTransactionsQuery` (recent + week-bounded) | Weekly stat strip (spend + debit count) → 5 most recent rows → "Add transaction" inline CTA → footer link to `/transactions`. |
-| `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` | Total Spent / Limit rollup with gradient progress bar → top 3 categories with mini progress bars → breach count chip when any category is over → footer link to `/budgets`. |
+| `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` + (Batch 9.5) `useTransactionsQuery` + `useTagsQuery` | Total Spent / Limit rollup with gradient progress bar → top 3 monthly categories with mini progress bars → **week-by-category strip** (top 3 tags by spend this week, aggregated client-side from the same weekly transactions slice TransactionsCard uses; React Query dedupes the fetch) → breach count chip when any category is over → footer link to `/budgets`. |
 | `components/TaxTrackerCard.tsx` | `useTrackerCurrentWeekQuery` | Accrued + projected stat pair → week progress bar → top 3 contributors → footer link to `/consumption-tax`. |
 
 Empty states (fresh signup) — each card shows a friendly headline
