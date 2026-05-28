@@ -18,7 +18,7 @@ import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 // Two query slices:
 //   1. Recent list — limit 5, sorted desc by date. Drives the row list.
 //   2. This-week aggregate — fetch the current month's debits and
-//      filter client-side to the active Sun–Sat week. Cheap enough
+//      filter client-side to the active ISO Mon–Sun week. Cheap enough
 //      (one month bounded) and avoids a backend endpoint that
 //      doesn't exist yet.
 //

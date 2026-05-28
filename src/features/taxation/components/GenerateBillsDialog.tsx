@@ -24,7 +24,11 @@ interface GenerateBillsDialogProps {
   // invalidates its bills query.
   onGenerated: (billIds: number[]) => void | Promise<void>;
   // Active user timezone — needed to compute the preceding-week
-  // guard and to derive Sun→Sat boundaries from a single picked date.
+  // guard and to derive ISO Mon→Sun boundaries from a single picked
+  // date. NOTE: the backend still iterates Sun-Sat internally; the
+  // request range produced here may not align with stored bill
+  // boundaries until the backend convention cutover lands (see
+  // `.scratch/task-handoff-fe-to-be.md §12`).
   timezone: string;
 }
 
@@ -65,7 +69,7 @@ export function GenerateBillsDialog({
         return { ok: false, reason: 'Pick a week date first.' };
       }
       // The date input is `YYYY-MM-DD`; parse at noon UTC so tz-edge
-      // surprises don't shift the resolved Sun–Sat range.
+      // surprises don't shift the resolved Mon–Sun range.
       const parsed = new Date(`${weekPickDate}T12:00:00Z`);
       const range = weekRangeInTz(parsed, timezone);
       return { ok: true, ...range };
@@ -176,10 +180,10 @@ export function GenerateBillsDialog({
               data-testid="generate-week-input"
             />
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              Week boundaries are Sunday through Saturday in your active
-              timezone ({timezone}). Date format defaults to the browser
-              locale; the Account Preferences page will let you override
-              this in a later batch.
+              Week boundaries are Monday through Sunday (ISO 8601) in
+              your active timezone ({timezone}). Date format defaults
+              to the browser locale; the Account Preferences page will
+              let you override this in a later batch.
             </span>
           </label>
         ) : (

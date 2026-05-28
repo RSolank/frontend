@@ -592,6 +592,134 @@ copy-paste keeps each surface free to apply feature-specific chip
 rendering (Primary tag, alias bracket display) without a shared-API
 re-design.
 
+### Searchable dropdowns (when required)
+
+Locked 2026-05-29 during the Batch 9.6 review. Complements the
+"Searchable list with inline create" pattern above; this convention
+covers the **pick-only** case (no `+ Add new` CTA — the candidate
+set is closed).
+
+**A dropdown / selector MUST be searchable (typeahead-narrowed)
+when ANY of these hold:**
+
+1. **Size:** > 15 candidate items.
+2. **Nature:** data-driven (backed by a user-extendable or
+   backend-populated list that grows over time).
+3. **No inherent scan order:** alphabetical-by-name across many
+   items where visual scan past ~15 is slow.
+
+**Plain `<select>` is correct when ALL of these hold:**
+
+- ≤ 15 items, AND
+- inherent semantic / chronological order (months, years, priority
+  levels), AND
+- native browser type-letter behavior (jumps to first match by
+  initial letter) does the job.
+
+**Shared component:** `shared/components/SearchableSelect.tsx`.
+Single-select typeahead, ARIA combobox + listbox + option +
+`aria-activedescendant`. Keyboard nav: ↑/↓ moves highlight, Enter
+selects, Esc closes; hover updates highlight so click + keyboard
+don't conflict. The component composes a clear button + chevron
+toggle; the empty-value option (e.g. "All tags") is just an
+ordinary entry in `options[]`.
+
+**Decision matrix for current pickers:**
+
+| Surface | Convention | Reason |
+|---|---|---|
+| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create) | Data-driven, user can add |
+| Tag picker on Add Tx | `SearchableList` (pick-or-create, multi) | Data-driven, user can add |
+| Tag dropdown in Filter Sidebar | `SearchableSelect` | Data-driven, often > 15 |
+| Merchant search bar (Transactions filter row) | bespoke (per-feature `MerchantSearchBar`) | Filter-row chrome, not a sidebar dropdown |
+| Country picker (Register, Profile) | `SearchableSelect` | 250 items |
+| Currency picker (Profile, Preferences) | `SearchableSelect` | 170 items |
+| Timezone picker (Register, Profile) | bespoke `TimezoneSelect` (country-narrowing) | Specialised filter cascade |
+| Month dropdown (Transactions filter) | plain `<select>` | Sequential, 25 items, native jump works |
+| Type filter (debit/credit/all) | pill toggle | 3 items — toggle, not dropdown |
+| Sort field / direction (Filter Sidebar) | plain `<select>` | ≤ 4 items, fixed |
+| Date format / number format pickers | plain `<select>` | ≤ 10 items, semantic groups |
+
+**Anti-patterns to avoid:**
+
+- Wrapping a small fixed list (e.g. debit/credit/all) in a
+  searchable component — adds chrome for no benefit; use a pill
+  toggle instead.
+- Using `<select>` for a 200-item list because "it's just an
+  internal screen" — slow scrolling burns user time daily.
+- Building per-feature typeahead components when
+  `SearchableSelect` would compose. Reach for it first; only
+  diverge when the pattern needs feature-specific chips /
+  cascading filters that wouldn't fit a shared API.
+
+**Sweep status:** the cross-feature enforcement pass that migrates
+the remaining `CountrySelect` and `CurrencySelect` away from raw
+`<select>` lives in **Batch 9.8** (see the refactor's
+`task-frontend.md`).
+
+### Detail modal (canonical view + edit surface)
+
+Locked 2026-05-29 during the Batch 9.6 review. **Every CRUD-shaped
+feature exposes a single canonical Detail Modal as both the
+view-everything surface and the edit surface.** Triggered by a
+row-level `⋯` (Lucide `MoreHorizontal`) button on the right edge of
+each row/card.
+
+**Why one modal, not two surfaces:** the alternative ("view page" +
+separate "edit modal") triples the cognitive load — three click
+paths, three render trees, three places to keep in sync. The
+Detail Modal collapses that to one surface that's view-on-arrival
+and edit-on-engagement; the per-field editability is the field's
+own property (some fields are readonly, some are inputs).
+
+**Anchor invariants:**
+
+- **Trigger:** `⋯` icon button on the right edge of every row /
+  card, sized 28–32 px to match the modal-header chrome
+  (existing close X + Trash buttons).
+- **URL state:** opens via `?edit=<id>` (existing pattern) or a
+  feature-specific equivalent. Reloads land on the modal; deep
+  links work.
+- **Shows every relevant field** from the API response — even
+  fields hidden in the row. The canonical example is the
+  transaction `notes` field: not displayed on the row, fully
+  visible + editable inside the modal. Anything the backend
+  returns and the user might want to read goes here.
+- **Per-field editability is the field's call.** Readonly fields
+  render as labeled values (`<dl>`-style or stacked label-above-
+  value). Editable fields render as inputs. Source-gated rows
+  (e.g. statement-imported transactions) gate edit-ability of
+  individual fields, not the whole modal.
+- **One canonical component per feature** — `<FooFormDialog>`
+  mounted in both row-click (edit) and list-header (add)
+  contexts. The component branches its internal state on
+  `editing != null`; no duplicate forms.
+- **Delete lives in the modal header** per the existing
+  "Modal-header destructive actions" convention (next section).
+  When delete is unavailable (system rows, locked entities), the
+  trash button is omitted, not disabled-with-tooltip.
+- **System / locked rows still render `⋯`** so the entry-point
+  is consistent. Inside, fields show as readonly and the trash
+  is hidden.
+
+**Reference implementations (live in the repo):**
+
+- `features/transactions` — row `⋯` → `?edit=<id>` modal
+  (Batch 9.6).
+- `features/beneficiaries` — `BeneficiaryFormDialog` (full-field
+  view+edit; add+edit branch on `editing` prop).
+- `features/tags` — `TagFormDialog` (system tags render readonly).
+- `features/budgets` — `BudgetFormDialog`.
+- `features/categorization` — rule edit modal.
+- `features/taxation` — `TaxationRuleFormDialog` for rules,
+  `BillDetailDialog` for bills (read-only Detail Modal — bills
+  aren't edited, only viewed + paid).
+
+**Sweep status:** the cross-feature enforcement pass that walks
+every feature to ensure compliance lives in **Batch 9.8** (see
+the refactor's `task-frontend.md`). New features after the
+refactor merges adopt this convention from the start.
+
 ### Modal-header destructive actions (Remove-in-edit)
 
 Locked in the 2026-05-27 Batch 8 follow-up review. **Every edit
@@ -733,6 +861,38 @@ the privacy-mask CSS rule (`html.mask-amounts .money`) can blur
 it. Examples in `features/transactions/pages/TransactionsPage.tsx`
 amount cells. Future surfaces that render money adopt this
 className as they're touched.
+
+### Week convention
+
+Locked in Batch 9.6 (2026-05-28). **Weeks are ISO 8601 — Monday
+through Sunday — in the user's active timezone.** Applies to every
+frontend surface that buckets data by week: the Tax Tracker
+current-week card, every Dashboard week widget, the
+`/transactions` calendar view, the bills generation picker, and
+anything added later that needs a week boundary.
+
+**Canonical helper:** `features/taxation/api/billPeriod.ts` →
+`weekRangeInTz(date, tz)` returns
+`{ period_start: <Mon YYYY-MM-DD>, period_end: <Sun YYYY-MM-DD> }`.
+Never roll your own Monday math; use the helper so a future
+convention change is one file. `fractionOfWeekElapsed` and
+`precedingWeekStartInTz` also operate on ISO weeks.
+
+**Backend status — TRANSITIONAL.** The backend's bill generator
+(`backend/app/modules/taxation/taxation_services.py:_iter_week_ranges`)
+still iterates Sun → Sat. Frontend display surfaces are
+self-contained and already correct; the bill write path
+(`GenerateBillsDialog` → `POST /api/consumption-tax/generate`) will
+send Mon → Sun ranges that don't align with stored Sun → Sat
+bills until the backend cutover lands. The ask is filed in
+[`.scratch/task-handoff-fe-to-be.md §12`](../.scratch/task-handoff-fe-to-be.md)
+as a high-priority backend follow-up. Until that lands, do **not**
+batch-generate bills across the convention boundary.
+
+**Naming.** Use `weekStart` / `weekEnd` (or `period_start` /
+`period_end` when matching backend payload shape) — never
+`mondayStart` / `sundayEnd`. The labels stay neutral so the next
+convention change (if any) doesn't require a rename sweep.
 
 ---
 

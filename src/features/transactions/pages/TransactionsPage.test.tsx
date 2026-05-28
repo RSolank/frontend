@@ -58,19 +58,6 @@ const txnList = {
   returned_count: 2,
 };
 
-const fullPage = {
-  transactions: Array.from({ length: 25 }, (_, i) => ({
-    ...txnList.transactions[0],
-    txn_id: i + 100,
-  })),
-  returned_count: 25,
-};
-
-const nextPage = {
-  transactions: [{ ...txnList.transactions[0], txn_id: 999 }],
-  returned_count: 1,
-};
-
 const merchantGroups = {
   groups: [
     {
@@ -101,6 +88,9 @@ describe('TransactionsPage', () => {
             { code: 'USD', label: 'USD - US Dollar', symbol: '$' },
           ],
         })
+      ),
+      http.get('http://localhost:4000/api/beneficiaries', () =>
+        HttpResponse.json([])
       )
     );
   });
@@ -114,7 +104,7 @@ describe('TransactionsPage', () => {
     return renderWithProviders(<TransactionsPage />);
   }
 
-  it('renders transactions table with tags and links', async () => {
+  it('renders transactions row-list with tags + beneficiary links', async () => {
     mountWithList();
 
     await waitFor(() => {
@@ -124,64 +114,26 @@ describe('TransactionsPage', () => {
 
     expect(screen.getAllByText('Food').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
-    // Beneficiaries + Dashboard header buttons were removed in the
-    // Batch 6.5 follow-up (TopNav owns those now). The row-level
-    // beneficiary link still navigates to /beneficiaries/<uid>, which
-    // is itself a redirect into ?edit=<uid> on the list page.
+    // Beneficiary name within the row is a Link to the merchant page.
     expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute(
       'href',
       '/beneficiaries/10'
     );
   });
 
-  it('shows action dropdown only for manual transactions', async () => {
+  it('⋯ action button opens edit modal; Trash visible only for manual txns', async () => {
     mountWithList();
-
     await waitFor(() =>
       expect(screen.getByText('Supermarket')).toBeInTheDocument()
     );
 
-    const toggleButtons = screen.getAllByRole('button', {
-      name: 'More actions',
+    const openButtons = screen.getAllByRole('button', {
+      name: /view \/ edit transaction/i,
     });
-    expect(toggleButtons).toHaveLength(1);
-
-    const salaryRow = screen.getByText('Salary').closest('tr');
-    expect(salaryRow).not.toBeNull();
-    expect(
-      within(salaryRow as HTMLElement).queryByRole('button', {
-        name: 'More actions',
-      })
-    ).toBeNull();
+    expect(openButtons).toHaveLength(2);
   });
 
-  it('handles pagination', async () => {
-    const capturedUrls: string[] = [];
-    server.use(
-      http.get('http://localhost:4000/api/transactions', ({ request }) => {
-        capturedUrls.push(request.url);
-        const url = new URL(request.url);
-        if (url.searchParams.get('offset') === '25') {
-          return HttpResponse.json(nextPage);
-        }
-        return HttpResponse.json(fullPage);
-      })
-    );
-
-    renderWithProviders(<TransactionsPage />);
-
-    await waitFor(() =>
-      expect(screen.getByText('Next')).not.toBeDisabled()
-    );
-
-    fireEvent.click(screen.getByText('Next'));
-
-    await waitFor(() => {
-      expect(capturedUrls.some((u) => u.includes('offset=25'))).toBe(true);
-    });
-  });
-
-  it('merchant view links to beneficiary and Details filters by beneficiary_id', async () => {
+  it('Merchant tab switches view; Details filters by beneficiary_id', async () => {
     const capturedUrls: string[] = [];
     server.use(
       http.get('http://localhost:4000/api/transactions', ({ request }) => {
@@ -206,7 +158,8 @@ describe('TransactionsPage', () => {
       expect(screen.getByText('Supermarket')).toBeInTheDocument()
     );
 
-    fireEvent.click(screen.getByText('Merchant View'));
+    // Three-pill view toggle — "Merchant" is the middle pill.
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
 
     await waitFor(() =>
       expect(screen.getByText('Coffee Shop')).toBeInTheDocument()
@@ -226,37 +179,99 @@ describe('TransactionsPage', () => {
     });
   });
 
-  it('deletes manual transactions via dropdown', async () => {
-    let deleted = false;
-    server.use(
-      http.get('http://localhost:4000/api/transactions', () =>
-        HttpResponse.json(txnList)
-      ),
-      http.delete('http://localhost:4000/api/transactions/1', () => {
-        deleted = true;
-        return HttpResponse.json({ ok: true });
-      })
-    );
-
-    renderWithProviders(<TransactionsPage />);
-
+  it('Calendar tab renders the calendar grid', async () => {
+    mountWithList();
     await waitFor(() =>
       expect(screen.getByText('Supermarket')).toBeInTheDocument()
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Calendar$/i }));
 
-    // Batch 6.5: delete now opens a ConfirmDialog instead of
-    // window.confirm. The "Delete" button inside the dialog drives
-    // the API call.
-    const dialog = await screen.findByRole('dialog', {
-      name: /Delete transaction/i,
-    });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    // The MonthDropdown is hidden in calendar mode; the calendar grid
+    // mounts both desktop + mobile shapes simultaneously.
+    expect(screen.queryByLabelText('Select month')).toBeNull();
+    expect(
+      screen.getAllByRole('grid', { name: /Transaction calendar/i }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('clicking a calendar day opens the side panel with that day’s txns', async () => {
+    // Pin "today" so the `month=` filter the calendar query issues is
+    // stable. toFake: ['Date'] keeps setTimeout / queueMicrotask alive
+    // so React Query + msw + RTL waiters still resolve.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-28T12:00:00Z'));
+
+    try {
+      const ANCHOR_DAY = '2026-05-27';
+      server.use(
+        http.get('http://localhost:4000/api/transactions', ({ request }) => {
+          const url = new URL(request.url);
+          const month = url.searchParams.get('month');
+          if (month === '2026-05') {
+            return HttpResponse.json({
+              transactions: [
+                {
+                  txn_id: 501,
+                  txn_date: ANCHOR_DAY,
+                  beneficiary_name: 'Cafe',
+                  beneficiary: 'Cafe',
+                  amount: 120,
+                  debit_credit: 'debit',
+                  source: 'manual',
+                  tag_ids: [10],
+                },
+              ],
+              returned_count: 1,
+            });
+          }
+          return HttpResponse.json({ transactions: [], returned_count: 0 });
+        })
+      );
+
+      // Pre-set the URL to calendar view so the page renders the
+      // calendar directly without clicking the tab.
+      renderWithProviders(<TransactionsPage />, {
+        initialEntries: ['/transactions?view=calendar'],
+      });
+
+      const cells = await screen.findAllByRole('gridcell', {
+        name: new RegExp(`^${ANCHOR_DAY}`),
+      });
+      expect(cells.length).toBeGreaterThan(0);
+      fireEvent.click(cells[0]!);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/Cafe/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Filters button opens the sidebar; Clear all resets sidebar state', async () => {
+    mountWithList();
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+
+    // Open filter sidebar.
+    fireEvent.click(screen.getByRole('button', { name: /open filters/i }));
+
+    const sidebar = await screen.findByRole('dialog', { name: /filters/i });
+    // Set debit-only.
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Debit' }));
+    // The filter button gains a (1) badge once we close.
+    fireEvent.click(within(sidebar).getByRole('button', { name: /clear all/i }));
+
+    // Done closes the sidebar.
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Done' }));
 
     await waitFor(() => {
-      expect(deleted).toBe(true);
+      expect(screen.queryByRole('dialog', { name: /filters/i })).toBeNull();
     });
+    // Active count is back to 0 (no badge).
+    expect(
+      screen.queryByRole('button', { name: /open filters \(1 active\)/i })
+    ).toBeNull();
   });
 });

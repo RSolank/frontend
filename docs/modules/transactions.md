@@ -181,3 +181,147 @@ The `AddTransactionPage` / `EditTransactionPage` modules remain
 mount-as-page-able because of the `embedded` flag — when `true` they
 skip their outer card + h1 (the modal supplies them); when `false`
 (default) they render with their original page chrome.
+
+## Batch 9.6 — View system, calendar, filter sidebar, infinite scroll
+
+Overhaul of the page chrome alongside the calendar view. Single source
+of truth for every filter is the URL via `useTransactionFilters`
+(`state/transactionFilters.ts`) — no more local-component or Zustand
+persistence; URL state survives reloads, syncs across tabs, and makes
+filter deep-links shareable.
+
+### Three-pill view toggle
+
+`[ List | Merchant | Calendar ]` driven by `?view=list|merchant|calendar`.
+All three are sibling views — List and Calendar are visualizations,
+Merchant is a server-side `group_by` aggregation. The earlier "List
+View / Merchant View" inner toggle (post-Batch-6.5) is gone; Merchant
+is a top-level peer.
+
+### Filter sidebar
+
+Right-edge slide-in panel (`components/FilterSidebar.tsx`) holds the
+filters and sort UI that don't warrant always-visible chrome: Type
+(All/Debit/Credit), Tag, Sort by + Direction. Activated via a
+`Filters` button on Row 2 — an `(n)` badge shows the count of
+non-default sidebar filters. Built on Radix Dialog (same primitive
+family as `DaySidePanel`); slide-in animation, focus trap, escape
+close, scroll lock. Footer carries `[Clear all] [Done]`.
+
+### Always-visible Row 2 controls
+
+- **Month dropdown** (`components/MonthDropdown.tsx`) — rolling 24-month
+  list + "All months" head option, computed at component-mount time
+  against today in the browser tz. No backend dependency. Hidden in
+  Calendar view (calendar has its own ◀ ▶ month nav).
+- **Merchant search** (`components/MerchantSearchBar.tsx`) — typeahead
+  picker against `/api/beneficiaries`. Selecting a beneficiary sets
+  `?beneficiary=<id>`; server-side filter (`beneficiary_id`)
+  scales across pages. The bar shows in all three views — yes,
+  including Calendar, because a heat-map of one merchant's spending
+  across the month is genuinely useful.
+
+### Row-list rendering
+
+The `<table>` is replaced by `components/TransactionRow.tsx` (List
+view) + `components/MerchantRow.tsx` (Merchant view). Single
+component, fully responsive:
+
+- **Desktop ≥ md:** compact `<ul>` of flex-row `<li>`s. No column
+  headers (sort moved to sidebar). Date in `Wed, May 28` shape via
+  `formatDate(..., { weekday: 'short', month: 'short', day: 'numeric' }, respectUserFormat=false)`.
+  Tags as chips inline before the amount. Amount right-aligned, tabular
+  numerals. `⋯` button on the far right is the view + edit affordance
+  (per the "modal-as-view+edit" convention locked in this batch — see
+  CONTRIBUTING.md §6).
+- **Mobile < md:** same `<ul>` reflows to `flex-col` per row, name
+  above amount, tags wrap; functionally a card without the explicit
+  border. Same DOM, different shape — Tailwind responsive utilities
+  switch.
+
+### Pagination
+
+`useInfiniteTransactionsQuery` (`api/queries.ts`) replaces the prior
+manual pagination. Pages accumulate via TanStack Query's
+`useInfiniteQuery`. Two trigger surfaces:
+
+- **Mobile < md:** "Show more" button at the bottom of the list.
+- **Desktop ≥ md:** IntersectionObserver-driven auto-load. Sentinel
+  `<div ref={sentinelRef} className="hidden md:block">` is invisible
+  on mobile (no intersection events fire) and triggers fetch when
+  scrolled into view on desktop. No JS device sniffing —
+  display:none + IntersectionObserver semantics give us the divide
+  for free.
+
+The shared hook is at `shared/hooks/useIntersectionObserver.ts`
+(generic — accepts a callback, returns a ref, gates by `enabled`).
+
+### URL state mapping
+
+| URL key | Meaning |
+|---|---|
+| `?view=list\|merchant\|calendar` | Primary view |
+| `?type=debit\|credit` | Type filter |
+| `?tag=<id>` | Tag filter |
+| `?month=YYYY-MM` | Month dropdown (List + Merchant) |
+| `?beneficiary=<id>` | Merchant search |
+| `?sort=<field>&order=asc\|desc` | Sort spec |
+| `?day=YYYY-MM-DD` | Calendar day flyout |
+| `?add=true`, `?edit=<id>` | Modal state (existing) |
+
+Sort defaults vary by view: List + Calendar default to
+`date desc`; Merchant defaults to `total_amount desc`. The URL omits
+the keys when at-default so links stay clean.
+
+### Calendar (carry-over from initial 9.6 spec)
+
+Responsive shape:
+
+- **Desktop ≥ lg:** full month grid (7 × 6 cells). Prev / next month
+  arrows + a "Today" jump button. Heat-map shading by per-day debit
+  total (quartile buckets against the visible month's max). Today
+  carries an extra indigo ring on top of the heat tint.
+- **Mobile < lg:** swipeable single ISO week (7 cells). Prev / next
+  week arrows + "Today" jump.
+
+Both surfaces render simultaneously and Tailwind's `lg:` breakpoint
+controls visibility. Keyboard nav (arrow keys move focus; Enter /
+Space opens the day) works on whichever grid is mounted, per
+[CONTRIBUTING.md §6](../../CONTRIBUTING.md) a11y contract.
+
+**Data flow.** Calendar mode issues its own `useTransactionsQuery`
+with `month=<YYYY-MM>` and no debit/credit filter — page filters
+don't bleed into the calendar (mode is meant as a glance view). The
+query cache for the displayed month is shared with the day flyout
+when it sits inside the same month.
+
+**Day flyout** — `components/DaySidePanel.tsx`. Right-edge slide-in
+panel on ≥ sm; bottom-sheet on < sm. Built directly on Radix UI's
+Dialog primitives rather than `shared/components/Modal.tsx` because
+the responsive shape (edge slide-in vs centered card) is materially
+different. URL-state synced via `useUrlValueModal('day')` →
+`/transactions?day=YYYY-MM-DD` is shareable and survives reload.
+The panel lists every transaction on the selected day with totals
++ a "+ Add transaction for this day" CTA. When clicked, the iso
+date is captured into local state, the panel closes, and the
+existing add modal opens with the day pre-filled via a new
+`defaultDate` prop on `AddTransactionPage`.
+
+**Editing from the panel** — clicking a row's Edit link closes the
+side panel and opens the existing `?edit=<id>` modal. Same flow as
+the list view, no new edit surface.
+
+**Helpers added:** `api/calendar.ts` —
+`buildMonthGrid(monthKey, todayIso)`, `buildWeekRow(anchorIso,
+todayIso)`, `bucketByDay(txns, tz)`, `heatBucket(value, max)`,
+`shiftMonthKey`, `shiftIso`, `monthKeyFromIso`, `todayIsoInTz(tz)`.
+All pure functions; tests under `api/calendar.test.ts`.
+
+**Week convention** — ISO 8601 (Mon → Sun), per the project
+convention locked alongside this batch
+([CONTRIBUTING.md §6 "Week convention"](../../CONTRIBUTING.md)).
+`weekRangeInTz` from
+[`features/taxation/api/billPeriod.ts`](../../src/features/taxation/api/billPeriod.ts)
+is the canonical helper; the calendar's month grid pads to full
+ISO weeks via that helper. See the convention section in
+CONTRIBUTING.md for the backend coordination status.

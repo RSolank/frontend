@@ -1,18 +1,31 @@
-// Week-period helpers for the consumption-tax surfaces. Sun–Sat per the
-// backend's bill-period convention (see
-// backend/app/modules/taxation/taxation_services.py:generate_bill_for_week).
+// Week-period helpers for the consumption-tax surfaces and any other
+// frontend surface that needs to bucket data by week (Tax Tracker,
+// Dashboard week widgets, /transactions calendar view).
 //
-// All boundary math is done against the user's timezone so a user in
-// Asia/Kolkata on Sunday evening UTC gets Sunday-in-IST as the week
-// start, not Monday. The wall-clock-in-tz strategy mirrors
-// shared/utils/dateUtils.localToUtcIso.
+// PROJECT CONVENTION: weeks are ISO 8601 — Monday through Sunday in
+// the user's active timezone. Locked 2026-05-28 during Batch 9.6; see
+// CONTRIBUTING.md §6 "Week convention" + the matching backend handoff
+// in `.scratch/task-handoff-fe-to-be.md §12`. The backend's bill
+// generator still iterates Sun-Sat internally
+// (`backend/app/modules/taxation/taxation_services.py:_iter_week_ranges`),
+// so the Tax Tracker bill-write path (`GenerateBillsDialog` →
+// `/api/consumption-tax/generate`) carries a known temporary mismatch
+// until the backend cutover lands. Read-only display surfaces are
+// frontend-only and already correct.
+//
+// All boundary math is done against the user's timezone so e.g. a
+// user in Asia/Kolkata on Sunday evening UTC reads as Monday-in-IST
+// and the previous Monday roots the week. Mirrors the wall-clock-in-tz
+// strategy from shared/utils/dateUtils.localToUtcIso.
 
 function partsInTz(
   date: Date,
   tz: string
 ): { year: number; month: number; day: number; weekday: number } {
-  // weekday from `weekday: 'short'` (Sun..Sat) lets us derive the
-  // Sun-rooted week start without going through getDay() in local tz.
+  // weekday from `weekday: 'short'` lets us derive the Monday-rooted
+  // week start without depending on getDay() in local tz. We remap to
+  // ISO weekday numbering (Mon=0..Sun=6) so the back-shift to the
+  // preceding Monday is a simple subtraction.
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
     year: 'numeric',
@@ -21,14 +34,15 @@ function partsInTz(
     weekday: 'short',
   }).formatToParts(date);
   const lookup = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  // Monday-rooted: Mon=0, Tue=1, …, Sun=6.
   const weekdayMap: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
+    Mon: 0,
+    Tue: 1,
+    Wed: 2,
+    Thu: 3,
+    Fri: 4,
+    Sat: 5,
+    Sun: 6,
   };
   return {
     year: Number(lookup('year')),
@@ -45,7 +59,7 @@ function isoFromYmd(year: number, month: number, day: number): string {
 }
 
 function shiftDays(year: number, month: number, day: number, delta: number) {
-  // Use UTC math then read back as Y-M-D; safe because the shift is
+  // UTC math then read back as Y-M-D; safe because the shift is
   // calendar-day arithmetic, not wall-clock.
   const utc = Date.UTC(year, month - 1, day) + delta * 86_400_000;
   const d = new Date(utc);
@@ -56,8 +70,9 @@ function shiftDays(year: number, month: number, day: number, delta: number) {
   };
 }
 
-// Returns the Sunday-rooted week containing `date` interpreted in `tz`.
-// Both fields are `YYYY-MM-DD`.
+// Returns the ISO (Monday-rooted) week containing `date` interpreted
+// in `tz`. Both fields are `YYYY-MM-DD`. period_start is the Monday,
+// period_end is the Sunday.
 export function weekRangeInTz(
   date: Date,
   tz: string
@@ -71,11 +86,17 @@ export function weekRangeInTz(
   };
 }
 
-// Returns the start of the preceding week (Sunday). Used by the bills
-// page to gate "Generate" eligibility: the backend rejects period ends
-// that fall inside or after the preceding week (the current accruing
-// week is never billable; the preceding one is reserved as the
-// in-flight to-be-billed week).
+// Returns the start of the preceding ISO week (Monday). Used by the
+// bills page to gate "Generate" eligibility: the backend rejects
+// period ends that fall inside or after the preceding week (the
+// current accruing week is never billable; the preceding one is
+// reserved as the in-flight to-be-billed week).
+//
+// NOTE during the convention transition: the backend's internal week
+// iterator still produces Sun-Sat ranges, so the eligibility guard
+// uses an *approximation* — a frontend-Monday will be one day later
+// than the matching backend-Sunday. Acceptable while the backend
+// catches up; over-restricts by one day at worst.
 export function precedingWeekStartInTz(tz: string): string {
   const current = weekRangeInTz(new Date(), tz);
   const [y, m, d] = current.period_start.split('-').map(Number);
@@ -117,9 +138,10 @@ export function formatBillDate(value: string, tz: string): string {
   return `${day}/${month}/${year}`;
 }
 
-// Fraction-of-the-week-elapsed in user tz. 0 on Sunday 00:00; 1 at
-// Saturday 24:00. Used by the Tax Tracker projection card when the
-// backend hasn't supplied a server-side projection.
+// Fraction-of-the-week-elapsed in user tz under ISO weeks. 0 at
+// Monday 00:00; 1 at Sunday 24:00. Used by the Tax Tracker
+// projection card when the backend hasn't supplied a server-side
+// projection.
 export function fractionOfWeekElapsed(date: Date, tz: string): number {
   const p = partsInTz(date, tz);
   // Hours / minutes / seconds in tz.

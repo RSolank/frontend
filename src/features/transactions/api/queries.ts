@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
 
@@ -44,5 +44,34 @@ export function useTransactionsQuery(params: TransactionListParams) {
   return useQuery({
     queryKey: transactionKeys.list(params),
     queryFn: () => fetchTransactions(params),
+  });
+}
+
+// Paginated variant for the List / Merchant views — accumulates pages
+// so "Show more" (mobile) + IntersectionObserver-driven infinite
+// scroll (desktop) both feed the same growing list. `pageParam`
+// becomes the next page's offset; `getNextPageParam` is null when the
+// last page returned fewer rows than the page size (signalling no
+// more data).
+export function useInfiniteTransactionsQuery(
+  baseParams: Omit<TransactionListParams, 'offset'>
+) {
+  return useInfiniteQuery({
+    queryKey: transactionKeys.list({ ...baseParams, offset: 0 } as TransactionListParams),
+    queryFn: ({ pageParam }) =>
+      fetchTransactions({ ...baseParams, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const returned = lastPage.returned_count ?? 0;
+      if (returned < baseParams.limit) return undefined;
+      // Next offset = sum of every prior page's returned_count.
+      // Tolerant of variable-sized pages even though the backend
+      // returns fixed pages.
+      const consumed = allPages.reduce(
+        (acc, p) => acc + (p.returned_count ?? 0),
+        0
+      );
+      return consumed;
+    },
   });
 }

@@ -58,12 +58,18 @@ interface AddTransactionPageProps {
   // Hide the redundant page-level chrome (outer card + h1) when
   // mounted inside a <Modal /> that already supplies them.
   embedded?: boolean;
+  // Pre-fill the date field instead of defaulting to "today". Used by
+  // the calendar view's "Add transaction for this day" CTA so the
+  // selected day flows straight into the form. Expected `YYYY-MM-DD`
+  // in the user's tz (matching `<input type="date">`'s value shape).
+  defaultDate?: string;
 }
 
 export function AddTransactionPage({
   onClose,
   onSaved,
   embedded = false,
+  defaultDate,
 }: AddTransactionPageProps = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -83,7 +89,9 @@ export function AddTransactionPage({
   );
   const [beneficiaryName, setBeneficiaryName] = useState('');
   const [beneficiaryId, setBeneficiaryId] = useState<number | string>('');
-  const [txnDate, setTxnDate] = useState(() => todayInUserTz(timezone));
+  const [txnDate, setTxnDate] = useState(
+    () => defaultDate || todayInUserTz(timezone)
+  );
   const [notes, setNotes] = useState('');
   const [tagIds, setTagIds] = useState<number[]>([]);
 
