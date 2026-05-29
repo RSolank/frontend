@@ -14,11 +14,15 @@ const CURRENCIES = [
   { code: 'XYZ', label: 'Non-standard code', symbol: null },
 ];
 
+// Post-Batch-9.8: migrated to SearchableSelect. Options only render
+// once the typeahead input gains focus; the combobox is a text input,
+// not a native <select>.
 describe('CurrencySelect', () => {
   it('renders `${label} (${symbol})` for currencies with a symbol', () => {
     renderWithProviders(
       <CurrencySelect value="" onChange={() => {}} currencies={CURRENCIES} />
     );
+    fireEvent.focus(screen.getByRole('combobox'));
     expect(
       screen.getByRole('option', { name: 'INR - Indian Rupee (₹)' })
     ).toBeInTheDocument();
@@ -31,6 +35,7 @@ describe('CurrencySelect', () => {
     renderWithProviders(
       <CurrencySelect value="" onChange={() => {}} currencies={CURRENCIES} />
     );
+    fireEvent.focus(screen.getByRole('combobox'));
     expect(
       screen.getByRole('option', { name: 'Non-standard code' })
     ).toBeInTheDocument();
@@ -41,7 +46,10 @@ describe('CurrencySelect', () => {
     renderWithProviders(
       <CurrencySelect value="" onChange={onChange} currencies={CURRENCIES} />
     );
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'USD' } });
+    fireEvent.focus(screen.getByRole('combobox'));
+    fireEvent.mouseDown(
+      screen.getByRole('option', { name: 'USD - US Dollar ($)' })
+    );
     expect(onChange).toHaveBeenCalledWith('USD');
   });
 

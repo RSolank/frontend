@@ -24,15 +24,19 @@ const COUNTRIES = [
   },
 ];
 
+// Post-Batch-9.8: migrated to SearchableSelect. Options only render
+// once the typeahead input gains focus; the combobox is a text input,
+// not a native <select>.
 describe('CountrySelect', () => {
   it('emits the full CountryOption alongside the value on selection', () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CountrySelect value="" onChange={onChange} countries={COUNTRIES} />
     );
-    fireEvent.change(screen.getByRole('combobox'), {
-      target: { value: 'India' },
-    });
+    fireEvent.focus(screen.getByRole('combobox'));
+    fireEvent.mouseDown(
+      screen.getByRole('option', { name: '(+91) India' })
+    );
     expect(onChange).toHaveBeenCalledWith(
       'India',
       expect.objectContaining({ name: 'India', timezone: 'Asia/Kolkata' })
@@ -44,9 +48,10 @@ describe('CountrySelect', () => {
     renderWithProviders(
       <CountrySelect value="" onChange={onChange} countries={COUNTRIES} />
     );
-    fireEvent.change(screen.getByRole('combobox'), {
-      target: { value: COUNTRY_PREFER_NOT_SAY },
-    });
+    fireEvent.focus(screen.getByRole('combobox'));
+    fireEvent.mouseDown(
+      screen.getByRole('option', { name: 'Rather not say' })
+    );
     expect(onChange).toHaveBeenCalledWith(COUNTRY_PREFER_NOT_SAY, null);
   });
 
@@ -54,6 +59,7 @@ describe('CountrySelect', () => {
     renderWithProviders(
       <CountrySelect value="" onChange={() => {}} countries={COUNTRIES} />
     );
+    fireEvent.focus(screen.getByRole('combobox'));
     expect(
       screen.getByRole('option', { name: '(+91) India' })
     ).toBeInTheDocument();
@@ -83,6 +89,7 @@ describe('CountrySelect', () => {
         allowPreferNotSay={false}
       />
     );
+    fireEvent.focus(screen.getByRole('combobox'));
     expect(
       screen.queryByRole('option', { name: 'Rather not say' })
     ).not.toBeInTheDocument();

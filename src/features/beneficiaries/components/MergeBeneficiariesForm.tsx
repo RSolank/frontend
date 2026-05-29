@@ -1,3 +1,6 @@
+import { useMemo } from 'react';
+
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import type { Beneficiary } from '../api/queries';
 
 interface MergeBeneficiariesFormProps {
@@ -36,6 +39,33 @@ export function MergeBeneficiariesForm({
   );
   const sourceSelectId = 'merge-source-select';
   const targetSelectId = 'merge-target-select';
+
+  // Build the typeahead options once per render. Empty option pinned
+  // at the top doubles as the "no selection" no-op state (matches the
+  // FilterSidebar tag picker pattern). Per CONTRIBUTING.md §6, a
+  // data-driven dropdown over the beneficiary list meets the
+  // searchable-dropdown threshold (>15 items / data-driven /
+  // no scan-order).
+  const sourceOptions = useMemo(
+    () => [
+      { value: '', label: 'Select source...' },
+      ...beneficiaries.map((b) => ({
+        value: String(b.uid),
+        label: `${b.name} (${b.beneficiary_type || 'unknown'})`,
+      })),
+    ],
+    [beneficiaries]
+  );
+  const targetOptions = useMemo(
+    () => [
+      { value: '', label: 'Select target...' },
+      ...beneficiaries.map((b) => ({
+        value: String(b.uid),
+        label: `${b.name} (${b.beneficiary_type || 'unknown'})`,
+      })),
+    ],
+    [beneficiaries]
+  );
 
   return (
     <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
@@ -84,37 +114,27 @@ export function MergeBeneficiariesForm({
           <label htmlFor={sourceSelectId} className="form-label">
             Merge Source (will be deleted)
           </label>
-          <select
+          <SearchableSelect
             id={sourceSelectId}
+            ariaLabel="Merge source beneficiary"
+            placeholder="Select source..."
             value={mergeSource}
-            onChange={(e) => onSourceChange(e.target.value)}
-            className="form-input"
-          >
-            <option value="">Select source...</option>
-            {beneficiaries.map((b) => (
-              <option key={b.uid} value={b.uid}>
-                {b.name} ({b.beneficiary_type || 'unknown'})
-              </option>
-            ))}
-          </select>
+            options={sourceOptions}
+            onChange={onSourceChange}
+          />
         </div>
         <div>
           <label htmlFor={targetSelectId} className="form-label">
             Into Target (will keep)
           </label>
-          <select
+          <SearchableSelect
             id={targetSelectId}
+            ariaLabel="Merge target beneficiary"
+            placeholder="Select target..."
             value={mergeTarget}
-            onChange={(e) => onTargetChange(e.target.value)}
-            className="form-input"
-          >
-            <option value="">Select target...</option>
-            {beneficiaries.map((b) => (
-              <option key={b.uid} value={b.uid}>
-                {b.name} ({b.beneficiary_type || 'unknown'})
-              </option>
-            ))}
-          </select>
+            options={targetOptions}
+            onChange={onTargetChange}
+          />
         </div>
       </div>
 

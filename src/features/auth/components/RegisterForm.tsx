@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
 import {
   getBrowserRegion,
@@ -333,13 +334,15 @@ export function RegisterForm({
             <label htmlFor="register-dob" className="form-label">
               Date of birth
             </label>
-            <input
+            <DateField
               id="register-dob"
-              type="date"
               name="dob"
               value={form.dob}
-              onChange={handleChange}
-              className="form-input"
+              onChange={(next) =>
+                handleChange({
+                  target: { name: 'dob', value: next },
+                } as React.ChangeEvent<HTMLInputElement>)
+              }
             />
           </div>
           <div className="flex-1">

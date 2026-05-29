@@ -169,7 +169,20 @@ export function SearchableSelect({
             setDraft(e.target.value);
             setFocused(true);
           }}
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            // Click-to-clear: when the user first focuses the input,
+            // wipe the pre-filled selected label so the next keystroke
+            // types into an empty field instead of appending to the
+            // selected value (e.g. "All tags" → "All tagsgroc"). Only
+            // clears if the draft is still the untouched selected
+            // label — preserves any typing already in progress on
+            // re-focus. The click-outside handler restores the label
+            // if the user blurs without picking.
+            if (selected && draft === selected.label) {
+              setDraft('');
+            }
+          }}
           onClick={() => setFocused(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

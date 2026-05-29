@@ -1,3 +1,4 @@
+import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { formatMoney } from '../../../shared/utils/currency';
@@ -24,12 +25,12 @@ interface TransactionRowProps {
 // flex-col at <md (vertical card stack). Drives the new list view
 // post-Batch-9.6 reshuffle: no column headers (sort moved to the
 // filter sidebar), date in compact "Wed, May 28" form, tags as chips
-// inline before the amount, amount right-aligned, "⋯" actions menu
-// at the far right.
+// inline before the amount, amount right-aligned, MoreHorizontal
+// actions menu at the far right.
 //
 // Clicking the row body opens the existing edit modal (URL state
-// ?edit=<id>) — matches the "⋯ as the canonical view+edit surface"
-// convention locked alongside this batch.
+// ?edit=<id>) — matches the row-level ⋯ → canonical view+edit
+// surface convention locked alongside this batch.
 export function TransactionRow({
   txn,
   tags,
@@ -116,7 +117,7 @@ export function TransactionRow({
           title="View / edit"
           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
-          ⋯
+          <MoreHorizontal aria-hidden size={16} />
         </button>
       </div>
     </li>

@@ -1,3 +1,4 @@
+import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
@@ -21,6 +22,11 @@ interface BillDetailDialogProps {
   // Pay button uses). Optional — list pages that don't expose pay
   // semantics (e.g. an admin viewer) can omit it.
   onPay?: (billId: number) => void;
+  // Per-item drilldown: clicking the ⋯ button on a BillItem row
+  // delegates upward so the parent can navigate to the underlying
+  // transaction's view/edit surface. Optional — viewers that can't
+  // resolve a txn_id can omit it.
+  onViewTransaction?: (txnId: number) => void;
 }
 
 // Modal-first detail surface for a single bill. Shows totals, the
@@ -37,6 +43,7 @@ export function BillDetailDialog({
   open,
   onClose,
   onPay,
+  onViewTransaction,
 }: BillDetailDialogProps) {
   const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
@@ -63,7 +70,9 @@ export function BillDetailDialog({
       onClose={onClose}
       size="xl"
       title={bill ? `Bill — ${titleRange}` : 'Bill detail'}
-      description={bill ? `Status: ${bill.status}` : undefined}
+      description={
+        bill ? `Bill #${bill.bill_id} · Status: ${bill.status}` : undefined
+      }
       footer={
         bill && (
           <>
@@ -109,6 +118,7 @@ export function BillDetailDialog({
             items={bill.items ?? []}
             money={money}
             timezone={timezone}
+            onViewTransaction={onViewTransaction}
           />
         </div>
       )}
@@ -223,10 +233,12 @@ function ItemsTable({
   items,
   money,
   timezone,
+  onViewTransaction,
 }: {
   items: BillItem[];
   money: (n: number | null | undefined) => string;
   timezone: string;
+  onViewTransaction?: (txnId: number) => void;
 }) {
   if (items.length === 0) {
     return (
@@ -251,6 +263,11 @@ function ItemsTable({
               <th className="px-3 py-2 text-right">Tax</th>
               <th className="px-3 py-2 text-right">Penalty</th>
               <th className="px-3 py-2">Penalty tag</th>
+              {onViewTransaction && (
+                <th className="px-3 py-2 text-right">
+                  <span className="sr-only">View transaction</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -278,6 +295,19 @@ function ItemsTable({
                   {it.penalty_tag_name ||
                     (it.penalty_tag_id ? `#${it.penalty_tag_id}` : '—')}
                 </td>
+                {onViewTransaction && (
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onViewTransaction(it.txn_id)}
+                      aria-label="View / edit transaction"
+                      title="View / edit transaction"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    >
+                      <MoreHorizontal aria-hidden size={16} />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

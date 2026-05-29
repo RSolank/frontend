@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { DateField } from '../../../shared/components/DateField';
 import {
   createCategorizationRule,
   type CreateCategorizationRulePayload,
@@ -285,14 +286,12 @@ export function AddTransactionPage({
             <label htmlFor="txn_date" className="form-label">
               Date
             </label>
-            <input
+            <DateField
               id="txn_date"
               name="txn_date"
-              type="date"
               value={txnDate}
-              onChange={(e) => setTxnDate(e.target.value)}
+              onChange={setTxnDate}
               required
-              className="form-input"
             />
           </div>
 

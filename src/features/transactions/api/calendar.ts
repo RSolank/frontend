@@ -1,9 +1,18 @@
 // Pure helpers for the Calendar view. All date math is wall-clock in
-// the user's tz; weeks are ISO 8601 (Mon→Sun) per the project
-// convention locked 2026-05-28 (see
-// `features/taxation/api/billPeriod.ts` + CONTRIBUTING.md §6).
-
-import { weekRangeInTz } from '../../taxation/api/billPeriod';
+// the user's tz. Weeks are ISO 8601 (Mon → Sun) per the project
+// convention locked 2026-05-28 (see CONTRIBUTING.md §6 +
+// `features/taxation/api/billPeriod.ts`). The visual calendar uses
+// the same orientation as the billing engine — one convention across
+// the app keeps users from re-translating week boundaries in their
+// head when they switch from the transactions browser to bill
+// generation.
+//
+// The week math is reimplemented locally rather than imported from
+// `billPeriod.ts` because the visual grid does not need the tz-aware
+// `Intl` round-trip — `monthKey` is already tz-resolved by the
+// caller. Keeping it local also lets the two surfaces evolve
+// independently if (e.g.) the billing engine ever bills on a
+// fortnightly cadence.
 
 export interface CalendarCell {
   // `YYYY-MM-DD` in the user's tz. Stable cell identity.
@@ -43,6 +52,15 @@ function shiftDays(year: number, month: number, day: number, delta: number) {
   };
 }
 
+// Monday on/before the given Y-M-D. JS `getUTCDay()` returns
+// 0 = Sun … 6 = Sat; the shift to the ISO column-0 Monday is
+// `-((dow + 6) % 7)` (Sun → -6, Mon → 0, Tue → -1, …).
+function mondayWeekStart(year: number, month: number, day: number) {
+  const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const back = (dow + 6) % 7;
+  return shiftDays(year, month, day, -back);
+}
+
 // Build the calendar grid for `monthKey` (`YYYY-MM`) padded out to
 // full ISO weeks so the rendered grid is rectangular: top row starts
 // on the first Monday at/before day 1; bottom row ends on the last
@@ -55,13 +73,10 @@ export function buildMonthGrid(
   const [y, m] = monthKey.split('-').map(Number);
   const year = y as number;
   const month = m as number;
-  // Find ISO week start for day 1.
-  const firstOfMonth = new Date(Date.UTC(year, month - 1, 1, 12));
-  const start = weekRangeInTz(firstOfMonth, 'UTC').period_start;
-  const [sy, sm, sd] = start.split('-').map(Number);
+  const start = mondayWeekStart(year, month, 1);
   const cells: CalendarCell[] = [];
   for (let i = 0; i < 42; i++) {
-    const c = shiftDays(sy as number, sm as number, sd as number, i);
+    const c = shiftDays(start.year, start.month, start.day, i);
     const iso = isoFromYmd(c.year, c.month, c.day);
     cells.push({
       iso,
@@ -76,24 +91,21 @@ export function buildMonthGrid(
   return cells;
 }
 
-// Build the active ISO week (7 cells) anchored on the calendar-day
-// containing `anchorIso`. Used by the mobile swipeable weekly view.
+// Build the active ISO Mon → Sun row (7 cells) anchored on the
+// calendar day containing `anchorIso`. Used by the mobile swipeable
+// weekly view.
 export function buildWeekRow(
   anchorIso: string,
   todayIso: string
 ): CalendarCell[] {
   const [ay, am, ad] = anchorIso.split('-').map(Number);
-  const anchorDate = new Date(
-    Date.UTC(ay as number, (am as number) - 1, ad as number, 12)
-  );
-  const start = weekRangeInTz(anchorDate, 'UTC').period_start;
-  const [sy, sm, sd] = start.split('-').map(Number);
+  const start = mondayWeekStart(ay as number, am as number, ad as number);
   const cells: CalendarCell[] = [];
   const [cy, cm] = (anchorIso.match(/^(\d{4})-(\d{2})/)?.slice(1) ?? []).map(
     Number
   );
   for (let i = 0; i < 7; i++) {
-    const c = shiftDays(sy as number, sm as number, sd as number, i);
+    const c = shiftDays(start.year, start.month, start.day, i);
     const iso = isoFromYmd(c.year, c.month, c.day);
     cells.push({
       iso,

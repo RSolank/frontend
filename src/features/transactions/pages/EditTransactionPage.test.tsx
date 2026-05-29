@@ -117,6 +117,9 @@ describe('EditTransactionPage', () => {
 
     mountAt('1');
 
+    // Seamless-transition convention (Batch 9.8): inputs are always
+    // rendered, no view-mode toggle. Wait for the loaded values to
+    // appear directly in the form inputs.
     await waitFor(() => {
       expect(screen.getByDisplayValue('50.5')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Store')).toBeInTheDocument();
@@ -168,14 +171,19 @@ describe('EditTransactionPage', () => {
 
     mountAt('2');
 
+    // Per the Batch 9.8 DetailModal convention, the statement-locked
+    // fields (beneficiary/amount/type/date) DO render in the modal —
+    // they're just readOnly inputs. Clicking one surfaces the
+    // LockedFieldBanner explaining the lock.
     await waitFor(() =>
       expect(screen.getByDisplayValue('Stmt Note')).toBeInTheDocument()
     );
+    expect(screen.getByDisplayValue('Bank Transfer')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('100')).toBeInTheDocument();
 
-    // Statement-only edit: no amount/beneficiary/date fields rendered.
-    expect(screen.queryByLabelText('Amount')).toBeNull();
-    expect(screen.queryByLabelText('Beneficiary')).toBeNull();
-    expect(screen.queryByLabelText('Date')).toBeNull();
+    // Click a locked field — banner surfaces explaining the lock.
+    fireEvent.click(screen.getByDisplayValue('Bank Transfer'));
+    await screen.findByTestId('locked-field-banner');
 
     fireEvent.change(screen.getByDisplayValue('Stmt Note'), {
       target: { value: 'Updated' },

@@ -126,12 +126,12 @@ describe('CategorizationRulesPage', () => {
     expect(screen.getByText('(TS, Test Store)')).toBeInTheDocument();
     expect(screen.getAllByText(/Food \(Groceries\)/).length).toBeGreaterThan(0);
 
-    // Singleton cards: Edit shows for every rule; Delete only on
-    // user-owned rules (rule 2 has created_by === SYSTEM_USER_ID).
-    expect(await screen.findAllByRole('button', { name: 'Edit' })).toHaveLength(
-      2
-    );
-    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1);
+    // Singleton cards: each rule renders one ⋯ trigger that opens the
+    // view/edit modal. Delete (and the user-vs-system distinction)
+    // lives inside the modal per the DetailModal convention.
+    expect(
+      await screen.findAllByRole('button', { name: /View \/ edit rule/i })
+    ).toHaveLength(2);
   });
 
   it('creates a rule with beneficiary search and auto-generated name', async () => {
@@ -212,11 +212,19 @@ describe('CategorizationRulesPage', () => {
 
     renderWithProviders(<CategorizationRulesPage />);
 
-    const deleteBtn = await screen.findByRole('button', { name: 'Delete' });
-    fireEvent.click(deleteBtn);
+    // Open the user rule's view/edit modal via its ⋯ trigger, then
+    // click the modal-header trash to start the delete flow.
+    const trigger = await screen.findByRole('button', {
+      name: /View \/ edit rule .*TestShop/i,
+    });
+    fireEvent.click(trigger);
+    const trashBtn = await screen.findByRole('button', {
+      name: /^Delete rule$/i,
+    });
+    fireEvent.click(trashBtn);
 
     // Confirmation modal opens — find its "Delete" button (the one
-    // inside role=dialog, not the row trigger we already clicked).
+    // inside role=dialog, not the modal trash we just clicked).
     const dialog = await screen.findByRole('dialog', {
       name: /Delete categorization rule/i,
     });
@@ -475,10 +483,12 @@ describe('CategorizationRulesPage', () => {
     });
     fireEvent.mouseDown(ctaButton);
 
-    // Dialog is portaled. Its title + the pre-filled Name field
-    // should appear.
+    // Dialog is portaled. The title is now the entity-identifier
+    // form ("New beneficiary") per the Batch 9.8 DetailModal
+    // convention. The pre-filled Name field still shows the search
+    // term used to open it.
     const dialog = await screen.findByRole('dialog', {
-      name: /Add new beneficiary/i,
+      name: /New beneficiary/i,
     });
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText('Name')).toHaveValue('Swiggy');

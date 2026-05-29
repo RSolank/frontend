@@ -657,20 +657,22 @@ the remaining `CountrySelect` and `CurrencySelect` away from raw
 `<select>` lives in **Batch 9.8** (see the refactor's
 `task-frontend.md`).
 
-### Detail modal (canonical view + edit surface)
+### DetailModal (canonical view + edit surface)
 
-Locked 2026-05-29 during the Batch 9.6 review. **Every CRUD-shaped
-feature exposes a single canonical Detail Modal as both the
-view-everything surface and the edit surface.** Triggered by a
-row-level `⋯` (Lucide `MoreHorizontal`) button on the right edge of
-each row/card.
+Locked 2026-05-29 during the Batch 9.6 review; the in-modal
+behaviour (form always rendered, no view/edit toggle) reaffirmed
+in Batch 9.8. **Every CRUD-shaped feature exposes a single
+canonical DetailModal as both the view-everything surface and the
+edit surface.** Triggered by a row-level `⋯` (Lucide
+`MoreHorizontal`) button on the right edge of each row/card.
 
 **Why one modal, not two surfaces:** the alternative ("view page" +
 separate "edit modal") triples the cognitive load — three click
 paths, three render trees, three places to keep in sync. The
-Detail Modal collapses that to one surface that's view-on-arrival
-and edit-on-engagement; the per-field editability is the field's
-own property (some fields are readonly, some are inputs).
+DetailModal collapses that to one surface where the form layout is
+identical on open and after edits; per-field editability is the
+field's own property (some fields render as readonly inputs, some
+as live inputs).
 
 **Anchor invariants:**
 
@@ -686,10 +688,34 @@ own property (some fields are readonly, some are inputs).
   visible + editable inside the modal. Anything the backend
   returns and the user might want to read goes here.
 - **Per-field editability is the field's call.** Readonly fields
-  render as labeled values (`<dl>`-style or stacked label-above-
-  value). Editable fields render as inputs. Source-gated rows
-  (e.g. statement-imported transactions) gate edit-ability of
-  individual fields, not the whole modal.
+  render as `<input readOnly>` with muted styling
+  (`cursor-not-allowed`, slate-50 background). HTML `disabled`
+  swallows clicks, so `readOnly` + `onClick` is the workable
+  shape — clicking a readonly field surfaces the
+  `LockedFieldBanner` at the top of the modal explaining the
+  lock and what IS editable. Editable fields render as live
+  inputs. Source-gated rows (e.g. statement-imported
+  transactions) gate edit-ability of individual fields, not the
+  whole modal.
+- **No view/edit mode toggle.** The form layout is identical
+  regardless of dirty state — the transition between fresh-open
+  and edited-dirty is invisible to the user. State is tracked
+  internally for the dirty-confirm path; the only visible
+  difference is the dismiss button text-swapping `Close` ↔
+  `Cancel` and the Save button enabling once `isDirty`. Locked
+  in Batch 9.8 after a brief view-first experiment was
+  rejected for being too visually disruptive.
+- **Title = entity identifier.** Beneficiary name, tag name,
+  budget `tag_name` (e.g. `Edit budget — Groceries`), taxation
+  rule `txn_type` capitalised, generated rule name. Add flow
+  gets a `New <Feature>` prefix.
+- **Footer convention.** Cancel/Close on the LEFT of the
+  right-cluster (`justify-end gap-2`), Save on the RIGHT.
+  Buttons size to content — no full-width buttons. Save is
+  disabled until `isDirty`. The dismiss button's label
+  text-swaps `Close` (clean) ↔ `Cancel` (dirty); both route
+  through the same `confirmOnDirty` close path the Modal's X
+  button uses.
 - **One canonical component per feature** — `<FooFormDialog>`
   mounted in both row-click (edit) and list-header (add)
   contexts. The component branches its internal state on
@@ -712,7 +738,7 @@ own property (some fields are readonly, some are inputs).
 - `features/budgets` — `BudgetFormDialog`.
 - `features/categorization` — rule edit modal.
 - `features/taxation` — `TaxationRuleFormDialog` for rules,
-  `BillDetailDialog` for bills (read-only Detail Modal — bills
+  `BillDetailDialog` for bills (read-only DetailModal — bills
   aren't edited, only viewed + paid).
 
 **Sweep status:** the cross-feature enforcement pass that walks

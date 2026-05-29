@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { DateField } from '../../../shared/components/DateField';
+import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import {
   createCategorizationRule,
   updateCategorizationRuleTags,
@@ -97,6 +99,22 @@ export function EditTransactionPage({
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  // Locked-field banner state. Surfaces on click of a readOnly field;
+  // cleared automatically on the first successful edit. See the
+  // LockedFieldBanner component for the auto-dismiss contract.
+  const [lockedReason, setLockedReason] = useState<string | null>(null);
+
+  // Snapshot of the form fields at load time. Used for the Cancel
+  // (revert to loaded values) flow + the isDirty diff.
+  const initialSnapshotRef = useRef<{
+    amount: string;
+    debitCredit: 'debit' | 'credit';
+    beneficiaryName: string;
+    beneficiaryId: number | string;
+    txnDate: string;
+    notes: string;
+    tagIds: number[];
+  } | null>(null);
 
   // Inline create modals for beneficiary + tag (Batch 6.5 follow-up).
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
@@ -143,13 +161,29 @@ export function EditTransactionPage({
           return;
         }
         setTxn(t);
-        setBeneficiaryName(t.beneficiary_name || '');
-        setBeneficiaryId(t.beneficiary_id || '');
-        setAmount(String(t.amount ?? ''));
+        const loadedAmount = String(t.amount ?? '');
+        const loadedDate = formatInputDate(t.txn_date);
+        const loadedNotes = t.notes || '';
+        const loadedBenName = t.beneficiary_name || '';
+        const loadedBenId = t.beneficiary_id || '';
+        const loadedTagIds = t.tag_ids || [];
+        setBeneficiaryName(loadedBenName);
+        setBeneficiaryId(loadedBenId);
+        setAmount(loadedAmount);
         setDebitCredit(t.debit_credit);
-        setTxnDate(formatInputDate(t.txn_date));
-        setNotes(t.notes || '');
-        setTagIds(t.tag_ids || []);
+        setTxnDate(loadedDate);
+        setNotes(loadedNotes);
+        setTagIds(loadedTagIds);
+        initialSnapshotRef.current = {
+          amount: loadedAmount,
+          debitCredit: t.debit_credit,
+          beneficiaryName: loadedBenName,
+          beneficiaryId: loadedBenId,
+          txnDate: loadedDate,
+          notes: loadedNotes,
+          tagIds: [...loadedTagIds],
+        };
+        setLockedReason(null);
         setLoaded(true);
       })
       .catch(() => {
@@ -256,6 +290,8 @@ export function EditTransactionPage({
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
       const numericId = Number(id);
       if (Number.isFinite(numericId)) onSaved?.(numericId);
+      // Row-highlight on the parent list communicates success; close
+      // the modal cleanly.
       dismiss();
     } catch (err) {
       const e = err as ApiErrorShape;
@@ -266,6 +302,46 @@ export function EditTransactionPage({
   }
 
   const isStatement = txn?.source === 'statement';
+  const STATEMENT_LOCK_REASON =
+    'This transaction was imported from a bank statement — beneficiary, amount, type and date come from the upload and stay locked. You can still edit Tags and Notes.';
+
+  const isDirty = useMemo(() => {
+    const snap = initialSnapshotRef.current;
+    if (!snap) return false;
+    if (amount !== snap.amount) return true;
+    if (debitCredit !== snap.debitCredit) return true;
+    if (beneficiaryName !== snap.beneficiaryName) return true;
+    if (beneficiaryId !== snap.beneficiaryId) return true;
+    if (txnDate !== snap.txnDate) return true;
+    if (notes !== snap.notes) return true;
+    if (sortedKey(tagIds) !== sortedKey(snap.tagIds)) return true;
+    return false;
+  }, [
+    amount,
+    debitCredit,
+    beneficiaryName,
+    beneficiaryId,
+    txnDate,
+    notes,
+    tagIds,
+  ]);
+
+  function clearLockedBannerOnEdit() {
+    if (lockedReason) setLockedReason(null);
+  }
+
+  function handleCloseRequest() {
+    if (!isDirty) {
+      dismiss();
+      return;
+    }
+    if (!window.confirm('Discard unsaved changes?')) return;
+    dismiss();
+  }
+
+  const onLockedFieldClick = isStatement
+    ? () => setLockedReason(STATEMENT_LOCK_REASON)
+    : undefined;
 
   function wrap(content: React.ReactNode) {
     if (embedded) return content;
@@ -291,82 +367,138 @@ export function EditTransactionPage({
     return wrap(<p className="form-error">Transaction not found</p>);
   }
 
+  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+  const lockedInputClass = isStatement
+    ? 'cursor-not-allowed bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+    : '';
+
   return wrap(
     <>
       {error && <div className="form-error mb-3">{error}</div>}
 
+      <LockedFieldBanner reason={lockedReason} />
+
       <form onSubmit={handleSubmit} className="space-y-4">
-          {!isStatement && (
-            <>
-              <BeneficiarySearch
+          {/* Beneficiary search — readOnly when the txn comes from a
+              statement (bank-owned). Click surfaces the lock banner. */}
+          {isStatement ? (
+            <div>
+              <label htmlFor="beneficiary-locked" className="form-label">
+                Beneficiary
+              </label>
+              <input
+                id="beneficiary-locked"
                 value={beneficiaryName}
-                beneficiaryId={beneficiaryId}
-                beneficiaries={beneficiaries}
-                onChange={(name, bid) => {
-                  setBeneficiaryName(name);
-                  setBeneficiaryId(bid);
-                }}
-                onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
-                required
+                readOnly
+                onClick={onLockedFieldClick}
+                className={`form-input ${lockedInputClass}`}
               />
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="amount" className="form-label">
-                    Amount
-                  </label>
-                  <input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="debit_credit" className="form-label">
-                    Type
-                  </label>
-                  <select
-                    id="debit_credit"
-                    name="debit_credit"
-                    value={debitCredit}
-                    onChange={(e) =>
-                      setDebitCredit(e.target.value as 'debit' | 'credit')
-                    }
-                    className="form-input"
-                  >
-                    <option value="debit">Debit</option>
-                    <option value="credit">Credit</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="txn_date" className="form-label">
-                  Date
-                </label>
-                <input
-                  id="txn_date"
-                  name="txn_date"
-                  type="date"
-                  value={txnDate}
-                  onChange={(e) => setTxnDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-            </>
+            </div>
+          ) : (
+            <BeneficiarySearch
+              value={beneficiaryName}
+              beneficiaryId={beneficiaryId}
+              beneficiaries={beneficiaries}
+              onChange={(name, bid) => {
+                clearLockedBannerOnEdit();
+                setBeneficiaryName(name);
+                setBeneficiaryId(bid);
+              }}
+              onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
+              required
+            />
           )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="amount" className="form-label">
+                Amount
+              </label>
+              <input
+                id="amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                value={amount}
+                readOnly={isStatement}
+                onChange={(e) => {
+                  clearLockedBannerOnEdit();
+                  setAmount(e.target.value);
+                }}
+                onClick={onLockedFieldClick}
+                className={`form-input ${lockedInputClass}`}
+              />
+            </div>
+            <div>
+              <label htmlFor="debit_credit" className="form-label">
+                Type
+              </label>
+              {isStatement ? (
+                <input
+                  id="debit_credit"
+                  name="debit_credit"
+                  value={debitCredit === 'debit' ? 'Debit' : 'Credit'}
+                  readOnly
+                  onClick={onLockedFieldClick}
+                  className={`form-input ${lockedInputClass}`}
+                />
+              ) : (
+                <select
+                  id="debit_credit"
+                  name="debit_credit"
+                  value={debitCredit}
+                  onChange={(e) => {
+                    clearLockedBannerOnEdit();
+                    setDebitCredit(e.target.value as 'debit' | 'credit');
+                  }}
+                  className="form-input"
+                >
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="txn_date" className="form-label">
+              Date
+            </label>
+            {isStatement ? (
+              <input
+                id="txn_date"
+                name="txn_date"
+                value={txnDate}
+                readOnly
+                onClick={onLockedFieldClick}
+                className={`form-input ${lockedInputClass}`}
+              />
+            ) : (
+              <DateField
+                id="txn_date"
+                name="txn_date"
+                value={txnDate}
+                onChange={(next) => {
+                  clearLockedBannerOnEdit();
+                  setTxnDate(next);
+                }}
+              />
+            )}
+          </div>
 
           <TagSelector
             tags={tags}
             selectedTagIds={tagIds}
             miscellaneousTagId={constants?.MISCELLANEOUS_TAG_ID as number | undefined}
             totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
-            onAdd={handleAddTag}
-            onRemove={handleRemoveTag}
+            onAdd={(tid) => {
+              clearLockedBannerOnEdit();
+              handleAddTag(tid);
+            }}
+            onRemove={(tid) => {
+              clearLockedBannerOnEdit();
+              handleRemoveTag(tid);
+            }}
             onRequestAddTag={() => setCreateTagOpen(true)}
           />
 
@@ -378,26 +510,32 @@ export function EditTransactionPage({
               id="notes"
               name="notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                clearLockedBannerOnEdit();
+                setNotes(e.target.value);
+              }}
               rows={3}
               className="form-input resize-y"
             />
           </div>
 
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary"
-            >
-              {submitting ? 'Saving...' : 'Save Changes'}
-            </button>
+          {/* DetailModal footer convention (Batch 9.8): Cancel/Close
+              on the left of the right-cluster, Save on the right;
+              buttons size to their content (no `w-full`). */}
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={dismiss}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              onClick={handleCloseRequest}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              Cancel
+              {dismissLabel}
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || !isDirty}
+              className="btn-primary !w-auto"
+            >
+              {submitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

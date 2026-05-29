@@ -101,14 +101,32 @@ export function BudgetFormDialog({
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const debounceRef = useRef<number | null>(null);
+  // Snapshot of the values the open-effect wrote — used by isDirty
+  // instead of comparing against `category.limit_amt` directly.
+  // Reason: ExpenseTrackerPage keeps BudgetFormDialog mounted across
+  // open/close cycles, so on a fresh open the render BEFORE the
+  // open-effect sees value=0 (the useState initial when category was
+  // null) vs category.limit_amt=350 and briefly reports dirty=true
+  // for one render cycle. The snapshot stays null until the effect
+  // runs, so isDirty returns false during that gap.
+  const initialSnapshotRef = useRef<{
+    value: number;
+    penalty: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (!open || !category) return;
+    if (!open || !category) {
+      // Clearing the snapshot on close keeps the next open fresh.
+      initialSnapshotRef.current = null;
+      return;
+    }
     const v = initialValue(category);
     setValue(v);
     setDraft(String(v));
     const rate = category.penalty_rate ?? category.default_penalty_rate ?? 0.05;
-    setPenalty(formatRateForInput(rate));
+    const p = formatRateForInput(rate);
+    setPenalty(p);
+    initialSnapshotRef.current = { value: v, penalty: p };
     setError(null);
     setSaving(false);
     setConfirmRemoveOpen(false);
@@ -157,11 +175,17 @@ export function BudgetFormDialog({
 
   const isDirty = useMemo(() => {
     if (!category) return false;
+    // Add flow (Set budget for a category with no existing limit)
+    // stays auto-dirty so the user can save the suggested value in
+    // one click without nudging the slider — confirmed UX.
     if (!isExisting) return true;
-    if (value !== category.limit_amt) return true;
-    const initialRate =
-      category.penalty_rate ?? category.default_penalty_rate ?? 0.05;
-    if (penalty !== formatRateForInput(initialRate)) return true;
+    const snap = initialSnapshotRef.current;
+    // No snapshot yet means the open-effect hasn't run for this
+    // open cycle — defer to "not dirty" so the first-render gap
+    // doesn't trip confirmOnDirty.
+    if (!snap) return false;
+    if (value !== snap.value) return true;
+    if (penalty !== snap.penalty) return true;
     return false;
   }, [category, isExisting, value, penalty]);
 
@@ -240,6 +264,8 @@ export function BudgetFormDialog({
     try {
       await upsertBudgetLimitRequest(parsed.data);
       await onSaved(category.tag_id);
+      // Row-highlight on the parent communicates success; close
+      // cleanly in both Edit + Set-budget paths.
       onClose();
     } catch (err) {
       setError(errorMessage(err, 'Failed to save budget'));
@@ -278,6 +304,8 @@ export function BudgetFormDialog({
       : `Set budget — ${category.tag_name}`
     : 'Budget';
 
+  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+
   return (
     <>
       <Modal
@@ -313,12 +341,12 @@ export function BudgetFormDialog({
               disabled={saving || removing}
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              Cancel
+              {dismissLabel}
             </button>
             <button
               type="button"
               onClick={() => void handleSave()}
-              disabled={saving || removing || !category}
+              disabled={saving || removing || !isDirty || !category}
               className="btn-primary !w-auto"
               data-testid="budget-form-save"
             >
@@ -329,6 +357,18 @@ export function BudgetFormDialog({
       >
         {category && (
           <div className="flex flex-col gap-5 text-slate-700 dark:text-slate-200">
+            {/* Current-period headline — surfaces the same "Spent this
+                month" value the card shows so the user has the context
+                in-modal without having to glance back. */}
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/50">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Spent this month
+              </div>
+              <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+                {money(category.current_expense)}
+              </div>
+            </div>
+
             {/* Monthly limit — field + slider stay in sync. */}
             <fieldset className="flex flex-col gap-3">
               <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">

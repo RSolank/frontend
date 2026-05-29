@@ -1,3 +1,4 @@
+import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
@@ -111,11 +112,12 @@ export function BudgetCategoryCard({
         <button
           type="button"
           onClick={() => onEdit(category)}
-          className="shrink-0 whitespace-nowrap rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300"
-          aria-label={`${hasLimit ? 'Edit' : 'Set'} budget for ${category.tag_name}`}
+          aria-label={`${hasLimit ? 'View / edit' : 'Set'} budget for ${category.tag_name}`}
+          title={hasLimit ? 'View / edit budget' : 'Set budget'}
           data-testid={`budget-card-edit-${category.tag_id}`}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
-          {hasLimit ? 'Edit budget' : 'Set budget'}
+          <MoreHorizontal aria-hidden size={16} />
         </button>
       </header>
 

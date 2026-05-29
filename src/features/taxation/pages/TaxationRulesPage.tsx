@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
@@ -28,8 +29,8 @@ interface RuleCardProps {
 
 // Read-only card. Per the 2026-05-26 design-principle lock: list /
 // view surfaces show label-value pairs only. Editing happens in a
-// modal opened by the top-line Edit button. Add/Edit are the only
-// surfaces that render form fields.
+// modal opened by the row-level ⋯ trigger (Batch 9.8 convention).
+// Add/Edit are the only surfaces that render form fields.
 function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
   const ringClass = isHighlighted
     ? 'ring-2 ring-inset ring-indigo-500'
@@ -47,10 +48,11 @@ function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
         <button
           type="button"
           onClick={() => onEdit(rule)}
-          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300"
-          aria-label={`Edit ${rule.txn_type} rule`}
+          aria-label={`View / edit ${rule.txn_type} rule`}
+          title="View / edit"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
-          Edit
+          <MoreHorizontal aria-hidden size={16} />
         </button>
       </header>
 

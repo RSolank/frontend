@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { Modal } from '../../../shared/components/Modal';
 import { updateTaxationRuleRequest } from '../api/mutations';
 import type { TaxationRule } from '../api/queries';
@@ -61,6 +62,13 @@ const DEFAULT_PENALTY_RATE = '50%';
 // reference stable when the parent doesn't pass `availableTypes`.
 const EMPTY_TYPES: readonly string[] = [];
 
+// Per the DetailModal convention (Batch 9.8): the txn_type is a
+// server-managed enum so the field is always read-only when
+// editing. Add mode opens a picker since the user is choosing the
+// type for the first time.
+const TXN_TYPE_LOCK_REASON =
+  'Transaction type is fixed once a rule exists. Edit Tax rate or Default penalty instead.';
+
 export function TaxationRuleFormDialog({
   open,
   onClose,
@@ -69,11 +77,10 @@ export function TaxationRuleFormDialog({
   availableTypes = EMPTY_TYPES as string[],
 }: TaxationRuleFormDialogProps) {
   const isEditing = editingRule != null;
-  const initialType = isEditing
-    ? editingRule.txn_type
-    : (availableTypes[0] ?? '');
 
-  const [txnType, setTxnType] = useState<string>(initialType);
+  const [txnType, setTxnType] = useState<string>(
+    isEditing ? editingRule.txn_type : (availableTypes[0] ?? '')
+  );
   const [taxRate, setTaxRate] = useState<string>(
     isEditing ? formatRateForInput(editingRule.tax_rate) : DEFAULT_TAX_RATE
   );
@@ -84,6 +91,11 @@ export function TaxationRuleFormDialog({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Reason surfaced by the LockedFieldBanner. Set when the user clicks
+  // a read-only field; cleared by the first successful edit on an
+  // editable field. See `LockedFieldBanner` for the auto-dismiss
+  // contract.
+  const [lockedReason, setLockedReason] = useState<string | null>(null);
 
   // Reset form on each open so a closed-then-reopened dialog doesn't
   // leak prior state.
@@ -100,6 +112,7 @@ export function TaxationRuleFormDialog({
     }
     setError(null);
     setSaving(false);
+    setLockedReason(null);
   }, [open, isEditing, editingRule, availableTypes]);
 
   const isDirty = useMemo(() => {
@@ -109,6 +122,13 @@ export function TaxationRuleFormDialog({
       return true;
     return false;
   }, [isEditing, editingRule, taxRate, penaltyRate]);
+
+  // First successful edit on an editable field clears any active
+  // locked-field banner — the user has moved on from the locked
+  // field they clicked.
+  function clearLockedBannerOnEdit() {
+    if (lockedReason) setLockedReason(null);
+  }
 
   async function handleSave() {
     setError(null);
@@ -130,6 +150,8 @@ export function TaxationRuleFormDialog({
     try {
       await updateTaxationRuleRequest(txnType, parsed.data);
       await onSaved(txnType);
+      // Row highlight on the parent list communicates success — the
+      // modal can close cleanly in both Add and Edit paths.
       onClose();
     } catch (err) {
       setError(errorMessage(err, 'Failed to save taxation rule'));
@@ -138,13 +160,22 @@ export function TaxationRuleFormDialog({
     }
   }
 
+  // Title = entity identifier per the locked convention. Add flow
+  // gets a "New …" prefix so the user sees the operation context.
   const title = isEditing
-    ? `Edit ${editingRule.txn_type} rule`
-    : 'Add taxation rule';
+    ? editingRule.txn_type.charAt(0).toUpperCase() + editingRule.txn_type.slice(1)
+    : 'New taxation rule';
 
+  // Add mode with multiple available types renders a picker; Edit
+  // mode (and Add with a single available type) renders a locked
+  // input that surfaces the banner on click.
   const showPicker = !isEditing && availableTypes.length > 1;
   const fixedTypeLabel =
     isEditing ? editingRule.txn_type : (availableTypes[0] ?? '');
+
+  // Single button — text + behaviour switch on isDirty. Save lives
+  // alongside it as the primary action and enables once dirty.
+  const dismissLabel = isDirty ? 'Cancel' : 'Close';
 
   return (
     <Modal
@@ -162,12 +193,12 @@ export function TaxationRuleFormDialog({
             disabled={saving}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            Cancel
+            {dismissLabel}
           </button>
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving}
+            disabled={saving || !isDirty}
             className="btn-primary !w-auto"
           >
             {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add rule'}
@@ -175,7 +206,9 @@ export function TaxationRuleFormDialog({
         </>
       }
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
+        <LockedFieldBanner reason={lockedReason} />
+
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-slate-700 dark:text-slate-200">
             Transaction type
@@ -183,7 +216,10 @@ export function TaxationRuleFormDialog({
           {showPicker ? (
             <select
               value={txnType}
-              onChange={(e) => setTxnType(e.target.value)}
+              onChange={(e) => {
+                clearLockedBannerOnEdit();
+                setTxnType(e.target.value);
+              }}
               className="form-input capitalize"
               aria-label="Transaction type"
             >
@@ -195,12 +231,15 @@ export function TaxationRuleFormDialog({
               ))}
             </select>
           ) : (
-            <div
-              className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-base font-semibold text-slate-900 capitalize dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100"
+            <input
+              type="text"
+              value={fixedTypeLabel}
+              readOnly
+              onClick={() => setLockedReason(TXN_TYPE_LOCK_REASON)}
+              aria-label="Transaction type (read-only)"
               data-testid="rule-form-fixed-type"
-            >
-              {fixedTypeLabel || '—'}
-            </div>
+              className="form-input cursor-not-allowed capitalize bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+            />
           )}
         </label>
 
@@ -212,7 +251,10 @@ export function TaxationRuleFormDialog({
             type="text"
             inputMode="decimal"
             value={taxRate}
-            onChange={(e) => setTaxRate(e.target.value)}
+            onChange={(e) => {
+              clearLockedBannerOnEdit();
+              setTaxRate(e.target.value);
+            }}
             className="form-input"
             aria-label="Tax rate"
           />
@@ -230,7 +272,10 @@ export function TaxationRuleFormDialog({
             type="text"
             inputMode="decimal"
             value={penaltyRate}
-            onChange={(e) => setPenaltyRate(e.target.value)}
+            onChange={(e) => {
+              clearLockedBannerOnEdit();
+              setPenaltyRate(e.target.value);
+            }}
             className="form-input"
             aria-label="Default penalty rate"
           />

@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
+
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { useCurrenciesQuery, type CurrencyOption } from '../api/queries';
 
 interface CurrencySelectProps {
   id?: string;
   value: string;
   onChange: (code: string) => void;
-  required?: boolean;
   // Optional override; falls back to the shared query.
   currencies?: CurrencyOption[];
 }
@@ -17,30 +19,37 @@ export function formatCurrencyOption(c: CurrencyOption): string {
   return c.symbol ? `${c.label} (${c.symbol})` : c.label;
 }
 
+// Typeahead picker for the currency list. Migrated from a plain
+// `<select>` in Batch 9.8 — ~170 currencies is well past the
+// CONTRIBUTING.md §6 "searchable dropdown" threshold.
 export function CurrencySelect({
   id,
   value,
   onChange,
-  required,
   currencies: currenciesProp,
 }: CurrencySelectProps) {
   const { data: currenciesQueried = [] } = useCurrenciesQuery();
   const currencies = currenciesProp ?? currenciesQueried;
 
+  const options = useMemo(
+    () => [
+      { value: '', label: '— Select currency —' },
+      ...currencies.map((c) => ({
+        value: c.code,
+        label: formatCurrencyOption(c),
+      })),
+    ],
+    [currencies]
+  );
+
   return (
-    <select
+    <SearchableSelect
       id={id}
+      ariaLabel="Currency"
+      placeholder="— Select currency —"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      required={required}
-      className="form-input"
-    >
-      <option value="">— Select currency —</option>
-      {currencies.map((c) => (
-        <option key={c.code} value={c.code}>
-          {formatCurrencyOption(c)}
-        </option>
-      ))}
-    </select>
+      options={options}
+      onChange={onChange}
+    />
   );
 }

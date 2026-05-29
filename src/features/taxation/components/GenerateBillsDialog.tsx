@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { DateField } from '../../../shared/components/DateField';
 import { Modal } from '../../../shared/components/Modal';
-import { precedingWeekStartInTz, weekRangeInTz } from '../api/billPeriod';
+import {
+  formatBillDate,
+  precedingWeekStartInTz,
+  weekRangeInTz,
+} from '../api/billPeriod';
 import { generateBillsRequest } from '../api/mutations';
+import { WeekPickerCalendar } from './WeekPickerCalendar';
 
 interface ApiErrorShape {
   detail?: string;
@@ -39,7 +45,9 @@ export function GenerateBillsDialog({
   timezone,
 }: GenerateBillsDialogProps) {
   const [mode, setMode] = useState<GenerateMode>('week');
-  const [weekPickDate, setWeekPickDate] = useState('');
+  // ISO Mon (period_start) of the picked week, set by the
+  // WeekPickerCalendar. Null until the user clicks a row.
+  const [pickedWeekStart, setPickedWeekStart] = useState<string | null>(null);
   const [rangeStart, setRangeStart] = useState('');
   const [rangeEnd, setRangeEnd] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +57,7 @@ export function GenerateBillsDialog({
   useEffect(() => {
     if (!open) return;
     setMode('week');
-    setWeekPickDate('');
+    setPickedWeekStart(null);
     setRangeStart('');
     setRangeEnd('');
     setError(null);
@@ -61,16 +69,24 @@ export function GenerateBillsDialog({
     [timezone]
   );
 
+  // ISO Mon→Sun snap for the date-range mode. Picks the range that
+  // contains both user-picked endpoints: start → preceding Monday of
+  // `rangeStart`, end → following Sunday of `rangeEnd`. Keeps the
+  // generation aligned with the project ISO 8601 week convention
+  // (see CONTRIBUTING.md §6 + [[iso-week-convention]] memory) so the
+  // request never straddles partial weeks. The week-picker branch is
+  // intrinsically ISO already because it goes through weekRangeInTz.
   function resolvePeriod():
     | { ok: true; period_start: string; period_end: string }
     | { ok: false; reason: string } {
     if (mode === 'week') {
-      if (!weekPickDate) {
-        return { ok: false, reason: 'Pick a week date first.' };
+      if (!pickedWeekStart) {
+        return { ok: false, reason: 'Pick a week first.' };
       }
-      // The date input is `YYYY-MM-DD`; parse at noon UTC so tz-edge
-      // surprises don't shift the resolved Mon–Sun range.
-      const parsed = new Date(`${weekPickDate}T12:00:00Z`);
+      // pickedWeekStart is already the ISO Monday — resolve through
+      // weekRangeInTz to derive the matching Sunday end, which keeps
+      // a single source of truth for the Mon → Sun span.
+      const parsed = new Date(`${pickedWeekStart}T12:00:00Z`);
       const range = weekRangeInTz(parsed, timezone);
       return { ok: true, ...range };
     }
@@ -83,8 +99,28 @@ export function GenerateBillsDialog({
         reason: 'period_start must be on or before period_end.',
       };
     }
-    return { ok: true, period_start: rangeStart, period_end: rangeEnd };
+    const startSnap = weekRangeInTz(
+      new Date(`${rangeStart}T12:00:00Z`),
+      timezone
+    );
+    const endSnap = weekRangeInTz(
+      new Date(`${rangeEnd}T12:00:00Z`),
+      timezone
+    );
+    return {
+      ok: true,
+      period_start: startSnap.period_start,
+      period_end: endSnap.period_end,
+    };
   }
+
+  // Same resolution logic but produces a non-throwing preview the
+  // user can see live as they pick dates. Renders below the inputs.
+  const resolvedPreview = useMemo(() => {
+    const r = resolvePeriod();
+    return r.ok ? r : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, pickedWeekStart, rangeStart, rangeEnd, timezone]);
 
   async function handleGenerate() {
     setError(null);
@@ -168,48 +204,65 @@ export function GenerateBillsDialog({
         </fieldset>
 
         {mode === 'week' ? (
-          <label className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-2 text-sm" data-testid="generate-week-input">
             <span className="font-medium text-slate-700 dark:text-slate-200">
-              Pick any date inside the target week
+              Pick a week
             </span>
-            <input
-              type="date"
-              value={weekPickDate}
-              onChange={(e) => setWeekPickDate(e.target.value)}
-              className="form-input"
-              data-testid="generate-week-input"
+            <WeekPickerCalendar
+              selectedWeekStart={pickedWeekStart}
+              onSelect={setPickedWeekStart}
+              timezone={timezone}
+              precedingWeekStart={precedingWeekStart}
             />
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              Week boundaries are Monday through Sunday (ISO 8601) in
-              your active timezone ({timezone}). Date format defaults
-              to the browser locale; the Account Preferences page will
-              let you override this in a later batch.
-            </span>
-          </label>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700 dark:text-slate-200">
                 Period start
               </span>
-              <input
-                type="date"
+              <DateField
                 value={rangeStart}
-                onChange={(e) => setRangeStart(e.target.value)}
-                className="form-input"
+                onChange={setRangeStart}
+                ariaLabel="Period start"
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-slate-700 dark:text-slate-200">
                 Period end
               </span>
-              <input
-                type="date"
+              <DateField
                 value={rangeEnd}
-                onChange={(e) => setRangeEnd(e.target.value)}
-                className="form-input"
+                onChange={setRangeEnd}
+                ariaLabel="Period end"
               />
             </label>
+          </div>
+        )}
+
+        {resolvedPreview && (
+          <div
+            data-testid="generate-resolved-preview"
+            className="rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-200"
+          >
+            <span className="font-medium">
+              Resolves to ISO week
+              {resolvedPreview.period_start !== resolvedPreview.period_end &&
+              mode === 'range'
+                ? 's'
+                : ''}
+              :
+            </span>{' '}
+            <span className="tabular-nums">
+              {formatBillDate(resolvedPreview.period_start, timezone)} →{' '}
+              {formatBillDate(resolvedPreview.period_end, timezone)}
+            </span>
+            {mode === 'range' && (
+              <p className="mt-0.5 text-xs text-indigo-700/80 dark:text-indigo-300/80">
+                Endpoints are snapped to ISO Mon → Sun boundaries so the
+                request covers whole weeks only.
+              </p>
+            )}
           </div>
         )}
 

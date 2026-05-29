@@ -1,7 +1,9 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { Modal } from '../../../shared/components/Modal';
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import {
   createTagRequest,
   updateTagRequest,
@@ -35,6 +37,13 @@ const EMPTY_FORM: TagFormInput = {
   aliases: [],
 };
 
+// Seamless-transition lock messages (Batch 9.8). The text mirrors
+// the original system-tag tooltip so the user gets the same
+// explanation whether they hover the row or click into the locked
+// modal field.
+const SYSTEM_TAG_LOCK_REASON =
+  'System tags ship with a fixed name and parent. You can still edit Tag Type and Aliases — those are what the categorisation engine actually keys on.';
+
 interface TagFormDialogProps {
   open: boolean;
   onClose: () => void;
@@ -63,12 +72,15 @@ export function TagFormDialog({
   flatTags,
   onRequestRemove,
 }: TagFormDialogProps) {
+  const isEditing = editingTag != null;
+
   const [form, setForm] = useState<TagFormInput>(EMPTY_FORM);
   const [aliasTemp, setAliasTemp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const isEditing = editingTag != null;
+  // Locked-field banner state — surfaces only when the user clicks a
+  // readOnly field. Auto-clears on next successful edit.
+  const [lockedReason, setLockedReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -86,7 +98,42 @@ export function TagFormDialog({
     setAliasTemp('');
     setError(null);
     setSaving(false);
+    setLockedReason(null);
   }, [open, editingTag]);
+
+  // Snapshot of the loaded tag's values — drives isDirty + ensures
+  // the Save button stays disabled until the user changes something.
+  const originalForm = useMemo<TagFormInput>(
+    () =>
+      editingTag
+        ? {
+            tag_name: editingTag.tag_name,
+            parent:
+              editingTag.parent != null ? String(editingTag.parent) : '',
+            tag_type:
+              (editingTag.tag_type as TagFormInput['tag_type']) ??
+              'discretionary',
+            aliases: editingTag.aliases ?? [],
+          }
+        : EMPTY_FORM,
+    [editingTag]
+  );
+
+  const isDirty = useMemo(() => {
+    if (!isEditing) return true; // any open Add is dirty
+    if (form.tag_name !== originalForm.tag_name) return true;
+    if (form.parent !== originalForm.parent) return true;
+    if (form.tag_type !== originalForm.tag_type) return true;
+    if (form.aliases.length !== originalForm.aliases.length) return true;
+    for (let i = 0; i < form.aliases.length; i++) {
+      if (form.aliases[i] !== originalForm.aliases[i]) return true;
+    }
+    return false;
+  }, [isEditing, form, originalForm]);
+
+  function clearLockedBannerOnEdit() {
+    if (lockedReason) setLockedReason(null);
+  }
 
   function addAlias() {
     const val = aliasTemp.trim();
@@ -97,10 +144,12 @@ export function TagFormDialog({
     }
     setForm((f) => ({ ...f, aliases: [...f.aliases, val] }));
     setAliasTemp('');
+    clearLockedBannerOnEdit();
   }
 
   function removeAlias(val: string) {
     setForm((f) => ({ ...f, aliases: f.aliases.filter((a) => a !== val) }));
+    clearLockedBannerOnEdit();
   }
 
   async function handleSave() {
@@ -114,14 +163,12 @@ export function TagFormDialog({
       const payload = tagFormToPayload(form);
       if (editingTag) {
         await updateTagRequest(editingTag.tag_id, payload);
-        // Forward the edited tag id so the parent can flash the row
-        // (Row highlight on save — CONTRIBUTING.md §6). Create + edit
-        // both surface a `{ tag_id }` shape via this single callback.
         await onSaved({ tag_id: editingTag.tag_id });
       } else {
         const res = await createTagRequest(payload);
         await onSaved(res.tag);
       }
+      // Row-highlight on the parent surfaces success; close cleanly.
       onClose();
     } catch (err) {
       const e = err as ApiErrorShape;
@@ -136,12 +183,41 @@ export function TagFormDialog({
     [flatTags, editingTag]
   );
 
+  const parentSelectOptions = useMemo(
+    () => [
+      { value: '', label: '— None (top-level) —' },
+      ...parentOptions.map((t) => ({
+        value: String(t.tag_id),
+        label: t.tag_name,
+      })),
+    ],
+    [parentOptions]
+  );
+
+  const parentLabel =
+    parentSelectOptions.find((o) => o.value === form.parent)?.label ??
+    '— None (top-level) —';
+
+  const childrenList = useMemo(
+    () => editingTag?.children ?? [],
+    [editingTag]
+  );
+
+  // Title = entity identifier per the DetailModal convention.
+  const title = isEditing ? editingTag.tag_name || 'Tag' : 'New tag';
+  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       size="md"
-      title={isEditing ? 'Edit tag' : 'Create tag'}
+      title={title}
+      description={
+        isEditing ? (isSystemTag ? 'System tag' : 'Your tag') : undefined
+      }
+      confirmOnDirty
+      isDirty={isDirty}
       headerActions={
         isEditing && !isSystemTag && onRequestRemove ? (
           <button
@@ -165,12 +241,12 @@ export function TagFormDialog({
             disabled={saving}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            Cancel
+            {dismissLabel}
           </button>
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || !form.tag_name.trim()}
+            disabled={saving || !isDirty || !form.tag_name.trim()}
             className="btn-primary !w-auto"
           >
             {saving ? 'Saving…' : isEditing ? 'Update tag' : 'Create tag'}
@@ -179,6 +255,8 @@ export function TagFormDialog({
       }
     >
       <div className="grid gap-4">
+        <LockedFieldBanner reason={lockedReason} />
+
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <label htmlFor="tag-name" className="form-label">
@@ -187,12 +265,22 @@ export function TagFormDialog({
             <input
               id="tag-name"
               value={form.tag_name}
-              disabled={isSystemTag}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, tag_name: e.target.value }))
+              readOnly={isSystemTag}
+              onChange={(e) => {
+                clearLockedBannerOnEdit();
+                setForm((f) => ({ ...f, tag_name: e.target.value }));
+              }}
+              onClick={
+                isSystemTag
+                  ? () => setLockedReason(SYSTEM_TAG_LOCK_REASON)
+                  : undefined
               }
               placeholder="e.g. Subscriptions"
-              className="form-input"
+              className={`form-input ${
+                isSystemTag
+                  ? 'cursor-not-allowed bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+                  : ''
+              }`}
             />
           </div>
           <div>
@@ -202,12 +290,13 @@ export function TagFormDialog({
             <select
               id="tag-type"
               value={form.tag_type}
-              onChange={(e) =>
+              onChange={(e) => {
+                clearLockedBannerOnEdit();
                 setForm((f) => ({
                   ...f,
                   tag_type: e.target.value as TagFormInput['tag_type'],
-                }))
-              }
+                }));
+              }}
               className="form-input"
             >
               {TAG_TYPES.map((t) => (
@@ -221,22 +310,27 @@ export function TagFormDialog({
             <label htmlFor="tag-parent" className="form-label">
               Parent (optional)
             </label>
-            <select
-              id="tag-parent"
-              value={form.parent}
-              disabled={isSystemTag}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, parent: e.target.value }))
-              }
-              className="form-input"
-            >
-              <option value="">— None (top-level) —</option>
-              {parentOptions.map((t) => (
-                <option key={t.tag_id} value={t.tag_id}>
-                  {t.tag_name}
-                </option>
-              ))}
-            </select>
+            {isSystemTag ? (
+              <input
+                id="tag-parent"
+                value={parentLabel}
+                readOnly
+                onClick={() => setLockedReason(SYSTEM_TAG_LOCK_REASON)}
+                className="form-input cursor-not-allowed bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+              />
+            ) : (
+              <SearchableSelect
+                id="tag-parent"
+                ariaLabel="Parent tag"
+                placeholder="— None (top-level) —"
+                value={form.parent}
+                options={parentSelectOptions}
+                onChange={(next) => {
+                  clearLockedBannerOnEdit();
+                  setForm((f) => ({ ...f, parent: next }));
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -291,6 +385,19 @@ export function TagFormDialog({
             )}
           </div>
         </div>
+
+        {childrenList.length > 0 && (
+          <div>
+            <span className="form-label">Children ({childrenList.length})</span>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              {childrenList.map((c) => c.tag_name).join(', ')}
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              These descend from this tag and inherit its categorisation
+              when matched. Renaming or reparenting can affect them.
+            </p>
+          </div>
+        )}
 
         {error && <div className="form-error">{error}</div>}
       </div>

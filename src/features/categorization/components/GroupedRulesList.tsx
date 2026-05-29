@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 import { formatAliasesDisplay } from '../../beneficiaries/api/aliases';
@@ -21,7 +21,6 @@ interface GroupedRulesListProps {
   flatTags: FlatTag[];
   isUserRule: (rule: CategorizationRule) => boolean;
   onEdit: (rule: CategorizationRule) => void;
-  onDelete: (uid: number) => void;
   // Group key to force-open + highlight after a save (auto-expand
   // destination + brief ring). Pass `null` to clear.
   highlightedGroupKey: string | null;
@@ -54,27 +53,24 @@ function Chip({ label, primary = false, small = false }: ChipProps) {
 }
 
 // One rule rendered inside an expanded multi-rule group. Compact:
-// beneficiary + aliases on one line, Edit/Delete on the right. Each
-// rule's *own* primary chip is shown so the user can tell rules apart
-// when the group representative was tie-broken to a parent.
+// beneficiary + aliases on one line, ⋯ on the right that opens the
+// rule's view/edit modal (delete lives in the modal header per the
+// DetailModal convention). Each rule's *own* primary chip is shown so
+// the user can tell rules apart when the group representative was
+// tie-broken to a parent.
 function GroupedRuleRow({
   rule,
   flatTags,
-  isUserRule,
   onEdit,
-  onDelete,
   isHighlighted,
 }: {
   rule: CategorizationRule;
   flatTags: FlatTag[];
-  isUserRule: (rule: CategorizationRule) => boolean;
   onEdit: (rule: CategorizationRule) => void;
-  onDelete: (uid: number) => void;
   isHighlighted: boolean;
 }) {
   const aliasText = formatAliasesDisplay(rule.beneficiary_aliases);
   const primaryId = rule.tag_ids?.[0];
-  const userRule = isUserRule(rule);
   return (
     <li
       className={`rounded-md border border-slate-100 bg-white px-3 py-2 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${
@@ -83,32 +79,23 @@ function GroupedRuleRow({
           : ''
       }`}
     >
-      {/* Top row: beneficiary name + Edit/Delete on the same line at
+      {/* Top row: beneficiary name + ⋯ trigger on the same line at
           every viewport. min-w-0 on the name lets it wrap inside its
-          allotted width instead of pushing the buttons to a new line.
-          shrink-0 on the action cluster pins it right. */}
+          allotted width instead of pushing the button to a new line.
+          shrink-0 on the trigger pins it right. */}
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 text-sm font-medium break-words text-slate-800 dark:text-slate-100">
           {rule.beneficiary_name}
         </span>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(rule)}
-            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Edit
-          </button>
-          {userRule && (
-            <button
-              type="button"
-              onClick={() => onDelete(rule.uid)}
-              className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(rule)}
+          aria-label={`View / edit rule for ${rule.beneficiary_name}`}
+          title="View / edit"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        >
+          <MoreHorizontal aria-hidden size={16} />
+        </button>
       </div>
       {/* Second row: metadata (aliases + primary chip + notes). Hidden
           when there's nothing to show so the row stays compact. */}
@@ -148,14 +135,12 @@ function SingleRuleCard({
   flatTags,
   isUserRule,
   onEdit,
-  onDelete,
   isHighlighted,
 }: {
   rule: CategorizationRule;
   flatTags: FlatTag[];
   isUserRule: (rule: CategorizationRule) => boolean;
   onEdit: (rule: CategorizationRule) => void;
-  onDelete: (uid: number) => void;
   isHighlighted: boolean;
 }) {
   const aliasText = formatAliasesDisplay(rule.beneficiary_aliases);
@@ -167,31 +152,23 @@ function SingleRuleCard({
       }`}
     >
       {/* `flex` (not flex-wrap) + `min-w-0` on the name + `shrink-0`
-          on the action cluster pins Edit/Delete to the top line at
-          every viewport. The rule_name wraps inside its allotted
-          width rather than pushing the actions to a new line. */}
+          on the trigger pins ⋯ to the top line at every viewport. The
+          rule_name wraps inside its allotted width rather than pushing
+          the trigger to a new line. Delete lives in the modal header
+          per the DetailModal convention. */}
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 text-base font-semibold break-words text-slate-900 dark:text-slate-100">
           {rule.rule_name}
         </span>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(rule)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Edit
-          </button>
-          {userRule && (
-            <button
-              type="button"
-              onClick={() => onDelete(rule.uid)}
-              className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onEdit(rule)}
+          aria-label={`View / edit rule ${rule.rule_name}`}
+          title="View / edit"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        >
+          <MoreHorizontal aria-hidden size={16} />
+        </button>
       </div>
       <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -238,17 +215,13 @@ function SingleRuleCard({
 function MultiRuleGroupCard({
   group,
   flatTags,
-  isUserRule,
   onEdit,
-  onDelete,
   highlightedRuleUid,
   forceOpen,
 }: {
   group: RuleGroup;
   flatTags: FlatTag[];
-  isUserRule: (rule: CategorizationRule) => boolean;
   onEdit: (rule: CategorizationRule) => void;
-  onDelete: (uid: number) => void;
   highlightedRuleUid: number | null;
   forceOpen: boolean;
 }) {
@@ -296,9 +269,7 @@ function MultiRuleGroupCard({
               key={r.uid}
               rule={r}
               flatTags={flatTags}
-              isUserRule={isUserRule}
               onEdit={onEdit}
-              onDelete={onDelete}
               isHighlighted={highlightedRuleUid === r.uid}
             />
           ))}
@@ -348,7 +319,6 @@ export function GroupedRulesList({
   flatTags,
   isUserRule,
   onEdit,
-  onDelete,
   highlightedGroupKey,
   highlightedRuleUid,
 }: GroupedRulesListProps) {
@@ -397,7 +367,6 @@ export function GroupedRulesList({
               flatTags={flatTags}
               isUserRule={isUserRule}
               onEdit={onEdit}
-              onDelete={onDelete}
               isHighlighted={highlightedRuleUid === g.rules[0]!.uid}
             />
           ))}
@@ -419,9 +388,7 @@ export function GroupedRulesList({
               key={g.key}
               group={g}
               flatTags={flatTags}
-              isUserRule={isUserRule}
               onEdit={onEdit}
-              onDelete={onDelete}
               highlightedRuleUid={highlightedRuleUid}
               forceOpen={highlightedGroupKey === g.key}
             />

@@ -163,12 +163,13 @@ describe('TaxationRulesPage', () => {
 
     fireEvent.click(
       within(screen.getByTestId('rule-card-committed')).getByRole('button', {
-        name: /Edit committed rule/i,
+        name: /View \/ edit committed rule/i,
       })
     );
 
-    // Dialog renders the txn_type as a read-only label (single edit
-    // target — type is fixed in edit mode).
+    // Seamless-transition convention (Batch 9.8): the modal always
+    // renders the form, with the txn_type as a locked readOnly input.
+    // No view-mode toggle to flip through.
     await waitFor(() =>
       expect(screen.getByTestId('rule-form-fixed-type')).toBeInTheDocument()
     );
@@ -231,7 +232,7 @@ describe('TaxationRulesPage', () => {
     fireEvent.click(screen.getByTestId('rule-add-button'));
 
     const fixedType = await screen.findByTestId('rule-form-fixed-type');
-    expect(fixedType).toHaveTextContent('uncategorized');
+    expect(fixedType).toHaveValue('uncategorized');
     // No combobox shown when only one slot is open.
     expect(
       screen.queryByRole('combobox', { name: /Transaction type/i })

@@ -38,6 +38,10 @@ const HEAT_BG: Record<0 | 1 | 2 | 3 | 4, string> = {
   4: 'bg-indigo-300/80 hover:bg-indigo-400 dark:bg-indigo-800/80 dark:hover:bg-indigo-800',
 };
 
+// ISO 8601 Mon → Sun matches the project-wide week convention
+// (CONTRIBUTING.md §6 + `features/taxation/api/billPeriod.ts`). Users
+// see the same week orientation in the transactions browser and the
+// bill-generation week picker — no re-translation between surfaces.
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface CalendarViewProps {

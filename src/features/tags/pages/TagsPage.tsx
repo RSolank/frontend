@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
@@ -53,7 +54,6 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
 interface TagRowProps {
   tag: TagNode;
   onEdit: (tag: TagNode) => void;
-  onDelete: (tag: TagNode) => void;
   constants: TagConstants | null;
   level: number;
   highlightTagId: number | null;
@@ -62,7 +62,6 @@ interface TagRowProps {
 function TagRow({
   tag,
   onEdit,
-  onDelete,
   constants,
   level,
   highlightTagId,
@@ -153,28 +152,20 @@ function TagRow({
            * fresh signup).
            */}
         </button>
-        <div className="ml-0 flex shrink-0 gap-2 sm:ml-3">
+        <div className="ml-0 flex shrink-0 sm:ml-3">
           {!isRestricted && (
             <button
               type="button"
               onClick={() => onEdit(tag)}
+              aria-label={`View / edit tag ${tag.tag_name}`}
               title={
                 isSystem
-                  ? 'System tag — only aliases are editable'
-                  : undefined
+                  ? 'View — system tags allow alias edits only'
+                  : 'View / edit'
               }
-              className="rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
-              Update
-            </button>
-          )}
-          {!isSystem && (
-            <button
-              type="button"
-              onClick={() => onDelete(tag)}
-              className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-            >
-              Delete
+              <MoreHorizontal aria-hidden size={16} />
             </button>
           )}
         </div>
@@ -183,7 +174,6 @@ function TagRow({
         <TagTree
           tags={tag.children ?? []}
           onEdit={onEdit}
-          onDelete={onDelete}
           constants={constants}
           level={level + 1}
           highlightTagId={highlightTagId}
@@ -196,7 +186,6 @@ function TagRow({
 interface TagTreeProps {
   tags: TagNode[];
   onEdit: (tag: TagNode) => void;
-  onDelete: (tag: TagNode) => void;
   constants: TagConstants | null;
   level?: number;
   highlightTagId: number | null;
@@ -205,7 +194,6 @@ interface TagTreeProps {
 function TagTree({
   tags,
   onEdit,
-  onDelete,
   constants,
   level = 0,
   highlightTagId,
@@ -218,7 +206,6 @@ function TagTree({
           key={t.tag_id}
           tag={t}
           onEdit={onEdit}
-          onDelete={onDelete}
           constants={constants}
           level={level}
           highlightTagId={highlightTagId}
@@ -348,7 +335,6 @@ export function TagsPage() {
             <TagTree
               tags={tags}
               onEdit={handleEdit}
-              onDelete={setDeletingTag}
               constants={constants}
               highlightTagId={highlightTagId}
             />

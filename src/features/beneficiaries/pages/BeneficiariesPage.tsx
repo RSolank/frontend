@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -232,22 +233,15 @@ export function BeneficiariesPage() {
                     {b.beneficiary_type || '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => editModal.openWith(String(b.uid))}
-                        className="rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(b)}
-                        className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => editModal.openWith(String(b.uid))}
+                      aria-label={`View / edit beneficiary ${b.name}`}
+                      title="View / edit"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    >
+                      <MoreHorizontal aria-hidden size={16} />
+                    </button>
                   </td>
                 </tr>
               ))

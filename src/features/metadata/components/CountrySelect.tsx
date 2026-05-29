@@ -1,3 +1,6 @@
+import { useMemo } from 'react';
+
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { useCountriesQuery, type CountryOption } from '../api/queries';
 
 export const COUNTRY_PREFER_NOT_SAY = '__PREFER_NOT_SAY__';
@@ -19,50 +22,56 @@ interface CountrySelectProps {
   // change in one render). `country` is null for empty + prefer-not-say.
   onChange: (value: string, country: CountryOption | null) => void;
   allowPreferNotSay?: boolean;
-  required?: boolean;
   // Optional override — pages that already load countries can pass them
   // in (e.g. RegisterPage's locale-defaulting path needs the list before
   // the user touches the dropdown). Falls back to the shared query.
   countries?: CountryOption[];
 }
 
+// Typeahead picker for the country list. Migrated from a plain
+// `<select>` in Batch 9.8 — ~250 countries is well past the
+// CONTRIBUTING.md §6 "searchable dropdown" threshold (>15 / data-driven
+// / no scan-order). Renders the empty + Prefer-not-say sentinels as
+// ordinary options at the top of the list.
 export function CountrySelect({
   id,
   value,
   onChange,
   allowPreferNotSay = true,
-  required,
   countries: countriesProp,
 }: CountrySelectProps) {
   const { data: countriesQueried = [] } = useCountriesQuery();
   const countries = countriesProp ?? countriesQueried;
 
+  const options = useMemo(() => {
+    const head = [{ value: '', label: '— Select country —' }];
+    if (allowPreferNotSay) {
+      head.push({ value: COUNTRY_PREFER_NOT_SAY, label: 'Rather not say' });
+    }
+    return [
+      ...head,
+      ...countries.map((c) => ({
+        value: c.name,
+        label: formatCountryOption(c),
+      })),
+    ];
+  }, [countries, allowPreferNotSay]);
+
   return (
-    <select
+    <SearchableSelect
       id={id}
+      ariaLabel="Country"
+      placeholder="— Select country —"
       value={value}
-      onChange={(e) => {
-        const next = e.target.value;
+      options={options}
+      onChange={(next) => {
         if (!next || next === COUNTRY_PREFER_NOT_SAY) {
           onChange(next, null);
           return;
         }
-        const matched =
-          countries.find((c) => c.name === next) ?? null;
+        const matched = countries.find((c) => c.name === next) ?? null;
         onChange(next, matched);
       }}
-      required={required}
-      className="form-input"
-    >
-      <option value="">— Select country —</option>
-      {allowPreferNotSay && (
-        <option value={COUNTRY_PREFER_NOT_SAY}>Rather not say</option>
-      )}
-      {countries.map((c) => (
-        <option key={c.name} value={c.name}>
-          {formatCountryOption(c)}
-        </option>
-      ))}
-    </select>
+    />
   );
 }

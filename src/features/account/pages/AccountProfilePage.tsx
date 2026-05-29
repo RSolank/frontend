@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
+import { DateField } from '../../../shared/components/DateField';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
 import { useCurrentUserQuery } from '../../users/api/queries';
@@ -146,13 +147,11 @@ export function AccountProfilePage() {
             <label htmlFor="account-dob" className="form-label">
               Date of birth
             </label>
-            <input
+            <DateField
               id="account-dob"
-              type="date"
               name="dob"
               value={form.dob}
-              onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-              className="form-input"
+              onChange={(next) => setForm((f) => ({ ...f, dob: next }))}
             />
           </div>
           <div>

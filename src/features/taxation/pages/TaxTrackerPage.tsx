@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
@@ -32,6 +32,7 @@ function errorMessage(err: unknown, fallback: string): string {
 
 export function TaxTrackerPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
   const { data: currencies } = useCurrenciesQuery();
@@ -189,6 +190,10 @@ export function TaxTrackerPage() {
         open={viewBillId != null}
         onClose={viewModal.close}
         onPay={(id) => setConfirmPayBillId(id)}
+        onViewTransaction={(txnId) => {
+          viewModal.close();
+          navigate(`/transactions?edit=${txnId}`);
+        }}
       />
 
       <ConfirmDialog

@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
 import {
@@ -40,9 +40,12 @@ interface BeneficiaryFormDialogProps {
   onRequestRemove?: () => void;
 }
 
-// Unified create/edit dialog for beneficiaries. Replaces the
-// post-Batch-6 CreateBeneficiaryDialog (which was create-only) and
-// makes the list page's "modal-first CRUD" contract real.
+// Unified create/edit dialog for beneficiaries. Always renders the
+// form per the Batch 9.8 DetailModal convention — visual layout is
+// identical whether the modal was just opened or has pending edits.
+// Every beneficiary field is editable so the LockedFieldBanner
+// doesn't apply here, but the rest of the pattern (title = entity
+// name, single dismiss text-swap, Save gated by isDirty) holds.
 export function BeneficiaryFormDialog({
   open,
   onClose,
@@ -54,27 +57,31 @@ export function BeneficiaryFormDialog({
   onRequestRemove,
 }: BeneficiaryFormDialogProps) {
   const isEditing = beneficiary != null;
-  const [form, setForm] = useState<BeneficiaryFormInput>(() =>
-    beneficiary
-      ? beneficiaryToForm(beneficiary)
-      : { ...emptyBeneficiaryForm(initialType), name: initialName }
+  const initialForm = useMemo<BeneficiaryFormInput>(
+    () =>
+      beneficiary
+        ? beneficiaryToForm(beneficiary)
+        : { ...emptyBeneficiaryForm(initialType), name: initialName },
+    [beneficiary, initialName, initialType]
   );
+  const [form, setForm] = useState<BeneficiaryFormInput>(initialForm);
   const [aliasesInvalid, setAliasesInvalid] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setForm(
-        beneficiary
-          ? beneficiaryToForm(beneficiary)
-          : { ...emptyBeneficiaryForm(initialType), name: initialName }
-      );
+      setForm(initialForm);
       setAliasesInvalid(false);
       setError(null);
       setSaving(false);
     }
-  }, [open, beneficiary, initialName, initialType]);
+  }, [open, initialForm]);
+
+  const isDirty = useMemo(() => {
+    if (!isEditing) return true;
+    return JSON.stringify(form) !== JSON.stringify(initialForm);
+  }, [isEditing, form, initialForm]);
 
   async function handleSave() {
     setError(null);
@@ -92,6 +99,8 @@ export function BeneficiaryFormDialog({
         ? await updateBeneficiaryRequest(String(beneficiary!.uid), formToPayload(form))
         : await createBeneficiaryRequest(formToPayload(form));
       onSaved(saved);
+      // Row-highlight on the parent surfaces the saved state; close
+      // cleanly.
       onClose();
     } catch (err) {
       const e = err as ApiErrorShape;
@@ -101,12 +110,18 @@ export function BeneficiaryFormDialog({
     }
   }
 
+  // Title = the beneficiary's name (or "New beneficiary" in Add).
+  const title = isEditing ? beneficiary.name || 'Beneficiary' : 'New beneficiary';
+  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       size="md"
-      title={isEditing ? 'Edit beneficiary' : 'Add new beneficiary'}
+      title={title}
+      confirmOnDirty
+      isDirty={isDirty}
       headerActions={
         isEditing && onRequestRemove ? (
           <button
@@ -140,12 +155,12 @@ export function BeneficiaryFormDialog({
             disabled={saving}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            Cancel
+            {dismissLabel}
           </button>
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || aliasesInvalid || !form.name.trim()}
+            disabled={saving || aliasesInvalid || !isDirty || !form.name.trim()}
             className="btn-primary !w-auto"
           >
             {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Save beneficiary'}
