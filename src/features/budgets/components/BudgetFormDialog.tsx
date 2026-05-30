@@ -483,7 +483,7 @@ export function BudgetFormDialog({
               />
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 Accepts <code>5%</code>, <code>0.05</code>, or <code>5</code>{' '}
-                (assumed %). Applied on top of base tax when this month's
+                (assumed %). Applied on top of base tax when this month&rsquo;s
                 spend crosses the limit. Default for{' '}
                 <span className="capitalize">{category.tag_type}</span>{' '}
                 transactions is{' '}

@@ -72,7 +72,13 @@ const reactA11yImportRules = {
   // Legacy-code allowances; tightened as each feature batch rewrites its surface.
   'react/no-unescaped-entities': 'warn',
   'jsx-a11y/no-autofocus': 'warn',
-  'jsx-a11y/label-has-associated-control': 'warn',
+  // Custom labelable controls the rule can't introspect — a <label>
+  // wrapping one of these (each forwards an aria-label / id to its inner
+  // input) is a valid association.
+  'jsx-a11y/label-has-associated-control': [
+    'warn',
+    { controlComponents: ['DateField', 'SearchableSelect'] },
+  ],
   'jsx-a11y/click-events-have-key-events': 'warn',
   'jsx-a11y/no-static-element-interactions': 'warn',
   'jsx-a11y/no-noninteractive-element-interactions': 'warn',
@@ -113,6 +119,11 @@ export default [
       'node_modules/**',
       'coverage/**',
       'public/mockServiceWorker.js',
+      // Machine-generated from the backend OpenAPI schema (`npm run
+      // gen:api`) — not hand-authored, so linting it is noise (the
+      // `paths`/`components`/`operations` interface names trip
+      // sonarjs/class-name). tsc still type-checks it.
+      'src/shared/types/api.ts',
     ],
   },
   js.configs.recommended,
@@ -201,6 +212,11 @@ export default [
       // ships its own no-unused-vars — turn it off to avoid triple-report.
       'no-unused-vars': 'off',
       'sonarjs/no-unused-vars': 'off',
+      // `void somePromise()` is the codebase's deliberate marker for an
+      // intentionally-floated promise (e.g. boot-time hydration). sonarjs
+      // flags the void operator stylistically; that conflicts with the
+      // convention, so it's off.
+      'sonarjs/void-use': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {

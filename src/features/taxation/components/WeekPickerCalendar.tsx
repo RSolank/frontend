@@ -157,7 +157,7 @@ export function WeekPickerCalendar({
 
       <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
         Click a row to select that ISO week (Mon → Sun) for billing.
-        Greyed rows haven't finalised yet — only weeks ending before{' '}
+        Greyed rows haven&rsquo;t finalised yet — only weeks ending before{' '}
         <span className="font-medium">
           {formatBillDate(precedingWeekStart, timezone)}
         </span>{' '}

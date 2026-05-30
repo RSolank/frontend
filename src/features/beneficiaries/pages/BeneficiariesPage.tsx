@@ -267,7 +267,7 @@ export function BeneficiariesPage() {
             <div>
               <strong className="font-semibold">Beneficiary not found.</strong>{' '}
               The link you followed points at a beneficiary that no
-              longer exists (or that you don't have access to).
+              longer exists (or that you don&rsquo;t have access to).
             </div>
             <button
               type="button"

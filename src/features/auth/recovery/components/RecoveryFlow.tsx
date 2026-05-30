@@ -69,18 +69,6 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
     }
   }
 
-  async function handleRequestOtp(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await requestOtp(email);
-    } catch (err) {
-      onError(readError(err, 'Failed to request OTP'));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function handleVerifyOtp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);

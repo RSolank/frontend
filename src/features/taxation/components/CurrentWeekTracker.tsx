@@ -232,7 +232,7 @@ function PendingState({
         </span>
       </header>
       <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-        Live accrual will appear here once the backend's incremental
+        Live accrual will appear here once the backend&rsquo;s incremental
         taxation ledger ships. Until then, see the finalized bills below
         for completed-week detail.
       </p>

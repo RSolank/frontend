@@ -235,9 +235,6 @@ export function TransactionsPage() {
   function handleEdit(id: number) {
     editModal.openWith(String(id));
   }
-  function handleDelete(id: number) {
-    setConfirmDeleteId(id);
-  }
   async function handleConfirmDelete() {
     if (confirmDeleteId == null) return;
     setDeleteError(null);
