@@ -1,14 +1,14 @@
 import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useAuth } from '../features/auth/state/useAuth';
+import { useAuth } from '../../features/auth/state/useAuth';
 
 // Lazy-load the AuthModal so the (~30 KB) `countries-and-timezones`
 // bundle stays in the auth chunk rather than first-paint. Home is
 // public, so this keeps the unauthenticated initial download within
 // budget.
 const AuthModal = lazy(() =>
-  import('../features/auth/components/AuthModal').then((m) => ({
+  import('../../features/auth/components/AuthModal').then((m) => ({
     default: m.AuthModal,
   }))
 );

@@ -123,11 +123,11 @@ The form bodies moved out of `pages/LoginPage.tsx` and
 `pages/RegisterPage.tsx` into shared
 `components/LoginForm.tsx` + `components/RegisterForm.tsx`. The page
 wrappers shrink to thin shells; the same forms also mount inside
-`components/AuthModal.tsx`, which `pages/Home.tsx` lazy-loads on Sign
+`components/AuthModal.tsx`, which `app/pages/Home.tsx` lazy-loads on Sign
 In / Register CTA clicks. Switching between login and register inside
 the modal does not close it.
 
-`pages/Home.tsx` lazy-imports `AuthModal` so the ~30 KB
+`app/pages/Home.tsx` lazy-imports `AuthModal` so the ~30 KB
 `countries-and-timezones` dep stays in the auth chunk rather than the
 first-paint bundle.
 

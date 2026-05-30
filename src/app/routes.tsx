@@ -8,10 +8,10 @@ import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
-import { HelpPage } from '../pages/Help';
-import { HomePage } from '../pages/Home';
 
 import { App } from './App';
+import { HelpPage } from './pages/Help';
+import { HomePage } from './pages/Home';
 import { protectedRoutes } from './routeHelpers';
 
 // Public-facing routes (no auth gate). The auth feature owns /login and

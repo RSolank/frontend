@@ -1,19 +1,21 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
-import { useAuth } from '../features/auth/state/useAuth';
+import { useAuth } from '../../features/auth/state/useAuth';
 
 import { HomePage } from './Home';
 
-vi.mock('../features/auth/state/useAuth', () => ({
+vi.mock('../../features/auth/state/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
+const mockUseAuth = vi.mocked(useAuth);
+
 describe('HomePage', () => {
   it('renders the unauthenticated CTAs when no user', () => {
-    useAuth.mockReturnValue({ user: null });
+    // HomePage only reads `user`; cast the partial to the full hook shape.
+    mockUseAuth.mockReturnValue({ user: null } as ReturnType<typeof useAuth>);
 
     render(
       <MemoryRouter
@@ -34,7 +36,9 @@ describe('HomePage', () => {
   });
 
   it('shows a single Go-to-dashboard CTA when authenticated', () => {
-    useAuth.mockReturnValue({ user: { first_name: 'John' } });
+    mockUseAuth.mockReturnValue({
+      user: { first_name: 'John' },
+    } as ReturnType<typeof useAuth>);
 
     render(
       <MemoryRouter

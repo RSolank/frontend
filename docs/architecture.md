@@ -12,10 +12,12 @@ src/
 │   ├── App.tsx                # Route-root: <header> + <Outlet/> inside AuthProvider
 │   ├── routes.tsx             # createBrowserRouter composer + public/authed route arrays
 │   ├── providers.tsx          # ErrorBoundary > QueryClientProvider > Suspense > children + RQDevtools (dev only) + ThemeBridge
-│   └── routeHelpers.ts        # protectedRoutes(routes) wrapper used by per-feature route arrays
+│   ├── routeHelpers.ts        # protectedRoutes(routes) wrapper used by per-feature route arrays
+│   └── pages/                 # app-level public pages (Home landing / Help) — not feature-owned
 │
 ├── shared/                    # cross-feature primitives
 │   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + prefs headers + ApiError
+│   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api'` knob
 │   ├── components/            # ErrorBoundary / ProtectedRoute / PasswordRequirements / ThemeToggle
 │   ├── hooks/                 # (empty — populated as features need cross-cutting hooks)
 │   ├── utils/                 # dateUtils (tz-aware) / validation / currency (formatMoney)
@@ -119,7 +121,7 @@ managers, deep links). Home additionally exposes Sign-In / Register CTAs
 that mount `features/auth/components/AuthModal.tsx`. The modal switches
 between `<LoginForm />` and `<RegisterForm />` (both extracted in
 Batch 6.5 from the old page-only forms) without closing. AuthModal is
-**lazy-loaded** in `pages/Home.tsx` so the ~30 KB `countries-and-timezones`
+**lazy-loaded** in `app/pages/Home.tsx` so the ~30 KB `countries-and-timezones`
 dep stays in the auth chunk rather than first-paint.
 
 ### Sectioned page shell (Batch 9)
