@@ -1,0 +1,242 @@
+import { Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Modal } from '../../../shared/components/Modal';
+import {
+  createBeneficiaryRequest,
+  updateBeneficiaryRequest,
+} from '../api/mutations';
+import type { Beneficiary } from '../api/queries';
+import {
+  beneficiaryToForm,
+  emptyBeneficiaryForm,
+  formToPayload,
+  type BeneficiaryFormInput,
+} from '../api/schemas';
+
+import { BeneficiaryFormFields } from './BeneficiaryFormFields';
+
+interface ApiErrorShape {
+  detail?: string;
+  error?: string;
+}
+
+// Save-button label by state — if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function saveLabel(saving: boolean, isEditing: boolean): string {
+  if (saving) return 'Saving…';
+  return isEditing ? 'Save changes' : 'Save beneficiary';
+}
+
+interface BeneficiaryFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSaved: (beneficiary: Beneficiary) => void;
+  // When set, the dialog edits this beneficiary; when null, it creates.
+  beneficiary?: Beneficiary | null;
+  // Pre-fill Name when creating — typically from a parent search input.
+  initialName?: string;
+  initialType?: 'merchant' | 'person';
+  // When editing, surface a "Merge with another beneficiary" button in
+  // the footer. The caller owns the merge UI (typically by opening
+  // <MergeBeneficiariesDialog />) and provides this handler.
+  onRequestMerge?: () => void;
+  // Modal-header Remove-in-edit convention (CONTRIBUTING.md §6).
+  // When set, an icon-only Trash button renders in the modal header
+  // for edit mode. Parent owns the confirm + mutation flow.
+  onRequestRemove?: () => void;
+}
+
+interface UseBeneficiaryFormArgs {
+  open: boolean;
+  beneficiary: Beneficiary | null;
+  initialName: string;
+  initialType: 'merchant' | 'person';
+  onSaved: (beneficiary: Beneficiary) => void;
+  onClose: () => void;
+}
+
+// View-model: owns the form state, dirtiness, save flow, and the derived
+// title / dismiss-label / canSave gate. Hoisting this out of the component
+// keeps all the branching plumbing here and leaves the dialog a thin render
+// (component cyclomatic complexity stays under the gate).
+function useBeneficiaryForm({
+  open,
+  beneficiary,
+  initialName,
+  initialType,
+  onSaved,
+  onClose,
+}: UseBeneficiaryFormArgs) {
+  const isEditing = beneficiary != null;
+  const initialForm = useMemo<BeneficiaryFormInput>(
+    () =>
+      beneficiary
+        ? beneficiaryToForm(beneficiary)
+        : { ...emptyBeneficiaryForm(initialType), name: initialName },
+    [beneficiary, initialName, initialType]
+  );
+  const [form, setForm] = useState<BeneficiaryFormInput>(initialForm);
+  const [aliasesInvalid, setAliasesInvalid] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setForm(initialForm);
+      setAliasesInvalid(false);
+      setError(null);
+      setSaving(false);
+    }
+  }, [open, initialForm]);
+
+  const isDirty = useMemo(() => {
+    if (!isEditing) return true;
+    return JSON.stringify(form) !== JSON.stringify(initialForm);
+  }, [isEditing, form, initialForm]);
+
+  async function handleSave() {
+    setError(null);
+    if (!form.name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (aliasesInvalid) {
+      setError('One or more aliases are duplicates — please resolve them');
+      return;
+    }
+    setSaving(true);
+    try {
+      const saved = isEditing
+        ? await updateBeneficiaryRequest(String(beneficiary.uid), formToPayload(form))
+        : await createBeneficiaryRequest(formToPayload(form));
+      onSaved(saved);
+      // Row-highlight on the parent surfaces the saved state; close
+      // cleanly.
+      onClose();
+    } catch (err) {
+      const e = err as ApiErrorShape;
+      setError(e.detail || e.error || 'Failed to save beneficiary');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return {
+    form,
+    setForm,
+    setAliasesInvalid,
+    isEditing,
+    isDirty,
+    saving,
+    error,
+    // Title = the beneficiary's name (or "New beneficiary" in Add).
+    title: isEditing ? beneficiary.name || 'Beneficiary' : 'New beneficiary',
+    dismissLabel: isDirty ? 'Cancel' : 'Close',
+    // Single source of truth for the Save button's enabled state.
+    canSave: !saving && !aliasesInvalid && isDirty && Boolean(form.name.trim()),
+    handleSave,
+  };
+}
+
+// Unified create/edit dialog for beneficiaries. Always renders the
+// form per the Batch 9.8 DetailModal convention — visual layout is
+// identical whether the modal was just opened or has pending edits.
+// Every beneficiary field is editable so the LockedFieldBanner
+// doesn't apply here, but the rest of the pattern (title = entity
+// name, single dismiss text-swap, Save gated by isDirty) holds.
+export function BeneficiaryFormDialog({
+  open,
+  onClose,
+  onSaved,
+  beneficiary = null,
+  initialName = '',
+  initialType = 'merchant',
+  onRequestMerge,
+  onRequestRemove,
+}: BeneficiaryFormDialogProps) {
+  const {
+    form,
+    setForm,
+    setAliasesInvalid,
+    isEditing,
+    isDirty,
+    saving,
+    error,
+    title,
+    dismissLabel,
+    canSave,
+    handleSave,
+  } = useBeneficiaryForm({
+    open,
+    beneficiary,
+    initialName,
+    initialType,
+    onSaved,
+    onClose,
+  });
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="md"
+      title={title}
+      confirmOnDirty
+      isDirty={isDirty}
+      headerActions={
+        isEditing && onRequestRemove ? (
+          <button
+            type="button"
+            onClick={onRequestRemove}
+            disabled={saving}
+            aria-label="Remove beneficiary"
+            title="Remove beneficiary"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            data-testid="beneficiary-form-remove"
+          >
+            <Trash2 aria-hidden size={16} />
+          </button>
+        ) : null
+      }
+      footer={
+        <>
+          {isEditing && onRequestMerge && (
+            <button
+              type="button"
+              onClick={onRequestMerge}
+              disabled={saving}
+              className="mr-auto rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
+            >
+              Merge…
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {dismissLabel}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            className="btn-primary !w-auto"
+          >
+            {saveLabel(saving, isEditing)}
+          </button>
+        </>
+      }
+    >
+      <BeneficiaryFormFields
+        form={form}
+        setForm={setForm}
+        excludeUid={beneficiary?.uid ?? null}
+        onAliasValidityChange={setAliasesInvalid}
+      />
+      {error && <div className="form-error mt-2">{error}</div>}
+    </Modal>
+  );
+}

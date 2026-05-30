@@ -1,0 +1,229 @@
+@import 'tailwindcss';
+
+/*
+ * Class-based dark variant. Pairs with the no-FOUC inline script in
+ * index.html (which sets html.dark before React renders) and with
+ * shared/state/theme.store.ts (which mirrors store state to the same
+ * class on every change).
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Tailwind v4's preflight removed the default `cursor: pointer` on
+ * `<button>` elements (and on the role="button" pattern). Restore it
+ * project-wide so every interactive button signals affordance on hover
+ * without each call site repeating `cursor-pointer`. Disabled buttons
+ * keep `cursor: not-allowed`, which the relevant `.btn-*` classes wire
+ * via `disabled:cursor-not-allowed`.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  /*
+   * Surface the active theme to the user-agent so native widgets
+   * (calendar picker on <input type="date">, scrollbars, form
+   * controls, file pickers) pick the matching color palette
+   * automatically. Without this, the date-picker calendar inside
+   * the GenerateBillsDialog renders white-on-dark — visually
+   * jarring on a slate-900 modal panel. Mirrors the `html.dark`
+   * class painted by index.html's no-FOUC script + the theme store.
+   */
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /*
+   * Chrome / Edge paint saved-password autofills with a yellow
+   * highlight by default. Once `color-scheme` (above) is set,
+   * Chrome's autofill rendering no longer harmonizes with the
+   * page's slate background — the yellow becomes visually jarring,
+   * especially on dark mode where it fights the slate-900 panel.
+   *
+   * Workaround (the standard one): paint over the autofill bg with
+   * a huge inset box-shadow that matches `.form-input`. The shadow
+   * is preserved by `:-webkit-autofill` while the bg is replaced;
+   * `-webkit-text-fill-color` keeps the text legible on top.
+   * `caret-color` keeps the cursor visible after focus.
+   */
+  input.form-input:-webkit-autofill,
+  input.form-input:-webkit-autofill:hover,
+  input.form-input:-webkit-autofill:focus,
+  input.form-input:-webkit-autofill:active,
+  textarea.form-input:-webkit-autofill {
+    -webkit-text-fill-color: rgb(15 23 42); /* slate-900 */
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    caret-color: rgb(15 23 42);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  html.dark input.form-input:-webkit-autofill,
+  html.dark input.form-input:-webkit-autofill:hover,
+  html.dark input.form-input:-webkit-autofill:focus,
+  html.dark input.form-input:-webkit-autofill:active,
+  html.dark textarea.form-input:-webkit-autofill {
+    -webkit-text-fill-color: rgb(241 245 249); /* slate-100 */
+    -webkit-box-shadow: 0 0 0 1000px rgb(15 23 42) inset !important; /* slate-900 */
+    caret-color: rgb(241 245 249);
+  }
+
+  /*
+   * Accessibility — user-controlled reduced motion override
+   * (shared/state/motion.store.ts). Sits on top of OS-level
+   * prefers-reduced-motion (which Tailwind's motion-reduce:
+   * already honors): when the user explicitly turns the toggle ON,
+   * every transition + animation collapses to ~instant, regardless
+   * of OS preference.
+   */
+  html.reduce-motion *,
+  html.reduce-motion *::before,
+  html.reduce-motion *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  /*
+   * Privacy — when html.mask-amounts is present (driven by
+   * shared/state/privacy.store.ts), every element marked with the
+   * .money class blurs out. Hovering an individual element reveals
+   * it so the user can peek without flipping the toggle off. The
+   * money-rendering surfaces opt in by adding className="money"
+   * — see CONTRIBUTING.md §6 "Privacy mask".
+   */
+  html.mask-amounts .money {
+    filter: blur(6px);
+    transition: filter 0.15s ease-out;
+    user-select: none;
+  }
+  html.mask-amounts .money:hover,
+  html.mask-amounts .money:focus-within {
+    filter: none;
+  }
+
+  /*
+   * Accessibility — high-contrast override
+   * (shared/state/contrast.store.ts). Boosts secondary text from
+   * slate-500/400 to slate-700/200, low-contrast borders from
+   * slate-200/800 to slate-400/700, and indigo accents from 600/400
+   * to 700/300. Mostly affects dark mode where the default sits
+   * closest to the WCAG AA floor.
+   */
+  html.high-contrast .text-slate-500,
+  html.high-contrast .text-slate-400 {
+    color: rgb(51 65 85); /* slate-700 */
+  }
+  html.dark.high-contrast .text-slate-500,
+  html.dark.high-contrast .text-slate-400 {
+    color: rgb(226 232 240); /* slate-200 */
+  }
+  html.high-contrast .border-slate-200 {
+    border-color: rgb(148 163 184); /* slate-400 */
+  }
+  html.dark.high-contrast .border-slate-800 {
+    border-color: rgb(71 85 105); /* slate-600 */
+  }
+  html.high-contrast .text-indigo-600 {
+    color: rgb(55 48 163); /* indigo-800 */
+  }
+  html.dark.high-contrast .text-indigo-400,
+  html.dark.high-contrast .text-indigo-300 {
+    color: rgb(199 210 254); /* indigo-200 */
+  }
+
+  /*
+   * Accessibility — force underlines on every link element so users
+   * with color-vision differences see the shape cue (WCAG 1.4.1).
+   * Driven by shared/state/linkUnderline.store.ts. The
+   * `no-underline` utility on individual elements (used by branded
+   * links + nav items where the shape would clash) still wins
+   * because Tailwind's `text-decoration: none` is more specific
+   * than this generic rule.
+   */
+  html.underline-links a {
+    text-decoration: underline;
+  }
+
+  /*
+   * Accessibility — always-visible focus ring
+   * (shared/state/focusRing.store.ts). The app's default uses
+   * `focus-visible:ring-*` everywhere, which the browser hides for
+   * mouse-click activation; keyboard-first + screen-reader users
+   * benefit from seeing the indicator on every `:focus`.
+   *
+   * `outline` (not box-shadow) is used so the ring sits outside the
+   * element's box even when the element clips overflow, and so it
+   * coexists with whatever ring-shadow the focused element ships
+   * via Tailwind utilities.
+   */
+  html.focus-always *:focus {
+    outline: 2px solid rgb(99 102 241); /* indigo-500 */
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Feature batches add component patterns here as they migrate UI to
+ * Tailwind. Keep this file thin — most styling stays in component
+ * className strings; @layer components is reserved for genuinely
+ * shared patterns (e.g. a project-wide button reset) that appear
+ * across multiple features.
+ */
+@layer components {
+  /*
+   * Form-control primitives. Pair `<label class="form-label" htmlFor="x">`
+   * with `<input id="x" class="form-input">` so the focus / disabled /
+   * read-only states stay consistent across every form in the app. Both
+   * variants are tuned to pass WCAG AA contrast in light and dark mode.
+   */
+  .form-label {
+    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+
+  .form-input {
+    @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors;
+    @apply placeholder:text-slate-400;
+    @apply focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+    @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+    @apply read-only:bg-slate-100 read-only:text-slate-700;
+    @apply dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply dark:focus:border-indigo-400 dark:focus-visible:ring-indigo-400;
+    @apply dark:disabled:bg-slate-800 dark:disabled:text-slate-400;
+    @apply dark:read-only:bg-slate-800 dark:read-only:text-slate-300;
+  }
+
+  .form-error {
+    @apply text-sm text-rose-600 dark:text-rose-400;
+  }
+
+  /*
+   * Button primitives. `.btn-primary` is the indigo CTA used by every
+   * form's main action; `.btn-link` is the tertiary text-link variant
+   * used by "Forgot password?" / "Resend code" / "Back to login".
+   * Both ship with the same focus ring + disabled treatment so the
+   * design language reads consistently across auth screens.
+   */
+  .btn-primary {
+    @apply inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
+    @apply hover:bg-indigo-700;
+    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:cursor-not-allowed disabled:bg-indigo-400 disabled:shadow-none;
+    @apply dark:bg-indigo-500 dark:hover:bg-indigo-400;
+    @apply dark:disabled:bg-indigo-900 dark:disabled:text-indigo-300;
+    @apply dark:focus-visible:ring-offset-slate-950;
+  }
+
+  .btn-link {
+    @apply inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium text-indigo-600 transition-colors;
+    @apply hover:bg-indigo-50 hover:text-indigo-700;
+    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:cursor-not-allowed disabled:text-indigo-300;
+    @apply dark:text-indigo-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300;
+    @apply dark:focus-visible:ring-offset-slate-950;
+  }
+}

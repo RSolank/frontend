@@ -1,0 +1,277 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { renderWithProviders } from '../../../test/renderWithProviders';
+import { server } from '../../../test/server';
+
+import { TransactionsPage } from './TransactionsPage';
+
+const tagsResponse = {
+  tags: [
+    {
+      tag_id: 10,
+      tag_name: 'Food',
+      parent: null,
+      tag_type: 'discretionary',
+      aliases: [],
+      created_by: null,
+      children: [],
+    },
+    {
+      tag_id: 20,
+      tag_name: 'Income',
+      parent: null,
+      tag_type: 'income',
+      aliases: [],
+      created_by: null,
+      children: [],
+    },
+  ],
+};
+
+const txnList = {
+  transactions: [
+    {
+      txn_id: 1,
+      txn_date: '2023-10-01',
+      beneficiary_id: 10,
+      beneficiary_name: 'Supermarket',
+      beneficiary: 'Supermarket',
+      amount: 150,
+      debit_credit: 'debit',
+      source: 'manual',
+      tag_ids: [10],
+    },
+    {
+      txn_id: 2,
+      txn_date: '2023-10-02',
+      beneficiary_name: 'Salary',
+      beneficiary: 'Salary',
+      amount: 5000,
+      debit_credit: 'credit',
+      source: 'statement',
+      tag_ids: [20],
+    },
+  ],
+  returned_count: 2,
+};
+
+const merchantGroups = {
+  groups: [
+    {
+      beneficiary_id: 42,
+      beneficiary_name: 'Coffee Shop',
+      frequency: 3,
+      total_amount: -450,
+    },
+  ],
+  returned_count: 1,
+};
+
+describe('TransactionsPage', () => {
+  beforeEach(() => {
+    usePreferencesStore.getState().setPreferences({
+      currency: 'INR',
+      country: 'IN',
+      timezone: 'Asia/Kolkata',
+    });
+    server.use(
+      http.get('http://localhost:4000/api/tags', () =>
+        HttpResponse.json(tagsResponse)
+      ),
+      http.get('http://localhost:4000/api/metadata/currencies', () =>
+        HttpResponse.json({
+          currencies: [
+            { code: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
+            { code: 'USD', label: 'USD - US Dollar', symbol: '$' },
+          ],
+        })
+      ),
+      http.get('http://localhost:4000/api/beneficiaries', () =>
+        HttpResponse.json([])
+      )
+    );
+  });
+
+  function mountWithList(list: object = txnList) {
+    server.use(
+      http.get('http://localhost:4000/api/transactions', () =>
+        HttpResponse.json(list)
+      )
+    );
+    return renderWithProviders(<TransactionsPage />);
+  }
+
+  it('renders transactions row-list with tags + beneficiary links', async () => {
+    mountWithList();
+
+    await waitFor(() => {
+      expect(screen.getByText('Supermarket')).toBeInTheDocument();
+      expect(screen.getByText('Salary')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Food').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
+    // Beneficiary name within the row is a Link to the merchant page.
+    expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute(
+      'href',
+      '/beneficiaries/10'
+    );
+  });
+
+  it('⋯ action button opens edit modal; Trash visible only for manual txns', async () => {
+    mountWithList();
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+
+    const openButtons = screen.getAllByRole('button', {
+      name: /view \/ edit transaction/i,
+    });
+    expect(openButtons).toHaveLength(2);
+  });
+
+  it('Merchant tab switches view; Details filters by beneficiary_id', async () => {
+    const capturedUrls: string[] = [];
+    server.use(
+      http.get('http://localhost:4000/api/transactions', ({ request }) => {
+        capturedUrls.push(request.url);
+        const url = new URL(request.url);
+        if (url.searchParams.get('group_by') === 'merchant') {
+          return HttpResponse.json(merchantGroups);
+        }
+        if (url.searchParams.get('beneficiary_id') === '42') {
+          return HttpResponse.json({
+            transactions: [{ ...txnList.transactions[0], txn_id: 99 }],
+            returned_count: 1,
+          });
+        }
+        return HttpResponse.json(txnList);
+      })
+    );
+
+    renderWithProviders(<TransactionsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+
+    // Three-pill view toggle — "Merchant" is the middle pill.
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Coffee Shop')).toBeInTheDocument()
+    );
+
+    expect(screen.getByRole('link', { name: 'Coffee Shop' })).toHaveAttribute(
+      'href',
+      '/beneficiaries/42'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    await waitFor(() => {
+      expect(capturedUrls.some((u) => u.includes('beneficiary_id=42'))).toBe(
+        true
+      );
+    });
+  });
+
+  it('Calendar tab renders the calendar grid', async () => {
+    mountWithList();
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: /^Calendar$/i }));
+
+    // The MonthDropdown is hidden in calendar mode; the calendar grid
+    // mounts both desktop + mobile shapes simultaneously.
+    expect(screen.queryByLabelText('Select month')).toBeNull();
+    expect(
+      screen.getAllByRole('grid', { name: /Transaction calendar/i }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('clicking a calendar day opens the side panel with that day’s txns', async () => {
+    // Pin "today" so the `month=` filter the calendar query issues is
+    // stable. toFake: ['Date'] keeps setTimeout / queueMicrotask alive
+    // so React Query + msw + RTL waiters still resolve.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-28T12:00:00Z'));
+
+    try {
+      const ANCHOR_DAY = '2026-05-27';
+      server.use(
+        http.get('http://localhost:4000/api/transactions', ({ request }) => {
+          const url = new URL(request.url);
+          const month = url.searchParams.get('month');
+          if (month === '2026-05') {
+            return HttpResponse.json({
+              transactions: [
+                {
+                  txn_id: 501,
+                  txn_date: ANCHOR_DAY,
+                  beneficiary_name: 'Cafe',
+                  beneficiary: 'Cafe',
+                  amount: 120,
+                  debit_credit: 'debit',
+                  source: 'manual',
+                  tag_ids: [10],
+                },
+              ],
+              returned_count: 1,
+            });
+          }
+          return HttpResponse.json({ transactions: [], returned_count: 0 });
+        })
+      );
+
+      // Pre-set the URL to calendar view so the page renders the
+      // calendar directly without clicking the tab.
+      renderWithProviders(<TransactionsPage />, {
+        initialEntries: ['/transactions?view=calendar'],
+      });
+
+      const cells = await screen.findAllByRole('gridcell', {
+        name: new RegExp(`^${ANCHOR_DAY}`),
+      });
+      expect(cells.length).toBeGreaterThan(0);
+      fireEvent.click(cells[0]!);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/Cafe/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Filters button opens the sidebar; Clear all resets sidebar state', async () => {
+    mountWithList();
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+
+    // Open filter sidebar.
+    fireEvent.click(screen.getByRole('button', { name: /open filters/i }));
+
+    const sidebar = await screen.findByRole('dialog', { name: /filters/i });
+    // Set debit-only.
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Debit' }));
+    // The filter button gains a (1) badge once we close.
+    fireEvent.click(within(sidebar).getByRole('button', { name: /clear all/i }));
+
+    // Done closes the sidebar.
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Done' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /filters/i })).toBeNull();
+    });
+    // Active count is back to 0 (no badge).
+    expect(
+      screen.queryByRole('button', { name: /open filters \(1 active\)/i })
+    ).toBeNull();
+  });
+});

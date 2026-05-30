@@ -2,12 +2,133 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Personal Budget App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Personal Budget — a self-imposed consumption-tax budgeting app. Track spending, categorize transactions with tags, set per-category budgets, and generate weekly tax bills to curb discretionary expenses."
+    />
+    <script>
+      // No-FOUC theme bootstrap. Runs synchronously before React renders so
+      // the .dark class is on <html> on the very first paint. Mirrors the
+      // logic in src/shared/state/theme.store.ts:resolveEffectiveMode.
+      (function () {
+        try {
+          var raw = localStorage.getItem('theme');
+          var mode = 'system';
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            mode = (parsed && parsed.state && parsed.state.mode) || 'system';
+          }
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var effective =
+            mode === 'dark' || (mode === 'system' && prefersDark)
+              ? 'dark'
+              : 'light';
+          if (effective === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* localStorage / matchMedia unavailable — fall back to light. */
+        }
+      })();
+      // No-FOUC zoom bootstrap. Same pattern as theme — paint the
+      // chosen root font-size before React mounts so layout doesn't
+      // jump on first render. Mirrors src/shared/state/zoom.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('zoom');
+          var zoom = 1;
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && typeof parsed.state.zoom === 'number') {
+              zoom = parsed.state.zoom;
+            }
+          }
+          if (zoom < 0.85) zoom = 0.85;
+          if (zoom > 1.4) zoom = 1.4;
+          document.documentElement.style.fontSize = (zoom * 16) + 'px';
+        } catch (e) {
+          /* localStorage unavailable — leave the browser default. */
+        }
+      })();
+      // No-FOUC reduced-motion bootstrap. Mirrors motion.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('motion');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.reducedMotion) {
+              document.documentElement.classList.add('reduce-motion');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — let CSS @media handle it. */
+        }
+      })();
+      // No-FOUC privacy-mask bootstrap. Mirrors privacy.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('privacy');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.mask) {
+              document.documentElement.classList.add('mask-amounts');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — amounts render unmasked. */
+        }
+      })();
+      // No-FOUC high-contrast bootstrap. Mirrors contrast.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('contrast');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.high) {
+              document.documentElement.classList.add('high-contrast');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — default neutral palette. */
+        }
+      })();
+      // No-FOUC link-underline bootstrap. Mirrors linkUnderline.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('underline-links');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.underline) {
+              document.documentElement.classList.add('underline-links');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — links keep color-only cue. */
+        }
+      })();
+      // No-FOUC focus-ring bootstrap. Mirrors focusRing.store.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('focus-ring');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.alwaysVisible) {
+              document.documentElement.classList.add('focus-always');
+            }
+          }
+        } catch (e) {
+          /* localStorage unavailable — :focus-visible default. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

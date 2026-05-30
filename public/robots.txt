@@ -1,0 +1,5 @@
+# Personal Budget is an authenticated single-page app — there is no
+# public, crawlable content behind the landing page. Allow crawling of
+# the landing page; nothing else is server-rendered to index.
+User-agent: *
+Allow: /
