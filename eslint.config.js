@@ -33,19 +33,11 @@ const sharedImportRestrictions = {
   ],
 };
 
-// Downgrade the sonarjs recommended set to warn-level: per the Batch 10
-// plan these maintainability rules surface hot spots without failing CI
-// in this batch (matching the complexity gates below). Options on each
-// rule are preserved; 'off' rules stay off.
-function asWarn(ruleSet) {
-  return Object.fromEntries(
-    Object.entries(ruleSet).map(([name, value]) => {
-      if (value === 'off' || value === 0) return [name, 'off'];
-      if (Array.isArray(value)) return [name, ['warn', ...value.slice(1)]];
-      return [name, 'warn'];
-    })
-  );
-}
+// The sonarjs recommended set is enforced at its native error severity
+// (Batch 10.12). Batch 10.11 drove the maintainability board to 0/0, so
+// these rules are now strict-enforcement, not advisory — a regression
+// fails `npm run lint`. A few rules are explicitly turned off below where
+// they conflict with codebase conventions ('off' stays off).
 
 // React / a11y / import rules shared by the JS(X) and TS(X) blocks so the
 // refactored TypeScript tree is held to the same bar the legacy JSX was.
@@ -91,20 +83,20 @@ const reactA11yImportRules = {
   'jsx-a11y/interactive-supports-focus': 'warn',
 };
 
-// Complexity / maintainability gates (Batch 10). Warn-level only — they
-// surface hot spots without failing CI in this batch. Thresholds were
-// picked by auditing the current tree (see Batch 10 commit body); set a
-// little above the worst legitimate offender so they flag genuine
-// outliers rather than drowning the dev loop in noise.
+// Complexity / maintainability gates. Error-level (Batch 10.12) — strict
+// enforcement now that Batch 10.11 cleared the board. Thresholds were
+// picked by auditing the tree (a little above the worst legitimate
+// offender). They are a ratchet: the current state is the ceiling and must
+// not degrade — tighten over time, never loosen. See CONTRIBUTING.md §3.
 const complexityGates = {
-  complexity: ['warn', 15],
+  complexity: ['error', 15],
   'max-lines-per-function': [
-    'warn',
+    'error',
     { max: 200, skipBlankLines: true, skipComments: true },
   ],
-  'max-depth': ['warn', 4],
-  'max-nested-callbacks': ['warn', 4],
-  'max-params': ['warn', 5],
+  'max-depth': ['error', 4],
+  'max-nested-callbacks': ['error', 4],
+  'max-params': ['error', 5],
 };
 
 // Baseline a feature may always import: shared, anything in its OWN
@@ -218,7 +210,7 @@ export default [
     },
     rules: {
       ...reactA11yImportRules,
-      ...asWarn(sonarjs.configs.recommended.rules),
+      ...sonarjs.configs.recommended.rules,
       ...complexityGates,
       // typescript-eslint owns unused-vars for TS; the core rule double-
       // reports and doesn't understand type-only positions. sonarjs also

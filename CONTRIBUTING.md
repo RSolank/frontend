@@ -159,9 +159,10 @@ state/       Zustand stores scoped to this feature (only when state crosses page
   `lazy: () => import(...)` for code-split first paint. _Future option:
   migration to TanStack Router is a separate adoption, not part of this
   refactor._
-- **Bundle budget**: ≤ **120 KB gzipped** first-paint JS, ≤ **80 KB gzipped**
-  per per-feature lazy chunk; CSS ≤ 15 KB. Enforced via `size-limit` in CI
-  (wired in Batch 9).
+- **Bundle budget**: initial JS ≤ **125 KB gzipped**, CSS ≤ **15 KB gzipped**,
+  checked via `size-limit` (`npm run size`). A ≤ **80 KB gzipped** per-feature
+  lazy-chunk target is documented but not yet wired into `size-limit`. See
+  _Code-quality gates_ below for the full gate contract.
 
 ### Commands
 
@@ -176,6 +177,48 @@ npx vitest run src/features/auth/pages/LoginPage.test.jsx   # single file
 ```
 
 `VITE_API_URL` overrides the API base (default `http://localhost:4000`).
+
+### Code-quality gates (strict enforcement)
+
+The maintainability board is **zero**: `npm run lint` must report **0 errors
+and 0 warnings** before any branch merges (the merge gate is
+`eslint --max-warnings 0`). Locked in Batch 10.12 — the current tree meets
+every gate below, and **future work must not degrade it.**
+
+**ESLint — error-level (a regression fails `npm run lint`):**
+
+- `eslint-plugin-sonarjs` **recommended set**, at error severity. A few rules
+  are explicitly disabled in `eslint.config.js` where they conflict with a
+  codebase convention (e.g. the deliberate `void somePromise()` float marker);
+  those exceptions carry an inline comment.
+- **Complexity gates**, at the current thresholds (chosen a little above the
+  worst legitimate offender): `complexity` ≤ **15**,
+  `max-lines-per-function` ≤ **200** (skip blanks/comments), `max-depth` ≤
+  **4**, `max-nested-callbacks` ≤ **4**, `max-params` ≤ **5**. Test files are
+  exempt from the size/complexity gates (specs nest deeply by nature).
+- **Ratchet rule.** These thresholds are a **ceiling, not a target** — tighten
+  them over time, never loosen. A change that would need a number raised is a
+  signal to refactor, not to bump the gate.
+
+**No blanket suppressions.** Never suppress `complexity`,
+`sonarjs/cognitive-complexity`, or `sonarjs/no-nested-conditional` — refactor
+instead (extract a hook / helper / sub-component; see §6). An `eslint-disable`
+is permitted only with an inline justification, and `max-lines-per-function`
+may be suppressed only for a genuine flat shell (a mostly-JSX component with no
+extractable logic).
+
+**Bundle + coverage — enforced locally today; CI pipeline deferred:**
+
+- **`size-limit`** (`npm run size`): initial JS ≤ 125 KB gz, CSS ≤ 15 KB gz.
+  Current 123.35 KB JS / 11.84 KB CSS — **JS headroom is thin**, so keep new
+  first-paint weight off the critical path (lazy-load per feature).
+- **Coverage** (`npm run coverage`): **60%** global floor on statements /
+  branches / functions / lines, enforced via vitest thresholds (currently
+  passing: S 72 / B 64 / F 69 / L 74%). The **80% critical-path** target is
+  **aspirational and not yet met** — it needs per-glob thresholds and is a
+  tracked follow-up, not a current gate.
+- Both run locally; promoting them to a build-failing CI pipeline is a tracked
+  post-refactor follow-up (likely alongside the backend platform CI work).
 
 ---
 
@@ -321,6 +364,21 @@ The full staging across batches is captured in
   context or a hook that does the lookup.
 - **Accessibility** — every interactive element keyboard-reachable; labels
   on every input; semantic HTML over `<div onClick>`.
+
+### View-model hook extraction
+
+When a component accumulates state + effects + handlers, **extract a
+`useXxx()` view-model hook** that owns that logic and return a thin render
+from the component. Split distinct field-groups, list rows, and overlays
+into their own presentational sub-components. This is the canonical move for
+keeping a component under the §3 complexity / `max-lines` gates — reach for it
+*before* a suppression.
+
+This is the pattern used throughout the codebase — e.g. `useRegisterForm`,
+`useAddTransactionForm`, `useGenerateBills`, `useAccountSecurity`,
+`useExpenseTrackerView`; and presentational splits like the `RecoveryFlow`
+per-step components, `MerchantFields` / `PersonFields`, `BeneficiaryTable`,
+and `DateCalendarPopup`. Match it for new work.
 
 ### Visual design language
 
@@ -934,13 +992,24 @@ convention change (if any) doesn't require a rename sweep.
 - A top-level `tests/` directory mirroring the backend layout is **not**
   used — colocation is required by the feature-isolation rule in §1.
 
+### Test-on-touch
+
+Any thinly-tested or untested file you modify gets a colocated
+characterization test added **in the same change** — and write it _before_
+you refactor, so it pins current behavior and catches regressions the
+refactor might introduce. (This is how the refactor surfaced and fixed the
+reference-data money-symbol race.) New features ship with their tests; never
+"tests later".
+
 ### Coverage targets
 
-- **Critical-path pages** (auth, transactions create/edit, budgets create,
-  taxation bills view): **80% lines**.
-- **Everything else**: **60% lines**.
-- Enforced via `vitest --coverage`; reports go to `coverage/`. Wired in
-  Batch 9, recorded in `docs/testing.md`.
+- **Enforced floor (gate):** **60%** global on statements / branches /
+  functions / lines, via vitest thresholds (`npm run coverage`); reports go to
+  `coverage/`. Currently passing (S 72 / B 64 / F 69 / L 74%).
+- **Aspirational (not yet met):** **80% lines** on critical-path pages (auth,
+  transactions create/edit, budgets create, taxation bills view). Reaching it
+  needs per-glob thresholds and is a tracked follow-up, **not** a current
+  gate — see §3 _Code-quality gates_.
 
 ### Mocking the backend
 
