@@ -211,25 +211,27 @@ Single source of truth: `shared/utils/sessionRedirect.ts`.
   to remember the wrapper.
 - All routes live as children of a single root route whose `element` is
   `<App/>`, so every page mounts inside the shell header.
-- **Future:** per-feature `<feature>.routes.tsx` files export their own
-  `RouteObject[]` (with `lazy: () => import(...)` for code-split first
-  paint and a per-route `errorElement`). `routes.tsx` will then just
-  spread them: `[...auth.routes, ...transactions.routes, ...]`.
+- Each feature exports its own `<feature>.routes.tsx` `RouteObject[]`
+  (lazy-loaded for code-split first paint); `routes.tsx` just spreads
+  them into the `publicRoutes` / `authedRoutes` arrays.
 
 ## Data fetching
 
 [CONTRIBUTING.md §5](../CONTRIBUTING.md#-5-data-fetching--server-state)
 has the per-feature `api/` shape and the cross-feature invalidation
-graph. Currently:
+graph.
 
 - `QueryClient` lives in [`src/app/providers.tsx`](../src/app/providers.tsx).
-- The only working `useQuery` example is the Batch-0 smoke at
-  [`src/test/useQuery.smoke.test.tsx`](../src/test/useQuery.smoke.test.tsx)
-  served by [`src/test/handlers/health.ts`](../src/test/handlers/health.ts).
-- Legacy pages still call `apiFetch(...)` directly from
-  [`src/shared/api/apiClient.ts`](../src/shared/api/apiClient.ts). Each
-  feature batch (2–8) replaces the inline calls with
-  `useXyzQuery / useXyzMutation` from its own `api/` folder.
+- Each feature owns an `api/` folder: `queries.ts` / `mutations.ts`
+  expose `useXyzQuery` / `useXyzMutation` hooks, `keys.ts` the TanStack
+  query keys, `schemas.ts` the request/response types.
+- Every request goes through `apiFetch(...)` in
+  [`src/shared/api/apiClient.ts`](../src/shared/api/apiClient.ts) (Bearer
+  token + refresh-on-401 + preference headers), and every URL is built
+  from the central [`src/shared/api/routes.ts`](../src/shared/api/routes.ts)
+  registry (`routes.<feature>.<action>(...)`) — no inline `/api/...`
+  strings. The `const V = '/api'` knob in `routes.ts` makes the eventual
+  `/api/v1` cutover a one-line change.
 - **User-preferences headers** are injected on every `apiFetch` call —
   see the dedicated [User preferences contract](#user-preferences-contract)
   section below.
@@ -250,10 +252,10 @@ graph. Currently:
     headers the backend's `UserPreferencesMiddleware` expects. Defaults
     to USD / UTC; Batch 2 hydrates from `GET /api/users/preferences`
     after login.
-  - [`useAuthStore` skeleton](../src/state/auth.store.ts) — the
-    placeholder dropped in Batch 0; Batch 2 fills it in with real
-    login/logout/refresh actions + `persist` for the access token and
-    replaces `AuthContext.jsx`.
+  - [`useAuthStore`](../src/shared/state/auth.store.ts) — authenticated
+    user + constants, with `persist` for the access token; login/logout/
+    refresh actions live in
+    [`features/auth/state/useAuth.ts`](../src/features/auth/state/useAuth.ts).
   - **Accessibility / on-device preference stores** (all
     Zustand + `persist`, `localStorage` only, mirrored to `<html>`
     via a `XBridge` in `app/providers.tsx` + no-FOUC inline script
@@ -339,12 +341,26 @@ semantic colors (success/warning/error) are emerald/amber/rose.
 
 ## Conventions enforced by the toolchain
 
-- `import/no-restricted-paths` in
-  [`eslint.config.js`](../eslint.config.js) declares the
-  features → shared boundary so cross-feature reaches fail lint as
-  soon as features land.
-- `tsc --noEmit` (`npm run typecheck`) is the type gate. Strict mode
-  with `noUncheckedIndexedAccess` is on; `allowJs` keeps legacy `.jsx`
-  pages compiling while batches migrate.
+- **ESLint** ([`eslint.config.js`](../eslint.config.js)) lints the whole
+  `.ts/.tsx` tree (Batch 10 wired up `typescript-eslint`; before that the
+  TS files were ignored). It runs the typescript-eslint recommended set +
+  `eslint-plugin-sonarjs` + the maintainability gates (`complexity`,
+  `max-lines-per-function`, `max-depth`, `max-nested-callbacks`,
+  `max-params`) — the sonarjs + complexity rules at **warn** level (they
+  surface hot spots without failing CI). The gate is **0 errors**
+  (warnings allowed). `import/no-restricted-paths` enforces the
+  **shared ⊥ features** boundary (shared/ must never import features/) as
+  an error. Full *cross-feature* boundary enforcement (each feature
+  exposes only its `api/` surface) is a planned follow-up via
+  `eslint-plugin-boundaries` — `no-restricted-paths` can't express
+  "same-feature OK, cross-feature not" with one zone.
+- `tsc --noEmit` (`npm run typecheck`) is the type gate — strict mode
+  with `noUncheckedIndexedAccess`.
 - `npm run size` checks the bundle against the budgets recorded in
   [`docs/performance.md`](performance.md).
+- `npm run coverage` (`vitest run --coverage`, v8) enforces a 60% line /
+  branch / function / statement floor; `npm test` stays coverage-free for
+  a fast dev loop. See [`docs/testing.md`](testing.md).
+- All backend URLs are built through the central
+  [`src/shared/api/routes.ts`](../src/shared/api/routes.ts) registry — no
+  inline `/api/...` strings in feature code.

@@ -1,8 +1,8 @@
 # Frontend Testing
 
-> Skeleton — Batch 9 fills in the coverage numbers and the worked
-> recipes. Until then, the canonical rules are
-> [CONTRIBUTING.md §7](../CONTRIBUTING.md#-7-testing).
+> Canonical rules live in
+> [CONTRIBUTING.md §7](../CONTRIBUTING.md#-7-testing); this page is the
+> operational companion (MSW lifecycle, handler recipes, coverage).
 
 ## Stack (locked in CONTRIBUTING.md §10)
 
@@ -39,20 +39,24 @@ The Batch 0 working example is
 [`src/test/useQuery.smoke.test.tsx`](../src/test/useQuery.smoke.test.tsx)
 served by [`src/test/handlers/health.ts`](../src/test/handlers/health.ts).
 
-## Legacy `vi.mock` tests
+## Coverage
 
-The pre-refactor tests under `src/pages/**/*.test.jsx` still use
-`vi.mock('./utils/apiClient.js')`. They keep passing because they
-short-circuit before fetch — MSW never sees them. Each feature batch
-(2–8) rewrites its own tests against MSW handlers as it moves the
-feature.
+`npm run coverage` (`vitest run --coverage`, v8 provider) reports to
+`coverage/` (gitignored). `npm test` stays coverage-free so the dev loop
+is fast. Config lives in the `test.coverage` block of `vite.config.mts`;
+`testTimeout` is 15s there (v8 instrumentation overhead would otherwise
+trip the async, `waitFor`-heavy page tests at the 5s default).
 
-## Coverage targets (wired in Batch 9)
+**Targets** (CONTRIBUTING.md §7):
 
 | Surface | Target |
 |---|---|
 | Critical-path pages — auth, transactions create/edit, budgets create, taxation bills view | 80% lines |
 | Everything else | 60% lines |
 
-`vitest --coverage` reports to `coverage/`. Threshold enforcement and
-per-feature numbers land in Batch 9.
+**Enforced now:** a **60% global floor** (lines / branches / functions /
+statements) — the "everything else" target — as a `thresholds` block.
+**Measured at the refactor merge (Batch 10):** lines 70.1% · statements
+68.7% · functions 65.3% · branches 61.5%. The 80% critical-path target
+needs per-glob thresholds on those pages (and a coverage bump to meet
+them); that plus a CI gate is a tracked post-refactor follow-up.
