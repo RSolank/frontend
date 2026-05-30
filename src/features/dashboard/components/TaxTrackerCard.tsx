@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import {
   fractionOfWeekElapsed,
   weekRangeInTz,
@@ -27,15 +26,8 @@ import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 const TOP_CONTRIBUTORS_LIMIT = 3;
 
 export function TaxTrackerCard() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   const { data, isLoading } = useTrackerCurrentWeekQuery();
   const fallbackWeek = useMemo(

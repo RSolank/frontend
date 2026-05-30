@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
 import { useTransactionsQuery } from '../../transactions/api/queries';
@@ -32,15 +31,8 @@ const RECENT_LIMIT = 5;
 const WEEK_FETCH_LIMIT = 200;
 
 export function TransactionsCard() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   const week = useMemo(() => weekRangeInTz(new Date(), timezone), [timezone]);
   // If the week's start month differs from its end month we fall back

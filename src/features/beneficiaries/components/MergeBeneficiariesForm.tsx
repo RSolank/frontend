@@ -3,6 +3,49 @@ import { useMemo } from 'react';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import type { Beneficiary } from '../api/queries';
 
+// One typeahead option per beneficiary, with a pinned placeholder as the
+// "no selection" no-op. Shared by the source + target pickers (identical
+// bodies before — extracting also drops the duplicated `||` branches out
+// of the component body).
+function buildBeneficiaryOptions(
+  beneficiaries: Beneficiary[],
+  placeholder: string
+) {
+  return [
+    { value: '', label: placeholder },
+    ...beneficiaries.map((b) => ({
+      value: String(b.uid),
+      label: `${b.name} (${b.beneficiary_type || 'unknown'})`,
+    })),
+  ];
+}
+
+// Resolve the selected source/target rows + their display types and
+// whether they're a type mismatch. Pure derivation pulled out of the
+// component so the body is just render.
+function describeMergePair(
+  beneficiaries: Beneficiary[],
+  mergeSource: string,
+  mergeTarget: string
+) {
+  const source = beneficiaries.find((b) => String(b.uid) === String(mergeSource));
+  const target = beneficiaries.find((b) => String(b.uid) === String(mergeTarget));
+  const typeMismatch = Boolean(
+    source &&
+      target &&
+      source.beneficiary_type &&
+      target.beneficiary_type &&
+      source.beneficiary_type !== target.beneficiary_type
+  );
+  return {
+    source,
+    target,
+    sourceType: source?.beneficiary_type || '—',
+    targetType: target?.beneficiary_type || '—',
+    typeMismatch,
+  };
+}
+
 interface MergeBeneficiariesFormProps {
   beneficiaries: Beneficiary[];
   mergeSource: string;
@@ -22,21 +65,8 @@ export function MergeBeneficiariesForm({
   onSwap,
   onMerge,
 }: MergeBeneficiariesFormProps) {
-  const source = beneficiaries.find(
-    (b) => String(b.uid) === String(mergeSource)
-  );
-  const target = beneficiaries.find(
-    (b) => String(b.uid) === String(mergeTarget)
-  );
-  const sourceType = source?.beneficiary_type || '—';
-  const targetType = target?.beneficiary_type || '—';
-  const typeMismatch = Boolean(
-    source &&
-      target &&
-      source.beneficiary_type &&
-      target.beneficiary_type &&
-      source.beneficiary_type !== target.beneficiary_type
-  );
+  const { source, target, sourceType, targetType, typeMismatch } =
+    describeMergePair(beneficiaries, mergeSource, mergeTarget);
   const sourceSelectId = 'merge-source-select';
   const targetSelectId = 'merge-target-select';
 
@@ -47,23 +77,11 @@ export function MergeBeneficiariesForm({
   // searchable-dropdown threshold (>15 items / data-driven /
   // no scan-order).
   const sourceOptions = useMemo(
-    () => [
-      { value: '', label: 'Select source...' },
-      ...beneficiaries.map((b) => ({
-        value: String(b.uid),
-        label: `${b.name} (${b.beneficiary_type || 'unknown'})`,
-      })),
-    ],
+    () => buildBeneficiaryOptions(beneficiaries, 'Select source...'),
     [beneficiaries]
   );
   const targetOptions = useMemo(
-    () => [
-      { value: '', label: 'Select target...' },
-      ...beneficiaries.map((b) => ({
-        value: String(b.uid),
-        label: `${b.name} (${b.beneficiary_type || 'unknown'})`,
-      })),
-    ],
+    () => buildBeneficiaryOptions(beneficiaries, 'Select target...'),
     [beneficiaries]
   );
 

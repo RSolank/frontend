@@ -37,6 +37,19 @@ interface SearchableSelectProps {
 // hover updates the highlight so click + keyboard don't conflict.
 // ARIA role=combobox + listbox + option + aria-activedescendant for
 // screen readers.
+
+// Option button styling by highlight / selection state — if/else (not a
+// nested ternary) so it reads cleanly at the call site.
+function optionClassName(isHighlighted: boolean, isSelected: boolean): string {
+  const base = 'block w-full px-3 py-2 text-left text-sm ';
+  if (isHighlighted)
+    return `${base}bg-indigo-100 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-100`;
+  if (isSelected)
+    return `${base}bg-indigo-50 text-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200`;
+  return `${base}text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800`;
+}
+
+// eslint-disable-next-line complexity -- inherent combobox state (draft / focus / highlight) + full ARIA wiring; extracting further would scatter the listRef scroll-into-view effect across components for no readability gain.
 export function SearchableSelect({
   value,
   options,
@@ -248,13 +261,7 @@ export function SearchableSelect({
                   pick(o);
                 }}
                 onMouseEnter={() => setHighlightIdx(idx)}
-                className={`block w-full px-3 py-2 text-left text-sm ${
-                  isHighlighted
-                    ? 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-100'
-                    : isSelected
-                      ? 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200'
-                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
-                }`}
+                className={optionClassName(isHighlighted, isSelected)}
               >
                 {o.label}
               </button>

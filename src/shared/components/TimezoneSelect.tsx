@@ -29,6 +29,19 @@ interface TimezoneSelectProps {
   alwaysFullList?: boolean;
 }
 
+// Initial tz for a multi-zone country: prefer the current value if it's
+// valid for the country, else the country's default, else the first zone.
+function pickInitialTimezone(
+  value: string,
+  countryDefault: string | null,
+  options: string[]
+): string {
+  if (value && options.includes(value)) return value;
+  if (countryDefault && options.includes(countryDefault)) return countryDefault;
+  return options[0] ?? '';
+}
+
+// eslint-disable-next-line complexity -- inherent: renders 4 distinct modes (full-list / single-zone read-only / country-scoped dropdown / fallback) via guard-clause early returns; the branch count reflects real UX states, not tangled logic.
 export function TimezoneSelect({
   countryName,
   countryDefaultTimezone,
@@ -101,12 +114,11 @@ export function TimezoneSelect({
 
   // Country known + multiple timezones → dropdown scoped to that country.
   if (!showFallback && countryName && countryTimezones.length > 1) {
-    const initial =
-      value && countryTimezones.includes(value)
-        ? value
-        : countryDefaultTimezone && countryTimezones.includes(countryDefaultTimezone)
-          ? countryDefaultTimezone
-          : countryTimezones[0];
+    const initial = pickInitialTimezone(
+      value,
+      countryDefaultTimezone,
+      countryTimezones
+    );
     return (
       <div>
         <select

@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import {
   useBudgetStatusQuery,
   type BudgetCategory,
@@ -18,14 +16,7 @@ import {
 // Hidden entirely when there are no breaches — empty space beats an
 // empty alert in the secondary column.
 export function BreachAlertsWidget() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   const { data } = useBudgetStatusQuery(null);
 

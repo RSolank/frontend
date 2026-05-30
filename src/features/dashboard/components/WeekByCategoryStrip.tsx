@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
 import { useTransactionsQuery } from '../../transactions/api/queries';
@@ -49,17 +48,10 @@ function flattenTags(nodes: TagNode[] | undefined): Map<number, TagNode> {
 }
 
 export function WeekByCategoryStrip() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
   const constants = useAuthStore((s) => s.constants);
   const totalTagId = constants?.TOTAL_TAG_ID;
-
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number) => formatMoney(n, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   const week = useMemo(() => weekRangeInTz(new Date(), timezone), [timezone]);
   // Mirrors TransactionsCard's month-fallback logic so the two queries

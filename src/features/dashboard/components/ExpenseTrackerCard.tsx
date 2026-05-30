@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import {
   useBudgetStatusQuery,
@@ -26,37 +24,32 @@ import { WeekByCategoryStrip } from './WeekByCategoryStrip';
 //  • Footer deep-link → /budgets.
 const TOP_CATEGORIES_LIMIT = 3;
 
-export function ExpenseTrackerCard() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
+// A category is worth showing if it has spend or a configured limit.
+function isActiveCategory(c: BudgetCategory): boolean {
+  return (c.current_expense ?? 0) > 0 || (c.limit_amt != null && c.limit_amt > 0);
+}
+
+// Breached = has a positive limit and spend exceeds it.
+function isBreachedCategory(c: BudgetCategory): boolean {
+  return (
+    c.limit_amt != null && c.limit_amt > 0 && (c.current_expense ?? 0) > c.limit_amt
   );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+}
+
+export function ExpenseTrackerCard() {
+  const { money } = useMoneyFormatter();
 
   const { data, isLoading } = useBudgetStatusQuery(null);
 
   const visibleCategories = useMemo<BudgetCategory[]>(() => {
     const cats = data?.categories ?? [];
     return cats
-      .filter(
-        (c) =>
-          (c.current_expense ?? 0) > 0 ||
-          (c.limit_amt != null && c.limit_amt > 0)
-      )
+      .filter(isActiveCategory)
       .sort((a, b) => (b.current_expense ?? 0) - (a.current_expense ?? 0));
   }, [data]);
 
   const breachCount = useMemo(
-    () =>
-      visibleCategories.filter(
-        (c) =>
-          c.limit_amt != null &&
-          c.limit_amt > 0 &&
-          (c.current_expense ?? 0) > c.limit_amt
-      ).length,
+    () => visibleCategories.filter(isBreachedCategory).length,
     [visibleCategories]
   );
 

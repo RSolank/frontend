@@ -1,9 +1,6 @@
 import { MoreHorizontal } from 'lucide-react';
-import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import type { BudgetCategory } from '../api/queries';
 import { formatRateForInput } from '../api/rateInput';
 
@@ -45,14 +42,7 @@ export function BudgetCategoryCard({
   titleExtra,
   showTypeChip = true,
 }: BudgetCategoryCardProps) {
-  const currencyCode = usePreferencesStore((s) => s.currency);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   const current = category.current_expense ?? 0;
   const limit = category.limit_amt ?? 0;
@@ -76,50 +66,15 @@ export function BudgetCategoryCard({
       data-testid={`budget-card-${category.tag_id}`}
       className={`rounded-lg border p-4 shadow-sm transition-shadow ${cardBase} ${ringClass}`}
     >
-      {/*
-       * Header strip — `flex` (no wrap) + `min-w-0` on the title block
-       * + `shrink-0` on the action keeps the Edit button anchored at
-       * the top-right at every viewport. The optional `titleExtra`
-       * slot (e.g. month selector on the Total card) renders inline
-       * with the title so the right cluster stays clean.
-       */}
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3
-              className={`truncate font-semibold ${
-                emphasis
-                  ? 'text-lg text-indigo-800 dark:text-indigo-100'
-                  : 'text-base text-slate-900 dark:text-slate-100'
-              }`}
-            >
-              {category.tag_name}
-            </h3>
-            {titleExtra}
-            {showTypeChip && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 capitalize dark:bg-slate-800 dark:text-slate-300">
-                {category.tag_type}
-              </span>
-            )}
-            {isOver && (
-              <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-200">
-                Over budget
-              </span>
-            )}
-            <AnomalyBadge category={category} />
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => onEdit(category)}
-          aria-label={`${hasLimit ? 'View / edit' : 'Set'} budget for ${category.tag_name}`}
-          title={hasLimit ? 'View / edit budget' : 'Set budget'}
-          data-testid={`budget-card-edit-${category.tag_id}`}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-        >
-          <MoreHorizontal aria-hidden size={16} />
-        </button>
-      </header>
+      <CardHeader
+        category={category}
+        emphasis={emphasis}
+        showTypeChip={showTypeChip}
+        titleExtra={titleExtra}
+        isOver={isOver}
+        hasLimit={hasLimit}
+        onEdit={onEdit}
+      />
 
       <dl
         className={`mt-3 grid gap-x-6 gap-y-3 ${
@@ -151,17 +106,97 @@ export function BudgetCategoryCard({
         <ProgressBar percent={percent} hasLimit={hasLimit} />
       </div>
 
-      {hasLimit && category.penalty_rate != null && (
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Penalty rate:{' '}
-          <span className="font-medium text-slate-700 dark:text-slate-200">
-            {formatRateForInput(category.penalty_rate)}
-          </span>{' '}
-          (default for {category.tag_type}:{' '}
-          {formatRateForInput(category.default_penalty_rate ?? 0.05)})
-        </p>
-      )}
+      <PenaltyNote category={category} hasLimit={hasLimit} />
     </article>
+  );
+}
+
+// Header strip — `flex` (no wrap) + `min-w-0` on the title block + `shrink-0`
+// on the action keeps the Edit button anchored at the top-right at every
+// viewport. The optional `titleExtra` slot (e.g. month selector on the Total
+// card) renders inline with the title so the right cluster stays clean.
+// Split out of BudgetCategoryCard to keep the parent's render branch count
+// under the complexity gate — all logic stays presentational.
+interface CardHeaderProps {
+  category: BudgetCategory;
+  emphasis: boolean;
+  showTypeChip: boolean;
+  titleExtra?: React.ReactNode;
+  isOver: boolean;
+  hasLimit: boolean;
+  onEdit: (category: BudgetCategory) => void;
+}
+
+function CardHeader({
+  category,
+  emphasis,
+  showTypeChip,
+  titleExtra,
+  isOver,
+  hasLimit,
+  onEdit,
+}: CardHeaderProps) {
+  return (
+    <header className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3
+            className={`truncate font-semibold ${
+              emphasis
+                ? 'text-lg text-indigo-800 dark:text-indigo-100'
+                : 'text-base text-slate-900 dark:text-slate-100'
+            }`}
+          >
+            {category.tag_name}
+          </h3>
+          {titleExtra}
+          {showTypeChip && (
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 capitalize dark:bg-slate-800 dark:text-slate-300">
+              {category.tag_type}
+            </span>
+          )}
+          {isOver && (
+            <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-200">
+              Over budget
+            </span>
+          )}
+          <AnomalyBadge category={category} />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onEdit(category)}
+        aria-label={`${hasLimit ? 'View / edit' : 'Set'} budget for ${category.tag_name}`}
+        title={hasLimit ? 'View / edit budget' : 'Set budget'}
+        data-testid={`budget-card-edit-${category.tag_id}`}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+      >
+        <MoreHorizontal aria-hidden size={16} />
+      </button>
+    </header>
+  );
+}
+
+// Footer note — base penalty rate + the tag-type default fallback. Rendered
+// only when a limit is set and the backend surfaced a penalty rate. Split out
+// for the same complexity-gate reason as CardHeader.
+function PenaltyNote({
+  category,
+  hasLimit,
+}: {
+  category: BudgetCategory;
+  hasLimit: boolean;
+}) {
+  if (!hasLimit || category.penalty_rate == null) return null;
+  return (
+    <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+      Penalty rate:{' '}
+      <span className="font-medium text-slate-700 dark:text-slate-200">
+        {formatRateForInput(category.penalty_rate)}
+      </span>{' '}
+      (default for {category.tag_type}:{' '}
+      {formatRateForInput(category.default_penalty_rate ?? 0.05)})
+    </p>
   );
 }
 
@@ -172,18 +207,21 @@ interface LabelValueProps {
   className?: string;
 }
 
+// Value colour by tone — if/else (not a nested ternary) so it reads cleanly
+// and stays off sonarjs/no-nested-conditional.
+function labelValueToneClass(tone: 'default' | 'muted' | 'rose'): string {
+  if (tone === 'rose') return 'text-rose-700 dark:text-rose-300';
+  if (tone === 'muted') return 'text-slate-600 dark:text-slate-300';
+  return 'text-slate-900 dark:text-slate-100';
+}
+
 function LabelValue({
   label,
   value,
   tone = 'default',
   className = '',
 }: LabelValueProps) {
-  const valueColor =
-    tone === 'rose'
-      ? 'text-rose-700 dark:text-rose-300'
-      : tone === 'muted'
-        ? 'text-slate-600 dark:text-slate-300'
-        : 'text-slate-900 dark:text-slate-100';
+  const valueColor = labelValueToneClass(tone);
   return (
     <div className="min-w-0">
       <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">

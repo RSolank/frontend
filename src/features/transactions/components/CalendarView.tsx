@@ -99,6 +99,62 @@ function weekTitle(cells: CalendarCell[]): string {
   return `${sFmt.format(sIso)} – ${eFmt.format(eIso)}`;
 }
 
+// Screen-reader label for a day cell: ISO date + activity summary + a
+// "today" suffix. Extracted from the JSX (where it was a nested ternary
+// inside a template literal) so it reads as plain branches.
+function cellAriaLabel(
+  cell: CalendarCell,
+  debit: number,
+  credit: number,
+  currencyCode: string,
+  currencySymbol: string | null
+): string {
+  const todaySuffix = cell.isToday ? ', today' : '';
+  if (debit <= 0 && credit <= 0) {
+    return `${cell.iso}, no transactions${todaySuffix}`;
+  }
+  let activity = `, ${formatMoney(debit, currencyCode, currencySymbol)} debit`;
+  if (credit > 0) {
+    activity += ` and ${formatMoney(credit, currencyCode, currencySymbol)} credit`;
+  }
+  return `${cell.iso}${activity}${todaySuffix}`;
+}
+
+// The cell's amount line — debit (rose) takes precedence, else credit
+// (emerald), else an em-dash. Its own component so the parent button stays
+// off sonarjs/no-nested-conditional and under the complexity gate.
+function CellAmount({
+  debit,
+  credit,
+  currencyCode,
+  currencySymbol,
+}: {
+  debit: number;
+  credit: number;
+  currencyCode: string;
+  currencySymbol: string | null;
+}) {
+  if (debit > 0) {
+    return (
+      <span className="money mt-auto text-sm font-bold text-rose-600 dark:text-rose-400">
+        -{formatMoney(debit, currencyCode, currencySymbol)}
+      </span>
+    );
+  }
+  if (credit > 0) {
+    return (
+      <span className="money mt-auto text-sm font-bold text-emerald-600 dark:text-emerald-400">
+        +{formatMoney(credit, currencyCode, currencySymbol)}
+      </span>
+    );
+  }
+  return (
+    <span className="mt-auto text-xs text-slate-400 dark:text-slate-600">
+      —
+    </span>
+  );
+}
+
 interface CalendarCellButtonProps {
   cell: CalendarCell;
   bucket: DayBucket | undefined;
@@ -142,7 +198,6 @@ function CalendarCellButton({
   const dim = !cell.inMonth;
   const debit = bucket?.debit_total ?? 0;
   const credit = bucket?.credit_total ?? 0;
-  const hasActivity = debit > 0 || credit > 0;
 
   return (
     <button
@@ -152,15 +207,7 @@ function CalendarCellButton({
       onClick={onClick}
       onFocus={onFocus}
       tabIndex={tabIndex}
-      aria-label={`${cell.iso}${
-        hasActivity
-          ? `, ${formatMoney(debit, currencyCode, currencySymbol)} debit${
-              credit > 0
-                ? ` and ${formatMoney(credit, currencyCode, currencySymbol)} credit`
-                : ''
-            }`
-          : ', no transactions'
-      }${cell.isToday ? ', today' : ''}`}
+      aria-label={cellAriaLabel(cell, debit, credit, currencyCode, currencySymbol)}
       aria-current={cell.isToday ? 'date' : undefined}
       className={`group flex min-h-[5.5rem] flex-col items-stretch gap-1 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
         HEAT_BG[heat]
@@ -192,19 +239,12 @@ function CalendarCellButton({
           </span>
         )}
       </span>
-      {debit > 0 ? (
-        <span className="money mt-auto text-sm font-bold text-rose-600 dark:text-rose-400">
-          -{formatMoney(debit, currencyCode, currencySymbol)}
-        </span>
-      ) : credit > 0 ? (
-        <span className="money mt-auto text-sm font-bold text-emerald-600 dark:text-emerald-400">
-          +{formatMoney(credit, currencyCode, currencySymbol)}
-        </span>
-      ) : (
-        <span className="mt-auto text-xs text-slate-400 dark:text-slate-600">
-          —
-        </span>
-      )}
+      <CellAmount
+        debit={debit}
+        credit={credit}
+        currencyCode={currencyCode}
+        currencySymbol={currencySymbol}
+      />
     </button>
   );
 }
@@ -368,73 +408,105 @@ export function CalendarView({
       </div>
 
       {/* Desktop month grid */}
-      <div
-        role="grid"
-        aria-label="Transaction calendar — month view"
-        onKeyDown={onGridKeyDown}
+      <CalendarGrid
+        cells={monthCells}
+        ariaLabel="Transaction calendar — month view"
         className="hidden p-3 lg:block"
-      >
-        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-          {WEEKDAY_LABELS.map((d) => (
-            <span key={d}>{d}</span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {monthCells.map((c) => {
-            const bucket = buckets.get(c.iso);
-            const heat = heatBucket(bucket?.debit_total ?? 0, heatMax);
-            const focused = focusedIso === c.iso;
-            return (
-              <CalendarCellButton
-                key={c.iso}
-                cell={c}
-                bucket={bucket}
-                heat={heat}
-                focused={focused}
-                currencyCode={currencyCode}
-                currencySymbol={currencySymbol}
-                onClick={() => onDaySelect(c.iso)}
-                onFocus={() => onFocusedIsoChange(c.iso)}
-                tabIndex={focused || (!focusedIso && c.isToday) ? 0 : -1}
-              />
-            );
-          })}
-        </div>
-      </div>
+        buckets={buckets}
+        heatMax={heatMax}
+        focusedIso={focusedIso}
+        currencyCode={currencyCode}
+        currencySymbol={currencySymbol}
+        onKeyDown={onGridKeyDown}
+        onDaySelect={onDaySelect}
+        onFocusedIsoChange={onFocusedIsoChange}
+      />
 
       {/* Mobile week strip */}
-      <div
-        role="grid"
-        aria-label="Transaction calendar — week view"
-        onKeyDown={onGridKeyDown}
+      <CalendarGrid
+        cells={weekCells}
+        ariaLabel="Transaction calendar — week view"
         className="block p-3 lg:hidden"
-      >
-        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-          {WEEKDAY_LABELS.map((d) => (
-            <span key={d}>{d}</span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {weekCells.map((c) => {
-            const bucket = buckets.get(c.iso);
-            const heat = heatBucket(bucket?.debit_total ?? 0, heatMax);
-            const focused = focusedIso === c.iso;
-            return (
-              <CalendarCellButton
-                key={c.iso}
-                cell={c}
-                bucket={bucket}
-                heat={heat}
-                focused={focused}
-                currencyCode={currencyCode}
-                currencySymbol={currencySymbol}
-                onClick={() => onDaySelect(c.iso)}
-                onFocus={() => onFocusedIsoChange(c.iso)}
-                tabIndex={focused || (!focusedIso && c.isToday) ? 0 : -1}
-              />
-            );
-          })}
-        </div>
+        buckets={buckets}
+        heatMax={heatMax}
+        focusedIso={focusedIso}
+        currencyCode={currencyCode}
+        currencySymbol={currencySymbol}
+        onKeyDown={onGridKeyDown}
+        onDaySelect={onDaySelect}
+        onFocusedIsoChange={onFocusedIsoChange}
+      />
+    </div>
+  );
+}
+
+interface CalendarGridProps {
+  cells: CalendarCell[];
+  ariaLabel: string;
+  className: string;
+  buckets: Map<string, DayBucket>;
+  heatMax: number;
+  focusedIso: string | null;
+  currencyCode: string;
+  currencySymbol: string | null;
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onDaySelect: (iso: string) => void;
+  onFocusedIsoChange: (next: string | null) => void;
+}
+
+// One grid (weekday header + 7-column cell grid), rendered twice by
+// CalendarView — the desktop 6-row month and the mobile single week differ
+// only by their cell source, aria-label and responsive visibility class.
+// Shared here to remove the duplication and keep CalendarView under the
+// line-count gate. `tabIndex={-1}` makes the grid programmatically focusable
+// (the roving-tabindex lives on the cells; this satisfies the interactive-
+// role focus contract without changing the focus path).
+function CalendarGrid({
+  cells,
+  ariaLabel,
+  className,
+  buckets,
+  heatMax,
+  focusedIso,
+  currencyCode,
+  currencySymbol,
+  onKeyDown,
+  onDaySelect,
+  onFocusedIsoChange,
+}: CalendarGridProps) {
+  return (
+    <div
+      role="grid"
+      aria-label={ariaLabel}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      className={className}
+    >
+      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+        {WEEKDAY_LABELS.map((d) => (
+          <span key={d}>{d}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((c) => {
+          const bucket = buckets.get(c.iso);
+          const heat = heatBucket(bucket?.debit_total ?? 0, heatMax);
+          const focused = focusedIso === c.iso;
+          return (
+            <CalendarCellButton
+              key={c.iso}
+              cell={c}
+              bucket={bucket}
+              heat={heat}
+              focused={focused}
+              currencyCode={currencyCode}
+              currencySymbol={currencySymbol}
+              onClick={() => onDaySelect(c.iso)}
+              onFocus={() => onFocusedIsoChange(c.iso)}
+              tabIndex={focused || (!focusedIso && c.isToday) ? 0 : -1}
+            />
+          );
+        })}
       </div>
     </div>
   );

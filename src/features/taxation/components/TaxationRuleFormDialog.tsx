@@ -19,7 +19,9 @@ function errorMessage(err: unknown, fallback: string): string {
 // Fractions → "5%" for display in the rate inputs. Trim trailing zeros.
 function formatRateForInput(fraction: number): string {
   const pct = fraction * 100;
-  const fixed = pct.toFixed(2).replace(/\.?0+$/, '');
+  // parseFloat drops trailing zeros numerically (5.00 -> 5, 12.50 -> 12.5)
+  // — no regex needed.
+  const fixed = String(parseFloat(pct.toFixed(2)));
   return `${fixed || '0'}%`;
 }
 

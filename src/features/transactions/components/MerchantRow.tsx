@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 
-import { formatMoney } from '../../../shared/utils/currency';
+import {
+  amountColorClass,
+  amountSign,
+  formatMoney,
+} from '../../../shared/utils/currency';
 import type { MerchantGroup } from '../api/schemas';
 
 interface MerchantRowProps {
@@ -20,13 +24,8 @@ export function MerchantRow({
   currencySymbol,
   onDetails,
 }: MerchantRowProps) {
-  const totalSign = group.total_amount > 0 ? '+' : group.total_amount < 0 ? '-' : '';
-  const totalColor =
-    group.total_amount > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : group.total_amount < 0
-        ? 'text-rose-600 dark:text-rose-400'
-        : 'text-slate-700 dark:text-slate-200';
+  const totalSign = amountSign(group.total_amount);
+  const totalColor = amountColorClass(group.total_amount);
 
   return (
     <li className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60">

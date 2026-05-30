@@ -97,3 +97,20 @@ export function parseMoney(input: string | null | undefined): number {
   if (!cleaned) return NaN;
   return Number(cleaned);
 }
+
+// Sign prefix for a signed amount: '+' / '-' / '' (zero). Written as
+// if/else (not a nested ternary) so it reads cleanly and doesn't trip
+// sonarjs/no-nested-conditional at the call sites.
+export function amountSign(n: number): '+' | '-' | '' {
+  if (n > 0) return '+';
+  if (n < 0) return '-';
+  return '';
+}
+
+// Tailwind colour class for a signed amount: emerald (+), rose (−),
+// slate (0). Pairs with amountSign for signed-total displays.
+export function amountColorClass(n: number): string {
+  if (n > 0) return 'text-emerald-600 dark:text-emerald-400';
+  if (n < 0) return 'text-rose-600 dark:text-rose-400';
+  return 'text-slate-700 dark:text-slate-200';
+}

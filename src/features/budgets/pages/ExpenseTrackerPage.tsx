@@ -2,12 +2,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { useAuthStore } from '../../../shared/state/auth.store';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { budgetKeys } from '../api/keys';
 import {
@@ -247,14 +245,7 @@ function MonthOverviewCard({
   isHighlighted,
   onEdit,
 }: MonthOverviewCardProps) {
-  const currencyCode = usePreferencesStore((s) => s.currency);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+  const { money } = useMoneyFormatter();
 
   return (
     <div>

@@ -10,11 +10,11 @@ import {
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
@@ -28,7 +28,7 @@ import {
   useInfiniteTransactionsQuery,
   useTransactionsQuery,
 } from '../api/queries';
-import type { TransactionDTO } from '../api/schemas';
+import type { MerchantGroup, TransactionDTO } from '../api/schemas';
 import { CalendarView } from '../components/CalendarView';
 import { DaySidePanel } from '../components/DaySidePanel';
 import { FilterSidebar } from '../components/FilterSidebar';
@@ -62,6 +62,28 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
   return out;
 }
 
+// "3 transactions" / "1 merchant" — pluralise without a nested ternary at the
+// call site (keeps the count label off sonarjs/no-nested-conditional).
+function pluralCount(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? '' : 's'}`;
+}
+
+// Resolve the banner message from the delete error + the active query error.
+// if/else cascade (not the previous nested-ternary chain). `hasError` is the
+// truthiness of the active query error, kept separate so a non-string error
+// object still surfaces the generic fallback.
+function resolveErrorMessage(
+  deleteError: string | null,
+  errorObj: ApiErrorShape | null,
+  hasError: boolean
+): string | null {
+  if (deleteError) return deleteError;
+  if (typeof errorObj?.detail === 'string') return errorObj.detail;
+  if (typeof errorObj?.error === 'string') return errorObj.error;
+  if (hasError) return 'Failed to load data';
+  return null;
+}
+
 const PAGE_SIZE = 25;
 // Calendar's per-month fetch — backend caps `limit` at 100. Realistic
 // personal-budget months stay well under; if a month tail truncates,
@@ -74,18 +96,13 @@ const VIEW_TABS: Array<{ value: TransactionView; label: string; icon: typeof Lis
   { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
 ];
 
+// eslint-disable-next-line max-lines-per-function -- the toolbar, list body and render branches are extracted to <TransactionsToolbar>/<TransactionListBody> + helpers; the residual is the page's query/derived-state wiring (four queries + their memoised slices + modal state) plus a flat modal-mount block. Hoisting that into a hook would add indirection without reducing real complexity (cx is already ~7 here).
 export function TransactionsPage() {
   const queryClient = useQueryClient();
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
+  const { currencyCode, currencySymbol } = useMoneyFormatter();
   const { data: tagsData } = useTagsQuery();
   const tags = useMemo(() => flattenTags(tagsData?.tags), [tagsData?.tags]);
-  const currencySymbol = useMemo(
-    () =>
-      currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
 
   const filters = useTransactionFilters();
   const { view, type, tag, month, beneficiaryId, sortBy, order, set, clearAll } =
@@ -145,7 +162,12 @@ export function TransactionsPage() {
     isFetchingNextPage,
   } = useInfiniteTransactionsQuery(listParams);
 
-  const accumulatedPages = infiniteData?.pages ?? [];
+  // Memoised so the flatMap slices below don't see a fresh `[]` identity on
+  // every render when there are no pages yet.
+  const accumulatedPages = useMemo(
+    () => infiniteData?.pages ?? [],
+    [infiniteData?.pages]
+  );
   const transactions: TransactionDTO[] = useMemo(
     () => accumulatedPages.flatMap((p) => p.transactions ?? []),
     [accumulatedPages]
@@ -186,7 +208,10 @@ export function TransactionsPage() {
     isLoading: calendarLoading,
     error: calendarError,
   } = useTransactionsQuery(calendarParams);
-  const calendarTxns: TransactionDTO[] = calendarData?.transactions ?? [];
+  const calendarTxns: TransactionDTO[] = useMemo(
+    () => calendarData?.transactions ?? [],
+    [calendarData?.transactions]
+  );
 
   // Day-flyout data slice — reuse the calendar's month query when the
   // selected day falls inside the current calendar month, otherwise
@@ -206,7 +231,10 @@ export function TransactionsPage() {
   );
   const sameMonth = dayMonthKey === calendarMonthKey;
   const { data: dayData } = useTransactionsQuery(dayParams);
-  const dayTxnsAll = sameMonth ? calendarTxns : dayData?.transactions ?? [];
+  const dayTxnsAll = useMemo(
+    () => (sameMonth ? calendarTxns : dayData?.transactions ?? []),
+    [sameMonth, calendarTxns, dayData?.transactions]
+  );
   const dayTxns = useMemo(() => {
     if (!dayPanel.value) return [];
     return dayTxnsAll.filter((t) => {
@@ -258,113 +286,29 @@ export function TransactionsPage() {
 
   // Defensive error string — never let an unexpected object flow into
   // JSX as a child (post-Batch-9.6 hardening).
-  const errorObj = (isCalendar ? calendarError : listError) as
+  const activeError = (isCalendar ? calendarError : listError) as
     | ApiErrorShape
     | null;
-  const errorMessage =
-    deleteError ||
-    (typeof errorObj?.detail === 'string'
-      ? errorObj.detail
-      : typeof errorObj?.error === 'string'
-        ? errorObj.error
-        : (isCalendar ? calendarError : listError)
-          ? 'Failed to load data'
-          : null);
-
-  const showMerchantSearch = view !== 'calendar' || true; // always on per the design lock
-  void showMerchantSearch;
+  const errorMessage = resolveErrorMessage(
+    deleteError,
+    activeError,
+    Boolean(activeError)
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Transactions
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            View and manage your transaction history
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={addModal.open}
-            className="btn-primary !w-auto"
-          >
-            + Add Transaction
-          </button>
-          <Link
-            to="/upload-statement"
-            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <FileUp aria-hidden="true" size={16} />
-            Import Statement
-          </Link>
-        </div>
-      </header>
-
-      {/* Row 1 — primary view toggle. Three pills, equal weight. */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div
-          role="tablist"
-          aria-label="Transactions view"
-          className="inline-flex rounded-md bg-slate-100 p-1 dark:bg-slate-800"
-        >
-          {VIEW_TABS.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={view === value}
-              onClick={() => set({ view: value })}
-              className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
-                view === value
-                  ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100'
-              }`}
-            >
-              <Icon aria-hidden size={14} />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 2 — always-visible quick controls. Month dropdown hidden
-          in Calendar (calendar has its own prev/next month nav).
-          Merchant search + Filter icon ride along in every view. */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
-        {!isCalendar && (
-          <MonthDropdown
-            value={month}
-            onChange={(next) => set({ month: next })}
-          />
-        )}
-        <MerchantSearchBar
-          beneficiaryId={beneficiaryId}
-          onChange={(next) => set({ beneficiaryId: next })}
-        />
-        <div className="ml-auto">
-          <button
-            type="button"
-            onClick={() => setFilterSidebarOpen(true)}
-            aria-label={
-              filters.sidebarActiveCount > 0
-                ? `Open filters (${filters.sidebarActiveCount} active)`
-                : 'Open filters'
-            }
-            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <SlidersHorizontal aria-hidden size={14} />
-            Filters
-            {filters.sidebarActiveCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white dark:bg-indigo-500">
-                {filters.sidebarActiveCount}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
+      <TransactionsToolbar
+        view={view}
+        isCalendar={isCalendar}
+        month={month}
+        beneficiaryId={beneficiaryId}
+        sidebarActiveCount={filters.sidebarActiveCount}
+        onAdd={addModal.open}
+        onViewChange={(next) => set({ view: next })}
+        onMonthChange={(next) => set({ month: next })}
+        onBeneficiaryChange={(next) => set({ beneficiaryId: next })}
+        onOpenFilters={() => setFilterSidebarOpen(true)}
+      />
 
       {isCalendar ? (
         <CalendarView
@@ -382,82 +326,23 @@ export function TransactionsPage() {
           isLoading={calendarLoading}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-            {isMerchant
-              ? `${groups.length} merchant${groups.length === 1 ? '' : 's'}`
-              : `${transactions.length} transaction${transactions.length === 1 ? '' : 's'}`}
-          </div>
-
-          {listLoading ? (
-            <div className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
-              Loading…
-            </div>
-          ) : isMerchant ? (
-            groups.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-                No merchants found.
-              </div>
-            ) : (
-              <ul className="flex flex-col">
-                {groups.map((g) => (
-                  <MerchantRow
-                    key={g.beneficiary_id}
-                    group={g}
-                    currencyCode={currencyCode}
-                    currencySymbol={currencySymbol}
-                    onDetails={showMerchantTransactions}
-                  />
-                ))}
-              </ul>
-            )
-          ) : transactions.length === 0 ? (
-            <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-              No transactions found.
-            </div>
-          ) : (
-            <ul className="flex flex-col">
-              {transactions.map((t) => (
-                <TransactionRow
-                  key={t.txn_id}
-                  txn={t}
-                  tags={tags}
-                  timezone={timezone}
-                  currencyCode={currencyCode}
-                  currencySymbol={currencySymbol}
-                  highlighted={highlightTxnId === t.txn_id}
-                  onOpen={handleEdit}
-                />
-              ))}
-            </ul>
-          )}
-
-          {/* Pagination chrome. "Show more" button (mobile) +
-              IntersectionObserver sentinel (desktop) both sit in the
-              same DOM; CSS gates which one is visible / active. */}
-          {hasNextPage && (
-            <div className="border-t border-slate-100 px-4 py-3 text-center dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => void fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 md:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                {isFetchingNextPage ? 'Loading…' : 'Show more'}
-              </button>
-              <div
-                ref={sentinelRef}
-                aria-hidden
-                className="hidden md:block h-1"
-              />
-              {isFetchingNextPage && (
-                <span className="hidden text-xs text-slate-400 md:inline-block dark:text-slate-500">
-                  Loading more…
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        <TransactionListBody
+          isMerchant={isMerchant}
+          listLoading={listLoading}
+          groups={groups}
+          transactions={transactions}
+          tags={tags}
+          timezone={timezone}
+          currencyCode={currencyCode}
+          currencySymbol={currencySymbol}
+          highlightTxnId={highlightTxnId}
+          hasNextPage={Boolean(hasNextPage)}
+          isFetchingNextPage={isFetchingNextPage}
+          sentinelRef={sentinelRef}
+          onOpenEdit={handleEdit}
+          onShowMerchant={showMerchantTransactions}
+          onFetchNext={() => void fetchNextPage()}
+        />
       )}
 
       {errorMessage && (
@@ -556,6 +441,256 @@ export function TransactionsPage() {
         confirmLabel="Delete"
         busy={deleting}
       />
+    </div>
+  );
+}
+
+interface TransactionsToolbarProps {
+  view: TransactionView;
+  isCalendar: boolean;
+  month: string;
+  beneficiaryId: string;
+  sidebarActiveCount: number;
+  onAdd: () => void;
+  onViewChange: (next: TransactionView) => void;
+  onMonthChange: (next: string) => void;
+  onBeneficiaryChange: (next: string) => void;
+  onOpenFilters: () => void;
+}
+
+// Page chrome above the content: title + Add / Import actions, the
+// list/merchant/calendar view toggle, and the always-visible quick controls
+// (month dropdown — hidden in calendar — merchant search, filter button).
+// Split out of TransactionsPage to keep that component under the complexity /
+// line gates; purely presentational, all state stays on the page.
+function TransactionsToolbar({
+  view,
+  isCalendar,
+  month,
+  beneficiaryId,
+  sidebarActiveCount,
+  onAdd,
+  onViewChange,
+  onMonthChange,
+  onBeneficiaryChange,
+  onOpenFilters,
+}: TransactionsToolbarProps) {
+  return (
+    <>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Transactions
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            View and manage your transaction history
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onAdd} className="btn-primary !w-auto">
+            + Add Transaction
+          </button>
+          <Link
+            to="/upload-statement"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <FileUp aria-hidden="true" size={16} />
+            Import Statement
+          </Link>
+        </div>
+      </header>
+
+      {/* Row 1 — primary view toggle. Three pills, equal weight. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div
+          role="tablist"
+          aria-label="Transactions view"
+          className="inline-flex rounded-md bg-slate-100 p-1 dark:bg-slate-800"
+        >
+          {VIEW_TABS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={view === value}
+              onClick={() => onViewChange(value)}
+              className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+                view === value
+                  ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100'
+              }`}
+            >
+              <Icon aria-hidden size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 2 — always-visible quick controls. Month dropdown hidden
+          in Calendar (calendar has its own prev/next month nav).
+          Merchant search + Filter icon ride along in every view. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
+        {!isCalendar && (
+          <MonthDropdown value={month} onChange={onMonthChange} />
+        )}
+        <MerchantSearchBar
+          beneficiaryId={beneficiaryId}
+          onChange={onBeneficiaryChange}
+        />
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={onOpenFilters}
+            aria-label={
+              sidebarActiveCount > 0
+                ? `Open filters (${sidebarActiveCount} active)`
+                : 'Open filters'
+            }
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <SlidersHorizontal aria-hidden size={14} />
+            Filters
+            {sidebarActiveCount > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white dark:bg-indigo-500">
+                {sidebarActiveCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+interface TransactionListBodyProps {
+  isMerchant: boolean;
+  listLoading: boolean;
+  groups: MerchantGroup[];
+  transactions: TransactionDTO[];
+  tags: FlatTag[];
+  timezone: string;
+  currencyCode: string;
+  currencySymbol: string | null;
+  highlightTxnId: number | null;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  sentinelRef: React.RefObject<HTMLDivElement>;
+  onOpenEdit: (id: number) => void;
+  onShowMerchant: (beneficiaryUid: number) => void;
+  onFetchNext: () => void;
+}
+
+// The list / merchant card: count header, the rows (loading / empty / list,
+// resolved via early returns instead of a nested ternary), and the
+// pagination chrome (mobile "Show more" + desktop IntersectionObserver
+// sentinel). Split out of TransactionsPage to clear the nested-conditional
+// and complexity warnings.
+function TransactionListBody({
+  isMerchant,
+  listLoading,
+  groups,
+  transactions,
+  tags,
+  timezone,
+  currencyCode,
+  currencySymbol,
+  highlightTxnId,
+  hasNextPage,
+  isFetchingNextPage,
+  sentinelRef,
+  onOpenEdit,
+  onShowMerchant,
+  onFetchNext,
+}: TransactionListBodyProps) {
+  const countLabel = isMerchant
+    ? pluralCount(groups.length, 'merchant')
+    : pluralCount(transactions.length, 'transaction');
+
+  function renderRows() {
+    if (listLoading) {
+      return (
+        <div className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+          Loading…
+        </div>
+      );
+    }
+    if (isMerchant) {
+      if (groups.length === 0) {
+        return (
+          <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+            No merchants found.
+          </div>
+        );
+      }
+      return (
+        <ul className="flex flex-col">
+          {groups.map((g) => (
+            <MerchantRow
+              key={g.beneficiary_id}
+              group={g}
+              currencyCode={currencyCode}
+              currencySymbol={currencySymbol}
+              onDetails={onShowMerchant}
+            />
+          ))}
+        </ul>
+      );
+    }
+    if (transactions.length === 0) {
+      return (
+        <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+          No transactions found.
+        </div>
+      );
+    }
+    return (
+      <ul className="flex flex-col">
+        {transactions.map((t) => (
+          <TransactionRow
+            key={t.txn_id}
+            txn={t}
+            tags={tags}
+            timezone={timezone}
+            currencyCode={currencyCode}
+            currencySymbol={currencySymbol}
+            highlighted={highlightTxnId === t.txn_id}
+            onOpen={onOpenEdit}
+          />
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+        {countLabel}
+      </div>
+
+      {renderRows()}
+
+      {/* Pagination chrome. "Show more" button (mobile) +
+          IntersectionObserver sentinel (desktop) both sit in the
+          same DOM; CSS gates which one is visible / active. */}
+      {hasNextPage && (
+        <div className="border-t border-slate-100 px-4 py-3 text-center dark:border-slate-800">
+          <button
+            type="button"
+            onClick={onFetchNext}
+            disabled={isFetchingNextPage}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 md:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {isFetchingNextPage ? 'Loading…' : 'Show more'}
+          </button>
+          <div ref={sentinelRef} aria-hidden className="hidden md:block h-1" />
+          {isFetchingNextPage && (
+            <span className="hidden text-xs text-slate-400 md:inline-block dark:text-slate-500">
+              Loading more…
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

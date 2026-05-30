@@ -1,10 +1,9 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { Modal } from '../../../shared/components/Modal';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { formatBillDate } from '../api/billPeriod';
 import {
   useBillQuery,
@@ -45,18 +44,9 @@ export function BillDetailDialog({
   onPay,
   onViewTransaction,
 }: BillDetailDialogProps) {
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () =>
-      currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
+  const { money } = useMoneyFormatter();
   const { data: bill, isLoading, error } = useBillQuery(open ? billId : null);
-
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
 
   const titleRange = bill
     ? `${formatBillDate(bill.period_start, timezone)} → ${formatBillDate(bill.period_end, timezone)}`

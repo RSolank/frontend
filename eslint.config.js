@@ -1,6 +1,6 @@
 import js from '@eslint/js';
-import boundaries from 'eslint-plugin-boundaries';
 import prettier from 'eslint-config-prettier';
+import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import react from 'eslint-plugin-react';

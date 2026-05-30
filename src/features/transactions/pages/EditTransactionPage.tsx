@@ -58,6 +58,95 @@ function sortedKey(ids: number[]): string {
   return JSON.stringify([...ids].sort((a, b) => a - b));
 }
 
+// Normalise the beneficiary id for the payload — number stays, a non-empty
+// string coerces, empty becomes null. if/else (not a nested ternary) so it
+// stays off sonarjs/no-nested-conditional.
+function resolveBeneficiaryId(beneficiaryId: number | string): number | null {
+  if (typeof beneficiaryId === 'number') return beneficiaryId;
+  if (beneficiaryId) return Number(beneficiaryId);
+  return null;
+}
+
+interface PayloadFields {
+  amount: string;
+  debitCredit: 'debit' | 'credit';
+  beneficiaryId: number | string;
+  beneficiaryName: string;
+  txnDate: string;
+  notes: string;
+  tagIds: number[];
+}
+
+// Statement-sourced txns are bank-owned: only notes + tags are editable, so
+// the payload carries just those. Manual txns send the full editable set.
+// Pulled out of handleSubmit to keep that function under the gates.
+function buildTransactionPayload(
+  txn: TransactionDTO,
+  fields: PayloadFields
+): TransactionUpdatePayload {
+  if (txn.source === 'statement') {
+    return { notes: fields.notes || null, tag_ids: fields.tagIds };
+  }
+  return {
+    amount: parseFloat(fields.amount),
+    debit_credit: fields.debitCredit,
+    beneficiary_id: resolveBeneficiaryId(fields.beneficiaryId),
+    beneficiary_name: fields.beneficiaryName || null,
+    txn_date: fields.txnDate,
+    notes: fields.notes || null,
+    tag_ids: fields.tagIds,
+  } satisfies TransactionCreatePayload;
+}
+
+interface RuleResolutionArgs {
+  tagsChanged: boolean;
+  beneficiaryId: number | string;
+  beneficiaryName: string;
+  tagIds: number[];
+}
+
+// The "tags changed → offer to create/update a categorization rule" flow.
+// Returns the rule uid to link to the txn, or null if the user declines at
+// any prompt / there's nothing to link. Extracted from handleSubmit (where it
+// was a depth-5 confirm tree) and rewritten with guard-clause early returns —
+// behaviour is identical, the nesting is gone.
+async function resolveRuleToLink({
+  tagsChanged,
+  beneficiaryId,
+  beneficiaryName,
+  tagIds,
+}: RuleResolutionArgs): Promise<number | null> {
+  if (!tagsChanged || !beneficiaryId) return null;
+  const createRule = window.confirm(
+    'You updated the tags. Would you like to create/update a categorization rule for this beneficiary?'
+  );
+  if (!createRule) return null;
+
+  const { rules } = await fetchCategorizationRules();
+  const existingRule = rules.find(
+    (r: CategorizationRule) => r.beneficiary_id === Number(beneficiaryId)
+  );
+
+  if (existingRule) {
+    if (
+      !window.confirm(
+        `A rule for this beneficiary already exists. Update it with these tags?`
+      )
+    ) {
+      return null;
+    }
+    await updateCategorizationRuleTags(existingRule.uid, tagIds);
+    return existingRule.uid;
+  }
+
+  const created = await createCategorizationRule({
+    name: `Rule for ${beneficiaryName}`,
+    beneficiary_id: beneficiaryId,
+    tag_ids: tagIds,
+  });
+  return created.rule.uid;
+}
+
 interface EditTransactionPageProps {
   // Override the URL :id when mounted from a modal on the list page.
   idOverride?: string;
@@ -70,6 +159,7 @@ interface EditTransactionPageProps {
   embedded?: boolean;
 }
 
+// eslint-disable-next-line max-lines-per-function -- the render is extracted to <EditTransactionForm> and the submit logic to module-level helpers; the residual is a flat field-load + handler shell. Splitting state/effect into a hook would add indirection without reducing real complexity (cx is already ~6 here).
 export function EditTransactionPage({
   idOverride,
   onClose,
@@ -229,61 +319,23 @@ export function EditTransactionPage({
     setError(null);
 
     try {
-      const tagsChanged =
-        sortedKey(tagIds) !== sortedKey(txn.tag_ids ?? []);
+      const tagsChanged = sortedKey(tagIds) !== sortedKey(txn.tag_ids ?? []);
+      const ruleIdToLink = await resolveRuleToLink({
+        tagsChanged,
+        beneficiaryId,
+        beneficiaryName,
+        tagIds,
+      });
 
-      let ruleIdToLink: number | null = null;
-      if (tagsChanged && beneficiaryId) {
-        const createRule = window.confirm(
-          'You updated the tags. Would you like to create/update a categorization rule for this beneficiary?'
-        );
-        if (createRule) {
-          const { rules } = await fetchCategorizationRules();
-          const existingRule = rules.find(
-            (r: CategorizationRule) =>
-              r.beneficiary_id === Number(beneficiaryId)
-          );
-
-          if (existingRule) {
-            if (
-              window.confirm(
-                `A rule for this beneficiary already exists. Update it with these tags?`
-              )
-            ) {
-              await updateCategorizationRuleTags(existingRule.uid, tagIds);
-              ruleIdToLink = existingRule.uid;
-            }
-          } else {
-            const created = await createCategorizationRule({
-              name: `Rule for ${beneficiaryName}`,
-              beneficiary_id: beneficiaryId,
-              tag_ids: tagIds,
-            });
-            ruleIdToLink = created.rule.uid;
-          }
-        }
-      }
-
-      const payload: TransactionUpdatePayload =
-        txn.source === 'statement'
-          ? {
-              notes: notes || null,
-              tag_ids: tagIds,
-            }
-          : ({
-              amount: parseFloat(amount),
-              debit_credit: debitCredit,
-              beneficiary_id:
-                typeof beneficiaryId === 'number'
-                  ? beneficiaryId
-                  : beneficiaryId
-                    ? Number(beneficiaryId)
-                    : null,
-              beneficiary_name: beneficiaryName || null,
-              txn_date: txnDate,
-              notes: notes || null,
-              tag_ids: tagIds,
-            } satisfies TransactionCreatePayload);
+      const payload = buildTransactionPayload(txn, {
+        amount,
+        debitCredit,
+        beneficiaryId,
+        beneficiaryName,
+        txnDate,
+        notes,
+        tagIds,
+      });
 
       await updateTransactionRequest(id, payload, ruleIdToLink);
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
@@ -294,8 +346,8 @@ export function EditTransactionPage({
       // the modal cleanly.
       dismiss();
     } catch (err) {
-      const e = err as ApiErrorShape;
-      setError(e.detail || e.error || 'Failed to update');
+      const apiErr = err as ApiErrorShape;
+      setError(apiErr.detail || apiErr.error || 'Failed to update');
     } finally {
       setSubmitting(false);
     }
@@ -374,184 +426,297 @@ export function EditTransactionPage({
 
   return wrap(
     <>
+      <EditTransactionForm
+        error={error}
+        lockedReason={lockedReason}
+        isStatement={isStatement}
+        lockedInputClass={lockedInputClass}
+        onLockedFieldClick={onLockedFieldClick}
+        beneficiaryName={beneficiaryName}
+        beneficiaryId={beneficiaryId}
+        beneficiaries={beneficiaries}
+        amount={amount}
+        debitCredit={debitCredit}
+        txnDate={txnDate}
+        tags={tags}
+        tagIds={tagIds}
+        miscellaneousTagId={
+          constants?.MISCELLANEOUS_TAG_ID as number | undefined
+        }
+        totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
+        notes={notes}
+        submitting={submitting}
+        isDirty={isDirty}
+        dismissLabel={dismissLabel}
+        onSubmit={handleSubmit}
+        onBeneficiaryChange={(name, bid) => {
+          clearLockedBannerOnEdit();
+          setBeneficiaryName(name);
+          setBeneficiaryId(bid);
+        }}
+        onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
+        onAmountChange={(value) => {
+          clearLockedBannerOnEdit();
+          setAmount(value);
+        }}
+        onDebitCreditChange={(value) => {
+          clearLockedBannerOnEdit();
+          setDebitCredit(value);
+        }}
+        onTxnDateChange={(value) => {
+          clearLockedBannerOnEdit();
+          setTxnDate(value);
+        }}
+        onAddTag={(tid) => {
+          clearLockedBannerOnEdit();
+          handleAddTag(tid);
+        }}
+        onRemoveTag={(tid) => {
+          clearLockedBannerOnEdit();
+          handleRemoveTag(tid);
+        }}
+        onRequestAddTag={() => setCreateTagOpen(true)}
+        onNotesChange={(value) => {
+          clearLockedBannerOnEdit();
+          setNotes(value);
+        }}
+        onCloseRequest={handleCloseRequest}
+      />
+
+      <BeneficiaryFormDialog
+        open={createBeneficiaryOpen}
+        onClose={() => setCreateBeneficiaryOpen(false)}
+        onSaved={handleBeneficiaryCreated}
+        initialName={beneficiaryName}
+      />
+      <TagFormDialog
+        open={createTagOpen}
+        onClose={() => setCreateTagOpen(false)}
+        onSaved={handleTagCreated}
+        flatTags={tags}
+      />
+    </>
+  );
+}
+
+interface EditTransactionFormProps {
+  error: string | null;
+  lockedReason: string | null;
+  isStatement: boolean;
+  lockedInputClass: string;
+  onLockedFieldClick: (() => void) | undefined;
+  beneficiaryName: string;
+  beneficiaryId: number | string;
+  beneficiaries: Beneficiary[];
+  amount: string;
+  debitCredit: 'debit' | 'credit';
+  txnDate: string;
+  tags: FlatTag[];
+  tagIds: number[];
+  miscellaneousTagId: number | undefined;
+  totalTagId: number | undefined;
+  notes: string;
+  submitting: boolean;
+  isDirty: boolean;
+  dismissLabel: string;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onBeneficiaryChange: (name: string, bid: number | string) => void;
+  onRequestAddBeneficiary: () => void;
+  onAmountChange: (value: string) => void;
+  onDebitCreditChange: (value: 'debit' | 'credit') => void;
+  onTxnDateChange: (value: string) => void;
+  onAddTag: (tid: number) => void;
+  onRemoveTag: (tid: number) => void;
+  onRequestAddTag: () => void;
+  onNotesChange: (value: string) => void;
+  onCloseRequest: () => void;
+}
+
+// The edit form's render — error banner, locked-field banner, the field set
+// (beneficiary / amount / type / date / tags / notes, each readOnly-locked
+// when the txn came from a statement), and the footer. Split out of
+// EditTransactionPage so that component stays under the complexity / cognitive
+// gates; all state lives in the page and arrives via props. Each onChange is
+// pre-wrapped by the page with the locked-banner clear.
+function EditTransactionForm({
+  error,
+  lockedReason,
+  isStatement,
+  lockedInputClass,
+  onLockedFieldClick,
+  beneficiaryName,
+  beneficiaryId,
+  beneficiaries,
+  amount,
+  debitCredit,
+  txnDate,
+  tags,
+  tagIds,
+  miscellaneousTagId,
+  totalTagId,
+  notes,
+  submitting,
+  isDirty,
+  dismissLabel,
+  onSubmit,
+  onBeneficiaryChange,
+  onRequestAddBeneficiary,
+  onAmountChange,
+  onDebitCreditChange,
+  onTxnDateChange,
+  onAddTag,
+  onRemoveTag,
+  onRequestAddTag,
+  onNotesChange,
+  onCloseRequest,
+}: EditTransactionFormProps) {
+  return (
+    <>
       {error && <div className="form-error mb-3">{error}</div>}
 
       <LockedFieldBanner reason={lockedReason} />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Beneficiary search — readOnly when the txn comes from a
-              statement (bank-owned). Click surfaces the lock banner. */}
-          {isStatement ? (
-            <div>
-              <label htmlFor="beneficiary-locked" className="form-label">
-                Beneficiary
-              </label>
-              <input
-                id="beneficiary-locked"
-                value={beneficiaryName}
-                readOnly
-                onClick={onLockedFieldClick}
-                className={`form-input ${lockedInputClass}`}
-              />
-            </div>
-          ) : (
-            <BeneficiarySearch
-              value={beneficiaryName}
-              beneficiaryId={beneficiaryId}
-              beneficiaries={beneficiaries}
-              onChange={(name, bid) => {
-                clearLockedBannerOnEdit();
-                setBeneficiaryName(name);
-                setBeneficiaryId(bid);
-              }}
-              onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
-              required
-            />
-          )}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="amount" className="form-label">
-                Amount
-              </label>
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                value={amount}
-                readOnly={isStatement}
-                onChange={(e) => {
-                  clearLockedBannerOnEdit();
-                  setAmount(e.target.value);
-                }}
-                onClick={onLockedFieldClick}
-                className={`form-input ${lockedInputClass}`}
-              />
-            </div>
-            <div>
-              <label htmlFor="debit_credit" className="form-label">
-                Type
-              </label>
-              {isStatement ? (
-                <input
-                  id="debit_credit"
-                  name="debit_credit"
-                  value={debitCredit === 'debit' ? 'Debit' : 'Credit'}
-                  readOnly
-                  onClick={onLockedFieldClick}
-                  className={`form-input ${lockedInputClass}`}
-                />
-              ) : (
-                <select
-                  id="debit_credit"
-                  name="debit_credit"
-                  value={debitCredit}
-                  onChange={(e) => {
-                    clearLockedBannerOnEdit();
-                    setDebitCredit(e.target.value as 'debit' | 'credit');
-                  }}
-                  className="form-input"
-                >
-                  <option value="debit">Debit</option>
-                  <option value="credit">Credit</option>
-                </select>
-              )}
-            </div>
-          </div>
-
+      <form onSubmit={onSubmit} className="space-y-4">
+        {/* Beneficiary search — readOnly when the txn comes from a
+            statement (bank-owned). Click surfaces the lock banner. */}
+        {isStatement ? (
           <div>
-            <label htmlFor="txn_date" className="form-label">
-              Date
+            <label htmlFor="beneficiary-locked" className="form-label">
+              Beneficiary
+            </label>
+            <input
+              id="beneficiary-locked"
+              value={beneficiaryName}
+              readOnly
+              onClick={onLockedFieldClick}
+              className={`form-input ${lockedInputClass}`}
+            />
+          </div>
+        ) : (
+          <BeneficiarySearch
+            value={beneficiaryName}
+            beneficiaryId={beneficiaryId}
+            beneficiaries={beneficiaries}
+            onChange={onBeneficiaryChange}
+            onRequestAddBeneficiary={onRequestAddBeneficiary}
+            required
+          />
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="amount" className="form-label">
+              Amount
+            </label>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              step="0.01"
+              value={amount}
+              readOnly={isStatement}
+              onChange={(e) => onAmountChange(e.target.value)}
+              onClick={onLockedFieldClick}
+              className={`form-input ${lockedInputClass}`}
+            />
+          </div>
+          <div>
+            <label htmlFor="debit_credit" className="form-label">
+              Type
             </label>
             {isStatement ? (
               <input
-                id="txn_date"
-                name="txn_date"
-                value={txnDate}
+                id="debit_credit"
+                name="debit_credit"
+                value={debitCredit === 'debit' ? 'Debit' : 'Credit'}
                 readOnly
                 onClick={onLockedFieldClick}
                 className={`form-input ${lockedInputClass}`}
               />
             ) : (
-              <DateField
-                id="txn_date"
-                name="txn_date"
-                value={txnDate}
-                onChange={(next) => {
-                  clearLockedBannerOnEdit();
-                  setTxnDate(next);
-                }}
-              />
+              <select
+                id="debit_credit"
+                name="debit_credit"
+                value={debitCredit}
+                onChange={(e) =>
+                  onDebitCreditChange(e.target.value as 'debit' | 'credit')
+                }
+                className="form-input"
+              >
+                <option value="debit">Debit</option>
+                <option value="credit">Credit</option>
+              </select>
             )}
           </div>
+        </div>
 
-          <TagSelector
-            tags={tags}
-            selectedTagIds={tagIds}
-            miscellaneousTagId={constants?.MISCELLANEOUS_TAG_ID as number | undefined}
-            totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
-            onAdd={(tid) => {
-              clearLockedBannerOnEdit();
-              handleAddTag(tid);
-            }}
-            onRemove={(tid) => {
-              clearLockedBannerOnEdit();
-              handleRemoveTag(tid);
-            }}
-            onRequestAddTag={() => setCreateTagOpen(true)}
-          />
-
-          <div>
-            <label htmlFor="notes" className="form-label">
-              Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={notes}
-              onChange={(e) => {
-                clearLockedBannerOnEdit();
-                setNotes(e.target.value);
-              }}
-              rows={3}
-              className="form-input resize-y"
+        <div>
+          <label htmlFor="txn_date" className="form-label">
+            Date
+          </label>
+          {isStatement ? (
+            <input
+              id="txn_date"
+              name="txn_date"
+              value={txnDate}
+              readOnly
+              onClick={onLockedFieldClick}
+              className={`form-input ${lockedInputClass}`}
             />
-          </div>
+          ) : (
+            <DateField
+              id="txn_date"
+              name="txn_date"
+              value={txnDate}
+              onChange={onTxnDateChange}
+            />
+          )}
+        </div>
 
-          {/* DetailModal footer convention (Batch 9.8): Cancel/Close
-              on the left of the right-cluster, Save on the right;
-              buttons size to their content (no `w-full`). */}
-          <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleCloseRequest}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              {dismissLabel}
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !isDirty}
-              className="btn-primary !w-auto"
-            >
-              {submitting ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+        <TagSelector
+          tags={tags}
+          selectedTagIds={tagIds}
+          miscellaneousTagId={miscellaneousTagId}
+          totalTagId={totalTagId}
+          onAdd={onAddTag}
+          onRemove={onRemoveTag}
+          onRequestAddTag={onRequestAddTag}
+        />
 
-        <BeneficiaryFormDialog
-          open={createBeneficiaryOpen}
-          onClose={() => setCreateBeneficiaryOpen(false)}
-          onSaved={handleBeneficiaryCreated}
-          initialName={beneficiaryName}
-        />
-        <TagFormDialog
-          open={createTagOpen}
-          onClose={() => setCreateTagOpen(false)}
-          onSaved={handleTagCreated}
-          flatTags={tags}
-        />
+        <div>
+          <label htmlFor="notes" className="form-label">
+            Notes
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            rows={3}
+            className="form-input resize-y"
+          />
+        </div>
+
+        {/* DetailModal footer convention (Batch 9.8): Cancel/Close
+            on the left of the right-cluster, Save on the right;
+            buttons size to their content (no `w-full`). */}
+        <div className="flex flex-wrap justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onCloseRequest}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {dismissLabel}
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || !isDirty}
+            className="btn-primary !w-auto"
+          >
+            {submitting ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </>
   );
 }

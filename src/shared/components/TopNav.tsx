@@ -269,6 +269,16 @@ interface MobileDrawerProps {
 // scrolls. Routing semantics are still announced via aria-label on
 // the role="dialog" wrapper, so no semantic loss.
 function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
+  // Escape closes the drawer — the keyboard equivalent of the scrim
+  // click + the explicit Close button. Bound while the drawer is mounted.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
     <div
       role="dialog"
@@ -276,9 +286,16 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
       aria-label="Navigation menu"
       className="fixed inset-0 z-40 lg:hidden"
     >
-      <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm dark:bg-slate-950/70"
+      {/* Scrim — a real button so click-to-dismiss carries native keyboard
+          semantics. aria-hidden + tabIndex -1 keep it out of the SR/Tab
+          path; keyboard users dismiss via Escape or the visible Close
+          button below. */}
+      <button
+        type="button"
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={onClose}
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm dark:bg-slate-950/70"
       />
       <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-white shadow-2xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800">
         <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">

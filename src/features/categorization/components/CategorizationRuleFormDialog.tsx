@@ -81,26 +81,140 @@ interface CategorizationRuleFormDialogProps {
   onTagCreated: (created?: CreatedTag) => void | Promise<void>;
 }
 
-// Single canonical CRUD surface for a categorization rule. Wraps the
-// shared Modal with the rule form, the SearchableList beneficiary +
-// tag pickers, and the nested BeneficiaryFormDialog / TagFormDialog
-// so users can mint a missing beneficiary/tag mid-rule without
-// losing in-flight draft state. Add vs Edit branches purely on the
-// presence of `editingRule`.
-export function CategorizationRuleFormDialog({
+// Modal heading: the auto-generated rule name (or the loaded one) in Edit,
+// a fixed prefix in Add. if/else (not a nested ternary) so it reads cleanly.
+function ruleTitle(
+  isEditing: boolean,
+  generatedRuleName: string,
+  editingRule: CategorizationRule | null
+): string {
+  if (!isEditing) return 'New categorization rule';
+  return generatedRuleName || editingRule?.rule_name || 'Categorization rule';
+}
+
+// Modal sub-description: ownership pill in Edit, nothing in Add. if/else so
+// it stays off sonarjs/no-nested-conditional.
+function ruleDescription(
+  isEditing: boolean,
+  isUserRule: boolean
+): string | undefined {
+  if (!isEditing) return undefined;
+  return isUserRule ? 'Your rule' : 'System rule';
+}
+
+interface UseRuleSubmitArgs {
+  open: boolean;
+  form: FormState;
+  beneficiaryConflict: string | null;
+  generatedRuleName: string;
+  isEditing: boolean;
+  editingRule: CategorizationRule | null;
+  onSaved: (uid: number, tagIds: readonly number[]) => void | Promise<void>;
+  onClose: () => void;
+}
+
+// The submit half of the form: validation + create/update mutation, plus the
+// busy / error state it owns. Composed into useRuleForm; split out only to
+// keep that hook under the line-count gate.
+function useRuleSubmit({
   open,
+  form,
+  beneficiaryConflict,
+  generatedRuleName,
+  isEditing,
+  editingRule,
+  onSaved,
   onClose,
+}: UseRuleSubmitArgs) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear busy/error on (re)open — the form-reset half of the original
+  // single open-effect, kept here alongside the state it touches.
+  useEffect(() => {
+    if (!open) return;
+    setBusy(false);
+    setError(null);
+  }, [open, editingRule]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    if (!form.beneficiary_id) {
+      setError('Please select a beneficiary');
+      return;
+    }
+    if (beneficiaryConflict) {
+      setError(beneficiaryConflict);
+      return;
+    }
+    if (form.tag_ids.length === 0) {
+      setError('At least one tag is required');
+      return;
+    }
+    if (!generatedRuleName) {
+      setError('Could not generate rule name');
+      return;
+    }
+    const payload = {
+      name: generatedRuleName,
+      beneficiary_id: form.beneficiary_id,
+      tag_ids: form.tag_ids,
+      notes: form.notes || null,
+    };
+    try {
+      setBusy(true);
+      let savedUid: number;
+      if (isEditing && editingRule) {
+        await updateCategorizationRuleRequest(editingRule.uid, payload);
+        savedUid = editingRule.uid;
+      } else {
+        const res = await createCategorizationRule(payload);
+        savedUid = res.rule.uid;
+      }
+      await onSaved(savedUid, payload.tag_ids);
+      // Row-highlight on the parent communicates success; close.
+      onClose();
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to save rule'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { busy, setBusy, error, setError, handleSubmit };
+}
+
+interface UseRuleFormArgs {
+  open: boolean;
+  editingRule: CategorizationRule | null;
+  tags: FlatTag[];
+  beneficiaries: Beneficiary[];
+  constants: Constants | null;
+  rules: CategorizationRule[];
+  onSaved: (uid: number, tagIds: readonly number[]) => void | Promise<void>;
+  onClose: () => void;
+  onBeneficiaryCreated: (b: Beneficiary) => void | Promise<void>;
+  onTagCreated: (created?: CreatedTag) => void | Promise<void>;
+}
+
+// All of the dialog's state, effects, derived values and handlers. Pulled
+// out of the component so the render stays a presentational shell under the
+// complexity / line-count gates. Behaviour is identical to the previous
+// inline implementation — a verbatim relocation. Reference data (tags,
+// beneficiaries) arrives via props, so nothing here subscribes a query.
+function useRuleForm({
+  open,
   editingRule,
   tags,
   beneficiaries,
   constants,
   rules,
-  isUserRule,
   onSaved,
-  onRequestDelete,
+  onClose,
   onBeneficiaryCreated,
   onTagCreated,
-}: CategorizationRuleFormDialogProps) {
+}: UseRuleFormArgs) {
   const isEditing = editingRule != null;
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -111,8 +225,6 @@ export function CategorizationRuleFormDialog({
   const [beneficiaryConflict, setBeneficiaryConflict] = useState<string | null>(
     null
   );
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
   const [createTagOpen, setCreateTagOpen] = useState(false);
 
@@ -136,8 +248,6 @@ export function CategorizationRuleFormDialog({
     setBSearchFocused(false);
     setTagSearchFocused(false);
     setBeneficiaryConflict(null);
-    setBusy(false);
-    setError(null);
   }, [open, isEditing, editingRule]);
 
   const originalForm = useMemo<FormState>(
@@ -157,7 +267,6 @@ export function CategorizationRuleFormDialog({
     if (!isEditing) return true;
     return JSON.stringify(form) !== JSON.stringify(originalForm);
   }, [isEditing, form, originalForm]);
-
 
   // Beneficiary-conflict check — one rule per beneficiary.
   useEffect(() => {
@@ -205,6 +314,13 @@ export function CategorizationRuleFormDialog({
     setBSearch(name);
     setForm((f) => ({ ...f, beneficiary_id: id, beneficiary_name: name }));
     setBSearchFocused(false);
+  }
+
+  // Beneficiary search input change — typing clears any prior selection so
+  // the form-level id/name don't drift from the visible text.
+  function handleBeneficiarySearchChange(value: string) {
+    setBSearch(value);
+    setForm((f) => ({ ...f, beneficiary_id: '', beneficiary_name: '' }));
   }
 
   async function handleBeneficiaryCreated(b: Beneficiary) {
@@ -257,58 +373,88 @@ export function CategorizationRuleFormDialog({
     }));
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    if (!form.beneficiary_id) {
-      setError('Please select a beneficiary');
-      return;
-    }
-    if (beneficiaryConflict) {
-      setError(beneficiaryConflict);
-      return;
-    }
-    if (form.tag_ids.length === 0) {
-      setError('At least one tag is required');
-      return;
-    }
-    if (!generatedRuleName) {
-      setError('Could not generate rule name');
-      return;
-    }
-    const payload = {
-      name: generatedRuleName,
-      beneficiary_id: form.beneficiary_id,
-      tag_ids: form.tag_ids,
-      notes: form.notes || null,
-    };
-    try {
-      setBusy(true);
-      let savedUid: number;
-      if (isEditing && editingRule) {
-        await updateCategorizationRuleRequest(editingRule.uid, payload);
-        savedUid = editingRule.uid;
-      } else {
-        const res = await createCategorizationRule(payload);
-        savedUid = res.rule.uid;
-      }
-      await onSaved(savedUid, payload.tag_ids);
-      // Row-highlight on the parent communicates success; close.
-      onClose();
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to save rule'));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const submit = useRuleSubmit({
+    open,
+    form,
+    beneficiaryConflict,
+    generatedRuleName,
+    isEditing,
+    editingRule,
+    onSaved,
+    onClose,
+  });
 
-  // Title = the auto-generated rule name (or the loaded one). Add
-  // flow falls back to a "New categorization rule" prefix until the
-  // user picks a beneficiary + first tag.
-  const title = isEditing
-    ? generatedRuleName || editingRule.rule_name || 'Categorization rule'
-    : 'New categorization rule';
-  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+  const saveDisabled =
+    submit.busy || !!beneficiaryConflict || !form.beneficiary_id || !isDirty;
+
+  return {
+    form,
+    setForm,
+    bSearch,
+    bSearchFocused,
+    setBSearchFocused,
+    tagSearch,
+    setTagSearch,
+    tagSearchFocused,
+    setTagSearchFocused,
+    beneficiaryConflict,
+    error: submit.error,
+    createBeneficiaryOpen,
+    setCreateBeneficiaryOpen,
+    createTagOpen,
+    setCreateTagOpen,
+    isEditing,
+    isDirty,
+    filteredTags,
+    generatedRuleName,
+    availableBeneficiaries,
+    saveDisabled,
+    selectBeneficiaryById,
+    handleBeneficiarySearchChange,
+    handleBeneficiaryCreated,
+    handleTagCreated,
+    handlePickTag,
+    handleRemoveTag,
+    handlePromoteTag,
+    handleSubmit: submit.handleSubmit,
+  };
+}
+
+// Single canonical CRUD surface for a categorization rule. Wraps the
+// shared Modal with the rule form, the SearchableList beneficiary +
+// tag pickers, and the nested BeneficiaryFormDialog / TagFormDialog
+// so users can mint a missing beneficiary/tag mid-rule without
+// losing in-flight draft state. Add vs Edit branches purely on the
+// presence of `editingRule`.
+export function CategorizationRuleFormDialog({
+  open,
+  onClose,
+  editingRule,
+  tags,
+  beneficiaries,
+  constants,
+  rules,
+  isUserRule,
+  onSaved,
+  onRequestDelete,
+  onBeneficiaryCreated,
+  onTagCreated,
+}: CategorizationRuleFormDialogProps) {
+  const f = useRuleForm({
+    open,
+    editingRule,
+    tags,
+    beneficiaries,
+    constants,
+    rules,
+    onSaved,
+    onClose,
+    onBeneficiaryCreated,
+    onTagCreated,
+  });
+
+  const title = ruleTitle(f.isEditing, f.generatedRuleName, editingRule);
+  const dismissLabel = f.isDirty ? 'Cancel' : 'Close';
 
   return (
     <>
@@ -317,13 +463,11 @@ export function CategorizationRuleFormDialog({
         onClose={onClose}
         size="lg"
         title={title}
-        description={
-          isEditing ? (isUserRule ? 'Your rule' : 'System rule') : undefined
-        }
+        description={ruleDescription(f.isEditing, isUserRule)}
         confirmOnDirty
-        isDirty={isDirty}
+        isDirty={f.isDirty}
         headerActions={
-          isEditing && isUserRule ? (
+          f.isEditing && isUserRule ? (
             <button
               type="button"
               onClick={onRequestDelete}
@@ -336,14 +480,14 @@ export function CategorizationRuleFormDialog({
           ) : null
         }
       >
-        <form onSubmit={handleSubmit} className="grid gap-4">
+        <form onSubmit={f.handleSubmit} className="grid gap-4">
           <div>
             <span className="form-label">Rule name</span>
             <output
               aria-live="polite"
               className="block min-h-[2.5rem] px-1 py-2 text-sm leading-6 break-words text-slate-700 dark:text-slate-200"
             >
-              {generatedRuleName || (
+              {f.generatedRuleName || (
                 <span className="text-slate-400 italic dark:text-slate-500">
                   Select a beneficiary and at least one tag…
                 </span>
@@ -354,176 +498,44 @@ export function CategorizationRuleFormDialog({
             </p>
           </div>
 
-          <div className="relative">
-            <label htmlFor="rule-beneficiary-search" className="form-label">
-              Beneficiary
-            </label>
-            <input
-              id="rule-beneficiary-search"
-              value={bSearch}
-              onChange={(e) => {
-                setBSearch(e.target.value);
-                setForm((f) => ({
-                  ...f,
-                  beneficiary_id: '',
-                  beneficiary_name: '',
-                }));
-              }}
-              onFocus={() => setBSearchFocused(true)}
-              onBlur={() =>
-                window.setTimeout(() => setBSearchFocused(false), 200)
-              }
-              placeholder="Search beneficiary..."
-              required
-              className="form-input"
-            />
-            {bSearchFocused && (
-              <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                <button
-                  type="button"
-                  onMouseDown={() => {
-                    setCreateBeneficiaryOpen(true);
-                    setBSearchFocused(false);
-                  }}
-                  className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
-                >
-                  <span aria-hidden="true">＋</span>
-                  Add new beneficiary
-                </button>
-                {availableBeneficiaries.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-                    No matches
-                  </div>
-                ) : (
-                  availableBeneficiaries.map((b) => (
-                    <div
-                      key={b.uid}
-                      role="option"
-                      aria-selected={form.beneficiary_id === b.uid}
-                      tabIndex={0}
-                      onMouseDown={() => selectBeneficiaryById(b.uid, b.name)}
-                      className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
-                    >
-                      {b.name}
-                      {b.aliases?.length > 0 && (
-                        <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
-                          ({b.aliases.join(', ')})
-                        </span>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-            {beneficiaryConflict && (
-              <div className="form-error mt-1">{beneficiaryConflict}</div>
-            )}
-          </div>
+          <BeneficiaryPicker
+            bSearch={f.bSearch}
+            focused={f.bSearchFocused}
+            beneficiaries={f.availableBeneficiaries}
+            selectedId={f.form.beneficiary_id}
+            conflict={f.beneficiaryConflict}
+            onSearchChange={f.handleBeneficiarySearchChange}
+            onFocus={() => f.setBSearchFocused(true)}
+            onBlur={() => window.setTimeout(() => f.setBSearchFocused(false), 200)}
+            onSelect={f.selectBeneficiaryById}
+            onAddNew={() => {
+              f.setCreateBeneficiaryOpen(true);
+              f.setBSearchFocused(false);
+            }}
+          />
 
-          <div className="relative">
-            <label htmlFor="rule-tag-search" className="form-label">
-              Tags
-            </label>
-            <input
-              id="rule-tag-search"
-              value={tagSearch}
-              onChange={(e) => setTagSearch(e.target.value)}
-              onFocus={() => setTagSearchFocused(true)}
-              onBlur={() =>
-                window.setTimeout(() => setTagSearchFocused(false), 200)
-              }
-              placeholder="Search tags..."
-              className="form-input"
-              autoComplete="off"
-            />
-            {tagSearchFocused &&
-              (() => {
-                const q = tagSearch.trim().toLowerCase();
-                const matches = filteredTags.filter((t) => {
-                  if (form.tag_ids.includes(t.tag_id)) return false;
-                  if (!q) return true;
-                  return formatTagAssignment(t.tag_id, tags)
-                    .toLowerCase()
-                    .includes(q);
-                });
-                return (
-                  <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                    <button
-                      type="button"
-                      onMouseDown={() => {
-                        setCreateTagOpen(true);
-                        setTagSearchFocused(false);
-                      }}
-                      className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
-                    >
-                      <span aria-hidden="true">＋</span>
-                      Add new tag
-                    </button>
-                    {matches.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-                        No matches
-                      </div>
-                    ) : (
-                      matches.map((t) => (
-                        <button
-                          key={t.tag_id}
-                          type="button"
-                          onMouseDown={() => {
-                            handlePickTag(String(t.tag_id));
-                            setTagSearch('');
-                          }}
-                          className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
-                        >
-                          {formatTagAssignment(t.tag_id, tags)}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                );
-              })()}
-            <div className="mt-2 flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-              {form.tag_ids.length === 0 ? (
-                <span className="text-sm text-slate-400 dark:text-slate-500">
-                  No tags selected
-                </span>
-              ) : (
-                form.tag_ids.map((tid, idx) => {
-                  const isPrimary = idx === 0;
-                  const chipBase =
-                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border';
-                  const chipColor = isPrimary
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50'
-                    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
-                  return (
-                    <span key={tid} className={`${chipBase} ${chipColor}`}>
-                      {formatTagAssignment(tid, tags)}
-                      {isPrimary ? (
-                        <span className="rounded-sm bg-emerald-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
-                          Primary
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handlePromoteTag(tid)}
-                          className="rounded-sm bg-indigo-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-indigo-700"
-                        >
-                          Set Primary
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tid)}
-                        aria-label={`Remove tag ${formatTagAssignment(tid, tags)}`}
-                        className="ml-0.5 text-base leading-none font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <TagPicker
+            tagSearch={f.tagSearch}
+            focused={f.tagSearchFocused}
+            filteredTags={f.filteredTags}
+            tags={tags}
+            selectedTagIds={f.form.tag_ids}
+            onSearchChange={f.setTagSearch}
+            onFocus={() => f.setTagSearchFocused(true)}
+            onBlur={() =>
+              window.setTimeout(() => f.setTagSearchFocused(false), 200)
+            }
+            onPickTag={(raw) => {
+              f.handlePickTag(raw);
+              f.setTagSearch('');
+            }}
+            onRemoveTag={f.handleRemoveTag}
+            onPromoteTag={f.handlePromoteTag}
+            onAddNew={() => {
+              f.setCreateTagOpen(true);
+              f.setTagSearchFocused(false);
+            }}
+          />
 
           <div>
             <label htmlFor="rule-notes" className="form-label">
@@ -531,15 +543,15 @@ export function CategorizationRuleFormDialog({
             </label>
             <input
               id="rule-notes"
-              value={form.notes}
+              value={f.form.notes}
               onChange={(e) =>
-                setForm((f) => ({ ...f, notes: e.target.value }))
+                f.setForm((prev) => ({ ...prev, notes: e.target.value }))
               }
               className="form-input"
             />
           </div>
 
-          {error && <div className="form-error">{error}</div>}
+          {f.error && <div className="form-error">{f.error}</div>}
 
           {/* DetailModal footer convention (Batch 9.8): Cancel/Close
               on the left of the right-cluster, Save on the right;
@@ -557,15 +569,10 @@ export function CategorizationRuleFormDialog({
             </button>
             <button
               type="submit"
-              disabled={
-                busy ||
-                !!beneficiaryConflict ||
-                !form.beneficiary_id ||
-                !isDirty
-              }
+              disabled={f.saveDisabled}
               className="btn-primary !w-auto"
             >
-              {isEditing ? 'Update Rule' : 'Create Rule'}
+              {f.isEditing ? 'Update Rule' : 'Create Rule'}
             </button>
           </div>
         </form>
@@ -575,17 +582,231 @@ export function CategorizationRuleFormDialog({
           user can mint a missing beneficiary / tag without losing the
           in-flight draft. Radix Dialog supports modal-on-modal. */}
       <BeneficiaryFormDialog
-        open={createBeneficiaryOpen}
-        onClose={() => setCreateBeneficiaryOpen(false)}
-        onSaved={handleBeneficiaryCreated}
-        initialName={bSearch}
+        open={f.createBeneficiaryOpen}
+        onClose={() => f.setCreateBeneficiaryOpen(false)}
+        onSaved={f.handleBeneficiaryCreated}
+        initialName={f.bSearch}
       />
       <TagFormDialog
-        open={createTagOpen}
-        onClose={() => setCreateTagOpen(false)}
-        onSaved={handleTagCreated}
+        open={f.createTagOpen}
+        onClose={() => f.setCreateTagOpen(false)}
+        onSaved={f.handleTagCreated}
         flatTags={tags.map((t) => ({ tag_id: t.tag_id, tag_name: t.tag_name }))}
       />
     </>
+  );
+}
+
+interface BeneficiaryPickerProps {
+  bSearch: string;
+  focused: boolean;
+  beneficiaries: Beneficiary[];
+  selectedId: number | '';
+  conflict: string | null;
+  onSearchChange: (value: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  onSelect: (id: number, name: string) => void;
+  onAddNew: () => void;
+}
+
+// Beneficiary search + dropdown (with inline "Add new beneficiary"). Split
+// out of the dialog to keep that component under the complexity / line gates.
+function BeneficiaryPicker({
+  bSearch,
+  focused,
+  beneficiaries,
+  selectedId,
+  conflict,
+  onSearchChange,
+  onFocus,
+  onBlur,
+  onSelect,
+  onAddNew,
+}: BeneficiaryPickerProps) {
+  return (
+    <div className="relative">
+      <label htmlFor="rule-beneficiary-search" className="form-label">
+        Beneficiary
+      </label>
+      <input
+        id="rule-beneficiary-search"
+        value={bSearch}
+        onChange={(e) => onSearchChange(e.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        placeholder="Search beneficiary..."
+        required
+        className="form-input"
+      />
+      {focused && (
+        <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          <button
+            type="button"
+            onMouseDown={onAddNew}
+            className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+          >
+            <span aria-hidden="true">＋</span>
+            Add new beneficiary
+          </button>
+          {beneficiaries.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+              No matches
+            </div>
+          ) : (
+            beneficiaries.map((b) => (
+              <div
+                key={b.uid}
+                role="option"
+                aria-selected={selectedId === b.uid}
+                tabIndex={0}
+                onMouseDown={() => onSelect(b.uid, b.name)}
+                className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
+              >
+                {b.name}
+                {b.aliases?.length > 0 && (
+                  <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                    ({b.aliases.join(', ')})
+                  </span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+      {conflict && <div className="form-error mt-1">{conflict}</div>}
+    </div>
+  );
+}
+
+interface TagPickerProps {
+  tagSearch: string;
+  focused: boolean;
+  filteredTags: FlatTag[];
+  tags: FlatTag[];
+  selectedTagIds: number[];
+  onSearchChange: (value: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  onPickTag: (raw: string) => void;
+  onRemoveTag: (tid: number) => void;
+  onPromoteTag: (tid: number) => void;
+  onAddNew: () => void;
+}
+
+// Tag search + dropdown (with inline "Add new tag") and the selected-tag
+// chip list (primary / promote / remove). Split out of the dialog for the
+// same complexity / line-count reason.
+function TagPicker({
+  tagSearch,
+  focused,
+  filteredTags,
+  tags,
+  selectedTagIds,
+  onSearchChange,
+  onFocus,
+  onBlur,
+  onPickTag,
+  onRemoveTag,
+  onPromoteTag,
+  onAddNew,
+}: TagPickerProps) {
+  return (
+    <div className="relative">
+      <label htmlFor="rule-tag-search" className="form-label">
+        Tags
+      </label>
+      <input
+        id="rule-tag-search"
+        value={tagSearch}
+        onChange={(e) => onSearchChange(e.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        placeholder="Search tags..."
+        className="form-input"
+        autoComplete="off"
+      />
+      {focused &&
+        (() => {
+          const q = tagSearch.trim().toLowerCase();
+          const matches = filteredTags.filter((t) => {
+            if (selectedTagIds.includes(t.tag_id)) return false;
+            if (!q) return true;
+            return formatTagAssignment(t.tag_id, tags)
+              .toLowerCase()
+              .includes(q);
+          });
+          return (
+            <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+              <button
+                type="button"
+                onMouseDown={onAddNew}
+                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+              >
+                <span aria-hidden="true">＋</span>
+                Add new tag
+              </button>
+              {matches.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+                  No matches
+                </div>
+              ) : (
+                matches.map((t) => (
+                  <button
+                    key={t.tag_id}
+                    type="button"
+                    onMouseDown={() => onPickTag(String(t.tag_id))}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
+                  >
+                    {formatTagAssignment(t.tag_id, tags)}
+                  </button>
+                ))
+              )}
+            </div>
+          );
+        })()}
+      <div className="mt-2 flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+        {selectedTagIds.length === 0 ? (
+          <span className="text-sm text-slate-400 dark:text-slate-500">
+            No tags selected
+          </span>
+        ) : (
+          selectedTagIds.map((tid, idx) => {
+            const isPrimary = idx === 0;
+            const chipBase =
+              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border';
+            const chipColor = isPrimary
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50'
+              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
+            return (
+              <span key={tid} className={`${chipBase} ${chipColor}`}>
+                {formatTagAssignment(tid, tags)}
+                {isPrimary ? (
+                  <span className="rounded-sm bg-emerald-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
+                    Primary
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onPromoteTag(tid)}
+                    className="rounded-sm bg-indigo-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-indigo-700"
+                  >
+                    Set Primary
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemoveTag(tid)}
+                  aria-label={`Remove tag ${formatTagAssignment(tid, tags)}`}
+                  className="ml-0.5 text-base leading-none font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }

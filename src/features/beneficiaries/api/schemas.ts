@@ -54,18 +54,33 @@ export function emptyBeneficiaryForm(
   };
 }
 
+// Merchant / person sub-field groups, split out so beneficiaryToForm
+// stays a flat spread instead of a 10-field literal whose null-coalescing
+// fallbacks inflate cyclomatic complexity past the gate.
+function merchantFormFields(m: MerchantDetail | null | undefined) {
+  return {
+    category: m?.category || '',
+    contact: m?.contact || '',
+    merchant_upi_id: m?.upi_id || '',
+  };
+}
+
+function personFormFields(p: PersonDetail | null | undefined) {
+  return {
+    relationship_type: p?.relationship_type || '',
+    phone: p?.phone || '',
+    person_upi_id: p?.upi_id || '',
+  };
+}
+
 export function beneficiaryToForm(b: Beneficiary): BeneficiaryFormInput {
   return {
     uid: b.uid,
     name: b.name || '',
     aliases: [...(b.aliases || [])],
     beneficiary_type: b.beneficiary_type || 'merchant',
-    category: b.merchant?.category || '',
-    contact: b.merchant?.contact || '',
-    merchant_upi_id: b.merchant?.upi_id || '',
-    relationship_type: b.person?.relationship_type || '',
-    phone: b.person?.phone || '',
-    person_upi_id: b.person?.upi_id || '',
+    ...merchantFormFields(b.merchant),
+    ...personFormFields(b.person),
   };
 }
 

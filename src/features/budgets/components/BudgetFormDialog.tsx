@@ -1,11 +1,9 @@
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import {
   BUDGET_DELETE_NOT_IMPLEMENTED,
   deleteBudgetLimitRequest,
@@ -54,21 +52,113 @@ function snapToStep(value: number, step: number): number {
   return Math.round(value / step) * step;
 }
 
-export function BudgetFormDialog({
-  open,
-  onClose,
-  category,
-  onSaved,
-}: BudgetFormDialogProps) {
-  const currencyCode = usePreferencesStore((s) => s.currency);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
+// Modal heading by mode — if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function dialogTitle(category: BudgetCategory | null, isExisting: boolean): string {
+  if (!category) return 'Budget';
+  if (isExisting) return `Edit budget — ${category.tag_name}`;
+  return `Set budget — ${category.tag_name}`;
+}
 
+// Save-button label by state — if/else for the same reason as dialogTitle.
+function saveButtonLabel(saving: boolean, isExisting: boolean): string {
+  if (saving) return 'Saving…';
+  return isExisting ? 'Save changes' : 'Set budget';
+}
+
+// The mutation half of the form: save + remove, plus the four pieces of
+// request-status state they own (error / saving / confirm / removing).
+// Composed into useBudgetForm; split out only to keep that hook under the
+// line-count gate. `value` / `penalty` arrive from the parent hook so the
+// handlers read the current committed values.
+function useBudgetMutations(
+  category: BudgetCategory | null,
+  value: number,
+  penalty: string,
+  onSaved: (savedTagId: number) => void | Promise<void>,
+  onClose: () => void
+) {
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  async function handleSave() {
+    if (!category) return;
+    setError(null);
+    const parsedPenalty = parseRateInput(penalty);
+    const parsed = budgetFormSchema.safeParse({
+      tag_id: category.tag_id,
+      budget_period: 'monthly',
+      limit_amt: value,
+      penalty_rate: parsedPenalty,
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      return;
+    }
+    setSaving(true);
+    try {
+      await upsertBudgetLimitRequest(parsed.data);
+      await onSaved(category.tag_id);
+      // Row-highlight on the parent communicates success; close
+      // cleanly in both Edit + Set-budget paths.
+      onClose();
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to save budget'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleConfirmRemove() {
+    if (!category) return;
+    setError(null);
+    setRemoving(true);
+    try {
+      await deleteBudgetLimitRequest(category.tag_id);
+      await onSaved(category.tag_id);
+      setConfirmRemoveOpen(false);
+      onClose();
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === BUDGET_DELETE_NOT_IMPLEMENTED) {
+        setError(
+          'Removing a budget needs a backend endpoint that hasn’t shipped yet. See the coordination note for status — workaround: lower the limit to a value above your expected spend.'
+        );
+      } else {
+        setError(errorMessage(err, 'Failed to remove budget'));
+      }
+      setConfirmRemoveOpen(false);
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  return {
+    error,
+    setError,
+    saving,
+    setSaving,
+    confirmRemoveOpen,
+    setConfirmRemoveOpen,
+    removing,
+    setRemoving,
+    handleSave,
+    handleConfirmRemove,
+  };
+}
+
+// All of the dialog's state, effects, derived values and handlers. Pulled
+// out of the component so the render stays a thin presentational shell under
+// the complexity / line-count gates. Behaviour is identical to the previous
+// inline implementation — this is a verbatim relocation.
+function useBudgetForm(
+  category: BudgetCategory | null,
+  open: boolean,
+  onSaved: (savedTagId: number) => void | Promise<void>,
+  onClose: () => void
+) {
   const isExisting = category != null && category.limit_amt != null;
 
   const baseMin = Math.max(0, category?.min_expense ?? 0);
@@ -96,10 +186,13 @@ export function BudgetFormDialog({
     const rate = category.penalty_rate ?? category.default_penalty_rate ?? 0.05;
     return formatRateForInput(rate);
   });
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
-  const [removing, setRemoving] = useState(false);
+  const mutations = useBudgetMutations(
+    category,
+    value,
+    penalty,
+    onSaved,
+    onClose
+  );
   const debounceRef = useRef<number | null>(null);
   // Snapshot of the values the open-effect wrote — used by isDirty
   // instead of comparing against `category.limit_amt` directly.
@@ -127,10 +220,10 @@ export function BudgetFormDialog({
     const p = formatRateForInput(rate);
     setPenalty(p);
     initialSnapshotRef.current = { value: v, penalty: p };
-    setError(null);
-    setSaving(false);
-    setConfirmRemoveOpen(false);
-    setRemoving(false);
+    mutations.setError(null);
+    mutations.setSaving(false);
+    mutations.setConfirmRemoveOpen(false);
+    mutations.setRemoving(false);
     if (debounceRef.current != null) {
       window.clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -246,65 +339,47 @@ export function BudgetFormDialog({
     }
   }
 
-  async function handleSave() {
-    if (!category) return;
-    setError(null);
-    const parsedPenalty = parseRateInput(penalty);
-    const parsed = budgetFormSchema.safeParse({
-      tag_id: category.tag_id,
-      budget_period: 'monthly',
-      limit_amt: value,
-      penalty_rate: parsedPenalty,
-    });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid input');
-      return;
-    }
-    setSaving(true);
-    try {
-      await upsertBudgetLimitRequest(parsed.data);
-      await onSaved(category.tag_id);
-      // Row-highlight on the parent communicates success; close
-      // cleanly in both Edit + Set-budget paths.
-      onClose();
-    } catch (err) {
-      setError(errorMessage(err, 'Failed to save budget'));
-    } finally {
-      setSaving(false);
-    }
-  }
+  return {
+    isExisting,
+    baseMin,
+    baseAvg,
+    baseMax,
+    value,
+    draft,
+    penalty,
+    error: mutations.error,
+    saving: mutations.saving,
+    removing: mutations.removing,
+    confirmRemoveOpen: mutations.confirmRemoveOpen,
+    step,
+    effectiveBounds,
+    bubblePercent,
+    isDirty,
+    setPenalty,
+    setConfirmRemoveOpen: mutations.setConfirmRemoveOpen,
+    handleDraftChange,
+    commitDraft,
+    setValueAndDraft,
+    handleSave: mutations.handleSave,
+    handleConfirmRemove: mutations.handleConfirmRemove,
+  };
+}
 
-  async function handleConfirmRemove() {
-    if (!category) return;
-    setError(null);
-    setRemoving(true);
-    try {
-      await deleteBudgetLimitRequest(category.tag_id);
-      await onSaved(category.tag_id);
-      setConfirmRemoveOpen(false);
-      onClose();
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === BUDGET_DELETE_NOT_IMPLEMENTED) {
-        setError(
-          'Removing a budget needs a backend endpoint that hasn’t shipped yet. See the coordination note for status — workaround: lower the limit to a value above your expected spend.'
-        );
-      } else {
-        setError(errorMessage(err, 'Failed to remove budget'));
-      }
-      setConfirmRemoveOpen(false);
-    } finally {
-      setRemoving(false);
-    }
-  }
+export function BudgetFormDialog({
+  open,
+  onClose,
+  category,
+  onSaved,
+}: BudgetFormDialogProps) {
+  const form = useBudgetForm(category, open, onSaved, onClose);
+  // Resolve money formatting at this (always-mounted) level rather than
+  // inside BudgetFormBody so the currencies reference-data query subscribes
+  // on page mount — warming it before the budget cards first render. Passed
+  // down as props to the body.
+  const { money, currencyCode } = useMoneyFormatter();
 
-  const title = category
-    ? isExisting
-      ? `Edit budget — ${category.tag_name}`
-      : `Set budget — ${category.tag_name}`
-    : 'Budget';
-
-  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+  const title = dialogTitle(category, form.isExisting);
+  const dismissLabel = form.isDirty ? 'Cancel' : 'Close';
 
   return (
     <>
@@ -317,13 +392,13 @@ export function BudgetFormDialog({
           category?.tag_type ? `Category type: ${category.tag_type}` : undefined
         }
         confirmOnDirty
-        isDirty={isDirty}
+        isDirty={form.isDirty}
         headerActions={
-          isExisting ? (
+          form.isExisting ? (
             <button
               type="button"
-              onClick={() => setConfirmRemoveOpen(true)}
-              disabled={saving || removing}
+              onClick={() => form.setConfirmRemoveOpen(true)}
+              disabled={form.saving || form.removing}
               aria-label="Remove budget"
               title="Remove budget"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
@@ -338,172 +413,47 @@ export function BudgetFormDialog({
             <button
               type="button"
               onClick={onClose}
-              disabled={saving || removing}
+              disabled={form.saving || form.removing}
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {dismissLabel}
             </button>
             <button
               type="button"
-              onClick={() => void handleSave()}
-              disabled={saving || removing || !isDirty || !category}
+              onClick={() => void form.handleSave()}
+              disabled={form.saving || form.removing || !form.isDirty || !category}
               className="btn-primary !w-auto"
               data-testid="budget-form-save"
             >
-              {saving ? 'Saving…' : isExisting ? 'Save changes' : 'Set budget'}
+              {saveButtonLabel(form.saving, form.isExisting)}
             </button>
           </>
         }
       >
         {category && (
-          <div className="flex flex-col gap-5 text-slate-700 dark:text-slate-200">
-            {/* Current-period headline — surfaces the same "Spent this
-                month" value the card shows so the user has the context
-                in-modal without having to glance back. */}
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/50">
-              <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Spent this month
-              </div>
-              <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
-                {money(category.current_expense)}
-              </div>
-            </div>
-
-            {/* Monthly limit — field + slider stay in sync. */}
-            <fieldset className="flex flex-col gap-3">
-              <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Monthly limit
-              </legend>
-              <label className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400">
-                <span>Amount</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={draft}
-                  onChange={(e) => handleDraftChange(e.target.value)}
-                  onBlur={commitDraft}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      commitDraft();
-                    }
-                  }}
-                  className="form-input !text-base font-semibold tabular-nums"
-                  aria-label="Monthly limit amount"
-                  data-testid="budget-amount-input"
-                />
-                <span>
-                  Type a precise value for round numbers; use the slider
-                  to visualize it against recent spending. Out-of-range
-                  values settle ~1s after you stop typing.
-                </span>
-              </label>
-
-              <div className="flex items-center gap-2">
-                <StepButton
-                  icon="minus"
-                  onClick={() =>
-                    setValueAndDraft(
-                      Math.max(
-                        effectiveBounds.lo,
-                        snapToStep(value - step, step)
-                      )
-                    )
-                  }
-                  label={`Decrease by ${step}`}
-                />
-                <div className="flex-1">
-                  <SliderWithBubble
-                    value={value}
-                    onChange={setValueAndDraft}
-                    min={effectiveBounds.lo}
-                    max={effectiveBounds.hi}
-                    step={step}
-                    bubblePercent={bubblePercent}
-                    renderBubble={(v) => money(v)}
-                  />
-                </div>
-                <StepButton
-                  icon="plus"
-                  onClick={() =>
-                    setValueAndDraft(
-                      Math.min(
-                        effectiveBounds.hi,
-                        snapToStep(value + step, step)
-                      )
-                    )
-                  }
-                  label={`Increase by ${step}`}
-                />
-              </div>
-
-              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>
-                  Min{' '}
-                  <strong className="text-slate-700 dark:text-slate-300">
-                    {money(baseMin)}
-                  </strong>
-                </span>
-                <span>
-                  Avg{' '}
-                  <strong className="text-slate-700 dark:text-slate-300">
-                    {money(baseAvg)}
-                  </strong>
-                </span>
-                <span>
-                  Max{' '}
-                  <strong className="text-slate-700 dark:text-slate-300">
-                    {money(baseMax)}
-                  </strong>
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Soft cap in {currencyCode}. Spend above this triggers the
-                penalty rate below, stacked on the base taxation rate for{' '}
-                <span className="capitalize">{category.tag_type}</span>{' '}
-                transactions.
-              </p>
-            </fieldset>
-
-            {/* Penalty rate. */}
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-slate-700 dark:text-slate-200">
-                Penalty rate
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={penalty}
-                onChange={(e) => setPenalty(e.target.value)}
-                className="form-input"
-                aria-label="Penalty rate"
-              />
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Accepts <code>5%</code>, <code>0.05</code>, or <code>5</code>{' '}
-                (assumed %). Applied on top of base tax when this month&rsquo;s
-                spend crosses the limit. Default for{' '}
-                <span className="capitalize">{category.tag_type}</span>{' '}
-                transactions is{' '}
-                {formatRateForInput(category.default_penalty_rate ?? 0.05)}.
-              </span>
-            </label>
-
-            {error && (
-              <div
-                role="alert"
-                className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
-              >
-                {error}
-              </div>
-            )}
-          </div>
+          <BudgetFormBody
+            category={category}
+            money={money}
+            currencyCode={currencyCode}
+            baseMin={form.baseMin}
+            baseAvg={form.baseAvg}
+            baseMax={form.baseMax}
+            draft={form.draft}
+            value={form.value}
+            step={form.step}
+            effectiveBounds={form.effectiveBounds}
+            bubblePercent={form.bubblePercent}
+            penalty={form.penalty}
+            error={form.error}
+            onDraftChange={form.handleDraftChange}
+            onCommitDraft={form.commitDraft}
+            onValueAndDraft={form.setValueAndDraft}
+            onPenaltyChange={form.setPenalty}
+          />
         )}
       </Modal>
       <ConfirmDialog
-        open={confirmRemoveOpen}
+        open={form.confirmRemoveOpen}
         title="Remove this budget?"
         message={
           category
@@ -512,11 +462,203 @@ export function BudgetFormDialog({
         }
         confirmLabel="Remove"
         intent="danger"
-        busy={removing}
-        onConfirm={handleConfirmRemove}
-        onClose={() => setConfirmRemoveOpen(false)}
+        busy={form.removing}
+        onConfirm={form.handleConfirmRemove}
+        onClose={() => form.setConfirmRemoveOpen(false)}
       />
     </>
+  );
+}
+
+interface BudgetFormBodyProps {
+  category: BudgetCategory;
+  money: (n: number | string | null | undefined) => string;
+  currencyCode: string;
+  baseMin: number;
+  baseAvg: number;
+  baseMax: number;
+  draft: string;
+  value: number;
+  step: number;
+  effectiveBounds: { lo: number; hi: number };
+  bubblePercent: number;
+  penalty: string;
+  error: string | null;
+  onDraftChange: (next: string) => void;
+  onCommitDraft: () => void;
+  onValueAndDraft: (next: number) => void;
+  onPenaltyChange: (next: string) => void;
+}
+
+// The dialog's scrollable content: spent-this-month headline, the
+// field+slider monthly-limit control, the penalty rate, and the error
+// banner. Split out of BudgetFormDialog purely to keep that component
+// under the line-count / complexity gates — all state lives in the
+// useBudgetForm hook and arrives as props.
+function BudgetFormBody({
+  category,
+  money,
+  currencyCode,
+  baseMin,
+  baseAvg,
+  baseMax,
+  draft,
+  value,
+  step,
+  effectiveBounds,
+  bubblePercent,
+  penalty,
+  error,
+  onDraftChange,
+  onCommitDraft,
+  onValueAndDraft,
+  onPenaltyChange,
+}: BudgetFormBodyProps) {
+  return (
+    <div className="flex flex-col gap-5 text-slate-700 dark:text-slate-200">
+      {/* Current-period headline — surfaces the same "Spent this
+          month" value the card shows so the user has the context
+          in-modal without having to glance back. */}
+      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/50">
+        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          Spent this month
+        </div>
+        <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+          {money(category.current_expense)}
+        </div>
+      </div>
+
+      {/* Monthly limit — field + slider stay in sync. */}
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          Monthly limit
+        </legend>
+        <label className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400">
+          <span>Amount</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="1"
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onBlur={onCommitDraft}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onCommitDraft();
+              }
+            }}
+            className="form-input !text-base font-semibold tabular-nums"
+            aria-label="Monthly limit amount"
+            data-testid="budget-amount-input"
+          />
+          <span>
+            Type a precise value for round numbers; use the slider
+            to visualize it against recent spending. Out-of-range
+            values settle ~1s after you stop typing.
+          </span>
+        </label>
+
+        <div className="flex items-center gap-2">
+          <StepButton
+            icon="minus"
+            onClick={() =>
+              onValueAndDraft(
+                Math.max(
+                  effectiveBounds.lo,
+                  snapToStep(value - step, step)
+                )
+              )
+            }
+            label={`Decrease by ${step}`}
+          />
+          <div className="flex-1">
+            <SliderWithBubble
+              value={value}
+              onChange={onValueAndDraft}
+              min={effectiveBounds.lo}
+              max={effectiveBounds.hi}
+              step={step}
+              bubblePercent={bubblePercent}
+              renderBubble={(v) => money(v)}
+            />
+          </div>
+          <StepButton
+            icon="plus"
+            onClick={() =>
+              onValueAndDraft(
+                Math.min(
+                  effectiveBounds.hi,
+                  snapToStep(value + step, step)
+                )
+              )
+            }
+            label={`Increase by ${step}`}
+          />
+        </div>
+
+        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>
+            Min{' '}
+            <strong className="text-slate-700 dark:text-slate-300">
+              {money(baseMin)}
+            </strong>
+          </span>
+          <span>
+            Avg{' '}
+            <strong className="text-slate-700 dark:text-slate-300">
+              {money(baseAvg)}
+            </strong>
+          </span>
+          <span>
+            Max{' '}
+            <strong className="text-slate-700 dark:text-slate-300">
+              {money(baseMax)}
+            </strong>
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Soft cap in {currencyCode}. Spend above this triggers the
+          penalty rate below, stacked on the base taxation rate for{' '}
+          <span className="capitalize">{category.tag_type}</span>{' '}
+          transactions.
+        </p>
+      </fieldset>
+
+      {/* Penalty rate. */}
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-200">
+          Penalty rate
+        </span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={penalty}
+          onChange={(e) => onPenaltyChange(e.target.value)}
+          className="form-input"
+          aria-label="Penalty rate"
+        />
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          Accepts <code>5%</code>, <code>0.05</code>, or <code>5</code>{' '}
+          (assumed %). Applied on top of base tax when this month&rsquo;s
+          spend crosses the limit. Default for{' '}
+          <span className="capitalize">{category.tag_type}</span>{' '}
+          transactions is{' '}
+          {formatRateForInput(category.default_penalty_rate ?? 0.05)}.
+        </span>
+      </label>
+
+      {error && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
+        >
+          {error}
+        </div>
+      )}
+    </div>
   );
 }
 

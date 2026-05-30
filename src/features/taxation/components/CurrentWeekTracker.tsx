@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { fractionOfWeekElapsed, weekRangeInTz } from '../api/billPeriod';
 import {
   useTrackerCurrentWeekQuery,
@@ -22,13 +21,8 @@ import {
 // handles those. This card is the live-accrual view; bills are the
 // settled history.
 export function CurrentWeekTracker() {
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
+  const { money } = useMoneyFormatter();
   const { data, isLoading } = useTrackerCurrentWeekQuery();
 
   const fallbackWeek = useMemo(
@@ -40,8 +34,6 @@ export function CurrentWeekTracker() {
     [timezone]
   );
 
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
 
   if (isLoading && data == null) {
     return (

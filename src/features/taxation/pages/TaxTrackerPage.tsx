@@ -1,13 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { formatMoney } from '../../../shared/utils/currency';
 import { formatBillDate } from '../api/billPeriod';
 import { taxationKeys } from '../api/keys';
 import { payBillRequest } from '../api/mutations';
@@ -33,13 +32,8 @@ function errorMessage(err: unknown, fallback: string): string {
 export function TaxTrackerPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const currencyCode = usePreferencesStore((s) => s.currency);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { data: currencies } = useCurrenciesQuery();
-  const currencySymbol = useMemo(
-    () => currencies?.find((c) => c.code === currencyCode)?.symbol ?? null,
-    [currencies, currencyCode]
-  );
+  const { money } = useMoneyFormatter();
 
   const { data, isLoading, error } = useBillsQuery();
   const bills: BillSummary[] = data?.bills ?? [];
@@ -58,9 +52,6 @@ export function TaxTrackerPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { id: highlightBillId, flash } = useRowHighlight<number>();
-
-  const money = (n: number | null | undefined) =>
-    formatMoney(n ?? 0, currencyCode, currencySymbol);
 
   async function handleGenerated(billIds: number[]) {
     setActionError(null);

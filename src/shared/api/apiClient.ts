@@ -39,6 +39,61 @@ function preferenceHeaders(): Record<string, string> {
   };
 }
 
+// Outcome of a 401-triggered refresh attempt:
+//   'retried'   — refresh succeeded, `res` is the replayed request's response.
+//   'loggedOut' — refresh token was rejected; tokens cleared + redirected to
+//                 /login. The caller must abort (return undefined).
+//   'skipped'   — no refresh token, or the refresh network call threw. The
+//                 caller falls through to normal error handling on the
+//                 original 401 response (same as the pre-extraction behaviour).
+type RefreshOutcome =
+  | { kind: 'retried'; res: Response }
+  | { kind: 'loggedOut' }
+  | { kind: 'skipped' };
+
+// Pulled out of apiFetch so the 401 path doesn't pile four nesting levels
+// onto the request flow. Mutates `headers` in place (Authorization) before
+// replaying, mirroring the original inline logic.
+async function refreshAndRetry(
+  path: string,
+  options: RequestInit,
+  headers: Record<string, string>
+): Promise<RefreshOutcome> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) return { kind: 'skipped' };
+
+  try {
+    const refreshRes = await fetch(`${BASE_URL}${routes.auth.refresh()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Refresh-Token': refreshToken,
+      },
+    });
+
+    if (!refreshRes.ok) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/login';
+      return { kind: 'loggedOut' };
+    }
+
+    const tokens = (await refreshRes.json()) as {
+      access_token: string;
+      refresh_token: string;
+    };
+    localStorage.setItem('access_token', tokens.access_token);
+    localStorage.setItem('refresh_token', tokens.refresh_token);
+
+    headers['Authorization'] = `Bearer ${tokens.access_token}`;
+    const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+    return { kind: 'retried', res };
+  } catch (err) {
+    console.error('Token refresh error:', err);
+    return { kind: 'skipped' };
+  }
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {}
@@ -61,37 +116,9 @@ export async function apiFetch<T = unknown>(
     !path.includes(routes.auth.refresh()) &&
     !path.includes(routes.auth.login())
   ) {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (refreshToken) {
-      try {
-        const refreshRes = await fetch(`${BASE_URL}${routes.auth.refresh()}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Refresh-Token': refreshToken,
-          },
-        });
-
-        if (refreshRes.ok) {
-          const tokens = (await refreshRes.json()) as {
-            access_token: string;
-            refresh_token: string;
-          };
-          localStorage.setItem('access_token', tokens.access_token);
-          localStorage.setItem('refresh_token', tokens.refresh_token);
-
-          headers['Authorization'] = `Bearer ${tokens.access_token}`;
-          res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
-        } else {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
-          return undefined as T;
-        }
-      } catch (err) {
-        console.error('Token refresh error:', err);
-      }
-    }
+    const outcome = await refreshAndRetry(path, options, headers);
+    if (outcome.kind === 'loggedOut') return undefined as T;
+    if (outcome.kind === 'retried') res = outcome.res;
   }
 
   if (!res.ok) {
