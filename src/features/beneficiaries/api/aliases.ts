@@ -1,3 +1,5 @@
+import { routes } from '../../../shared/api/routes';
+
 // Pure utilities shared between the alias chip input and the
 // beneficiaries list display. Kept here (not in shared/) because they
 // only make sense inside the beneficiary flow.
@@ -21,5 +23,5 @@ export function buildAliasCheckUrl(
 ): string {
   const params = new URLSearchParams({ alias: alias.trim() });
   if (excludeUid != null) params.set('exclude_uid', String(excludeUid));
-  return `/api/beneficiaries/check-alias?${params.toString()}`;
+  return `${routes.beneficiaries.checkAlias()}?${params.toString()}`;
 }

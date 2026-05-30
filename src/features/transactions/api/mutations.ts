@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type {
   TransactionCreatePayload,
@@ -18,7 +19,7 @@ export function createTransactionRequest(
   ruleId?: number | null
 ): Promise<CreateTransactionResponse> {
   const qs = ruleId ? `?rule_id=${ruleId}` : '';
-  return apiFetch<CreateTransactionResponse>(`/api/transactions${qs}`, {
+  return apiFetch<CreateTransactionResponse>(`${routes.transactions.create()}${qs}`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -30,7 +31,7 @@ export function updateTransactionRequest(
   ruleId?: number | null
 ): Promise<unknown> {
   const qs = ruleId ? `?rule_id=${ruleId}` : '';
-  return apiFetch<unknown>(`/api/transactions/${id}${qs}`, {
+  return apiFetch<unknown>(`${routes.transactions.byId(id)}${qs}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -39,7 +40,7 @@ export function updateTransactionRequest(
 export function deleteTransactionRequest(
   id: number | string
 ): Promise<unknown> {
-  return apiFetch<unknown>(`/api/transactions/${id}`, { method: 'DELETE' });
+  return apiFetch<unknown>(routes.transactions.byId(id), { method: 'DELETE' });
 }
 
 // Statement-upload pipeline — three sequential POSTs.
@@ -52,7 +53,7 @@ export function deleteTransactionRequest(
 export function uploadStatementRequest(file: File): Promise<UploadResult> {
   const fd = new FormData();
   fd.append('file', file);
-  return apiFetch<UploadResult>('/api/transactions/upload-statement', {
+  return apiFetch<UploadResult>(routes.transactions.uploadStatement(), {
     method: 'POST',
     body: fd,
   });
@@ -62,7 +63,7 @@ export function mapBeneficiariesRequest(
   uploadId: number | string
 ): Promise<unknown> {
   return apiFetch<unknown>(
-    `/api/transactions/upload-statement/${uploadId}/map-beneficiaries`,
+    routes.transactions.uploadStatementMapBeneficiaries(uploadId),
     { method: 'POST' }
   );
 }
@@ -71,7 +72,7 @@ export function categorizeUploadRequest(
   uploadId: number | string
 ): Promise<UploadResult> {
   return apiFetch<UploadResult>(
-    `/api/transactions/upload-statement/${uploadId}/categorize`,
+    routes.transactions.uploadStatementCategorize(uploadId),
     { method: 'POST' }
   );
 }
@@ -80,7 +81,7 @@ export function saveManualTagsRequest(
   txnId: number | string,
   tagIds: number[]
 ): Promise<unknown> {
-  return apiFetch<unknown>(`/api/transactions/${txnId}/manual-tags`, {
+  return apiFetch<unknown>(routes.transactions.manualTags(txnId), {
     method: 'POST',
     body: JSON.stringify({ tag_ids: tagIds }),
   });
@@ -93,7 +94,7 @@ export function finalizeUploadRequest(
   decision: FinalizeDecision
 ): Promise<unknown> {
   return apiFetch<unknown>(
-    `/api/transactions/upload-statement/${uploadId}/finalize`,
+    routes.transactions.uploadStatementFinalize(uploadId),
     {
       method: 'POST',
       body: JSON.stringify({ decision }),

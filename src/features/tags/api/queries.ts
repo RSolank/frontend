@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { tagKeys } from './keys';
 
@@ -34,11 +35,11 @@ export interface TagConstants {
 }
 
 export function fetchTags(): Promise<TagsResponse> {
-  return apiFetch<TagsResponse>('/api/tags');
+  return apiFetch<TagsResponse>(routes.tags.list());
 }
 
 export function fetchTagConstants(): Promise<TagConstants> {
-  return apiFetch<TagConstants>('/api/metadata/constants');
+  return apiFetch<TagConstants>(routes.metadata.constants());
 }
 
 export function useTagsQuery() {

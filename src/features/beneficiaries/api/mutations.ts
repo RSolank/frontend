@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type { Beneficiary } from './queries';
 import type { BeneficiaryPayload, MergePayload } from './schemas';
@@ -6,7 +7,7 @@ import type { BeneficiaryPayload, MergePayload } from './schemas';
 export function createBeneficiaryRequest(
   payload: BeneficiaryPayload
 ): Promise<Beneficiary> {
-  return apiFetch<Beneficiary>('/api/beneficiaries', {
+  return apiFetch<Beneficiary>(routes.beneficiaries.create(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -16,7 +17,7 @@ export function updateBeneficiaryRequest(
   uid: number | string,
   payload: BeneficiaryPayload
 ): Promise<Beneficiary> {
-  return apiFetch<Beneficiary>(`/api/beneficiaries/${uid}`, {
+  return apiFetch<Beneficiary>(routes.beneficiaries.byId(uid), {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -25,13 +26,13 @@ export function updateBeneficiaryRequest(
 export function deleteBeneficiaryRequest(
   uid: number | string
 ): Promise<unknown> {
-  return apiFetch<unknown>(`/api/beneficiaries/${uid}`, { method: 'DELETE' });
+  return apiFetch<unknown>(routes.beneficiaries.byId(uid), { method: 'DELETE' });
 }
 
 export function mergeBeneficiariesRequest(
   payload: MergePayload
 ): Promise<unknown> {
-  return apiFetch<unknown>('/api/beneficiaries/merge', {
+  return apiFetch<unknown>(routes.beneficiaries.merge(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -46,14 +47,14 @@ export function updateCategorizationRuleTags(
   ruleUid: number,
   tagIds: number[]
 ): Promise<unknown> {
-  return apiFetch<unknown>(`/api/categorization-rules/${ruleUid}`, {
+  return apiFetch<unknown>(routes.categorizationRules.byId(ruleUid), {
     method: 'PUT',
     body: JSON.stringify({ tag_ids: tagIds }),
   });
 }
 
 export function deleteCategorizationRule(ruleUid: number): Promise<unknown> {
-  return apiFetch<unknown>(`/api/categorization-rules/${ruleUid}`, {
+  return apiFetch<unknown>(routes.categorizationRules.byId(ruleUid), {
     method: 'DELETE',
   });
 }
@@ -77,7 +78,7 @@ export function createCategorizationRule(
   payload: CreateCategorizationRulePayload
 ): Promise<CreateCategorizationRuleResponse> {
   return apiFetch<CreateCategorizationRuleResponse>(
-    '/api/categorization-rules',
+    routes.categorizationRules.create(),
     {
       method: 'POST',
       body: JSON.stringify(payload),

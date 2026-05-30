@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { metadataKeys } from './keys';
 
@@ -26,11 +27,11 @@ interface CurrenciesResponse {
 }
 
 export function fetchCountries(): Promise<CountriesResponse> {
-  return apiFetch<CountriesResponse>('/api/metadata/countries');
+  return apiFetch<CountriesResponse>(routes.metadata.countries());
 }
 
 export function fetchCurrencies(): Promise<CurrenciesResponse> {
-  return apiFetch<CurrenciesResponse>('/api/metadata/currencies');
+  return apiFetch<CurrenciesResponse>(routes.metadata.currencies());
 }
 
 // Reference data: changes between deploys, not between page navigations.

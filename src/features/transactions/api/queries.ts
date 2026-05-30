@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import {
   transactionKeys,
@@ -30,14 +31,14 @@ export function fetchTransactions(
   params: TransactionListParams
 ): Promise<TransactionListResponse> {
   return apiFetch<TransactionListResponse>(
-    `/api/transactions?${listQueryString(params)}`
+    `${routes.transactions.list()}?${listQueryString(params)}`
   );
 }
 
 export function fetchTransaction(
   id: number | string
 ): Promise<SingleTransactionResponse> {
-  return apiFetch<SingleTransactionResponse>(`/api/transactions/${id}`);
+  return apiFetch<SingleTransactionResponse>(routes.transactions.byId(id));
 }
 
 export function useTransactionsQuery(params: TransactionListParams) {

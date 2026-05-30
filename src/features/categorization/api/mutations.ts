@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type { CategorizationRulePayload } from './schemas';
 
@@ -11,7 +12,7 @@ export function updateCategorizationRuleRequest(
   uid: number,
   payload: CategorizationRulePayload
 ): Promise<unknown> {
-  return apiFetch<unknown>(`/api/categorization-rules/${uid}`, {
+  return apiFetch<unknown>(routes.categorizationRules.byId(uid), {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
@@ -21,7 +22,7 @@ export function updateCategorizationRuleRequest(
 // Backend accepts an empty body and tags every uncategorized debit it
 // can match.
 export function reRunCategorizationRequest(): Promise<unknown> {
-  return apiFetch<unknown>('/api/categorization-rules/re-run', {
+  return apiFetch<unknown>(routes.categorizationRules.reRun(), {
     method: 'POST',
     body: JSON.stringify({}),
   });

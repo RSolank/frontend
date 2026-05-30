@@ -3,6 +3,8 @@ import {
   usePreferencesStore,
 } from '../state/preferences.store';
 
+import { routes } from './routes';
+
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   'http://localhost:4000';
@@ -56,13 +58,13 @@ export async function apiFetch<T = unknown>(
 
   if (
     res.status === 401 &&
-    !path.includes('/api/auth/refresh') &&
-    !path.includes('/api/auth/login')
+    !path.includes(routes.auth.refresh()) &&
+    !path.includes(routes.auth.login())
   ) {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
       try {
-        const refreshRes = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        const refreshRes = await fetch(`${BASE_URL}${routes.auth.refresh()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type { BudgetLimit } from './queries';
 import type { BudgetFormInput } from './schemas';
@@ -8,7 +9,7 @@ import type { BudgetFormInput } from './schemas';
 export function upsertBudgetLimitRequest(
   payload: BudgetFormInput
 ): Promise<{ budget: BudgetLimit }> {
-  return apiFetch<{ budget: BudgetLimit }>('/api/budget-limits/', {
+  return apiFetch<{ budget: BudgetLimit }>(routes.budgets.root(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -32,7 +33,7 @@ export async function deleteBudgetLimitRequest(
 ): Promise<void> {
   try {
     await apiFetch(
-      `/api/budget-limits/${tag_id}?budget_period=${encodeURIComponent(budget_period)}`,
+      `${routes.budgets.byTag(tag_id)}?budget_period=${encodeURIComponent(budget_period)}`,
       { method: 'DELETE' }
     );
   } catch (err) {

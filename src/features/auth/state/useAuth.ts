@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
 import { getLandingRoute } from '../../../shared/state/landingRoute.store';
 import {
@@ -68,7 +69,7 @@ export async function refreshAuthUser(): Promise<void> {
   try {
     const [userData, constantsData] = await Promise.all([
       fetchCurrentUser(),
-      apiFetch<unknown>('/api/metadata/constants').catch(() => null),
+      apiFetch<unknown>(routes.metadata.constants()).catch(() => null),
     ]);
     store.setUser((userData.user as AuthUser) ?? null);
     store.setConstants(constantsData as never);

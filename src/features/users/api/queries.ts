@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { userKeys } from './keys';
 
@@ -54,15 +55,15 @@ export interface UserStatsResponse {
 }
 
 export function fetchCurrentUser(): Promise<UserMeResponse> {
-  return apiFetch<UserMeResponse>('/api/users/me');
+  return apiFetch<UserMeResponse>(routes.users.me());
 }
 
 export function fetchUserPreferences(): Promise<PreferencesResponse> {
-  return apiFetch<PreferencesResponse>('/api/users/preferences');
+  return apiFetch<PreferencesResponse>(routes.users.preferences());
 }
 
 export function fetchRecoveryQuestions(): Promise<RecoveryListResponse> {
-  return apiFetch<RecoveryListResponse>('/api/auth/recovery');
+  return apiFetch<RecoveryListResponse>(routes.auth.recovery());
 }
 
 export function useCurrentUserQuery(enabled = true) {
@@ -87,7 +88,7 @@ export function useUserPreferencesQuery(enabled = true) {
 // current-week endpoint (see features/taxation/api/queries.ts).
 export async function fetchUserStats(): Promise<UserStatsResponse | null> {
   try {
-    return await apiFetch<UserStatsResponse>('/api/users/me/stats');
+    return await apiFetch<UserStatsResponse>(routes.users.meStats());
   } catch (err) {
     const e = err as { status?: number };
     if (e?.status === 404 || e?.status === 501) return null;

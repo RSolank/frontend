@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { beneficiaryKeys } from './keys';
 
@@ -43,19 +44,19 @@ interface CategorizationRulesResponse {
 }
 
 export function fetchBeneficiaries(): Promise<Beneficiary[]> {
-  return apiFetch<Beneficiary[]>('/api/beneficiaries');
+  return apiFetch<Beneficiary[]>(routes.beneficiaries.list());
 }
 
 export function fetchBeneficiary(id: number | string): Promise<Beneficiary> {
-  return apiFetch<Beneficiary>(`/api/beneficiaries/${id}`);
+  return apiFetch<Beneficiary>(routes.beneficiaries.byId(id));
 }
 
 export function fetchRelationships(): Promise<string[]> {
-  return apiFetch<string[]>('/api/beneficiaries/relationships');
+  return apiFetch<string[]>(routes.beneficiaries.relationships());
 }
 
 export function fetchCategorizationRules(): Promise<CategorizationRulesResponse> {
-  return apiFetch<CategorizationRulesResponse>('/api/categorization-rules');
+  return apiFetch<CategorizationRulesResponse>(routes.categorizationRules.list());
 }
 
 export function useBeneficiariesQuery() {

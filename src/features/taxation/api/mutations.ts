@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type { TaxationRuleFormInput, BillGenerateInput } from './schemas';
 import type { TaxationRule } from './queries';
@@ -9,7 +10,7 @@ export function updateTaxationRuleRequest(
   payload: TaxationRuleFormInput
 ): Promise<{ rule: TaxationRule }> {
   return apiFetch<{ rule: TaxationRule }>(
-    `/api/taxation-rules/${encodeURIComponent(txnType)}`,
+    routes.taxation.ruleByType(txnType),
     {
       method: 'PUT',
       body: JSON.stringify(payload),
@@ -23,7 +24,7 @@ export function generateBillsRequest(
   payload: BillGenerateInput
 ): Promise<{ bill_ids: number[] }> {
   return apiFetch<{ bill_ids: number[] }>(
-    '/api/consumption-tax/bills/generate',
+    routes.taxation.billGenerate(),
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -34,7 +35,7 @@ export function generateBillsRequest(
 // POST /api/consumption-tax/bills/:id/pay — marks the bill paid. Backend
 // transitions the bill row and creates the consumption-tax-paid txn.
 export function payBillRequest(billId: number): Promise<unknown> {
-  return apiFetch(`/api/consumption-tax/bills/${billId}/pay`, {
+  return apiFetch(routes.taxation.billPay(billId), {
     method: 'POST',
   });
 }

@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type {
   ChangePasswordInput,
@@ -9,7 +10,7 @@ import type {
 export function updateProfileRequest(
   payload: ProfileUpdatePayload
 ): Promise<unknown> {
-  return apiFetch<unknown>('/api/users/me', {
+  return apiFetch<unknown>(routes.users.me(), {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -18,7 +19,7 @@ export function updateProfileRequest(
 export function changePasswordRequest(
   payload: ChangePasswordInput
 ): Promise<unknown> {
-  return apiFetch<unknown>('/api/auth/change-password', {
+  return apiFetch<unknown>(routes.auth.changePassword(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -27,7 +28,7 @@ export function changePasswordRequest(
 export function setRecoveryQuestionRequest(
   payload: SetRecoveryQuestionInput
 ): Promise<unknown> {
-  return apiFetch<unknown>('/api/auth/recovery', {
+  return apiFetch<unknown>(routes.auth.recovery(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });

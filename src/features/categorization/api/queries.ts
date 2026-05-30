@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { categorizationKeys } from './keys';
 
@@ -23,7 +24,7 @@ export interface CategorizationRulesResponse {
 }
 
 export function fetchCategorizationRules(): Promise<CategorizationRulesResponse> {
-  return apiFetch<CategorizationRulesResponse>('/api/categorization-rules');
+  return apiFetch<CategorizationRulesResponse>(routes.categorizationRules.list());
 }
 
 export function useCategorizationRulesQuery() {

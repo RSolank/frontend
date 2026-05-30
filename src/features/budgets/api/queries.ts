@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { budgetKeys } from './keys';
 
@@ -33,7 +34,7 @@ export function fetchBudgetStatus(
   month: string | null
 ): Promise<BudgetStatusResponse> {
   const qs = month ? `?month=${encodeURIComponent(month)}` : '';
-  return apiFetch<BudgetStatusResponse>(`/api/budget-limits/status${qs}`);
+  return apiFetch<BudgetStatusResponse>(`${routes.budgets.status()}${qs}`);
 }
 
 export function useBudgetStatusQuery(month: string | null) {
@@ -63,7 +64,7 @@ export function fetchBudgetLimits(
   budget_period = 'monthly'
 ): Promise<{ budgets: BudgetLimit[] }> {
   return apiFetch<{ budgets: BudgetLimit[] }>(
-    `/api/budget-limits/?budget_period=${encodeURIComponent(budget_period)}`
+    `${routes.budgets.root()}?budget_period=${encodeURIComponent(budget_period)}`
   );
 }
 

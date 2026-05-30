@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import { taxationKeys } from './keys';
 
@@ -21,7 +22,7 @@ export interface TaxationRulesResponse {
 }
 
 export function fetchTaxationRules(): Promise<TaxationRulesResponse> {
-  return apiFetch<TaxationRulesResponse>('/api/taxation-rules/');
+  return apiFetch<TaxationRulesResponse>(routes.taxation.rules());
 }
 
 export function useTaxationRulesQuery() {
@@ -78,11 +79,11 @@ export interface BillDetail extends BillSummary {
 }
 
 export function fetchBills(): Promise<BillsListResponse> {
-  return apiFetch<BillsListResponse>('/api/consumption-tax/bills');
+  return apiFetch<BillsListResponse>(routes.taxation.bills());
 }
 
 export function fetchBill(billId: number): Promise<BillDetail> {
-  return apiFetch<BillDetail>(`/api/consumption-tax/bills/${billId}`);
+  return apiFetch<BillDetail>(routes.taxation.billById(billId));
 }
 
 export function useBillsQuery() {
@@ -140,7 +141,7 @@ export async function fetchTrackerCurrentWeek(): Promise<
 > {
   try {
     return await apiFetch<TrackerCurrentWeekResponse>(
-      '/api/consumption-tax/tracker/current-week'
+      routes.taxation.trackerCurrentWeek()
     );
   } catch (err) {
     // Endpoint not yet implemented (HTTP 404 / 501). The page treats

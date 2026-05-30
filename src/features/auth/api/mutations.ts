@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 
 import type { LoginInput, RegisterPayload } from './schemas';
 
@@ -13,7 +14,7 @@ export interface TokenResponse {
 }
 
 export function loginRequest(input: LoginInput): Promise<TokenResponse> {
-  return apiFetch<TokenResponse>('/api/auth/login', {
+  return apiFetch<TokenResponse>(routes.auth.login(), {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -22,14 +23,14 @@ export function loginRequest(input: LoginInput): Promise<TokenResponse> {
 export function registerRequest(
   payload: RegisterPayload
 ): Promise<TokenResponse> {
-  return apiFetch<TokenResponse>('/api/auth/register', {
+  return apiFetch<TokenResponse>(routes.auth.register(), {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function logoutRequest(): Promise<unknown> {
-  return apiFetch<unknown>('/api/auth/logout', { method: 'POST' });
+  return apiFetch<unknown>(routes.auth.logout(), { method: 'POST' });
 }
 
 export interface RecoveryQuestionResponse {
@@ -39,14 +40,14 @@ export interface RecoveryQuestionResponse {
 export function recoveryQuestionRequest(
   email_id: string
 ): Promise<RecoveryQuestionResponse> {
-  return apiFetch<RecoveryQuestionResponse>('/api/auth/recovery-question', {
+  return apiFetch<RecoveryQuestionResponse>(routes.auth.recoveryQuestion(), {
     method: 'POST',
     body: JSON.stringify({ email_id }),
   });
 }
 
 export function forgotPasswordRequest(email_id: string): Promise<unknown> {
-  return apiFetch<unknown>('/api/auth/forgot-password', {
+  return apiFetch<unknown>(routes.auth.forgotPassword(), {
     method: 'POST',
     body: JSON.stringify({ email_id }),
   });
@@ -60,7 +61,7 @@ export function verifyOtpRequest(
   email_id: string,
   otp: string
 ): Promise<ResetTokenResponse> {
-  return apiFetch<ResetTokenResponse>('/api/auth/verify-otp', {
+  return apiFetch<ResetTokenResponse>(routes.auth.verifyOtp(), {
     method: 'POST',
     body: JSON.stringify({ email_id, otp }),
   });
@@ -70,7 +71,7 @@ export function verifyAnswerRequest(
   email_id: string,
   answer: string
 ): Promise<ResetTokenResponse> {
-  return apiFetch<ResetTokenResponse>('/api/auth/verify-answer', {
+  return apiFetch<ResetTokenResponse>(routes.auth.verifyAnswer(), {
     method: 'POST',
     body: JSON.stringify({ email_id, answer }),
   });
@@ -80,7 +81,7 @@ export function resetPasswordFinalRequest(
   reset_token: string,
   new_password: string
 ): Promise<TokenResponse> {
-  return apiFetch<TokenResponse>('/api/auth/reset-password-final', {
+  return apiFetch<TokenResponse>(routes.auth.resetPasswordFinal(), {
     method: 'POST',
     body: JSON.stringify({ reset_token, new_password }),
   });
