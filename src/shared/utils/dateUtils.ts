@@ -61,6 +61,30 @@ export function formatDate(
   );
 }
 
+// Format a "YYYY-MM" string into a localized "Month Year" label
+// (e.g. "January 2026" / "Jan 2026"). Routed through Intl with the
+// user's date-format locale so the month name matches their language;
+// the label carries no day component, so date-order preference does not
+// apply (hence no `optsForDateFormat`). Constructs the date at UTC and
+// formats in UTC — a month label has no timezone of its own.
+export function formatYearMonth(
+  ym: string | null | undefined,
+  monthStyle: 'long' | 'short' = 'long'
+): string {
+  if (!ym) return '';
+  const parts = String(ym).split('-');
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return ym;
+  const { format } = useDateFormatStore.getState();
+  const locale = localeForDateFormat(format);
+  return new Intl.DateTimeFormat(locale, {
+    month: monthStyle,
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(y, m - 1, 1)));
+}
+
 export function formatDateTime(
   isoString: string | null | undefined,
   tz: string,

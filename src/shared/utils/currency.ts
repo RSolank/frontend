@@ -61,6 +61,32 @@ export function formatMoney(
   return symbol ? `${symbol}${formatted}` : `${code} ${formatted}`;
 }
 
+const COUNT_FORMATTERS = new Map<NumberFormatMode, Intl.NumberFormat>();
+
+// Format an integer count (transaction / beneficiary / budget counts, …)
+// using the same thousands-separator preference as formatMoney, but with
+// no currency affix and no forced decimals. Use this instead of
+// `value.toLocaleString()` so counts honour the user's number-format
+// choice (e.g. Indian lakh grouping) per CONTRIBUTING.md §5.
+export function formatCount(value: number | null | undefined): string {
+  const n =
+    typeof value === 'number' && Number.isFinite(value) ? value : Number(value);
+  const safe = Number.isFinite(n) ? n : 0;
+  const { format } = useNumberFormatStore.getState();
+  let fmt = COUNT_FORMATTERS.get(format);
+  if (!fmt) {
+    const config = intlConfigForNumberFormat(format);
+    fmt = config
+      ? new Intl.NumberFormat(config.locale, {
+          ...config.opts,
+          maximumFractionDigits: 0,
+        })
+      : new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+    COUNT_FORMATTERS.set(format, fmt);
+  }
+  return fmt.format(safe);
+}
+
 // Inverse — keeps the door open for any future input form that needs to
 // accept a `${symbol}1,234.56` string and recover the numeric value.
 // Strips anything that isn't a digit, sign, or decimal separator; returns

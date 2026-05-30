@@ -1,4 +1,5 @@
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatCount } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
 import { useUserStatsQuery } from '../../users/api/queries';
 
@@ -83,7 +84,7 @@ function Stat({ label, value }: StatProps) {
         {label}
       </dt>
       <dd className="mt-0.5 text-lg font-semibold text-slate-900 dark:text-slate-100">
-        {value.toLocaleString()}
+        {formatCount(value)}
       </dd>
     </div>
   );

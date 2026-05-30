@@ -7,6 +7,7 @@ import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { budgetKeys } from '../api/keys';
 import {
@@ -15,20 +16,6 @@ import {
 } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
-
-function formatMonthLabel(ym: string): string {
-  if (!ym) return '';
-  const parts = ym.split('-');
-  const y = Number(parts[0]);
-  const m = Number(parts[1]);
-  if (!Number.isFinite(y) || !Number.isFinite(m)) return ym;
-  const date = new Date(Date.UTC(y, m - 1, 1));
-  return date.toLocaleString(undefined, {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 // Total tag is a system-only tag (`tag_type = "total"`) — its row is
 // never surfaced in user-visible tag pickers. The backend's
@@ -165,7 +152,7 @@ export function ExpenseTrackerPage() {
           >
             {availableMonths.map((m) => (
               <option key={m} value={m}>
-                {formatMonthLabel(m)}
+                {formatYearMonth(m, 'long')}
               </option>
             ))}
           </select>
@@ -214,7 +201,7 @@ export function ExpenseTrackerPage() {
             {visibleCategories.length === 0 ? (
               <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 No categorized spending found for{' '}
-                {displayMonth ? formatMonthLabel(displayMonth) : 'this month'}.
+                {displayMonth ? formatYearMonth(displayMonth, 'long') : 'this month'}.
               </div>
             ) : (
               <div

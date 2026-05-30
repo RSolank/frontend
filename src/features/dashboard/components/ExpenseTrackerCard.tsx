@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import {
   useBudgetStatusQuery,
   type BudgetCategory,
@@ -108,7 +109,7 @@ export function ExpenseTrackerCard() {
       {breachCount} over budget
     </span>
   ) : (
-    formatMonthLabel(data?.month)
+    formatYearMonth(data?.month, 'short')
   );
 
   return (
@@ -303,16 +304,3 @@ const STATUS_STYLE: Record<
     label: 'No limit',
   },
 };
-
-function formatMonthLabel(ym: string | undefined): string {
-  if (!ym) return '';
-  const parts = ym.split('-');
-  const y = Number(parts[0]);
-  const m = Number(parts[1]);
-  if (!Number.isFinite(y) || !Number.isFinite(m)) return ym;
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString(undefined, {
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}

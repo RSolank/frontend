@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
+
 interface MonthDropdownProps {
   value: string; // 'YYYY-MM' or '' for All months
   onChange: (next: string) => void;
@@ -30,12 +32,7 @@ function buildOptions(): { value: string; label: string }[] {
     )
       .toString()
       .padStart(2, '0')}`;
-    const label = new Intl.DateTimeFormat(undefined, {
-      timeZone: 'UTC',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
-    opts.push({ value: ym, label });
+    opts.push({ value: ym, label: formatYearMonth(ym, 'short') });
   }
   return opts;
 }
