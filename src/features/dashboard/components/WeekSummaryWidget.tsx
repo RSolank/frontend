@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
 import { useTrackerCurrentWeekQuery } from '../../taxation/api/queries';
 import { useTransactionsQuery } from '../../transactions/api/queries';

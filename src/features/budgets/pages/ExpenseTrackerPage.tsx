@@ -2,13 +2,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { budgetKeys } from '../api/keys';
 import {
   useBudgetStatusQuery,

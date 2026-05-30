@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
-import { hydratePreferences, refreshAuthUser } from '../state/useAuth';
+import { hydratePreferences } from '../../users/api/preferences';
+import { refreshAuthUser } from '../state/useAuth';
 
 // Mounted once inside <App /> (which lives inside the router). Fires the
 // boot-time `/api/users/me` + `/api/metadata/constants` fetch that the

@@ -46,8 +46,8 @@ export function isHeaderSafe(value: unknown): value is string {
 // Coerce a server-shaped preferences payload into a store-shaped one,
 // falling back to PREFERENCES_DEFAULTS for any field that's missing,
 // null, or non-header-safe. Used by:
-// - features/auth/state/useAuth.ts:hydratePreferences (entry point that
-//   could otherwise poison the store with a bad backend value)
+// - features/users/api/preferences.ts:hydratePreferences (entry point
+//   that could otherwise poison the store with a bad backend value)
 // - shared/api/apiClient.ts:preferenceHeaders (last-line defence so
 //   even an in-memory poisoned store can't break the wire)
 // Permissively typed so the server response shape

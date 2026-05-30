@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
@@ -7,7 +8,6 @@ import {
   useBudgetStatusQuery,
   type BudgetCategory,
 } from '../../budgets/api/queries';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 
 import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 import { WeekByCategoryStrip } from './WeekByCategoryStrip';

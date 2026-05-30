@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react';
 
+import {
+  fetchCountries,
+  fetchCurrencies,
+  type CountryOption,
+  type CurrencyOption,
+} from '../../../shared/api/referenceData';
+import {
+  COUNTRY_PREFER_NOT_SAY,
+  CountrySelect,
+} from '../../../shared/components/CountrySelect';
+import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
+import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
 import {
   getBrowserRegion,
   getBrowserTimezone,
@@ -9,18 +21,6 @@ import {
   getTimezonesForCountryName,
 } from '../../../shared/utils/countryTimezones';
 import { validatePassword } from '../../../shared/utils/validation';
-import {
-  fetchCountries,
-  fetchCurrencies,
-  type CountryOption,
-  type CurrencyOption,
-} from '../../metadata/api/queries';
-import {
-  COUNTRY_PREFER_NOT_SAY,
-  CountrySelect,
-} from '../../metadata/components/CountrySelect';
-import { CurrencySelect } from '../../metadata/components/CurrencySelect';
-import { TimezoneSelect } from '../../metadata/components/TimezoneSelect';
 import { useAuth } from '../state/useAuth';
 
 const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;

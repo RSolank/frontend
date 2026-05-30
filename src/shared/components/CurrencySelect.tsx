@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
-import { SearchableSelect } from '../../../shared/components/SearchableSelect';
-import { useCurrenciesQuery, type CurrencyOption } from '../api/queries';
+import { useCurrenciesQuery, type CurrencyOption } from '../api/referenceData';
+
+import { SearchableSelect } from './SearchableSelect';
 
 interface CurrencySelectProps {
   id?: string;

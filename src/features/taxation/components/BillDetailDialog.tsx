@@ -1,10 +1,10 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { Modal } from '../../../shared/components/Modal';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { formatBillDate } from '../api/billPeriod';
 import {
   useBillQuery,

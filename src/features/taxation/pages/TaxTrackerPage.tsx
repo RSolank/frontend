@@ -2,12 +2,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { formatBillDate } from '../api/billPeriod';
 import { taxationKeys } from '../api/keys';
 import { payBillRequest } from '../api/mutations';

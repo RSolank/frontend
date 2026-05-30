@@ -18,7 +18,9 @@ src/
 ├── shared/                    # cross-feature primitives
 │   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + prefs headers + ApiError
 │   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api'` knob
-│   ├── components/            # ErrorBoundary / ProtectedRoute / PasswordRequirements / ThemeToggle
+│   ├── api/referenceData.ts   # countries / currencies queries (read-only system reference data; no UI of its own)
+│   ├── components/            # ErrorBoundary / ProtectedRoute / Country|Currency|TimezoneSelect / SearchableSelect / Modal / …
+│   #                            (the Country/Currency/Timezone pickers + reference data were the metadata "feature"; dissolved into shared in Batch 10 — infra, not a feature)
 │   ├── hooks/                 # (empty — populated as features need cross-cutting hooks)
 │   ├── utils/                 # dateUtils (tz-aware) / validation / currency (formatMoney)
 │   ├── state/theme.store.ts          # useThemeStore (Zustand + persist) + applyTheme

@@ -1,9 +1,18 @@
-# Metadata feature
+# Metadata — dissolved into `shared/` (Batch 10)
 
-> Mirrors `backend/app/modules/metadata`. Owns the read-only reference
-> data (countries, currencies, system constants) and the shared form
-> controls that depend on it. Lives at
-> [`src/features/metadata/`](../../src/features/metadata/).
+> **This is no longer a feature.** Metadata had no UI of its own and was
+> consumed by ~15 files across 6 features (currency symbol for
+> `formatMoney`, the region pickers), so Batch 10 moved it into `shared/`
+> as the cross-cutting reference-data infrastructure it always was:
+> - reference-data queries → [`src/shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts)
+>   (`useCountriesQuery`, `useCurrenciesQuery`)
+> - pickers → [`src/shared/components/`](../../src/shared/components/)
+>   (`CountrySelect`, `CurrencySelect`, `TimezoneSelect`)
+>
+> The system-constants endpoint (`/api/metadata/constants`) stays a
+> tag-local query (`features/tags/api/queries.ts`). The backend may
+> follow by reclassifying its `metadata` module as a core service. The
+> rest of this page is retained as historical reference.
 
 ## Purpose
 

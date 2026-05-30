@@ -1,9 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { apiFetch } from '../../../shared/api/apiClient';
-import { routes } from '../../../shared/api/routes';
+import { apiFetch } from './apiClient';
+import { routes } from './routes';
 
-import { metadataKeys } from './keys';
+// Static system reference data (countries / currencies) served by the
+// backend's /api/metadata/* endpoints. This lives in shared/ — not a
+// feature — because it has no UI of its own and is consumed across
+// almost every feature (currency symbol for formatMoney, the country /
+// currency / timezone pickers). React-query keys are kept local; the
+// endpoints are effectively static per session, so a long staleTime
+// makes the dropdowns cheap to mount everywhere.
+const referenceDataKeys = {
+  all: ['reference-data'] as const,
+  countries: () => [...referenceDataKeys.all, 'countries'] as const,
+  currencies: () => [...referenceDataKeys.all, 'currencies'] as const,
+} as const;
 
 export interface CountryOption {
   name: string;
@@ -41,7 +52,7 @@ const REFERENCE_DATA_STALE_MS = 60 * 60 * 1000;
 
 export function useCountriesQuery() {
   return useQuery({
-    queryKey: metadataKeys.countries(),
+    queryKey: referenceDataKeys.countries(),
     queryFn: async () => (await fetchCountries()).countries ?? [],
     staleTime: REFERENCE_DATA_STALE_MS,
   });
@@ -49,7 +60,7 @@ export function useCountriesQuery() {
 
 export function useCurrenciesQuery() {
   return useQuery({
-    queryKey: metadataKeys.currencies(),
+    queryKey: referenceDataKeys.currencies(),
     queryFn: async () => (await fetchCurrencies()).currencies ?? [],
     staleTime: REFERENCE_DATA_STALE_MS,
   });

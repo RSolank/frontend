@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import boundaries from 'eslint-plugin-boundaries';
 import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
@@ -205,6 +206,73 @@ export default [
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+  // --- Feature boundaries (Batch 10 bucket 6c) -------------------------
+  // The working replacement for the removed no-restricted-paths cross-
+  // feature zone. The rule, encoded as element-types:
+  //   - app/ composes everything (shared + any feature).
+  //   - shared/ is leaf infra — imports only shared (Zone 1: shared ⊥ features).
+  //   - a feature may import shared, ITSELF (any subpath), and ANY feature's
+  //     api/ (the sanctioned public surface) — but NOT another feature's
+  //     non-api internals (components/state/pages/hooks).
+  // Warn-level for now (report-first rollout); flip to error once the
+  // count is confirmed clean.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      '**/*.test.{ts,tsx}',
+      '**/*.spec.{ts,tsx}',
+      'src/test/**',
+      'src/main.tsx',
+      'src/setupTests.ts',
+    ],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': [
+        { type: 'app', pattern: 'src/app', mode: 'folder' },
+        { type: 'shared', pattern: 'src/shared', mode: 'folder' },
+        {
+          type: 'feature-api',
+          pattern: 'src/features/*/api',
+          mode: 'folder',
+          capture: ['feature'],
+        },
+        {
+          type: 'feature',
+          pattern: 'src/features/*',
+          mode: 'folder',
+          capture: ['feature'],
+        },
+      ],
+      'boundaries/ignore': [
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/setupTests.ts',
+      ],
+    },
+    rules: {
+      'boundaries/element-types': [
+        'warn',
+        {
+          default: 'disallow',
+          rules: [
+            { from: ['app'], allow: ['app', 'shared', 'feature', 'feature-api'] },
+            { from: ['shared'], allow: ['shared'] },
+            {
+              from: ['feature', 'feature-api'],
+              allow: [
+                'shared',
+                ['feature', { feature: '${from.feature}' }],
+                ['feature-api', { feature: '${from.feature}' }],
+                'feature-api',
+              ],
+            },
+          ],
         },
       ],
     },

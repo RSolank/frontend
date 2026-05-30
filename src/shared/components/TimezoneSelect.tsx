@@ -5,7 +5,7 @@ import {
   getAllTimezones,
   getBrowserTimezone,
   getTimezonesForCountryName,
-} from '../../../shared/utils/countryTimezones';
+} from '../utils/countryTimezones';
 
 interface TimezoneSelectProps {
   // Selected country's display name (e.g. "India"). Drives whether we

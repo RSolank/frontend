@@ -1,9 +1,9 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import type { BudgetCategory } from '../api/queries';
 import { formatRateForInput } from '../api/rateInput';
 

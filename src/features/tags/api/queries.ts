@@ -24,8 +24,9 @@ export interface TagsResponse {
 
 // System constants the tags UI needs to decide which rows are read-only.
 // Sourced from /api/metadata/constants — the same payload used elsewhere
-// for category and rule IDs. Kept here (not in features/metadata/) so a
-// tag-only query doesn't reach across feature boundaries.
+// for category and rule IDs. Kept as a tag-local query (the constants
+// endpoint isn't owned by any one feature; shared/api/referenceData
+// covers countries/currencies but not these tag-specific constants).
 export interface TagConstants {
   SYSTEM_USER_ID?: number;
   TOTAL_TAG_ID?: number;

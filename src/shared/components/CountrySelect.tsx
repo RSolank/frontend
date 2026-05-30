@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
-import { SearchableSelect } from '../../../shared/components/SearchableSelect';
-import { useCountriesQuery, type CountryOption } from '../api/queries';
+import { useCountriesQuery, type CountryOption } from '../api/referenceData';
+
+import { SearchableSelect } from './SearchableSelect';
 
 export const COUNTRY_PREFER_NOT_SAY = '__PREFER_NOT_SAY__';
 

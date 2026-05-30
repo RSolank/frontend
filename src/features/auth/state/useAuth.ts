@@ -4,14 +4,9 @@ import { apiFetch } from '../../../shared/api/apiClient';
 import { routes } from '../../../shared/api/routes';
 import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
 import { getLandingRoute } from '../../../shared/state/landingRoute.store';
-import {
-  sanitizePreferences,
-  usePreferencesStore,
-} from '../../../shared/state/preferences.store';
-import {
-  fetchCurrentUser,
-  fetchUserPreferences,
-} from '../../users/api/queries';
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { hydratePreferences } from '../../users/api/preferences';
+import { fetchCurrentUser } from '../../users/api/queries';
 import {
   loginRequest,
   logoutRequest,
@@ -34,26 +29,6 @@ function persistTokens(data: TokenResponse) {
 function clearTokens() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-}
-
-// Hydrate `usePreferencesStore` from `/api/users/preferences`. Best-effort:
-// a failure (404 / network / unauthorized) leaves the store at whatever
-// values it already had — the headers still go on the wire, just with
-// USD/UTC defaults if nothing was set. See CONTRIBUTING.md §5.
-export async function hydratePreferences(): Promise<void> {
-  try {
-    const prefs = await fetchUserPreferences();
-    // sanitizePreferences applies the printable-ASCII filter (so a
-    // legacy backend row with currency="₹" can't poison the store and
-    // break every subsequent fetch) and the missing/null → defaults
-    // coercion in one step.
-    usePreferencesStore.getState().setPreferences(sanitizePreferences(prefs));
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.warn('hydratePreferences failed', err);
-    }
-  }
 }
 
 // Imperative refresh: fetch `/api/users/me` + `/api/metadata/constants`

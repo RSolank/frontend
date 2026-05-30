@@ -1,11 +1,11 @@
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import {
   BUDGET_DELETE_NOT_IMPLEMENTED,
   deleteBudgetLimitRequest,

@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
 import {
   useBudgetStatusQuery,
   type BudgetCategory,
 } from '../../budgets/api/queries';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 
 // Surfaces every category that's currently over its monthly budget.
 // Lives in the secondary widgets column (desktop only) so the primary

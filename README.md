@@ -41,7 +41,7 @@ Cross-cutting infrastructure lives in `src/shared/`. Features depend on
 ```
 src/
 ├── app/            # router + providers + App shell
-├── features/       # auth, users, metadata, tags, beneficiaries,
+├── features/       # auth, users, tags, beneficiaries,
 │                   #   transactions, categorization, taxation, budgets,
 │                   #   dashboard, account, settings — each owns
 │                   #   pages / components / state / api / <feature>.routes.tsx

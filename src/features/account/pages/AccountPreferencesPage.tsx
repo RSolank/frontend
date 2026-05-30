@@ -1,18 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
-import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
-import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
-import { hydratePreferences } from '../../auth/state/useAuth';
-import { useCountriesQuery, type CountryOption } from '../../metadata/api/queries';
+import { useCountriesQuery, type CountryOption } from '../../../shared/api/referenceData';
 import {
   CountrySelect,
   COUNTRY_PREFER_NOT_SAY,
-} from '../../metadata/components/CountrySelect';
-import { CurrencySelect } from '../../metadata/components/CurrencySelect';
-import { TimezoneSelect } from '../../metadata/components/TimezoneSelect';
+} from '../../../shared/components/CountrySelect';
+import { CurrencySelect } from '../../../shared/components/CurrencySelect';
+import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
+import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
+import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
+import { hydratePreferences } from '../../users/api/preferences';
 import { useCurrentUserQuery } from '../../users/api/queries';
 
 interface FormState {

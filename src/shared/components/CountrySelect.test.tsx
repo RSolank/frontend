@@ -1,7 +1,7 @@
 import { screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithProviders } from '../../../test/renderWithProviders';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 import {
   COUNTRY_PREFER_NOT_SAY,

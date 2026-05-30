@@ -76,7 +76,6 @@ frontend/
 │   │   │   ├── state/             # useAuthStore (Zustand + persist)
 │   │   │   └── auth.routes.tsx
 │   │   ├── users/                 # profile + preferences
-│   │   ├── metadata/              # CountrySelect, CurrencySelect, etc.
 │   │   ├── tags/
 │   │   ├── beneficiaries/
 │   │   ├── transactions/          # + statement_upload/ subfolder mirroring backend

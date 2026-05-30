@@ -10,13 +10,13 @@ import {
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useCurrenciesQuery } from '../../../shared/api/referenceData';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
 import {
   monthKeyFromIso,
