@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { fetchTags, type TagNode } from '../../tags/api/queries';
 import {
   deleteCategorizationRule,
   updateCategorizationRuleTags,
@@ -13,7 +14,6 @@ import {
   switchBeneficiaryType,
   type BeneficiaryFormInput,
 } from '../api/schemas';
-import { fetchTags, type TagNode } from '../../tags/api/queries';
 
 import { AliasChipsInput } from './AliasChipsInput';
 

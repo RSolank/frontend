@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { weekRangeInTz } from '../../taxation/api/billPeriod';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
+import { weekRangeInTz } from '../../taxation/api/billPeriod';
 
 import { DashboardPage } from './DashboardPage';
 

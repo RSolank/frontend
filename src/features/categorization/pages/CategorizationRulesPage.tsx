@@ -2,21 +2,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
-import type { Beneficiary } from '../../beneficiaries/api/queries';
-import { fetchBeneficiaries } from '../../beneficiaries/api/queries';
 import { deleteCategorizationRule } from '../../beneficiaries/api/mutations';
-import { fetchTagConstants, fetchTags } from '../../tags/api/queries';
+import { fetchBeneficiaries } from '../../beneficiaries/api/queries';
+import type { Beneficiary } from '../../beneficiaries/api/queries';
 import type { CreatedTag } from '../../tags/api/mutations';
-import { CategorizationRuleFormDialog } from '../components/CategorizationRuleFormDialog';
-import { GroupedRulesList } from '../components/GroupedRulesList';
-import { categorizationKeys } from '../api/keys';
+import { fetchTagConstants, fetchTags } from '../../tags/api/queries';
 import { tagSetKey } from '../api/grouping';
+import { categorizationKeys } from '../api/keys';
 import { reRunCategorizationRequest } from '../api/mutations';
 import {
   useCategorizationRulesQuery,
   type CategorizationRule,
 } from '../api/queries';
 import { flattenTags, type FlatTag } from '../api/ruleUtils';
+import { CategorizationRuleFormDialog } from '../components/CategorizationRuleFormDialog';
+import { GroupedRulesList } from '../components/GroupedRulesList';
 
 interface ApiErrorShape {
   detail?: string;

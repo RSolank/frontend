@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
-import type { CreatedTag } from '../api/mutations';
 import { tagKeys } from '../api/keys';
+import type { CreatedTag } from '../api/mutations';
 import { deleteTagRequest } from '../api/mutations';
 import {
   fetchTagConstants,

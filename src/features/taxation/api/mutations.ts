@@ -1,8 +1,8 @@
 import { apiFetch } from '../../../shared/api/apiClient';
 import { routes } from '../../../shared/api/routes';
 
-import type { TaxationRuleFormInput, BillGenerateInput } from './schemas';
 import type { TaxationRule } from './queries';
+import type { TaxationRuleFormInput, BillGenerateInput } from './schemas';
 
 // PUT /api/taxation-rules/:txn_type — upsert. Returns the saved rule.
 export function updateTaxationRuleRequest(

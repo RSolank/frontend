@@ -2,15 +2,15 @@ import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
+import { useCurrenciesQuery } from '../../metadata/api/queries';
+import { formatBillDate } from '../api/billPeriod';
 import {
   useBillQuery,
   type BillDetail,
   type BillItem,
 } from '../api/queries';
-import { formatBillDate } from '../api/billPeriod';
 
 interface BillDetailDialogProps {
   billId: number | null;

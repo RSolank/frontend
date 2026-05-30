@@ -3,8 +3,8 @@ import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { server } from '../../../test/server';
 import { renderWithProviders } from '../../../test/renderWithProviders';
+import { server } from '../../../test/server';
 
 import { EditTransactionPage } from './EditTransactionPage';
 

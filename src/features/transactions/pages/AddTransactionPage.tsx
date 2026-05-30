@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { DateField } from '../../../shared/components/DateField';
+import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import {
   createCategorizationRule,
   type CreateCategorizationRulePayload,
@@ -12,6 +15,7 @@ import {
   type Beneficiary,
 } from '../../beneficiaries/api/queries';
 import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
+import { tagKeys } from '../../tags/api/keys';
 import type { CreatedTag } from '../../tags/api/mutations';
 import {
   fetchTagConstants,
@@ -19,11 +23,7 @@ import {
   type TagConstants,
   type TagNode,
 } from '../../tags/api/queries';
-import { tagKeys } from '../../tags/api/keys';
 import { TagFormDialog } from '../../tags/components/TagFormDialog';
-import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
-import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import { transactionKeys } from '../api/keys';
 import { createTransactionRequest } from '../api/mutations';
 import { BeneficiarySearch } from '../components/BeneficiarySearch';

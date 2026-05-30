@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
+import { formatInputDate } from '../../../shared/utils/dateUtils';
 import {
   createCategorizationRule,
   updateCategorizationRuleTags,
@@ -15,6 +16,7 @@ import {
   type CategorizationRule,
 } from '../../beneficiaries/api/queries';
 import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
+import { tagKeys } from '../../tags/api/keys';
 import type { CreatedTag } from '../../tags/api/mutations';
 import {
   fetchTagConstants,
@@ -22,9 +24,7 @@ import {
   type TagConstants,
   type TagNode,
 } from '../../tags/api/queries';
-import { tagKeys } from '../../tags/api/keys';
 import { TagFormDialog } from '../../tags/components/TagFormDialog';
-import { formatInputDate } from '../../../shared/utils/dateUtils';
 import { transactionKeys } from '../api/keys';
 import { updateTransactionRequest } from '../api/mutations';
 import { fetchTransaction } from '../api/queries';

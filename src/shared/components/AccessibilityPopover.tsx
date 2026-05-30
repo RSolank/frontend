@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { ContrastToggle } from './ContrastToggle';
 import { MotionToggle } from './MotionToggle';

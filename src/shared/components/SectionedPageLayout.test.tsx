@@ -1,10 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
 import {
   RouterProvider,
   createMemoryRouter,
   type RouteObject,
 } from 'react-router-dom';
+import { describe, expect, it } from 'vitest';
 
 import { SectionedPageLayout, type SectionSpec } from './SectionedPageLayout';
 

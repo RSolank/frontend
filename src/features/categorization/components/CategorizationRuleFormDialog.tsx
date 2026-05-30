@@ -10,8 +10,8 @@ import {
   type Beneficiary,
 } from '../../beneficiaries/api/queries';
 import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
-import { fetchTags } from '../../tags/api/queries';
 import type { CreatedTag } from '../../tags/api/mutations';
+import { fetchTags } from '../../tags/api/queries';
 import { TagFormDialog } from '../../tags/components/TagFormDialog';
 import { updateCategorizationRuleRequest } from '../api/mutations';
 import type { CategorizationRule } from '../api/queries';

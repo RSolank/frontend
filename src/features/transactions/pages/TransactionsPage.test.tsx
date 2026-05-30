@@ -2,9 +2,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { server } from '../../../test/server';
-import { renderWithProviders } from '../../../test/renderWithProviders';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { renderWithProviders } from '../../../test/renderWithProviders';
+import { server } from '../../../test/server';
 
 import { TransactionsPage } from './TransactionsPage';
 

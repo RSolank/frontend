@@ -2,8 +2,8 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { server } from '../../../test/server';
 import { renderWithProviders } from '../../../test/renderWithProviders';
+import { server } from '../../../test/server';
 
 import { TagsPage } from './TagsPage';
 

@@ -9,15 +9,15 @@ import {
   usePreferencesStore,
 } from '../../../shared/state/preferences.store';
 import {
+  fetchCurrentUser,
+  fetchUserPreferences,
+} from '../../users/api/queries';
+import {
   loginRequest,
   logoutRequest,
   registerRequest,
   type TokenResponse,
 } from '../api/mutations';
-import {
-  fetchCurrentUser,
-  fetchUserPreferences,
-} from '../../users/api/queries';
 import type { LoginInput, RegisterPayload } from '../api/schemas';
 
 interface ApiErrorShape {

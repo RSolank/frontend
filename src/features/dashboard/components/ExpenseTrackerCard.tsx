@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatMoney } from '../../../shared/utils/currency';
-import { useCurrenciesQuery } from '../../metadata/api/queries';
 import {
   useBudgetStatusQuery,
   type BudgetCategory,
 } from '../../budgets/api/queries';
+import { useCurrenciesQuery } from '../../metadata/api/queries';
 
 import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 import { WeekByCategoryStrip } from './WeekByCategoryStrip';

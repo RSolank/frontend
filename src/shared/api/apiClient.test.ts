@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { usePreferencesStore } from '../state/preferences.store';
 import { server } from '../../test/server';
+import { usePreferencesStore } from '../state/preferences.store';
 
 import { apiFetch } from './apiClient';
 

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 
 import { useModal, useUrlValueModal } from './useModal';

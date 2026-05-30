@@ -74,7 +74,6 @@ export function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in dark:bg-slate-950/70" />
         <Dialog.Content
-          aria-describedby={description ? undefined : undefined}
           className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] w-full ${cap} flex-col rounded-t-xl bg-white shadow-xl outline-none sm:top-1/2 sm:right-auto sm:bottom-auto sm:left-1/2 sm:mx-0 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800`}
         >
           <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 dark:border-slate-800">
