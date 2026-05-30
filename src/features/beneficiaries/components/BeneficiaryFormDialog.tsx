@@ -21,6 +21,13 @@ interface ApiErrorShape {
   error?: string;
 }
 
+// Save-button label by state — if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function saveLabel(saving: boolean, isEditing: boolean): string {
+  if (saving) return 'Saving…';
+  return isEditing ? 'Save changes' : 'Save beneficiary';
+}
+
 interface BeneficiaryFormDialogProps {
   open: boolean;
   onClose: () => void;
@@ -40,22 +47,27 @@ interface BeneficiaryFormDialogProps {
   onRequestRemove?: () => void;
 }
 
-// Unified create/edit dialog for beneficiaries. Always renders the
-// form per the Batch 9.8 DetailModal convention — visual layout is
-// identical whether the modal was just opened or has pending edits.
-// Every beneficiary field is editable so the LockedFieldBanner
-// doesn't apply here, but the rest of the pattern (title = entity
-// name, single dismiss text-swap, Save gated by isDirty) holds.
-export function BeneficiaryFormDialog({
+interface UseBeneficiaryFormArgs {
+  open: boolean;
+  beneficiary: Beneficiary | null;
+  initialName: string;
+  initialType: 'merchant' | 'person';
+  onSaved: (beneficiary: Beneficiary) => void;
+  onClose: () => void;
+}
+
+// View-model: owns the form state, dirtiness, save flow, and the derived
+// title / dismiss-label / canSave gate. Hoisting this out of the component
+// keeps all the branching plumbing here and leaves the dialog a thin render
+// (component cyclomatic complexity stays under the gate).
+function useBeneficiaryForm({
   open,
-  onClose,
+  beneficiary,
+  initialName,
+  initialType,
   onSaved,
-  beneficiary = null,
-  initialName = '',
-  initialType = 'merchant',
-  onRequestMerge,
-  onRequestRemove,
-}: BeneficiaryFormDialogProps) {
+  onClose,
+}: UseBeneficiaryFormArgs) {
   const isEditing = beneficiary != null;
   const initialForm = useMemo<BeneficiaryFormInput>(
     () =>
@@ -96,7 +108,7 @@ export function BeneficiaryFormDialog({
     setSaving(true);
     try {
       const saved = isEditing
-        ? await updateBeneficiaryRequest(String(beneficiary!.uid), formToPayload(form))
+        ? await updateBeneficiaryRequest(String(beneficiary.uid), formToPayload(form))
         : await createBeneficiaryRequest(formToPayload(form));
       onSaved(saved);
       // Row-highlight on the parent surfaces the saved state; close
@@ -110,9 +122,59 @@ export function BeneficiaryFormDialog({
     }
   }
 
-  // Title = the beneficiary's name (or "New beneficiary" in Add).
-  const title = isEditing ? beneficiary.name || 'Beneficiary' : 'New beneficiary';
-  const dismissLabel = isDirty ? 'Cancel' : 'Close';
+  return {
+    form,
+    setForm,
+    setAliasesInvalid,
+    isEditing,
+    isDirty,
+    saving,
+    error,
+    // Title = the beneficiary's name (or "New beneficiary" in Add).
+    title: isEditing ? beneficiary.name || 'Beneficiary' : 'New beneficiary',
+    dismissLabel: isDirty ? 'Cancel' : 'Close',
+    // Single source of truth for the Save button's enabled state.
+    canSave: !saving && !aliasesInvalid && isDirty && Boolean(form.name.trim()),
+    handleSave,
+  };
+}
+
+// Unified create/edit dialog for beneficiaries. Always renders the
+// form per the Batch 9.8 DetailModal convention — visual layout is
+// identical whether the modal was just opened or has pending edits.
+// Every beneficiary field is editable so the LockedFieldBanner
+// doesn't apply here, but the rest of the pattern (title = entity
+// name, single dismiss text-swap, Save gated by isDirty) holds.
+export function BeneficiaryFormDialog({
+  open,
+  onClose,
+  onSaved,
+  beneficiary = null,
+  initialName = '',
+  initialType = 'merchant',
+  onRequestMerge,
+  onRequestRemove,
+}: BeneficiaryFormDialogProps) {
+  const {
+    form,
+    setForm,
+    setAliasesInvalid,
+    isEditing,
+    isDirty,
+    saving,
+    error,
+    title,
+    dismissLabel,
+    canSave,
+    handleSave,
+  } = useBeneficiaryForm({
+    open,
+    beneficiary,
+    initialName,
+    initialType,
+    onSaved,
+    onClose,
+  });
 
   return (
     <Modal
@@ -160,10 +222,10 @@ export function BeneficiaryFormDialog({
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || aliasesInvalid || !isDirty || !form.name.trim()}
+            disabled={!canSave}
             className="btn-primary !w-auto"
           >
-            {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Save beneficiary'}
+            {saveLabel(saving, isEditing)}
           </button>
         </>
       }

@@ -31,6 +31,19 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
   return out;
 }
 
+// Upload-button label by pipeline phase — if/else (not a nested ternary) so
+// it stays off sonarjs/no-nested-conditional.
+function uploadButtonLabel(
+  uploading: boolean,
+  mapping: boolean,
+  categorizing: boolean
+): string {
+  if (uploading) return 'Uploading...';
+  if (mapping) return 'Mapping beneficiaries...';
+  if (categorizing) return 'Categorizing rules...';
+  return 'Upload';
+}
+
 export function UploadStatementPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
@@ -117,13 +130,7 @@ export function UploadStatementPage() {
     }
   }
 
-  const uploadLabel = uploading
-    ? 'Uploading...'
-    : mapping
-      ? 'Mapping beneficiaries...'
-      : categorizing
-        ? 'Categorizing rules...'
-        : 'Upload';
+  const uploadLabel = uploadButtonLabel(uploading, mapping, categorizing);
 
   return (
     <div className="mx-auto my-6 max-w-3xl px-4 sm:my-10">

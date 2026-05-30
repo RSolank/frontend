@@ -125,6 +125,67 @@ describe('RegisterPage', () => {
     });
   });
 
+  // Locks the validateRegistration() branches extracted from handleSubmit in
+  // Batch 10.11 round-2 (the useRegisterForm hook split). Each fills the
+  // required fields with a valid password so submission reaches the
+  // cross-field guard, then asserts the guard blocks it with its message.
+  async function fillValidBase() {
+    fireEvent.change(screen.getByLabelText(/First name/), {
+      target: { value: 'John' },
+    });
+    fireEvent.change(screen.getByLabelText(/Last name/), {
+      target: { value: 'Doe' },
+    });
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: 'user@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/Password/), {
+      target: { value: 'SecurePass123!' },
+    });
+  }
+
+  it('blocks submit and shows an error when the phone number is too short', async () => {
+    renderWithProviders(<RegisterPage />);
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('(+91) India')).toBeInTheDocument()
+    );
+
+    await fillValidBase();
+    fireEvent.change(screen.getByPlaceholderText('Phone number (optional)'), {
+      target: { value: '123' },
+    });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'Register' }));
+    });
+
+    expect(
+      screen.getByText('Please enter a valid phone number.')
+    ).toBeInTheDocument();
+  });
+
+  it('blocks submit when a security question is chosen without an answer', async () => {
+    renderWithProviders(<RegisterPage />);
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('(+91) India')).toBeInTheDocument()
+    );
+
+    await fillValidBase();
+    fireEvent.change(screen.getByLabelText(/Security question/), {
+      target: { value: 'What was the name of your first pet?' },
+    });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'Register' }));
+    });
+
+    expect(
+      screen.getByText(
+        'Please provide an answer for the selected security question.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('disables submit while password fails the validation rules', async () => {
     renderWithProviders(
       <>

@@ -40,12 +40,10 @@ function errorMessage(err: unknown, fallback: string): string {
   return e?.detail || e?.error || fallback;
 }
 
-// Categorization rules screen. The page itself is now thin — list
-// rendering + reference-data plumbing + delete confirmation. The full
-// CRUD form lives in `<CategorizationRuleFormDialog />` so the
-// add/edit/view path is a single canonical surface (Batch 9.8 KISS +
-// per-feature FooFormDialog convention).
-export function CategorizationRulesPage() {
+// View-model: owns the rules query, all the reference-data state and its
+// load effect, the post-save highlight bookkeeping, and every handler.
+// Keeps the page component a thin render (under the max-lines gate).
+function useCategorizationRules() {
   const queryClient = useQueryClient();
   const { data: rulesData, isLoading: rulesLoading } =
     useCategorizationRulesQuery();
@@ -189,7 +187,68 @@ export function CategorizationRulesPage() {
     }
   }
 
-  const dialogOpen = addOpen || editingRule != null;
+  return {
+    rules,
+    rulesLoading,
+    tags,
+    beneficiaries,
+    constants,
+    busy,
+    error,
+    editingRule,
+    confirmDelete,
+    editingIsUserRule,
+    dialogOpen: addOpen || editingRule != null,
+    highlightedGroupKey,
+    highlightedRuleUid,
+    isUserRule,
+    openAdd: () => setAddOpen(true),
+    closeConfirm: () => setConfirmDelete(null),
+    requestDeleteEditing: () => {
+      if (editingRule) setConfirmDelete(editingRule);
+    },
+    handleEdit,
+    handleCloseDialog,
+    handleSaved,
+    handleBeneficiaryCreated,
+    handleTagCreated,
+    handleConfirmDelete,
+    handleReRun,
+  };
+}
+
+// Categorization rules screen. The page itself is now thin — list
+// rendering + reference-data plumbing + delete confirmation. The full
+// CRUD form lives in `<CategorizationRuleFormDialog />` so the
+// add/edit/view path is a single canonical surface (Batch 9.8 KISS +
+// per-feature FooFormDialog convention).
+export function CategorizationRulesPage() {
+  const {
+    rules,
+    rulesLoading,
+    tags,
+    beneficiaries,
+    constants,
+    busy,
+    error,
+    editingRule,
+    confirmDelete,
+    editingIsUserRule,
+    dialogOpen,
+    highlightedGroupKey,
+    highlightedRuleUid,
+    isUserRule,
+    openAdd,
+    closeConfirm,
+    requestDeleteEditing,
+    handleEdit,
+    handleCloseDialog,
+    handleSaved,
+    handleBeneficiaryCreated,
+    handleTagCreated,
+    handleConfirmDelete,
+    handleReRun,
+  } = useCategorizationRules();
 
   return (
     <>
@@ -209,7 +268,7 @@ export function CategorizationRulesPage() {
             </button>
             <button
               type="button"
-              onClick={() => setAddOpen(true)}
+              onClick={openAdd}
               className="btn-primary !w-auto"
             >
               Add Rule
@@ -256,16 +315,14 @@ export function CategorizationRulesPage() {
         rules={rules}
         isUserRule={editingIsUserRule}
         onSaved={handleSaved}
-        onRequestDelete={() => {
-          if (editingRule) setConfirmDelete(editingRule);
-        }}
+        onRequestDelete={requestDeleteEditing}
         onBeneficiaryCreated={handleBeneficiaryCreated}
         onTagCreated={handleTagCreated}
       />
 
       <ConfirmDialog
         open={confirmDelete != null}
-        onClose={() => setConfirmDelete(null)}
+        onClose={closeConfirm}
         onConfirm={handleConfirmDelete}
         intent="danger"
         title="Delete categorization rule"

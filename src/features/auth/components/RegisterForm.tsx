@@ -68,13 +68,48 @@ interface RegisterFormProps {
   hideLoginPrompt?: boolean;
 }
 
-// Shared register form body. Mounted by both the RegisterPage route and
-// the RegisterModal on Home — see CONTRIBUTING.md §6 "Modal pattern".
-export function RegisterForm({
-  onSuccess,
-  onSwitchToLogin,
-  hideLoginPrompt = false,
-}: RegisterFormProps) {
+// Cross-field validation the inputs' own `required`/type attributes can't
+// express. Returns an error message, or null when the form is submittable.
+function validateRegistration(form: FormState): string | null {
+  const phoneDigits = (form.contact_local || '').replace(/[^\d]/g, '');
+  if (phoneDigits && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
+    return 'Please enter a valid phone number.';
+  }
+  if (form.security_question && !form.security_answer) {
+    return 'Please provide an answer for the selected security question.';
+  }
+  if (!form.timezone) {
+    return 'Please select a timezone.';
+  }
+  return null;
+}
+
+// Map the local form state to the register API payload — normalising
+// optional fields to null and composing the E.164-ish contact number.
+function buildRegisterPayload(form: FormState, dialCode: string) {
+  const phoneDigits = (form.contact_local || '').replace(/[^\d]/g, '');
+  return {
+    email_id: form.email_id,
+    password: form.password,
+    security_question: form.security_question || null,
+    security_answer: form.security_answer || null,
+    first_name: form.first_name,
+    last_name: form.last_name,
+    dob: form.dob || null,
+    contact: phoneDigits ? `${dialCode}${phoneDigits}` : null,
+    country:
+      !form.country || form.country === PREFER_NOT_SAY ? null : form.country,
+    currency: form.currency || 'INR',
+    timezone: form.timezone,
+  };
+}
+
+// View-model: owns every piece of register-form state plus the
+// country/currency/timezone inference effect and the change/submit
+// handlers, so the component stays a flat field layout. Validation and
+// payload-shaping live in the pure helpers above to keep handleSubmit
+// under the complexity gate.
+function useRegisterForm(onSuccess?: () => void) {
   const { register, error, setError } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -142,6 +177,7 @@ export function RegisterForm({
     form.country && form.country !== PREFER_NOT_SAY
       ? countries.find((c) => c.name === form.country) || null
       : null;
+  const countryLocked = !!form.country && form.country !== PREFER_NOT_SAY;
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -193,38 +229,15 @@ export function RegisterForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const phoneDigits = (form.contact_local || '').replace(/[^\d]/g, '');
-    if (phoneDigits && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
-      setError('Please enter a valid phone number.');
+    const validationError = validateRegistration(form);
+    if (validationError) {
+      setError(validationError);
       return;
     }
-    if (form.security_question && !form.security_answer) {
-      setError('Please provide an answer for the selected security question.');
-      return;
-    }
-    if (!form.timezone) {
-      setError('Please select a timezone.');
-      return;
-    }
-
-    const payload = {
-      email_id: form.email_id,
-      password: form.password,
-      security_question: form.security_question || null,
-      security_answer: form.security_answer || null,
-      first_name: form.first_name,
-      last_name: form.last_name,
-      dob: form.dob || null,
-      contact: phoneDigits ? `${dialCode}${phoneDigits}` : null,
-      country:
-        !form.country || form.country === PREFER_NOT_SAY ? null : form.country,
-      currency: form.currency || 'INR',
-      timezone: form.timezone,
-    };
 
     setSubmitting(true);
     try {
-      await register(payload);
+      await register(buildRegisterPayload(form, dialCode));
       onSuccess?.();
     } catch {
       // Error pushed into the store by useAuth.register
@@ -233,181 +246,267 @@ export function RegisterForm({
     }
   }
 
-  const countryLocked = !!form.country && form.country !== PREFER_NOT_SAY;
+  return {
+    error,
+    form,
+    dialCode,
+    countries,
+    currencies,
+    submitting,
+    currentCountry,
+    countryLocked,
+    handleChange,
+    handleCountryChange,
+    handleCurrencyChange,
+    handleTimezoneChange,
+    handleSubmit,
+  };
+}
+
+interface RegisterFieldsProps {
+  form: FormState;
+  dialCode: string;
+  countries: CountryOption[];
+  currencies: CurrencyOption[];
+  currentCountry: CountryOption | null;
+  countryLocked: boolean;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => void;
+  onCountryChange: (value: string, country: CountryOption | null) => void;
+  onCurrencyChange: (code: string) => void;
+  onTimezoneChange: (timezone: string) => void;
+}
+
+// The register form's field layout — purely presentational. Split out from
+// RegisterForm so the form component stays a thin orchestration shell
+// (error banner + <form> + submit + login prompt) under the max-lines gate.
+function RegisterFields({
+  form,
+  dialCode,
+  countries,
+  currencies,
+  currentCountry,
+  countryLocked,
+  onChange,
+  onCountryChange,
+  onCurrencyChange,
+  onTimezoneChange,
+}: RegisterFieldsProps) {
+  return (
+    <>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label htmlFor="register-first-name" className="form-label">
+            First name <span style={{ color: 'red' }}>*</span>
+          </label>
+          <input
+            id="register-first-name"
+            name="first_name"
+            value={form.first_name}
+            onChange={onChange}
+            required
+            className="form-input"
+          />
+        </div>
+        <div className="flex-1">
+          <label htmlFor="register-last-name" className="form-label">
+            Last name <span style={{ color: 'red' }}>*</span>
+          </label>
+          <input
+            id="register-last-name"
+            name="last_name"
+            value={form.last_name}
+            onChange={onChange}
+            required
+            className="form-input"
+          />
+        </div>
+      </div>
+      <div className="mt-3">
+        <label htmlFor="register-email" className="form-label">
+          Email <span style={{ color: 'red' }}>*</span>
+        </label>
+        <input
+          id="register-email"
+          type="email"
+          name="email_id"
+          autoComplete="username"
+          value={form.email_id}
+          onChange={onChange}
+          required
+          className="form-input"
+        />
+      </div>
+      <div className="mt-3">
+        <label htmlFor="register-password" className="form-label">
+          Password <span style={{ color: 'red' }}>*</span>
+        </label>
+        <input
+          id="register-password"
+          type="password"
+          name="password"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={onChange}
+          required
+          className="form-input"
+        />
+        <PasswordRequirements password={form.password} />
+      </div>
+      <div className="mt-3">
+        <label htmlFor="register-security-question" className="form-label">
+          Security question
+        </label>
+        <select
+          id="register-security-question"
+          name="security_question"
+          value={form.security_question}
+          onChange={onChange}
+          className="form-input"
+        >
+          <option value="">— Select a question (optional) —</option>
+          {SECURITY_QUESTIONS.map((q) => (
+            <option key={q} value={q}>
+              {q}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="mt-3">
+        <label htmlFor="register-security-answer" className="form-label">
+          Answer to security question
+        </label>
+        <input
+          id="register-security-answer"
+          name="security_answer"
+          value={form.security_answer}
+          onChange={onChange}
+          className="form-input"
+        />
+      </div>
+      <div className="mt-3 flex gap-2">
+        <div className="flex-1">
+          <label htmlFor="register-dob" className="form-label">
+            Date of birth
+          </label>
+          <DateField
+            id="register-dob"
+            name="dob"
+            value={form.dob}
+            onChange={(next) =>
+              onChange({
+                target: { name: 'dob', value: next },
+              } as React.ChangeEvent<HTMLInputElement>)
+            }
+          />
+        </div>
+        <div className="flex-1">
+          <label htmlFor="register-contact" className="form-label">
+            Contact (phone)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              name="dialCode"
+              aria-label="Dial code"
+              value={dialCode}
+              onChange={onChange}
+              readOnly={countryLocked}
+              className="form-input w-[4.5rem]"
+            />
+            <input
+              id="register-contact"
+              type="tel"
+              name="contact_local"
+              value={form.contact_local}
+              onChange={onChange}
+              placeholder="Phone number (optional)"
+              className="form-input flex-1"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <div className="flex-1">
+          <label htmlFor="register-country" className="form-label">
+            Country
+          </label>
+          <CountrySelect
+            id="register-country"
+            value={form.country}
+            onChange={onCountryChange}
+            countries={countries}
+          />
+        </div>
+        <div className="flex-1">
+          <label htmlFor="register-currency" className="form-label">
+            Currency
+          </label>
+          <CurrencySelect
+            id="register-currency"
+            value={form.currency}
+            onChange={onCurrencyChange}
+            currencies={currencies}
+          />
+        </div>
+      </div>
+      <div className="mt-3">
+        <label htmlFor="register-timezone" className="form-label">
+          Timezone <span style={{ color: 'red' }}>*</span>
+        </label>
+        <TimezoneSelect
+          id="register-timezone"
+          countryName={currentCountry ? currentCountry.name : null}
+          countryDefaultTimezone={currentCountry?.timezone ?? null}
+          value={form.timezone}
+          onChange={onTimezoneChange}
+          required
+        />
+      </div>
+    </>
+  );
+}
+
+// Shared register form body. Mounted by both the RegisterPage route and
+// the RegisterModal on Home — see CONTRIBUTING.md §6 "Modal pattern".
+export function RegisterForm({
+  onSuccess,
+  onSwitchToLogin,
+  hideLoginPrompt = false,
+}: RegisterFormProps) {
+  const {
+    error,
+    form,
+    dialCode,
+    countries,
+    currencies,
+    submitting,
+    currentCountry,
+    countryLocked,
+    handleChange,
+    handleCountryChange,
+    handleCurrencyChange,
+    handleTimezoneChange,
+    handleSubmit,
+  } = useRegisterForm(onSuccess);
 
   return (
     <>
       {error && <div className="form-error mb-2">{error}</div>}
       <form onSubmit={handleSubmit}>
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <label htmlFor="register-first-name" className="form-label">
-              First name <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              id="register-first-name"
-              name="first_name"
-              value={form.first_name}
-              onChange={handleChange}
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="register-last-name" className="form-label">
-              Last name <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              id="register-last-name"
-              name="last_name"
-              value={form.last_name}
-              onChange={handleChange}
-              required
-              className="form-input"
-            />
-          </div>
-        </div>
-        <div className="mt-3">
-          <label htmlFor="register-email" className="form-label">
-            Email <span style={{ color: 'red' }}>*</span>
-          </label>
-          <input
-            id="register-email"
-            type="email"
-            name="email_id"
-            autoComplete="username"
-            value={form.email_id}
-            onChange={handleChange}
-            required
-            className="form-input"
-          />
-        </div>
-        <div className="mt-3">
-          <label htmlFor="register-password" className="form-label">
-            Password <span style={{ color: 'red' }}>*</span>
-          </label>
-          <input
-            id="register-password"
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="form-input"
-          />
-          <PasswordRequirements password={form.password} />
-        </div>
-        <div className="mt-3">
-          <label htmlFor="register-security-question" className="form-label">
-            Security question
-          </label>
-          <select
-            id="register-security-question"
-            name="security_question"
-            value={form.security_question}
-            onChange={handleChange}
-            className="form-input"
-          >
-            <option value="">— Select a question (optional) —</option>
-            {SECURITY_QUESTIONS.map((q) => (
-              <option key={q} value={q}>
-                {q}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="mt-3">
-          <label htmlFor="register-security-answer" className="form-label">
-            Answer to security question
-          </label>
-          <input
-            id="register-security-answer"
-            name="security_answer"
-            value={form.security_answer}
-            onChange={handleChange}
-            className="form-input"
-          />
-        </div>
-        <div className="mt-3 flex gap-2">
-          <div className="flex-1">
-            <label htmlFor="register-dob" className="form-label">
-              Date of birth
-            </label>
-            <DateField
-              id="register-dob"
-              name="dob"
-              value={form.dob}
-              onChange={(next) =>
-                handleChange({
-                  target: { name: 'dob', value: next },
-                } as React.ChangeEvent<HTMLInputElement>)
-              }
-            />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="register-contact" className="form-label">
-              Contact (phone)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                name="dialCode"
-                aria-label="Dial code"
-                value={dialCode}
-                onChange={handleChange}
-                readOnly={countryLocked}
-                className="form-input w-[4.5rem]"
-              />
-              <input
-                id="register-contact"
-                type="tel"
-                name="contact_local"
-                value={form.contact_local}
-                onChange={handleChange}
-                placeholder="Phone number (optional)"
-                className="form-input flex-1"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <div className="flex-1">
-            <label htmlFor="register-country" className="form-label">
-              Country
-            </label>
-            <CountrySelect
-              id="register-country"
-              value={form.country}
-              onChange={handleCountryChange}
-              countries={countries}
-            />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="register-currency" className="form-label">
-              Currency
-            </label>
-            <CurrencySelect
-              id="register-currency"
-              value={form.currency}
-              onChange={handleCurrencyChange}
-              currencies={currencies}
-            />
-          </div>
-        </div>
-        <div className="mt-3">
-          <label htmlFor="register-timezone" className="form-label">
-            Timezone <span style={{ color: 'red' }}>*</span>
-          </label>
-          <TimezoneSelect
-            id="register-timezone"
-            countryName={currentCountry ? currentCountry.name : null}
-            countryDefaultTimezone={currentCountry?.timezone ?? null}
-            value={form.timezone}
-            onChange={handleTimezoneChange}
-            required
-          />
-        </div>
+        <RegisterFields
+          form={form}
+          dialCode={dialCode}
+          countries={countries}
+          currencies={currencies}
+          currentCountry={currentCountry}
+          countryLocked={countryLocked}
+          onChange={handleChange}
+          onCountryChange={handleCountryChange}
+          onCurrencyChange={handleCurrencyChange}
+          onTimezoneChange={handleTimezoneChange}
+        />
         <button
           type="submit"
           disabled={

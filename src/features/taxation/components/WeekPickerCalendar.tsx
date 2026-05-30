@@ -25,6 +25,23 @@ interface WeekPickerCalendarProps {
   precedingWeekStart: string;
 }
 
+// Row container styling by state — if/else (not a nested ternary) so it
+// reads cleanly and stays off sonarjs/no-nested-conditional.
+function weekRowClass(isSelected: boolean, billable: boolean): string {
+  if (isSelected)
+    return 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40';
+  if (billable)
+    return 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30';
+  return 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-500';
+}
+
+// Day-number colour: today accent, in-month default, out-of-month muted.
+function weekDayClass(isToday: boolean, inMonth: boolean): string {
+  if (isToday) return 'font-bold text-indigo-600 dark:text-indigo-300';
+  if (inMonth) return 'text-slate-700 dark:text-slate-200';
+  return 'text-slate-400 dark:text-slate-600';
+}
+
 // Week-as-row calendar picker. Each row is one ISO 8601 Mon → Sun
 // week (project convention — see CONTRIBUTING.md §6 + the
 // `billPeriod.ts` helpers). Clicking a row selects the whole week
@@ -116,13 +133,10 @@ export function WeekPickerCalendar({
               aria-pressed={isSelected}
               aria-label={`Week of ${formatBillDate(row.start, timezone)} to ${formatBillDate(row.end, timezone)}`}
               data-testid={`week-row-${row.start}`}
-              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
-                isSelected
-                  ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40'
-                  : billable
-                    ? 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30'
-                    : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-500'
-              } ${containsToday && !isSelected ? 'ring-1 ring-indigo-300/60 dark:ring-indigo-700/60' : ''}`}
+              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${weekRowClass(
+                isSelected,
+                billable
+              )} ${containsToday && !isSelected ? 'ring-1 ring-indigo-300/60 dark:ring-indigo-700/60' : ''}`}
             >
               {/* Row prefix — the Monday ISO date (short form) so the
                   user has a stable label for the row independent of
@@ -139,13 +153,10 @@ export function WeekPickerCalendar({
               {row.days.map((d) => (
                 <span
                   key={d.iso}
-                  className={`text-center tabular-nums ${
-                    d.iso === today
-                      ? 'font-bold text-indigo-600 dark:text-indigo-300'
-                      : d.inMonth
-                        ? 'text-slate-700 dark:text-slate-200'
-                        : 'text-slate-400 dark:text-slate-600'
-                  }`}
+                  className={`text-center tabular-nums ${weekDayClass(
+                    d.iso === today,
+                    d.inMonth
+                  )}`}
                 >
                   {d.day}
                 </span>

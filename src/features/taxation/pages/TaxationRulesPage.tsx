@@ -124,6 +124,34 @@ export function TaxationRulesPage() {
     flash(savedType);
   }
 
+  // Rule list via early returns (loading / empty / list) instead of a nested
+  // ternary in the JSX — keeps it off sonarjs/no-nested-conditional.
+  function renderRuleList() {
+    if (isLoading && !data) {
+      return (
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          Loading…
+        </div>
+      );
+    }
+    if (userRules.length === 0) {
+      return (
+        <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          No rules configured yet. Click <strong>Add rule</strong> above to
+          customize the rate for a transaction type.
+        </div>
+      );
+    }
+    return userRules.map((r) => (
+      <RuleCard
+        key={r.txn_type}
+        rule={r}
+        isHighlighted={highlighted === r.txn_type}
+        onEdit={(rule) => setEditingRule(rule)}
+      />
+    ));
+  }
+
   // Card-anchored layout (Batch 9 polish): page mounted under
   // SettingsLayout shell. Outer gutter + breadcrumb ("Settings ›
   // Taxation Rules") are already provided; the in-page hand-rolled
@@ -155,25 +183,7 @@ export function TaxationRulesPage() {
       )}
 
       <div className="grid grid-cols-1 gap-3" data-testid="rule-list">
-        {isLoading && !data ? (
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Loading…
-          </div>
-        ) : userRules.length === 0 ? (
-          <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            No rules configured yet. Click <strong>Add rule</strong> above to
-            customize the rate for a transaction type.
-          </div>
-        ) : (
-          userRules.map((r) => (
-            <RuleCard
-              key={r.txn_type}
-              rule={r}
-              isHighlighted={highlighted === r.txn_type}
-              onEdit={(rule) => setEditingRule(rule)}
-            />
-          ))
-        )}
+        {renderRuleList()}
       </div>
 
       <TaxationRuleFormDialog

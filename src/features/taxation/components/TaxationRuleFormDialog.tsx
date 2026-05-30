@@ -16,6 +16,13 @@ function errorMessage(err: unknown, fallback: string): string {
   return e?.detail || e?.error || fallback;
 }
 
+// Save-button label by state — if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function saveLabel(saving: boolean, isEditing: boolean): string {
+  if (saving) return 'Saving…';
+  return isEditing ? 'Save changes' : 'Add rule';
+}
+
 // Fractions → "5%" for display in the rate inputs. Trim trailing zeros.
 function formatRateForInput(fraction: number): string {
   const pct = fraction * 100;
@@ -203,7 +210,7 @@ export function TaxationRuleFormDialog({
             disabled={saving || !isDirty}
             className="btn-primary !w-auto"
           >
-            {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add rule'}
+            {saveLabel(saving, isEditing)}
           </button>
         </>
       }

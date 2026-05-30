@@ -111,10 +111,15 @@ describe('ExpenseTrackerPage', () => {
     );
 
     // Total budget (emphasis variant) — title + Spent / Limit values.
+    // waitFor the money values: the currency symbol resolves from the
+    // currencies reference-data query, which may land a tick after the card
+    // first paints (the card renders "USD 570.00" until the symbol arrives).
     const total = screen.getByTestId('budget-card-1');
     expect(total).toHaveTextContent('Total Budget');
-    expect(total).toHaveTextContent('$570.00');
-    expect(total).toHaveTextContent('$1,000.00');
+    await waitFor(() =>
+      expect(screen.getByTestId('budget-card-1')).toHaveTextContent('$570.00')
+    );
+    expect(screen.getByTestId('budget-card-1')).toHaveTextContent('$1,000.00');
 
     // Month picker lives in the PAGE header, not inside the Total
     // card — it scopes every card on the page.
@@ -200,7 +205,10 @@ describe('ExpenseTrackerPage', () => {
     expect(stats).toHaveTextContent('Average monthly spend');
     expect(stats).toHaveTextContent('Lowest monthly spend');
     expect(stats).toHaveTextContent('Highest monthly spend');
-    expect(stats).toHaveTextContent('$460.00');
+    // waitFor the symbol (see the Total-card note above).
+    await waitFor(() =>
+      expect(screen.getByTestId('rolling-stats')).toHaveTextContent('$460.00')
+    );
     expect(stats).toHaveTextContent('$320.00');
     expect(stats).toHaveTextContent('$710.00');
   });

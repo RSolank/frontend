@@ -36,9 +36,20 @@ function isBreachedCategory(c: BudgetCategory): boolean {
   );
 }
 
-export function ExpenseTrackerCard() {
-  const { money } = useMoneyFormatter();
+// View-model: owns the query and all derived state (visible/sorted
+// categories, breach count, and the loading/empty branch flags) so the
+// component itself stays a thin render. Keeping the `??`/`||` plumbing
+// here is what keeps ExpenseTrackerCard's cyclomatic complexity in check.
+interface ExpenseTrackerView {
+  showLoading: boolean;
+  showEmpty: boolean;
+  total: BudgetCategory | null;
+  visibleCategories: BudgetCategory[];
+  breachCount: number;
+  month: string | undefined;
+}
 
+function useExpenseTrackerView(): ExpenseTrackerView {
   const { data, isLoading } = useBudgetStatusQuery(null);
 
   const visibleCategories = useMemo<BudgetCategory[]>(() => {
@@ -60,7 +71,22 @@ export function ExpenseTrackerCard() {
     (total?.limit_amt ?? 0) > 0 ||
     visibleCategories.some((c) => (c.limit_amt ?? 0) > 0);
 
-  if (isLoading && !data) {
+  return {
+    showLoading: isLoading && !data,
+    showEmpty: !hasAnySpend && !hasAnyLimit,
+    total,
+    visibleCategories,
+    breachCount,
+    month: data?.month,
+  };
+}
+
+export function ExpenseTrackerCard() {
+  const { money } = useMoneyFormatter();
+  const { showLoading, showEmpty, total, visibleCategories, breachCount, month } =
+    useExpenseTrackerView();
+
+  if (showLoading) {
     return (
       <DashboardCard
         title="Expense Tracker"
@@ -77,7 +103,7 @@ export function ExpenseTrackerCard() {
   // the user to set their first budget. Once they add spend (even
   // without a limit) the populated view takes over and a softer
   // "Set a budget to track headroom" hint shows beneath the rollup.
-  if (!hasAnySpend && !hasAnyLimit) {
+  if (showEmpty) {
     return (
       <DashboardCard
         title="Expense Tracker"
@@ -102,7 +128,7 @@ export function ExpenseTrackerCard() {
       {breachCount} over budget
     </span>
   ) : (
-    formatYearMonth(data?.month, 'short')
+    formatYearMonth(month, 'short')
   );
 
   return (

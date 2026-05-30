@@ -39,7 +39,11 @@ interface GenerateBillsDialogProps {
   timezone: string;
 }
 
-export function GenerateBillsDialog({
+// View-model: owns the mode/week/range state, the reset-on-open effect,
+// the ISO Mon→Sun period resolution (live preview + submit), and the
+// generate mutation. Keeps the dialog component a thin render under the
+// max-lines gate.
+function useGenerateBills({
   open,
   onClose,
   onGenerated,
@@ -150,6 +154,45 @@ export function GenerateBillsDialog({
       setGenerating(false);
     }
   }
+
+  return {
+    mode,
+    setMode,
+    pickedWeekStart,
+    setPickedWeekStart,
+    rangeStart,
+    setRangeStart,
+    rangeEnd,
+    setRangeEnd,
+    error,
+    generating,
+    precedingWeekStart,
+    resolvedPreview,
+    handleGenerate,
+  };
+}
+
+export function GenerateBillsDialog({
+  open,
+  onClose,
+  onGenerated,
+  timezone,
+}: GenerateBillsDialogProps) {
+  const {
+    mode,
+    setMode,
+    pickedWeekStart,
+    setPickedWeekStart,
+    rangeStart,
+    setRangeStart,
+    rangeEnd,
+    setRangeEnd,
+    error,
+    generating,
+    precedingWeekStart,
+    resolvedPreview,
+    handleGenerate,
+  } = useGenerateBills({ open, onClose, onGenerated, timezone });
 
   return (
     <Modal

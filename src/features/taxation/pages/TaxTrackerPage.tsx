@@ -79,6 +79,41 @@ export function TaxTrackerPage() {
     }
   }
 
+  // Bills list via early returns (loading / empty / list) instead of a nested
+  // ternary in the JSX — keeps it off sonarjs/no-nested-conditional.
+  function renderBillsList() {
+    if (isLoading && bills.length === 0) {
+      return (
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          Loading…
+        </div>
+      );
+    }
+    if (bills.length === 0) {
+      return (
+        <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          No bills yet. Use <strong>Generate / refresh bills</strong>{' '}
+          above to generate bills for a past week.
+        </div>
+      );
+    }
+    return (
+      <ul className="flex flex-col gap-2" data-testid="bills-list">
+        {bills.map((b) => (
+          <BillRow
+            key={b.bill_id}
+            bill={b}
+            isHighlighted={highlightBillId === b.bill_id}
+            money={money}
+            timezone={timezone}
+            onView={(id) => viewModal.openWith(String(id))}
+            onPay={(id) => setConfirmPayBillId(id)}
+          />
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -142,30 +177,7 @@ export function TaxTrackerPage() {
             </span>
           </div>
 
-          {isLoading && bills.length === 0 ? (
-            <div className="text-sm text-slate-500 dark:text-slate-400">
-              Loading…
-            </div>
-          ) : bills.length === 0 ? (
-            <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              No bills yet. Use <strong>Generate / refresh bills</strong>{' '}
-              above to generate bills for a past week.
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-2" data-testid="bills-list">
-              {bills.map((b) => (
-                <BillRow
-                  key={b.bill_id}
-                  bill={b}
-                  isHighlighted={highlightBillId === b.bill_id}
-                  money={money}
-                  timezone={timezone}
-                  onView={(id) => viewModal.openWith(String(id))}
-                  onPay={(id) => setConfirmPayBillId(id)}
-                />
-              ))}
-            </ul>
-          )}
+          {renderBillsList()}
         </section>
       </div>
 
@@ -261,13 +273,18 @@ function BillRow({
   );
 }
 
+// Pill colour by bill status — if/else (not a nested ternary) so it stays
+// off sonarjs/no-nested-conditional.
+function statusTone(status: BillStatus): string {
+  if (status === 'paid')
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200';
+  if (status === 'pending')
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
+  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+}
+
 function StatusPill({ status }: { status: BillStatus }) {
-  const tone =
-    status === 'paid'
-      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200'
-      : status === 'pending'
-        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
-        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+  const tone = statusTone(status);
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${tone}`}

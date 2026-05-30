@@ -2,6 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Suspense, useEffect, type ReactNode } from 'react';
 
+import {
+  useCountriesQuery,
+  useCurrenciesQuery,
+} from '../shared/api/referenceData';
 import { ErrorBoundary } from '../shared/components/ErrorBoundary';
 import { applyContrast, useContrastStore } from '../shared/state/contrast.store';
 import {
@@ -101,6 +105,21 @@ function FocusRingBridge() {
   return null;
 }
 
+// Warms the static country/currency reference data at the app root so money
+// formatting (the currency symbol in formatMoney) and the country / currency
+// / timezone pickers resolve on first paint — regardless of which feature
+// surface mounts first. Without this, each consumer subscribed lazily, so a
+// surface could render one frame with the bare ISO code ("USD 570.00") before
+// the symbol arrived; previously a mounted dialog's eager subscription
+// happened to mask that race (see Batch 10.10 BudgetFormDialog note). Both
+// metadata endpoints are public (the Register page reads them pre-auth), so
+// prefetching before login is safe.
+function ReferenceDataBridge() {
+  useCurrenciesQuery();
+  useCountriesQuery();
+  return null;
+}
+
 interface ProvidersProps {
   children: ReactNode;
 }
@@ -109,6 +128,7 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <ReferenceDataBridge />
         <ThemeBridge />
         <ZoomBridge />
         <MotionBridge />

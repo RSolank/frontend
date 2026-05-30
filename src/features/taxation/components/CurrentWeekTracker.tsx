@@ -113,6 +113,15 @@ interface StatProps {
   muted?: boolean;
 }
 
+// Value colour by emphasis: accent (indigo) > muted (slate-600) > default
+// (slate-900). if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function statValueClass(accent?: boolean, muted?: boolean): string {
+  if (accent) return 'text-indigo-700 dark:text-indigo-200';
+  if (muted) return 'text-slate-600 dark:text-slate-300';
+  return 'text-slate-900 dark:text-slate-100';
+}
+
 function Stat({ label, value, accent, muted }: StatProps) {
   return (
     <div
@@ -132,13 +141,10 @@ function Stat({ label, value, accent, muted }: StatProps) {
         {label}
       </div>
       <div
-        className={`mt-0.5 text-base font-semibold tabular-nums money ${
-          accent
-            ? 'text-indigo-700 dark:text-indigo-200'
-            : muted
-              ? 'text-slate-600 dark:text-slate-300'
-              : 'text-slate-900 dark:text-slate-100'
-        }`}
+        className={`mt-0.5 text-base font-semibold tabular-nums money ${statValueClass(
+          accent,
+          muted
+        )}`}
       >
         {value}
       </div>

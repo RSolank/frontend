@@ -162,6 +162,25 @@ export function BeneficiaryFormFields({
     }
   }
 
+  // Shallow field patch — sub-components call this instead of reaching for
+  // setForm/applyUpdate directly.
+  const updateField = (patch: Partial<BeneficiaryFormInput>) =>
+    applyUpdate(setForm, (f) => ({ ...f, ...patch }));
+
+  function handleCategoryChange(newCat: string) {
+    updateField({ category: newCat });
+    if (newCat) {
+      const tagId = parseInt(newCat, 10);
+      setRuleTags((prev) =>
+        prev.includes(tagId)
+          ? [tagId, ...prev.filter((id) => id !== tagId)]
+          : [tagId, ...prev]
+      );
+    } else {
+      setRuleTags([]);
+    }
+  }
+
   return (
     <>
       <div className="mb-4">
@@ -213,194 +232,267 @@ export function BeneficiaryFormFields({
       />
 
       {isMerchant ? (
-        <>
-          <div className="mb-4">
-            <label htmlFor="beneficiary-category" className="form-label">
-              Category
-            </label>
-            <select
-              id="beneficiary-category"
-              value={form.category}
-              onChange={(e) => {
-                const newCat = e.target.value;
-                applyUpdate(setForm, (f) => ({ ...f, category: newCat }));
-                if (newCat) {
-                  const tagId = parseInt(newCat, 10);
-                  setRuleTags((prev) =>
-                    prev.includes(tagId)
-                      ? [tagId, ...prev.filter((id) => id !== tagId)]
-                      : [tagId, ...prev]
-                  );
-                } else {
-                  setRuleTags([]);
-                }
-              }}
-              disabled={disabled}
-              className="form-input"
-            >
-              <option value="">-- None --</option>
-              {tags
-                .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
-                .map((t) => (
-                  <option key={t.tag_id} value={t.tag_id}>
-                    {formatTagAssignment(t.tag_id, tags)}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {ruleTags.length > 0 && (
-            <div className="mb-4">
-              <span className="form-label">Assigned Tags</span>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {ruleTags.map((tid, idx) => {
-                  const tagLabel = formatTagAssignment(tid, tags);
-                  const isPrimary = idx === 0;
-                  const baseClass = isPrimary
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
-                  // "Set Primary" is always visible (when editable and
-                  // the chip isn't already primary). The previous
-                  // hover-only reveal was a polish choice that left the
-                  // action unreachable on touch viewports — see
-                  // CONTRIBUTING.md §6 "every interactive control is
-                  // reachable".
-                  return (
-                    <span
-                      key={tid}
-                      className={`inline-flex flex-wrap items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${baseClass}`}
-                    >
-                      {tagLabel}
-                      {isPrimary && (
-                        <span className="ml-1 rounded bg-emerald-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
-                          Primary
-                        </span>
-                      )}
-                      {!isPrimary && !disabled && (
-                        <button
-                          type="button"
-                          onClick={() => handleSetPrimary(tid)}
-                          className="ml-1 rounded bg-indigo-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
-                        >
-                          Set Primary
-                        </button>
-                      )}
-                      {!disabled && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRuleTag(tid)}
-                          aria-label={`Remove tag ${tagLabel}`}
-                          className={`ml-1 text-base leading-none font-bold ${
-                            isPrimary
-                              ? 'text-emerald-700 dark:text-emerald-300'
-                              : 'text-slate-500 dark:text-slate-400'
-                          }`}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label htmlFor="beneficiary-contact" className="form-label">
-              Contact (phone or website)
-            </label>
-            <input
-              id="beneficiary-contact"
-              value={form.contact}
-              onChange={(e) =>
-                applyUpdate(setForm, (f) => ({ ...f, contact: e.target.value }))
-              }
-              readOnly={readOnly}
-              disabled={disabled}
-              className="form-input"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="beneficiary-upi" className="form-label">
-              UPI ID
-            </label>
-            <input
-              id="beneficiary-upi"
-              value={form.merchant_upi_id}
-              onChange={(e) =>
-                applyUpdate(setForm, (f) => ({
-                  ...f,
-                  merchant_upi_id: e.target.value,
-                }))
-              }
-              readOnly={readOnly}
-              disabled={disabled}
-              className="form-input"
-            />
-          </div>
-        </>
+        <MerchantFields
+          category={form.category}
+          contact={form.contact}
+          upi={form.merchant_upi_id}
+          tags={tags}
+          ruleTags={ruleTags}
+          disabled={disabled}
+          readOnly={readOnly}
+          onCategoryChange={handleCategoryChange}
+          onChangeField={updateField}
+          onSetPrimary={handleSetPrimary}
+          onRemoveTag={handleRemoveRuleTag}
+        />
       ) : (
-        <>
-          <div className="mb-4">
-            <label htmlFor="beneficiary-relationship" className="form-label">
-              Relationship
-            </label>
-            <select
-              id="beneficiary-relationship"
-              value={form.relationship_type}
-              onChange={(e) =>
-                applyUpdate(setForm, (f) => ({
-                  ...f,
-                  relationship_type: e.target.value,
-                }))
-              }
-              disabled={disabled}
-              className="form-input capitalize"
-            >
-              <option value="">-- Select Relationship --</option>
-              {relationships.map((r) => (
-                <option key={r} value={r} className="capitalize">
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="beneficiary-phone" className="form-label">
-              Phone
-            </label>
-            <input
-              id="beneficiary-phone"
-              value={form.phone}
-              onChange={(e) =>
-                applyUpdate(setForm, (f) => ({ ...f, phone: e.target.value }))
-              }
-              readOnly={readOnly}
-              disabled={disabled}
-              className="form-input"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="beneficiary-upi" className="form-label">
-              UPI ID
-            </label>
-            <input
-              id="beneficiary-upi"
-              value={form.person_upi_id}
-              onChange={(e) =>
-                applyUpdate(setForm, (f) => ({
-                  ...f,
-                  person_upi_id: e.target.value,
-                }))
-              }
-              readOnly={readOnly}
-              disabled={disabled}
-              className="form-input"
-            />
-          </div>
-        </>
+        <PersonFields
+          relationshipType={form.relationship_type}
+          phone={form.phone}
+          upi={form.person_upi_id}
+          relationships={relationships}
+          disabled={disabled}
+          readOnly={readOnly}
+          onChangeField={updateField}
+        />
       )}
+    </>
+  );
+}
+
+interface MerchantFieldsProps {
+  category: string;
+  contact: string;
+  upi: string;
+  tags: FlatTag[];
+  ruleTags: number[];
+  disabled: boolean;
+  readOnly: boolean;
+  onCategoryChange: (newCat: string) => void;
+  onChangeField: (patch: Partial<BeneficiaryFormInput>) => void;
+  onSetPrimary: (tid: number) => void;
+  onRemoveTag: (tid: number) => void;
+}
+
+// Merchant-specific fields: category (which seeds the rule-tag list),
+// the assigned-tag chips, contact, and UPI id.
+function MerchantFields({
+  category,
+  contact,
+  upi,
+  tags,
+  ruleTags,
+  disabled,
+  readOnly,
+  onCategoryChange,
+  onChangeField,
+  onSetPrimary,
+  onRemoveTag,
+}: MerchantFieldsProps) {
+  return (
+    <>
+      <div className="mb-4">
+        <label htmlFor="beneficiary-category" className="form-label">
+          Category
+        </label>
+        <select
+          id="beneficiary-category"
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          disabled={disabled}
+          className="form-input"
+        >
+          <option value="">-- None --</option>
+          {tags
+            .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
+            .map((t) => (
+              <option key={t.tag_id} value={t.tag_id}>
+                {formatTagAssignment(t.tag_id, tags)}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {ruleTags.length > 0 && (
+        <AssignedTagChips
+          ruleTags={ruleTags}
+          tags={tags}
+          disabled={disabled}
+          onSetPrimary={onSetPrimary}
+          onRemoveTag={onRemoveTag}
+        />
+      )}
+
+      <div className="mb-4">
+        <label htmlFor="beneficiary-contact" className="form-label">
+          Contact (phone or website)
+        </label>
+        <input
+          id="beneficiary-contact"
+          value={contact}
+          onChange={(e) => onChangeField({ contact: e.target.value })}
+          readOnly={readOnly}
+          disabled={disabled}
+          className="form-input"
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="beneficiary-upi" className="form-label">
+          UPI ID
+        </label>
+        <input
+          id="beneficiary-upi"
+          value={upi}
+          onChange={(e) => onChangeField({ merchant_upi_id: e.target.value })}
+          readOnly={readOnly}
+          disabled={disabled}
+          className="form-input"
+        />
+      </div>
+    </>
+  );
+}
+
+interface AssignedTagChipsProps {
+  ruleTags: number[];
+  tags: FlatTag[];
+  disabled: boolean;
+  onSetPrimary: (tid: number) => void;
+  onRemoveTag: (tid: number) => void;
+}
+
+// The assigned-tag chip row. First chip (idx 0) is the primary category;
+// the rest can be promoted or removed.
+function AssignedTagChips({
+  ruleTags,
+  tags,
+  disabled,
+  onSetPrimary,
+  onRemoveTag,
+}: AssignedTagChipsProps) {
+  return (
+    <div className="mb-4">
+      <span className="form-label">Assigned Tags</span>
+      <div className="mt-1 flex flex-wrap gap-2">
+        {ruleTags.map((tid, idx) => {
+          const tagLabel = formatTagAssignment(tid, tags);
+          const isPrimary = idx === 0;
+          const baseClass = isPrimary
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
+            : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
+          // "Set Primary" is always visible (when editable and the chip
+          // isn't already primary). The previous hover-only reveal left
+          // the action unreachable on touch viewports — see
+          // CONTRIBUTING.md §6 "every interactive control is reachable".
+          return (
+            <span
+              key={tid}
+              className={`inline-flex flex-wrap items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${baseClass}`}
+            >
+              {tagLabel}
+              {isPrimary && (
+                <span className="ml-1 rounded bg-emerald-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
+                  Primary
+                </span>
+              )}
+              {!isPrimary && !disabled && (
+                <button
+                  type="button"
+                  onClick={() => onSetPrimary(tid)}
+                  className="ml-1 rounded bg-indigo-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                >
+                  Set Primary
+                </button>
+              )}
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveTag(tid)}
+                  aria-label={`Remove tag ${tagLabel}`}
+                  className={`ml-1 text-base leading-none font-bold ${
+                    isPrimary
+                      ? 'text-emerald-700 dark:text-emerald-300'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  ×
+                </button>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface PersonFieldsProps {
+  relationshipType: string;
+  phone: string;
+  upi: string;
+  relationships: string[];
+  disabled: boolean;
+  readOnly: boolean;
+  onChangeField: (patch: Partial<BeneficiaryFormInput>) => void;
+}
+
+// Person-specific fields: relationship, phone, and UPI id.
+function PersonFields({
+  relationshipType,
+  phone,
+  upi,
+  relationships,
+  disabled,
+  readOnly,
+  onChangeField,
+}: PersonFieldsProps) {
+  return (
+    <>
+      <div className="mb-4">
+        <label htmlFor="beneficiary-relationship" className="form-label">
+          Relationship
+        </label>
+        <select
+          id="beneficiary-relationship"
+          value={relationshipType}
+          onChange={(e) => onChangeField({ relationship_type: e.target.value })}
+          disabled={disabled}
+          className="form-input capitalize"
+        >
+          <option value="">-- Select Relationship --</option>
+          {relationships.map((r) => (
+            <option key={r} value={r} className="capitalize">
+              {r}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="mb-4">
+        <label htmlFor="beneficiary-phone" className="form-label">
+          Phone
+        </label>
+        <input
+          id="beneficiary-phone"
+          value={phone}
+          onChange={(e) => onChangeField({ phone: e.target.value })}
+          readOnly={readOnly}
+          disabled={disabled}
+          className="form-input"
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="beneficiary-upi" className="form-label">
+          UPI ID
+        </label>
+        <input
+          id="beneficiary-upi"
+          value={upi}
+          onChange={(e) => onChangeField({ person_upi_id: e.target.value })}
+          readOnly={readOnly}
+          disabled={disabled}
+          className="form-input"
+        />
+      </div>
     </>
   );
 }

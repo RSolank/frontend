@@ -66,12 +66,25 @@ interface AddTransactionPageProps {
   defaultDate?: string;
 }
 
-export function AddTransactionPage({
+// Normalise the beneficiary id for the payload — number stays, a non-empty
+// string coerces, empty becomes null. if/else (not a nested ternary) so it
+// stays off sonarjs/no-nested-conditional. (Mirrors the same helper in
+// EditTransactionPage; kept local per the no-cross-feature-internals rule.)
+function resolveBeneficiaryId(beneficiaryId: number | string): number | null {
+  if (typeof beneficiaryId === 'number') return beneficiaryId;
+  if (beneficiaryId) return Number(beneficiaryId);
+  return null;
+}
+
+// View-model: owns all the add-transaction form state, the metadata load
+// effect, and every handler (beneficiary/tag create + select, tag add/
+// remove with the misc-tag rules, submit with the optional rule-create
+// prompt). Keeps the page component a thin render under the max-lines gate.
+function useAddTransactionForm({
   onClose,
   onSaved,
-  embedded = false,
   defaultDate,
-}: AddTransactionPageProps = {}) {
+}: AddTransactionPageProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const timezone = usePreferencesStore((s) => s.timezone);
@@ -203,12 +216,7 @@ export function AddTransactionPage({
         {
           amount: parseFloat(amount),
           debit_credit: debitCredit,
-          beneficiary_id:
-            typeof beneficiaryId === 'number'
-              ? beneficiaryId
-              : beneficiaryId
-                ? Number(beneficiaryId)
-                : null,
+          beneficiary_id: resolveBeneficiaryId(beneficiaryId),
           beneficiary_name: beneficiaryName || null,
           txn_date: txnDate,
           notes: notes || null,
@@ -228,6 +236,77 @@ export function AddTransactionPage({
       setSubmitting(false);
     }
   }
+
+  return {
+    dismiss,
+    tags,
+    beneficiaries,
+    constants,
+    loadError,
+    amount,
+    setAmount,
+    debitCredit,
+    setDebitCredit,
+    beneficiaryName,
+    setBeneficiaryName,
+    beneficiaryId,
+    setBeneficiaryId,
+    txnDate,
+    setTxnDate,
+    notes,
+    setNotes,
+    tagIds,
+    submitting,
+    error,
+    createBeneficiaryOpen,
+    setCreateBeneficiaryOpen,
+    createTagOpen,
+    setCreateTagOpen,
+    handleBeneficiaryCreated,
+    handleTagCreated,
+    handleAddTag,
+    handleRemoveTag,
+    handleSubmit,
+  };
+}
+
+export function AddTransactionPage({
+  onClose,
+  onSaved,
+  embedded = false,
+  defaultDate,
+}: AddTransactionPageProps = {}) {
+  const {
+    dismiss,
+    tags,
+    beneficiaries,
+    constants,
+    loadError,
+    amount,
+    setAmount,
+    debitCredit,
+    setDebitCredit,
+    beneficiaryName,
+    setBeneficiaryName,
+    beneficiaryId,
+    setBeneficiaryId,
+    txnDate,
+    setTxnDate,
+    notes,
+    setNotes,
+    tagIds,
+    submitting,
+    error,
+    createBeneficiaryOpen,
+    setCreateBeneficiaryOpen,
+    createTagOpen,
+    setCreateTagOpen,
+    handleBeneficiaryCreated,
+    handleTagCreated,
+    handleAddTag,
+    handleRemoveTag,
+    handleSubmit,
+  } = useAddTransactionForm({ onClose, onSaved, defaultDate });
 
   const body = (
     <>

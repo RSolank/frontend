@@ -25,7 +25,10 @@ interface ApiErrorShape {
   error?: string;
 }
 
-export function AccountSecurityPage() {
+// View-model: owns the password + recovery-question form state, the
+// recovery-questions load effect, and both submit handlers. Keeps the page
+// component a thin two-card render under the max-lines gate.
+function useAccountSecurity() {
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
     new_password: '',
@@ -81,6 +84,32 @@ export function AccountSecurityPage() {
       );
     }
   }
+
+  return {
+    passwordForm,
+    setPasswordForm,
+    passwordStatus,
+    recoveryQuestions,
+    newRecovery,
+    setNewRecovery,
+    recoveryStatus,
+    handlePasswordSubmit,
+    handleRecoverySubmit,
+  };
+}
+
+export function AccountSecurityPage() {
+  const {
+    passwordForm,
+    setPasswordForm,
+    passwordStatus,
+    recoveryQuestions,
+    newRecovery,
+    setNewRecovery,
+    recoveryStatus,
+    handlePasswordSubmit,
+    handleRecoverySubmit,
+  } = useAccountSecurity();
 
   // Card-anchored layout (Batch 9 polish): breadcrumb reads
   // "Account › Security"; no in-content title.

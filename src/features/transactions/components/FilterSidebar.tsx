@@ -16,6 +16,14 @@ interface FlatTag {
   tag_name: string;
 }
 
+// Type-toggle button label — if/else (not a nested ternary) so it stays off
+// sonarjs/no-nested-conditional.
+function typeLabel(t: TypeFilter): string {
+  if (t === 'all') return 'All';
+  if (t === 'debit') return 'Debit';
+  return 'Credit';
+}
+
 interface FilterSidebarProps {
   open: boolean;
   onClose: () => void;
@@ -114,7 +122,7 @@ export function FilterSidebar({
                           : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100'
                       }`}
                     >
-                      {t === 'all' ? 'All' : t === 'debit' ? 'Debit' : 'Credit'}
+                      {typeLabel(t)}
                     </button>
                   ))}
                 </div>

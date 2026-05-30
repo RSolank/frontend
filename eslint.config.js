@@ -111,11 +111,13 @@ const complexityGates = {
 // feature, and ANY feature's api/ (the sanctioned public surface).
 // Each cross-feature exception below repeats this baseline so it holds
 // whether boundaries treats per-`from` rules as additive or override.
+// v6 `allow` entries are dependency selectors ({ to: <element selector> }),
+// not bare element selectors — see eslint.config boundaries rule below.
 const featureSelfAllow = [
-  'shared',
-  ['feature', { feature: '${from.feature}' }],
-  ['feature-api', { feature: '${from.feature}' }],
-  'feature-api',
+  { to: { type: 'shared' } },
+  { to: { type: 'feature', captured: { feature: '{{from.feature}}' } } },
+  { to: { type: 'feature-api', captured: { feature: '{{from.feature}}' } } },
+  { to: { type: 'feature-api' } },
 ];
 
 export default [
@@ -283,39 +285,53 @@ export default [
       ],
     },
     rules: {
-      'boundaries/element-types': [
+      // v6 rule (renamed from the deprecated `boundaries/element-types`).
+      // Same shape; tuple-with-capture selectors migrated to the object form
+      // `{ type, <capture> }` and `${from.feature}` → `{{from.feature}}`.
+      'boundaries/dependencies': [
         'error',
         {
           default: 'disallow',
           rules: [
-            { from: ['app'], allow: ['app', 'shared', 'feature', 'feature-api'] },
-            { from: ['shared'], allow: ['shared'] },
-            { from: ['feature', 'feature-api'], allow: featureSelfAllow },
+            {
+              from: { type: 'app' },
+              allow: [
+                { to: { type: 'app' } },
+                { to: { type: 'shared' } },
+                { to: { type: 'feature' } },
+                { to: { type: 'feature-api' } },
+              ],
+            },
+            { from: { type: 'shared' }, allow: [{ to: { type: 'shared' } }] },
+            {
+              from: [{ type: 'feature' }, { type: 'feature-api' }],
+              allow: featureSelfAllow,
+            },
             // --- Documented Batch 10 exceptions (intentional composition) ---
             // The settings shell mounts other features' pages under
             // /settings/* (TagsPage / CategorizationRulesPage /
             // TaxationRulesPage) — composition, like app/routes.
             {
-              from: [['feature', { feature: 'settings' }]],
-              allow: [...featureSelfAllow, 'feature'],
+              from: { type: 'feature', captured: { feature: 'settings' } },
+              allow: [...featureSelfAllow, { to: { type: 'feature' } }],
             },
             // Inline "create without leaving the flow": the transactions
             // and categorization flows embed beneficiaries' + tags' create
             // dialogs (BeneficiaryFormDialog / TagFormDialog).
             {
-              from: [['feature', { feature: 'transactions' }]],
+              from: { type: 'feature', captured: { feature: 'transactions' } },
               allow: [
                 ...featureSelfAllow,
-                ['feature', { feature: 'beneficiaries' }],
-                ['feature', { feature: 'tags' }],
+                { to: { type: 'feature', captured: { feature: 'beneficiaries' } } },
+                { to: { type: 'feature', captured: { feature: 'tags' } } },
               ],
             },
             {
-              from: [['feature', { feature: 'categorization' }]],
+              from: { type: 'feature', captured: { feature: 'categorization' } },
               allow: [
                 ...featureSelfAllow,
-                ['feature', { feature: 'beneficiaries' }],
-                ['feature', { feature: 'tags' }],
+                { to: { type: 'feature', captured: { feature: 'beneficiaries' } } },
+                { to: { type: 'feature', captured: { feature: 'tags' } } },
               ],
             },
           ],
