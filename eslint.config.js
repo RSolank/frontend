@@ -107,6 +107,17 @@ const complexityGates = {
   'max-params': ['warn', 5],
 };
 
+// Baseline a feature may always import: shared, anything in its OWN
+// feature, and ANY feature's api/ (the sanctioned public surface).
+// Each cross-feature exception below repeats this baseline so it holds
+// whether boundaries treats per-`from` rules as additive or override.
+const featureSelfAllow = [
+  'shared',
+  ['feature', { feature: '${from.feature}' }],
+  ['feature-api', { feature: '${from.feature}' }],
+  'feature-api',
+];
+
 export default [
   {
     linterOptions: {
@@ -273,19 +284,38 @@ export default [
     },
     rules: {
       'boundaries/element-types': [
-        'warn',
+        'error',
         {
           default: 'disallow',
           rules: [
             { from: ['app'], allow: ['app', 'shared', 'feature', 'feature-api'] },
             { from: ['shared'], allow: ['shared'] },
+            { from: ['feature', 'feature-api'], allow: featureSelfAllow },
+            // --- Documented Batch 10 exceptions (intentional composition) ---
+            // The settings shell mounts other features' pages under
+            // /settings/* (TagsPage / CategorizationRulesPage /
+            // TaxationRulesPage) — composition, like app/routes.
             {
-              from: ['feature', 'feature-api'],
+              from: [['feature', { feature: 'settings' }]],
+              allow: [...featureSelfAllow, 'feature'],
+            },
+            // Inline "create without leaving the flow": the transactions
+            // and categorization flows embed beneficiaries' + tags' create
+            // dialogs (BeneficiaryFormDialog / TagFormDialog).
+            {
+              from: [['feature', { feature: 'transactions' }]],
               allow: [
-                'shared',
-                ['feature', { feature: '${from.feature}' }],
-                ['feature-api', { feature: '${from.feature}' }],
-                'feature-api',
+                ...featureSelfAllow,
+                ['feature', { feature: 'beneficiaries' }],
+                ['feature', { feature: 'tags' }],
+              ],
+            },
+            {
+              from: [['feature', { feature: 'categorization' }]],
+              allow: [
+                ...featureSelfAllow,
+                ['feature', { feature: 'beneficiaries' }],
+                ['feature', { feature: 'tags' }],
               ],
             },
           ],
