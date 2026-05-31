@@ -1,71 +1,30 @@
-import {
-  getAllCountries,
-  getCountry,
-  type Country,
-} from 'countries-and-timezones';
+import type { CountryOption } from '../api/referenceData';
 
-// Thin wrapper around the `countries-and-timezones` package so the eventual
-// swap to a backend-sourced list (see frontend/docs/refactor/implementation_plan.md
-// "Backend follow-ups") is a one-file change.
+// Helpers around the BE Phase 1.3 `/api/metadata/{countries,timezones}`
+// endpoints. The data lives in TanStack Query (see
+// `shared/api/referenceData.ts:useCountriesQuery` /
+// `useTimezonesQuery`); these helpers stay pure and take the list as
+// an argument so they're trivial to test and don't require their own
+// store. Components subscribe to the queries and pass the data in.
+//
+// History: the project used to read this from the npm
+// `countries-and-timezones` package + `Intl.supportedValuesOf` for
+// the IANA list. Both retired in Platform FE Batch 4 — backend is
+// now SoT (multi-tz countries return the full set; the IANA list
+// comes from one endpoint).
 
-let nameIndex: Map<string, Country> | null = null;
-
-function buildNameIndex(): Map<string, Country> {
-  if (nameIndex) return nameIndex;
-  const map = new Map<string, Country>();
-  for (const c of Object.values(getAllCountries())) {
-    map.set(c.name.toLowerCase(), c);
-    // Also index against Intl.DisplayNames' English form so backend
-    // metadata that uses (e.g.) "United States" matches the package's
-    // "United States of America" entry.
-    const intlName = getCountryNameFromRegion(c.id);
-    if (intlName && intlName.toLowerCase() !== c.name.toLowerCase()) {
-      map.set(intlName.toLowerCase(), c);
-    }
-  }
-  nameIndex = map;
-  return map;
-}
-
-// Look up a country's ISO timezones by its display name (the form the
-// `/api/metadata/countries` endpoint returns). Returns [] when nothing
-// matches — callers should fall back to the full IANA list.
-export function getTimezonesForCountryName(name: string | null | undefined): string[] {
+// Look up a country's IANA timezones from the metadata payload, keyed
+// by display name (the form the `/api/metadata/countries` endpoint
+// returns). Returns [] when nothing matches — callers fall back to
+// the full IANA list (via `useTimezonesQuery`).
+export function getTimezonesForCountryName(
+  name: string | null | undefined,
+  countries: CountryOption[]
+): string[] {
   if (!name) return [];
-  const c = buildNameIndex().get(name.toLowerCase());
-  return c ? [...c.timezones] : [];
-}
-
-export function getTimezonesForRegion(region: string | null | undefined): string[] {
-  if (!region) return [];
-  const c = getCountry(region.toUpperCase());
-  return c ? [...c.timezones] : [];
-}
-
-let allTimezonesCache: string[] | null = null;
-
-// Full IANA list. Prefers `Intl.supportedValuesOf('timeZone')` (~600 zones,
-// matches the browser's own resolver) and falls back to the package data.
-export function getAllTimezones(): string[] {
-  if (allTimezonesCache) return allTimezonesCache;
-  const fromIntl =
-    typeof Intl !== 'undefined' &&
-    typeof (Intl as typeof Intl & { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf === 'function'
-      ? (Intl as typeof Intl & { supportedValuesOf: (k: string) => string[] }).supportedValuesOf('timeZone')
-      : null;
-
-  // Merge `Intl.supportedValuesOf('timeZone')` (covers the legacy IANA
-  // names some runtimes report) with the modern names from the package
-  // (so e.g. "Asia/Kolkata" shows up even when the runtime still reports
-  // "Asia/Calcutta"). Plus always include UTC explicitly — some runtimes
-  // omit it from the supported list.
-  const seen = new Set<string>(['UTC']);
-  if (fromIntl) for (const tz of fromIntl) seen.add(tz);
-  for (const c of Object.values(getAllCountries())) {
-    for (const tz of c.timezones) seen.add(tz);
-  }
-  allTimezonesCache = [...seen].sort();
-  return allTimezonesCache;
+  const target = name.toLowerCase();
+  const c = countries.find((entry) => entry.name.toLowerCase() === target);
+  return c?.timezones ?? [];
 }
 
 // Per-tz cache of the current UTC offset string (e.g. "UTC+5:30"). Computed

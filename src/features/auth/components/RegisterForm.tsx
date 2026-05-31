@@ -16,7 +16,6 @@ import {
   getBrowserRegion,
   getBrowserTimezone,
   getCountryNameFromRegion,
-  getTimezonesForCountryName,
 } from '../../../shared/utils/countryTimezones';
 import { validatePassword } from '../../../shared/utils/validation';
 import { useAuth } from '../state/useAuth';
@@ -136,10 +135,7 @@ function useRegisterForm(onSuccess?: () => void) {
 
         if (matched) {
           setDialCode(matched.country_code || '+91');
-          const fallbackTz =
-            matched.timezone ||
-            getTimezonesForCountryName(matched.name)[0] ||
-            getBrowserTimezone();
+          const fallbackTz = matched.timezones?.[0] || getBrowserTimezone();
           setForm((f) => ({
             ...f,
             country: matched.name,
@@ -187,10 +183,7 @@ function useRegisterForm(onSuccess?: () => void) {
   function handleCountryChange(value: string, country: CountryOption | null) {
     if (country) {
       setDialCode(country.country_code || '+00');
-      const tz =
-        country.timezone ||
-        getTimezonesForCountryName(country.name)[0] ||
-        getBrowserTimezone();
+      const tz = country.timezones?.[0] || getBrowserTimezone();
       setForm((f) => ({
         ...f,
         country: country.name,
@@ -424,7 +417,7 @@ function RegisterFields({
         <TimezoneSelect
           id="register-timezone"
           countryName={currentCountry ? currentCountry.name : null}
-          countryDefaultTimezone={currentCountry?.timezone ?? null}
+          countryDefaultTimezone={currentCountry?.timezones?.[0] ?? null}
           value={form.timezone}
           onChange={onTimezoneChange}
           required

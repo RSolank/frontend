@@ -48,6 +48,7 @@ export const routes = {
     constants: () => `${V}/metadata/constants`,
     countries: () => `${V}/metadata/countries`,
     currencies: () => `${V}/metadata/currencies`,
+    timezones: () => `${V}/metadata/timezones`,
   },
 
   beneficiaries: {

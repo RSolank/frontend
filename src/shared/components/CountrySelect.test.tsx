@@ -74,7 +74,7 @@ describe('CountrySelect', () => {
         name: 'India',
         country_code: '+91',
         default_currency: 'INR',
-        timezone: 'Asia/Kolkata',
+        timezones: ['Asia/Kolkata'],
       })
     ).toBe('(+91) India');
     expect(formatCountryOption({ name: 'Mystery' })).toBe('Mystery');

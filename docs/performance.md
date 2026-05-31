@@ -428,3 +428,24 @@ with dark-aware classes from the start.
 - Add a Lighthouse audit pass and record scores here.
 - Wire `vitest --coverage` and record per-feature coverage in
   `docs/testing.md` to the §7 targets (80% critical-path, 60% other).
+
+## Post-refactor — Platform FE Batches 1-4 (2026-05-31 → 2026-06-01)
+
+Tracks the `feat/platform-upgrade` branch following the refactor's
+merge to main. Numbers are pre-deploy; the size budget is the same
+125 kB ceiling.
+
+| Batch | Initial JS gz | Δ | Notes |
+|---|---|---|---|
+| Refactor close (Batch 10) | 122.97 kB | baseline | The last snapshot before `feat/platform-upgrade` carved off. |
+| Platform FE Batch 1 (XS cleanups) | 123.42 kB | +0.45 kB | Net deletions but the new strict shape on `UserStatsResponse` etc. pulled a few helpers earlier in the graph. |
+| Platform FE Batch 2 (`users.preferences` SoT) | 123.83 kB | +0.41 kB | New `hydratePreferences` writes to 8 stores + module-init `subscribeToPreferenceStores` subscribes 6. Headers retired but the subscriber wiring is the larger first-paint cost. |
+| Platform FE Batch 3 (`auth.devices` + `auth.rate-limit`) | 124.41 kB | +0.58 kB | New `deviceId.ts` + `useRetryCountdown.ts` + `AuthErrorNotice.tsx` + apiClient `buildApiError` extraction. Headroom shrinking — 0.59 kB to the ceiling. |
+| Platform FE Batch 4 (`metadata.timezones`) | 124.45 kB | +0.04 kB | Net wash. Dropping the `countries-and-timezones` npm dep (~10 kB minified, ~3-4 kB gz historically reported) frees room that the new `useTimezonesQuery` + the `getTimezonesForCountryName(name, countries)` re-signature consume. The DEPENDENCY graph is healthier (no third-party data) even though the gz number barely moved. CSS unchanged at 11.84 kB. |
+
+**Bundle-budget posture going forward.** With 0.55 kB headroom at the
+end of Batch 4, the next L tasks (taxation bill-state-machine,
+2FA TOTP) need to lazy-load their non-critical surfaces or the
+125 kB ceiling will bite. Strategy noted on the task list; revisit
+this snapshot when Batch 5 (settings cluster) closes since several
+of those pages are already lazy.

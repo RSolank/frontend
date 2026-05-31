@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import type { CountryOption } from '../api/referenceData';
+
 import {
-  getAllTimezones,
   getCountryNameFromRegion,
   getTimezonesForCountryName,
-  getTimezonesForRegion,
 } from './countryTimezones';
 
 describe('countryTimezones', () => {
@@ -18,20 +18,52 @@ describe('countryTimezones', () => {
     expect(getCountryNameFromRegion('')).toBeNull();
   });
 
-  it('looks up timezones by country name', () => {
-    expect(getTimezonesForCountryName('India')).toEqual(['Asia/Kolkata']);
-    expect(getTimezonesForCountryName('United States').length).toBeGreaterThan(1);
+  it('reads a single-tz country from the metadata payload', () => {
+    const countries: CountryOption[] = [
+      { name: 'India', timezones: ['Asia/Kolkata'] },
+    ];
+    expect(getTimezonesForCountryName('India', countries)).toEqual([
+      'Asia/Kolkata',
+    ]);
   });
 
-  it('looks up timezones by ISO region code', () => {
-    expect(getTimezonesForRegion('IN')).toEqual(['Asia/Kolkata']);
+  it('reads the full multi-tz list from a multi-zone country payload', () => {
+    const countries: CountryOption[] = [
+      {
+        name: 'United States',
+        timezones: [
+          'America/New_York',
+          'America/Chicago',
+          'America/Denver',
+          'America/Los_Angeles',
+          'America/Anchorage',
+        ],
+      },
+    ];
+    expect(getTimezonesForCountryName('United States', countries)).toHaveLength(
+      5
+    );
   });
 
-  it('returns the full IANA list with at least the common zones', () => {
-    const all = getAllTimezones();
-    expect(all).toContain('UTC');
-    expect(all).toContain('Asia/Kolkata');
-    expect(all).toContain('Europe/Berlin');
-    expect(all.length).toBeGreaterThan(100);
+  it('matches case-insensitively', () => {
+    const countries: CountryOption[] = [
+      { name: 'India', timezones: ['Asia/Kolkata'] },
+    ];
+    expect(getTimezonesForCountryName('india', countries)).toEqual([
+      'Asia/Kolkata',
+    ]);
+    expect(getTimezonesForCountryName('INDIA', countries)).toEqual([
+      'Asia/Kolkata',
+    ]);
+  });
+
+  it('returns an empty array for an unknown country or absent name', () => {
+    expect(getTimezonesForCountryName('Atlantis', [])).toEqual([]);
+    expect(getTimezonesForCountryName(null, [])).toEqual([]);
+  });
+
+  it('returns an empty array when the country has no timezones field', () => {
+    const countries: CountryOption[] = [{ name: 'Foo' }];
+    expect(getTimezonesForCountryName('Foo', countries)).toEqual([]);
   });
 });

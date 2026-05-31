@@ -176,7 +176,7 @@ export function AccountPreferencesPage() {
             <TimezoneSelect
               id="prefs-timezone"
               countryName={currentCountry?.name ?? null}
-              countryDefaultTimezone={currentCountry?.timezone ?? null}
+              countryDefaultTimezone={currentCountry?.timezones?.[0] ?? null}
               value={form.timezone}
               onChange={(tz) => {
                 setForm((f) => ({ ...f, timezone: tz }));

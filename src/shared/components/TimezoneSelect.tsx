@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 
 import {
+  useCountriesQuery,
+  useTimezonesQuery,
+} from '../api/referenceData';
+import {
   formatTimezoneOption,
-  getAllTimezones,
   getBrowserTimezone,
   getTimezonesForCountryName,
 } from '../utils/countryTimezones';
@@ -12,8 +15,9 @@ interface TimezoneSelectProps {
   // render a read-only field, a country-scoped dropdown, or the full
   // IANA list.
   countryName: string | null;
-  // The metadata API's default tz for the selected country (singular
-  // `timezone` field from /api/metadata/countries). Used as the initial
+  // Backend-suggested default tz for the selected country (the first
+  // entry in the `timezones` array on the metadata payload, or any
+  // explicit override the parent has cached). Used as the initial
   // value for multi-timezone countries.
   countryDefaultTimezone: string | null;
   value: string;
@@ -22,7 +26,7 @@ interface TimezoneSelectProps {
   required?: boolean;
   // When true, skip all country-scoped modes and render the full IANA
   // dropdown directly. The country still informs the initial value
-  // (passed via `value`) but the user can pick any of the ~400 IANA
+  // (passed via `value`) but the user can pick any of the ~600 IANA
   // zones without an "override" click. Used by the Account /
   // Preferences page so frequent travelers can lock to UTC without
   // changing their country of residence.
@@ -53,10 +57,18 @@ export function TimezoneSelect({
 }: TimezoneSelectProps) {
   const [showFallback, setShowFallback] = useState(false);
 
-  const allTimezones = useMemo(() => getAllTimezones(), []);
+  // BE Phase 1.3 — both lists come from `/api/metadata/*`. Queries
+  // are cached for an hour (REFERENCE_DATA_STALE_MS); first mount
+  // pays the round-trip, every subsequent surface is instant.
+  const { data: countries = [] } = useCountriesQuery();
+  const { data: timezoneList = [] } = useTimezonesQuery();
+  const allTimezones = useMemo(
+    () => timezoneList.map((t) => t.name),
+    [timezoneList]
+  );
   const countryTimezones = useMemo(
-    () => getTimezonesForCountryName(countryName),
-    [countryName]
+    () => getTimezonesForCountryName(countryName, countries),
+    [countryName, countries]
   );
 
   // alwaysFullList consumers skip every country-scoped mode below and

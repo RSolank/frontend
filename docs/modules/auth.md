@@ -138,20 +138,24 @@ Profile updates invalidate `userKeys.preferences()` and call
   to resolve the browser's locale region (e.g. `en-IN` → `IN` → `India`)
   and matches against `/api/metadata/countries`. Falls back to India
   when nothing matches.
-- **Timezone default** comes from the selected country's `timezone`
-  field on the metadata payload, or — when the country is unknown — from
+- **Timezone default** comes from the first entry of the selected
+  country's `timezones` array on the metadata payload, or — when the
+  country is unknown — from
   `Intl.DateTimeFormat().resolvedOptions().timeZone`.
-- **Timezone field UI** is driven by
-  `shared/utils/countryTimezones.ts`, a thin wrapper around the
-  `countries-and-timezones` npm package. The wrapper exists so the
-  swap to a backend-sourced timezones list (see the implementation
-  plan's "Backend follow-ups") is a one-file change.
+- **Timezone field UI** is driven by `<TimezoneSelect>` which reads
+  the country list from `useCountriesQuery` and the full IANA list
+  from `useTimezonesQuery` — both served by the backend's
+  `/api/metadata/*` endpoints after BE Phase 1.3.
+  `shared/utils/countryTimezones.ts` now holds only the pure helpers
+  (`getTimezonesForCountryName(name, countries)`, offset formatting,
+  browser-tz fallback); the npm `countries-and-timezones` package was
+  retired in Platform FE Batch 4.
 
 ## Tests
 
 - `shared/state/auth.store.test.ts` — store contract (setters, reset).
-- `shared/utils/countryTimezones.test.ts` — Intl.DisplayNames + package
-  lookups.
+- `shared/utils/countryTimezones.test.ts` — Intl.DisplayNames +
+  metadata-payload lookups (`getTimezonesForCountryName(name, countries)`).
 - `features/auth/pages/LoginPage.test.tsx` — login submit + preferences
   hydration + recovery entry.
 - `features/auth/pages/RegisterPage.test.tsx` — country/timezone default,
@@ -176,9 +180,11 @@ wrappers shrink to thin shells; the same forms also mount inside
 In / Register CTA clicks. Switching between login and register inside
 the modal does not close it.
 
-`app/pages/Home.tsx` lazy-imports `AuthModal` so the ~30 KB
-`countries-and-timezones` dep stays in the auth chunk rather than the
-first-paint bundle.
+`app/pages/Home.tsx` lazy-imports `AuthModal` so the auth form bodies
+(plus the metadata pickers they mount) stay in the auth chunk rather
+than the first-paint bundle. With BE Phase 1.3 serving the IANA list,
+the heavy `countries-and-timezones` npm dependency that used to
+inflate that chunk is gone.
 
 ### Session-expiry redirect contract
 
