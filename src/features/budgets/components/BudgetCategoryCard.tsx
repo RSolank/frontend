@@ -44,7 +44,7 @@ export function BudgetCategoryCard({
 }: BudgetCategoryCardProps) {
   const { money } = useMoneyFormatter();
 
-  const current = category.current_expense ?? 0;
+  const current = category.current_net_expense ?? 0;
   const limit = category.limit_amt ?? 0;
   const hasLimit = category.limit_amt != null && category.limit_amt > 0;
   const isOver = hasLimit && current > limit;
@@ -95,7 +95,7 @@ export function BudgetCategoryCard({
         {!emphasis && (
           <LabelValue
             label="Average monthly spend"
-            value={money(category.avg_expense)}
+            value={money(category.avg_net_expense)}
             tone="muted"
             className="money"
           />
@@ -313,9 +313,9 @@ interface AnomalyDescriptor {
 function classifyAnomaly(
   category: BudgetCategory
 ): AnomalyDescriptor | null {
-  const current = category.current_expense ?? 0;
-  const avg = category.avg_expense ?? 0;
-  const max = category.max_expense ?? 0;
+  const current = category.current_net_expense ?? 0;
+  const avg = category.avg_net_expense ?? 0;
+  const max = category.max_net_expense ?? 0;
   // No historical aggregate to compare against (or no current spend
   // at all). Hide the badge.
   if (avg <= 0 || current <= 0) return null;

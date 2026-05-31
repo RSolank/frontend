@@ -153,9 +153,9 @@ function useBudgetForm(
 ) {
   const isExisting = category != null && category.limit_amt != null;
 
-  const baseMin = Math.max(0, category?.min_expense ?? 0);
-  const baseMax = Math.max(baseMin, category?.max_expense ?? 0);
-  const baseAvg = Math.max(0, category?.avg_expense ?? 0);
+  const baseMin = Math.max(0, category?.min_net_expense ?? 0);
+  const baseMax = Math.max(baseMin, category?.max_net_expense ?? 0);
+  const baseAvg = Math.max(0, category?.avg_net_expense ?? 0);
 
   function initialValue(c: BudgetCategory | null): number {
     if (!c) return 0;
@@ -516,7 +516,7 @@ function BudgetFormBody({
           Spent this month
         </div>
         <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
-          {money(category.current_expense)}
+          {money(category.current_net_expense)}
         </div>
       </div>
 

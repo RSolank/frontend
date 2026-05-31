@@ -13,6 +13,7 @@ import {
 } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
+import { ExpenseTrendChart } from '../components/ExpenseTrendChart';
 
 export function ExpenseTrackerPage() {
   const queryClient = useQueryClient();
@@ -30,7 +31,7 @@ export function ExpenseTrackerPage() {
     const cats = data?.categories ?? [];
     return cats.filter(
       (c) =>
-        (c.current_expense ?? 0) > 0 ||
+        (c.current_net_expense ?? 0) > 0 ||
         (c.limit_amt != null && c.limit_amt > 0)
     );
   }, [data]);
@@ -152,6 +153,8 @@ export function ExpenseTrackerPage() {
             />
           )}
 
+          <ExpenseTrendChart />
+
           <section
             aria-labelledby="categories-heading"
             className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -250,15 +253,15 @@ function RollingStatsStrip({ category, money }: RollingStatsStripProps) {
     >
       <Stat
         label="Average monthly spend"
-        value={money(category.avg_expense)}
+        value={money(category.avg_net_expense)}
       />
       <Stat
         label="Lowest monthly spend"
-        value={money(category.min_expense)}
+        value={money(category.min_net_expense)}
       />
       <Stat
         label="Highest monthly spend"
-        value={money(category.max_expense)}
+        value={money(category.max_net_expense)}
       />
     </dl>
   );

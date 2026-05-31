@@ -70,6 +70,11 @@ export const routes = {
     ping: () => `${V}/admin/ping`,
   },
 
+  activity: {
+    feed: () => `${V}/activity`,
+    seen: () => `${V}/activity/seen`,
+  },
+
   beneficiaries: {
     list: () => `${V}/beneficiaries`,
     create: () => `${V}/beneficiaries`,
@@ -115,6 +120,10 @@ export const routes = {
     root: () => `${V}/budget-limits/`,
     status: () => `${V}/budget-limits/status`,
     byTag: (tagId: number | string) => `${V}/budget-limits/${tagId}`,
+  },
+
+  expenseTracker: {
+    trend: () => `${V}/expense-tracker/`,
   },
 
   taxation: {

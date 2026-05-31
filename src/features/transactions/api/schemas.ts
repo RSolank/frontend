@@ -52,11 +52,20 @@ export interface TransactionListResponse {
   returned_count: number;
 }
 
+// BE Phase 1.7 (T-aggregates-engine, `3252ca4`) renamed the
+// per-merchant aggregate fields: `frequency → total_count`,
+// `total_amount → net_expense` (= `total_debit − total_credit`,
+// expense-positive — refunds net it down). `?group_by=tag` rows
+// also carry `tag_id` / `tag_name` / `tag_type` so consumers can
+// split budgets-typed tags from the general tracker view.
 export interface MerchantGroup {
-  beneficiary_id: number;
-  beneficiary_name: string;
-  frequency: number;
-  total_amount: number;
+  beneficiary_id?: number | null;
+  beneficiary_name?: string | null;
+  tag_id?: number | null;
+  tag_name?: string | null;
+  tag_type?: string | null;
+  total_count: number;
+  net_expense: number;
 }
 
 export interface SingleTransactionResponse {

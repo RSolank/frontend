@@ -268,8 +268,14 @@ The shared hook is at `shared/hooks/useIntersectionObserver.ts`
 | `?add=true`, `?edit=<id>` | Modal state (existing) |
 
 Sort defaults vary by view: List + Calendar default to
-`date desc`; Merchant defaults to `total_amount desc`. The URL omits
+`date desc`; Merchant defaults to `net_expense desc`. The URL omits
 the keys when at-default so links stay clean.
+
+The sort enum (`date | amount | total_count | net_expense | name`)
+mirrors the BE Phase 1.7 (T-aggregates-engine) contract.
+`total_count` (was `frequency`) and `net_expense` (was
+`total_amount`) replaced the legacy field names; merchant rows now
+bind against the new field names.
 
 ### Calendar (carry-over from initial 9.6 spec)
 

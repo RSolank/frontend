@@ -192,3 +192,28 @@ export function formatInputDate(isoString: string | null | undefined): string {
     return '';
   }
 }
+
+// Coarsest-unit "X minutes ago" string for the activity feed. Inputs:
+// the event's ISO timestamp + a `now` reference (passed in so callers
+// can drive a live tick without re-evaluating `Date.now()` per render).
+// Falls back to `formatDate(iso, tz)` once the gap exceeds a week, so
+// stale events read as a localised calendar date instead of "27d ago".
+export function formatRelativeTime(
+  isoString: string | null | undefined,
+  now: number,
+  tz: string
+): string {
+  const d = safeDate(isoString);
+  if (!d) return '—';
+  const diffMs = now - d.getTime();
+  if (diffMs < 0) return 'just now';
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 45) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return formatDate(isoString, tz);
+}

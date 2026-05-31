@@ -63,8 +63,8 @@ const merchantGroups = {
     {
       beneficiary_id: 42,
       beneficiary_name: 'Coffee Shop',
-      frequency: 3,
-      total_amount: -450,
+      total_count: 3,
+      net_expense: 450,
     },
   ],
   returned_count: 1,

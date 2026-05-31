@@ -25,10 +25,10 @@ const populatedBudgetStatus = {
       tag_id: 11,
       tag_name: 'Groceries',
       tag_type: 'essential',
-      current_expense: 400,
-      avg_expense: 380,
-      min_expense: 200,
-      max_expense: 500,
+      current_net_expense: 400,
+      avg_net_expense: 380,
+      min_net_expense: 200,
+      max_net_expense: 500,
       limit_amt: 600,
       penalty_rate: 0.05,
       default_penalty_rate: 0.05,
@@ -37,10 +37,10 @@ const populatedBudgetStatus = {
       tag_id: 12,
       tag_name: 'Dining',
       tag_type: 'discretionary',
-      current_expense: 250,
-      avg_expense: 150,
-      min_expense: 100,
-      max_expense: 250,
+      current_net_expense: 250,
+      avg_net_expense: 150,
+      min_net_expense: 100,
+      max_net_expense: 250,
       limit_amt: 200, // over-budget (250 > 200)
       penalty_rate: 0.1,
       default_penalty_rate: 0.05,
@@ -49,10 +49,10 @@ const populatedBudgetStatus = {
       tag_id: 13,
       tag_name: 'Hobbies',
       tag_type: 'discretionary',
-      current_expense: 50,
-      avg_expense: 60,
-      min_expense: 20,
-      max_expense: 90,
+      current_net_expense: 50,
+      avg_net_expense: 60,
+      min_net_expense: 20,
+      max_net_expense: 90,
       limit_amt: null,
       penalty_rate: null,
       default_penalty_rate: 0.05,
@@ -61,10 +61,10 @@ const populatedBudgetStatus = {
       tag_id: 14,
       tag_name: 'Idle',
       tag_type: 'discretionary',
-      current_expense: 0,
-      avg_expense: 0,
-      min_expense: 0,
-      max_expense: 0,
+      current_net_expense: 0,
+      avg_net_expense: 0,
+      min_net_expense: 0,
+      max_net_expense: 0,
       limit_amt: null,
       penalty_rate: null,
       default_penalty_rate: 0.05,
@@ -74,10 +74,10 @@ const populatedBudgetStatus = {
     tag_id: 1,
     tag_name: 'Total Budget',
     tag_type: 'total',
-    current_expense: 700,
-    avg_expense: 600,
-    min_expense: 400,
-    max_expense: 800,
+    current_net_expense: 700,
+    avg_net_expense: 600,
+    min_net_expense: 400,
+    max_net_expense: 800,
     limit_amt: 1500,
     penalty_rate: 0.05,
     default_penalty_rate: 0.05,
@@ -360,11 +360,14 @@ describe('DashboardPage', () => {
       expect(widget).toHaveTextContent('$15.00'); // tax accrued
     });
 
-    it('Activity placeholder is always rendered (BE endpoint pending)', async () => {
+    it('Activity widget renders the BE Phase 2.4 feed (empty by default)', async () => {
       renderWithProviders(<DashboardPage />);
-      expect(
-        await screen.findByTestId('dashboard-activity-placeholder')
-      ).toBeInTheDocument();
+      const widget = await screen.findByTestId('dashboard-activity');
+      // Default MSW handler returns an empty feed; the friendly empty
+      // state copy mentions the kinds of events that will land here.
+      await waitFor(() =>
+        expect(widget).toHaveTextContent(/nothing to see yet/i)
+      );
     });
 
     // Batch 9.5 — week-by-category strip aggregates the already-loaded

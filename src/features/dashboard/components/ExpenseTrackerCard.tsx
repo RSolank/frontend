@@ -26,13 +26,13 @@ const TOP_CATEGORIES_LIMIT = 3;
 
 // A category is worth showing if it has spend or a configured limit.
 function isActiveCategory(c: BudgetCategory): boolean {
-  return (c.current_expense ?? 0) > 0 || (c.limit_amt != null && c.limit_amt > 0);
+  return (c.current_net_expense ?? 0) > 0 || (c.limit_amt != null && c.limit_amt > 0);
 }
 
 // Breached = has a positive limit and spend exceeds it.
 function isBreachedCategory(c: BudgetCategory): boolean {
   return (
-    c.limit_amt != null && c.limit_amt > 0 && (c.current_expense ?? 0) > c.limit_amt
+    c.limit_amt != null && c.limit_amt > 0 && (c.current_net_expense ?? 0) > c.limit_amt
   );
 }
 
@@ -56,7 +56,7 @@ function useExpenseTrackerView(): ExpenseTrackerView {
     const cats = data?.categories ?? [];
     return cats
       .filter(isActiveCategory)
-      .sort((a, b) => (b.current_expense ?? 0) - (a.current_expense ?? 0));
+      .sort((a, b) => (b.current_net_expense ?? 0) - (a.current_net_expense ?? 0));
   }, [data]);
 
   const breachCount = useMemo(
@@ -66,7 +66,7 @@ function useExpenseTrackerView(): ExpenseTrackerView {
 
   const total = data?.total_budget ?? null;
   const hasAnySpend =
-    (total?.current_expense ?? 0) > 0 || visibleCategories.length > 0;
+    (total?.current_net_expense ?? 0) > 0 || visibleCategories.length > 0;
   const hasAnyLimit =
     (total?.limit_amt ?? 0) > 0 ||
     visibleCategories.some((c) => (c.limit_amt ?? 0) > 0);
@@ -178,7 +178,7 @@ interface TotalRollupProps {
 }
 
 function TotalRollup({ category, money }: TotalRollupProps) {
-  const current = category?.current_expense ?? 0;
+  const current = category?.current_net_expense ?? 0;
   const limit = category?.limit_amt ?? 0;
   const hasLimit = limit > 0;
   const percent = hasLimit ? (current / limit) * 100 : 0;
@@ -240,7 +240,7 @@ interface CategoryRowProps {
 }
 
 function CategoryRow({ category, money }: CategoryRowProps) {
-  const current = category.current_expense ?? 0;
+  const current = category.current_net_expense ?? 0;
   const limit = category.limit_amt ?? 0;
   const hasLimit = limit > 0;
   const percent = hasLimit ? (current / limit) * 100 : 0;

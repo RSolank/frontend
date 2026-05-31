@@ -72,7 +72,7 @@ what's worth desktop space is worth mobile space too.
 |---|---|
 | `components/BreachAlertsWidget.tsx` | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert. |
 | `components/WeekSummaryWidget.tsx` | "This week" mini-summary — date range + spend + debit count + tax accrued. |
-| `components/RecentActivityWidget.tsx` | Placeholder card. A unified activity feed doesn't exist on the backend yet — see [`task-handoff-fe-to-be.md`](../../../.scratch/task-handoff-fe-to-be.md) for the queued request. |
+| `components/RecentActivityWidget.tsx` | Live list backed by BE Phase 2.4 (`77cffb3`) `GET /api/activity`. One row per worker / engine-originated event (bill generated, budget breached, statement import failed, …) with icon + summary + relative time. Fires `POST /api/activity/seen` with `signal=soft` once per `event_id` per session (BE dedupes per cycle) and with `signal=hard` on click; FE composes its own deep-link from `subject_type` + `subject_id`. Server-ordered by `value` (decay/escalation score) — never re-sort client-side. Empty by default for new accounts (friendly empty-state copy). |
 
 ### Shared chrome
 
@@ -88,11 +88,14 @@ primary card:
 
 ## Hooks
 
-Dashboard owns no hooks of its own — every query consumed lives in
-the feature module it pulls data from:
+Dashboard owns the activity-feed + expense-trend hooks because the
+underlying endpoints are dashboard-shaped; every other query
+consumed by a card lives in the feature module it pulls data from.
 
 | Hook | Feature module |
 |---|---|
+| `useActivityFeedQuery` | `features/dashboard/api/queries.ts` (this module) |
+| `useExpenseTrendQuery` | `features/dashboard/api/queries.ts` (this module — also consumed by `/budgets`) |
 | `useTransactionsQuery` | `features/transactions/api/queries.ts` |
 | `useBudgetStatusQuery` | `features/budgets/api/queries.ts` |
 | `useTrackerCurrentWeekQuery` | `features/taxation/api/queries.ts` |
@@ -105,10 +108,21 @@ feature does not define its own preferences.
 
 ## API
 
-No new endpoints. The dashboard consumes the same `/api/transactions`,
-`/api/budget-limits/status`, and `/api/consumption-tax/...`
-endpoints the feature pages call. React Query dedupes the requests
-across cards.
+Two endpoints rooted in the dashboard module (because consumers
+span multiple feature pages):
+
+- `GET /api/activity` (+ `POST /api/activity/seen`) — BE Phase 2.4
+  (`77cffb3`). Driven through `features/dashboard/api/{queries,
+  mutations,schemas}.ts`.
+- `GET /api/expense-tracker` — BE Phase 1.7 (`3252ca4`,
+  T-aggregates-engine). Per-(tag, bucket) trend; consumed by both
+  the dashboard (future widget) and the `/budgets`
+  `<ExpenseTrendChart>` today.
+
+Every other card consumes the same `/api/transactions`,
+`/api/budget-limits/status`, and `/api/consumption-tax/…` endpoints
+the feature pages call. React Query dedupes the requests across
+cards.
 
 ## Filtering / display rules
 
@@ -129,8 +143,10 @@ across cards.
   backend's `per_tag` array (already sorted by `tax_amount + penalty`
   desc per the §1 contract in the BE→FE handoff).
 - **Breach detection** — a category is "over budget" when
-  `current_expense > limit_amt > 0`. Categories with no limit are
-  never counted as breaches regardless of spend.
+  `current_net_expense > limit_amt > 0` (BE Phase 1.7 contract:
+  `net_expense = total_debit − total_credit`, expense-positive).
+  Categories with no limit are never counted as breaches regardless
+  of spend.
 
 ## Empty states
 
@@ -189,14 +205,15 @@ overview.
 
 ## Future polish (queued)
 
-- **Activity feed** — file logged in
-  [`task-handoff-fe-to-be.md §4`](../../../.scratch/task-handoff-fe-to-be.md).
-  Once the backend ships a unified events endpoint, swap the
-  `RecentActivityWidget` placeholder for a real list.
-- **Statement-upload dock widget** — a queued backend follow-up (the
-  async upload pipeline). When it ships, this is where the in-flight
-  job progress lives.
+- **Statement-upload dock widget** — gated on
+  [[statement-upload.async]] FE wiring (deferred to a post-cleanup
+  feature batch). When it ships, this is where the in-flight job
+  progress lives.
 - **Personalization / drag-to-reorder cards** — out of scope by design.
-- **Bill state surfacing** — once Phase 0.7's 5-state bill
-  lifecycle lands, the Tax Tracker card can surface ACCRUING /
+- **Bill state surfacing** — once [[taxation.bill-state-machine]]
+  FE wiring lands, the Tax Tracker card can surface ACCRUING /
   BILLED / OVERDUE counts in the title chip.
+- **Activity feed widget promotion** — once real event volume
+  shows up in `useActivityFeedQuery`, consider promoting the widget
+  out of the secondary cluster (or giving it more height) so a
+  busier feed reads better.

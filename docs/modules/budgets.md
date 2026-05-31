@@ -46,17 +46,23 @@ wrapped by `protectedRoutes()`).
   which paints an indigo-tinted background to mark it as the
   top-level rollup. Carries an **anomaly badge** inline with the title
   that classifies the current month's spend
-  against `avg_expense` / `max_expense` into four bands —
+  against `avg_net_expense` / `max_net_expense` into four bands —
   `Below typical` (emerald, current ≤ avg×0.75),
   `Typical` (slate, within ±25 % of avg),
   `Near typical max` (amber, > avg×1.25 and ≤ max), and
   `Above typical max` (rose, > max). The badge is hidden when no
-  historical baseline exists yet (`avg_expense ≤ 0`).
+  historical baseline exists yet (`avg_net_expense ≤ 0`).
 - `components/BudgetFormDialog.tsx` — `<Modal size="md">` with two
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls
   `POST /api/budget-limits/` (backend upsert by `tag_id + period`).
   Cancel + Save in footer; confirmOnDirty on close.
+- `components/ExpenseTrendChart.tsx` — six-month
+  `<svg>` bar chart of the Total tag's `net_expense`. Reads
+  `useExpenseTrendQuery('monthly', 6, TOTAL_TAG_ID)` from the
+  dashboard feature's `api/queries.ts`. Inline SVG (no chart-lib
+  dep — recharts would punch the bundle ceiling). Slots between
+  the Month Overview rollup and the Categories grid.
 
 ## Hooks
 
@@ -74,12 +80,22 @@ Mutations live in
 Read endpoints consumed (under `/api/budget-limits`):
 
 - `GET /api/budget-limits/status?month=YYYY-MM` → status response with
-  `categories[]` (tag_id, tag_name, tag_type, current_expense,
-  avg_expense, min_expense, max_expense, limit_amt, penalty_rate,
+  `categories[]` (tag_id, tag_name, tag_type, `current_debit`,
+  `current_credit`, `current_net_expense`, `avg_net_expense`,
+  `min_net_expense`, `max_net_expense`, limit_amt, penalty_rate,
   default_penalty_rate), `total_budget` (same shape, tag_id =
   `TOTAL_TAG_ID`), `currency`, `month`, `available_months[]`.
+  BE Phase 1.7 (`3252ca4`, T-aggregates-engine) renamed the spend
+  family to `net_expense = total_debit − total_credit` (expense-
+  positive — refunds net spend down).
 - `GET /api/budget-limits/?budget_period=monthly` → list of
   configured limits (no spend aggregates).
+- `GET /api/expense-tracker?period_type=monthly&n=6&tag_id=<TOTAL>` →
+  per-bucket trend for the `<ExpenseTrendChart>` six-month chart.
+  Query hook lives in
+  [`features/dashboard/api/queries.ts`](../../src/features/dashboard/api/queries.ts)
+  because two consumers (this page + future dashboard widget)
+  share it; see [`dashboard.md`](dashboard.md).
 
 Write endpoints consumed:
 
@@ -90,10 +106,11 @@ Write endpoints consumed:
 
 ## Filtering / display rules
 
-- The categories grid renders any category with `current_expense > 0`
-  OR a configured `limit_amt > 0`. Categories with no spend AND no
-  limit are filtered out (legacy behavior — keeps the grid focused on
-  cells the user actually cares about).
+- The categories grid renders any category with
+  `current_net_expense > 0` OR a configured `limit_amt > 0`.
+  Categories with no spend AND no limit are filtered out (legacy
+  behavior — keeps the grid focused on cells the user actually
+  cares about).
 - Categories are ordered as the backend returns them — root tags
   first, then alphabetical within each group (see
   `budget_services.list_budget_limits` ordering).

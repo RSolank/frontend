@@ -27,12 +27,12 @@ export function BreachAlertsWidget() {
         (c) =>
           c.limit_amt != null &&
           c.limit_amt > 0 &&
-          (c.current_expense ?? 0) > c.limit_amt
+          (c.current_net_expense ?? 0) > c.limit_amt
       )
       .sort(
         (a, b) =>
-          (b.current_expense ?? 0) / (b.limit_amt ?? 1) -
-          (a.current_expense ?? 0) / (a.limit_amt ?? 1)
+          (b.current_net_expense ?? 0) / (b.limit_amt ?? 1) -
+          (a.current_net_expense ?? 0) / (a.limit_amt ?? 1)
       );
   }, [data]);
 
@@ -54,7 +54,7 @@ export function BreachAlertsWidget() {
       <ul className="flex flex-col gap-1.5">
         {breached.map((c) => {
           const limit = c.limit_amt as number;
-          const current = c.current_expense ?? 0;
+          const current = c.current_net_expense ?? 0;
           const over = current - limit;
           return (
             <li

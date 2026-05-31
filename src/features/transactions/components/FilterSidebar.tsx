@@ -167,8 +167,8 @@ export function FilterSidebar({
                   >
                     {view === 'merchant' ? (
                       <>
-                        <option value="total_amount">Total spend</option>
-                        <option value="frequency">Total transactions</option>
+                        <option value="net_expense">Total spend</option>
+                        <option value="total_count">Total transactions</option>
                       </>
                     ) : (
                       <>
