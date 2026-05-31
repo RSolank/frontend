@@ -442,10 +442,12 @@ merge to main. Numbers are pre-deploy; the size budget is the same
 | Platform FE Batch 2 (`users.preferences` SoT) | 123.83 kB | +0.41 kB | New `hydratePreferences` writes to 8 stores + module-init `subscribeToPreferenceStores` subscribes 6. Headers retired but the subscriber wiring is the larger first-paint cost. |
 | Platform FE Batch 3 (`auth.devices` + `auth.rate-limit`) | 124.41 kB | +0.58 kB | New `deviceId.ts` + `useRetryCountdown.ts` + `AuthErrorNotice.tsx` + apiClient `buildApiError` extraction. Headroom shrinking — 0.59 kB to the ceiling. |
 | Platform FE Batch 4 (`metadata.timezones`) | 124.45 kB | +0.04 kB | Net wash. Dropping the `countries-and-timezones` npm dep (~10 kB minified, ~3-4 kB gz historically reported) frees room that the new `useTimezonesQuery` + the `getTimezonesForCountryName(name, countries)` re-signature consume. The DEPENDENCY graph is healthier (no third-party data) even though the gz number barely moved. CSS unchanged at 11.84 kB. |
+| Platform FE Batch 5 (settings cluster) | 124.14 kB | −0.31 kB | Initial JS actually went *down* despite shipping 5 sub-features (sessions list, profile-image picker, danger zone, email-change form, data-export panel) because the bundle-rescue refactor lazy-loaded the 5 accessibility toggles via the new `AccessibilityPanel.tsx` (consumed by `AccessibilityPopover` + the mobile drawer). Peaked mid-batch at 125.38 kB — over the ceiling — and the §3 ratchet forced a refactor instead of raising the gate. The lazy split freed ~1.5 kB raw / ~0.6 kB gz; the surplus paid for the new `apiClient.handleAccountPendingDeletion` interceptor + the shared `<ProfileImage>` primitive + new route builders. CSS rose to 12.13 kB gz (Vite duplicated some classes when AccessibilityPanel became a lazy chunk) — well under the 15 kB ceiling. |
 
-**Bundle-budget posture going forward.** With 0.55 kB headroom at the
-end of Batch 4, the next L tasks (taxation bill-state-machine,
-2FA TOTP) need to lazy-load their non-critical surfaces or the
-125 kB ceiling will bite. Strategy noted on the task list; revisit
-this snapshot when Batch 5 (settings cluster) closes since several
-of those pages are already lazy.
+**Bundle-budget posture going forward.** Headroom restored to
+0.86 kB. The next L tasks (taxation bill-state-machine, 2FA TOTP,
+recurring templates) all add weight; lazy-load aggressively from
+the start. The AccessibilityPanel pattern (extract eager imports
+into a lazy chunk consumed by both eager + lazy callers) is a
+documented escape hatch — use it when a shared component starts
+bleeding initial-chunk weight.

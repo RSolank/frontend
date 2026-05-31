@@ -22,12 +22,13 @@
 | Path | Component | Content |
 |---|---|---|
 | `/account` | redirect → `/account/profile` | — |
-| `/account/profile` | `pages/AccountProfilePage.tsx` | name, dob, email (read-only), contact |
-| `/account/security` | `pages/AccountSecurityPage.tsx` | change password, security question, active-sessions placeholder |
-| `/account/privacy` | `pages/AccountPrivacyPage.tsx` | placeholder (data export / deletion / retention — needs backend) |
+| `/account/profile` | `pages/AccountProfilePage.tsx` | profile-image picker, name, dob, email (read-only), contact |
+| `/account/security` | `pages/AccountSecurityPage.tsx` | change password, change email, security question, active sessions list + revoke |
+| `/account/privacy` | `pages/AccountPrivacyPage.tsx` | privacy mask pointer, data export, danger zone (delete account) |
 | `/account/accessibility` | `pages/AccountAccessibilityPage.tsx` | theme / zoom / reduce-motion / privacy-mask |
 | `/account/preferences` | `pages/AccountPreferencesPage.tsx` | country / currency / timezone + defaults placeholder |
 | `/profile` | redirect → `/account/profile` | legacy alias |
+| `/account/cancel-deletion` | `pages/CancelDeletionPage.tsx` (UNAUTH) | landing for the deletion-cancel email link + apiClient `ACCOUNT_PENDING_DELETION` 403 interceptor |
 
 ## Shell
 
@@ -54,6 +55,14 @@ derives from the persisted `user.contact` prefix; users can override
 the dial code in the input (e.g. when their phone is from a different
 country than residence).
 
+A "Profile picture" card at the top of the page hosts the
+[`<ProfileImagePicker>`](../../src/features/account/components/ProfileImagePicker.tsx)
+— preview + Upload + Remove + a 4/6-col grid of geometric presets
+backed by BE Phase 1.13's `/api/users/profile-image-presets`. Each
+mutation invalidates `userKeys.me()` so the new `profile_image_url`
+propagates instantly to the TopNav avatar (which goes through the
+shared `<ProfileImage>` primitive in `shared/components/`).
+
 ### Preferences
 
 After BE Phase 1.9 the page Save fans out two parallel PATCHes —
@@ -78,16 +87,55 @@ back on every user-driven `setX()`.
 
 Change password POSTs `/api/auth/change-password`. Security question
 POSTs `/api/auth/recovery` (one question per user, replaces the
-previous choice). The "Active sessions" placeholder card flags the
-backend follow-up — the `user_sessions` table exists, but no
-list/revoke endpoint is exposed yet.
+previous choice).
+
+**Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
+flow: step 1 POSTs `/api/auth/change-email-request {new_email,
+password, code?}` and the BE emails an OTP to the new address +
+a security notice to the current address; step 2 POSTs the OTP to
+`/api/auth/change-email-confirm` for an atomic dual-column swap.
+The form omits `code` initially and reveals the 2FA-code field
+defensively on the first 401 (the FE doesn't yet have a /me
+`two_factor_enabled` signal — that lands with T-2fa-enroll FE
+wiring). 409/429 on confirm are terminal per the spec → restart
+from step 1. On success, invalidates `userKeys.me()` and surfaces
+the "other devices were signed out" notice.
+
+**Active sessions** — `<SessionList>` reads the BE Phase 1.12
+`GET /api/auth/sessions` endpoint. Each row carries a UA-derived
+device label ("Chrome on macOS" / "Safari on iOS"), IP, last-active
+timestamp in the user's tz, a "This device" badge on the row backing
+the current request, and a Revoke button. ConfirmDialog gates the
+revoke; current-device revoke uses stronger copy. Mutations
+invalidate `authKeys.sessions()` (30s staleTime). The session list
+also benefits from BE Phase 1.4 — the `X-Device-Id` header sent by
+apiClient since Platform FE Batch 3 sharpens the device fingerprint
+so the same phone on a new network doesn't show as two rows.
 
 ### Privacy
 
-Pure placeholder until backend endpoints exist for data export +
-account deletion + retention windows. Points users at the
-**privacy mask** under Accessibility for in-app amount blurring
-today.
+**Privacy controls card** — pointer to the privacy mask under
+Accessibility for in-app amount blurring.
+
+**Export data** — `<DataExportPanel>` lists the 8 BE-exposed
+resources (transactions, beneficiaries, tax-bills, tax-details,
+spend-by-tag, spend-by-merchant, bank-accounts, profile) backed by
+BE Phase 1.10's `GET /api/exports/{resource}?format=csv|json`. CSV
+streams with `Content-Disposition: attachment`; the FE fetches with
+the bearer header (anchor `download` can't carry headers), reads the
+response as a blob, and clicks an off-DOM link. CSV / JSON toggle is
+a pill control.
+
+**Danger zone** — `<DangerZone>` schedules the user's account for
+deletion via BE Phase 2.1's `POST /api/users/me/delete {password}`.
+Confirms via a password-modal, hard-logouts on success (drops tokens
++ navigates to `/` with a sessionStorage banner cue). 403 surfaces
+inline as "Incorrect password". The companion
+[`CancelDeletionPage`](../../src/features/account/pages/CancelDeletionPage.tsx)
+(unauth, mounted on `/account/cancel-deletion`) handles the email
+link's `?token=` + the apiClient `ACCOUNT_PENDING_DELETION` 403
+interceptor that hard-logouts + redirects any other tab still in
+the grace window.
 
 ### Accessibility
 
@@ -133,23 +181,41 @@ usage surfaces a need we can lift them later.
 
 The user dropdown in
 [`shared/components/TopNav.tsx`](../../src/shared/components/TopNav.tsx)
-stays at "Profile + Sign Out" — Profile links to `/account/profile`,
-and the sectioned-page sidebar inside `/account/*` exposes the other
-four sections. The mobile-drawer Profile row points at the same URL.
+goes through the shared `<ProfileImage>` primitive — same indigo
+monogram fallback as the pre-Batch-5 button when
+`user.profile_image_url` is `null`, the BE-served WEBP when it's
+set. The Account link points at `/account/profile`; the
+sectioned-page sidebar inside `/account/*` exposes the other four
+sections. The mobile-drawer Profile row points at the same URL.
+The accessibility toggle panel is lazy-loaded — both
+`AccessibilityPopover` and the mobile drawer Suspense-import
+[`<AccessibilityPanel>`](../../src/shared/components/AccessibilityPanel.tsx).
 
 ## API surface (consumed)
 
 The account surface owns no API hooks itself — every request goes
-through the [`users`](users.md) feature's `api/`:
+through the relevant feature's `api/`:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/users/me` | Profile + Preferences hydrate |
-| `PATCH /api/users/me` | Profile save (partial), Preferences save (partial) |
-| `GET /api/users/preferences` | Post-save hydration of `usePreferencesStore` |
-| `POST /api/auth/change-password` | Security |
+| `GET /api/users/me` | Profile + Preferences hydrate; carries `profile_image_url` |
+| `PATCH /api/users/me` | Profile save (partial), Preferences save (partial: country only after Batch 2) |
+| `GET /api/users/preferences` | Hydration of every preference store |
+| `PATCH /api/users/preferences` | Preferences save (currency, timezone slice) |
+| `GET /api/users/profile-image-presets` | Profile picture picker grid |
+| `PUT /api/users/me/profile-image/preset` | Profile picture preset selection |
+| `POST /api/users/me/profile-image` | Profile picture upload (multipart) |
+| `DELETE /api/users/me/profile-image` | Profile picture remove |
+| `POST /api/users/me/delete` | Danger zone scheduled deletion |
+| `POST /api/users/me/delete/cancel` | Cancel-deletion page (unauth) |
+| `POST /api/auth/change-password` | Security — change password |
+| `POST /api/auth/change-email-request` | Security — change email step 1 |
+| `POST /api/auth/change-email-confirm` | Security — change email step 2 |
+| `GET /api/auth/sessions` | Security — active sessions list |
+| `DELETE /api/auth/sessions/{id}` | Security — revoke session |
 | `GET /api/auth/recovery` | Security (current question) |
 | `POST /api/auth/recovery` | Security (set/replace question) |
+| `GET /api/exports/{resource}` | Privacy — data export |
 
 ## Tests
 
@@ -158,8 +224,12 @@ through the [`users`](users.md) feature's `api/`:
 | `account.routes.test.tsx` | `/account` index redirect, `/profile` legacy redirect, sidebar exposes all five sections at canonical hrefs |
 | `pages/AccountProfilePage.test.tsx` | `/me` hydration, partial-PATCH shape (no preferences fields), phone validation |
 | `pages/AccountPreferencesPage.test.tsx` | `/me` hydration, partial-PATCH shape (no profile fields), `usePreferencesStore` re-hydration post-save, Defaults placeholder visibility |
-| `pages/AccountSecurityPage.test.tsx` | Password Update gated on validity, security-question hydrate, Active-sessions placeholder visibility |
+| `pages/AccountSecurityPage.test.tsx` | Password Update gated on validity, security-question hydrate, Active-sessions card mounted |
+| `components/SessionList.test.tsx` | Row rendering + "This device" badge, confirm-then-revoke removes row, current-device stronger copy, empty state |
+| `components/EmailChangeForm.test.tsx` | Happy-path two-step flow + sign-out notice, 401 reveals 2FA field, 409 inline on request, 409 on confirm restarts from step 1 |
+| `shared/components/ProfileImage.test.tsx` | Image / monogram rendering, initials fallbacks (first+last / first-only / email), shared indigo background |
+| `components/DataExportPanel.test.tsx` | 8 resources rendered, format toggle drives the query string, non-OK surfaces inline |
 | `pages/AccountAccessibilityPage.test.tsx` | All ten controls (7 Display & motion + 3 Data formatting) render |
 | Store smoke tests | `shared/state/{contrast,linkUnderline,focusRing,dateFormat,numberFormat,landingRoute}.store.test.ts` — toggle / setter + `apply*` class mirror where applicable |
 | Helper override paths | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore` |
-| `pages/AccountPrivacyPage.test.tsx` | Placeholder card + cross-link to Accessibility |
+| `pages/AccountPrivacyPage.test.tsx` | Privacy controls + Danger Zone cards present, modal opens, 403 (wrong password) surfaces inline |

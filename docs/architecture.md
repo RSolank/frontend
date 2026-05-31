@@ -250,6 +250,17 @@ graph.
   + [`features/auth/components/AuthErrorNotice`](../src/features/auth/components/AuthErrorNotice.tsx).
   Other statuses with `Retry-After` set are out-of-spec for this
   project and ignored.
+- **`ACCOUNT_PENDING_DELETION` 403 interceptor** — `apiFetch` also
+  inspects 403 responses for `detail === "ACCOUNT_PENDING_DELETION"`
+  (BE Phase 2.1 central lock). On a match it drops the access /
+  refresh tokens and hard-navigates to `/account/cancel-deletion`
+  so the user lands on the cancel surface instead of a cryptic
+  toast. Loop-guards against the cancel page itself triggering it.
+- **`X-Device-Id` boot path** — the same UUID is added to the
+  `POST /auth/refresh` call inside `refreshAndRetry`. The BE's
+  suspicious-refresh path (Phase 1.4) reads it to distinguish
+  "same browser, expired token" from "stolen token replay from a
+  new device".
 
 ## State
 

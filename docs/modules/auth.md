@@ -55,8 +55,8 @@ carries an `errorElement` that resolves to
 
 ## API
 
-- `api/keys.ts` — react-query keys (`authKeys.me()`, `authKeys.constants()`,
-  `userKeys.preferences()`).
+- `api/keys.ts` — react-query keys (`authKeys.all`, `authKeys.constants()`,
+  `authKeys.sessions()`).
 - `api/schemas.ts` — Zod schemas for login / register / recovery inputs.
   `registerFormSchema` shapes the RHF form state; `RegisterPayload`
   shapes the wire body sent to `/api/auth/register` (`timezone` field
@@ -65,10 +65,14 @@ carries an `errorElement` that resolves to
 - `api/queries.ts` — `useCurrentUserQuery`, `useUserPreferencesQuery`,
   plus imperative `fetchCurrentUser` / `fetchUserPreferences` used by
   `state/useAuth.ts`.
+- `api/queries.ts` — `useSessionsQuery` + `SessionInfo` shape for
+  the Account → Security sessions list (BE Phase 1.12).
 - `api/mutations.ts` — bare `apiFetch` wrappers for every auth endpoint
   (`loginRequest`, `registerRequest`, `logoutRequest`,
   `recoveryQuestionRequest`, `forgotPasswordRequest`, `verifyOtpRequest`,
-  `verifyAnswerRequest`, `resetPasswordFinalRequest`).
+  `verifyAnswerRequest`, `resetPasswordFinalRequest`,
+  `revokeSessionRequest`, `changeEmailRequestStart`,
+  `changeEmailConfirmRequest`).
 
 ## Rate-limit + device-block UX
 
