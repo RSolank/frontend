@@ -90,8 +90,7 @@ See [`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.m
    country. Once shipped, `shared/utils/countryTimezones.ts` can be
    dropped and `TimezoneSelect` can read straight from the API
    response.
-2. **Profile schema: persist `timezone`** so an explicit override
-   survives across logins. Frontend already sends `x-user-timezone`
-   on every request and includes `timezone` in the Profile PATCH
-   payload — Pydantic's `extra='ignore'` silently drops it until the
-   column lands.
+2. ~~Profile schema: persist `timezone`.~~ Shipped in BE Phase 1.9
+   on the new `user_preferences` row; FE wired in Platform FE
+   Batch 2 (`hydratePreferences()` + Account Preferences page Save
+   PATCHes `/api/users/preferences {currency, timezone}`).

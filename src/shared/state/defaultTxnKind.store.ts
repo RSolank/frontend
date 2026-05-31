@@ -8,12 +8,12 @@ import { persist } from 'zustand/middleware';
 // `getState()` (not subscribed) so editing this preference doesn't
 // retroactively flip an open form.
 //
-// Frontend-only (Zustand `persist` ⇒ `localStorage["default-txn-kind"]`)
-// by design — joins the other page-only stores (`useLandingRouteStore`,
-// `useDateFormatStore`, etc.). Backend persistence ask filed in
-// `.scratch/task-handoff-fe-to-be.md §7` ("Defaults cluster
-// persistence"); when the column lands, hydrate alongside currency /
-// timezone via the same boot flow.
+// Server-synced after BE Phase 1.9 — the `user_preferences` row's
+// `default_txn_kind` column is the SoT. Hydrated at boot by
+// `hydratePreferences()` and PATCHed back on user-driven setX by
+// `subscribeToPreferenceStores()` (see CONTRIBUTING.md §5).
+// Zustand `persist` (`localStorage["default-txn-kind"]`) is the
+// local cache that bridges between cold-boot and the GET response.
 
 export type DefaultTxnKind = 'debit' | 'credit';
 

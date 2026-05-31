@@ -293,35 +293,57 @@ Rules:
   backend's `/openapi.json` via `openapi-typescript`). When in doubt about
   a shape, regenerate before guessing.
 
-### User preferences contract (currency + timezone)
+### User preferences contract
 
-The backend's `UserPreferencesMiddleware`
-([`backend/app/core/middleware.py`](../backend/app/core/middleware.py))
-reads two headers from every incoming request and binds them to
-`request.state.preferences` + a `ContextVar` that the service layer
-queries via `get_current_preferences()`:
+After BE Phase 1.9 the backend keeps a dedicated `user_preferences`
+row per user and is the **single source of truth** for every
+cross-device preference. The legacy `x-user-currency` /
+`x-user-timezone` request-header middleware is retired — the FE no
+longer sends them.
 
-| Header | Default if absent | Source on frontend |
+The wire shape is `GET / PATCH /api/users/preferences` returning a
+flat object with these keys:
+
+| Key | Type | Store on frontend |
 |---|---|---|
-| `x-user-currency` | `USD` | `usePreferencesStore.currency` |
-| `x-user-timezone` | `UTC` | `usePreferencesStore.timezone` |
+| `currency` | ISO code string | `usePreferencesStore.currency` |
+| `timezone` | IANA tz string | `usePreferencesStore.timezone` |
+| `date_format` | `system \| dmy \| mdy \| ymd \| dmonth` | `useDateFormatStore.format` |
+| `number_format` | `system \| comma-dot \| dot-comma \| space-comma \| indian \| plain` | `useNumberFormatStore.format` |
+| `landing_route` | `/dashboard \| /transactions \| /budgets \| /consumption-tax` | `useLandingRouteStore.route` |
+| `default_txn_kind` | `debit \| credit` | `useDefaultTxnKindStore.kind` |
+| `underline_links` | boolean | `useLinkUnderlineStore.underline` |
+| `focus_ring_always` | boolean | `useFocusRingStore.alwaysVisible` |
 
-**The frontend is responsible for sending both on every authenticated
-request** so the backend's timezone-sensitive logic and currency-aware
-formatting see the user's real preferences rather than the defaults.
+PATCH accepts a partial body — sync side-effects always send a single
+field at a time.
 
-**Where the values come from:**
+**Hydrate / sync flow** (`features/users/api/preferences.ts`):
 
-- After login (and after token refresh / profile save), the auth flow
-  calls `GET /api/users/preferences` — returns
-  `{currency, country, timezone}` (currency/country from the profile row,
-  timezone resolved by the middleware from the country lookup).
-- The response populates `usePreferencesStore` (Zustand, in
-  `src/shared/state/preferences.store.ts` — **must live in `shared/`
-  because `shared/api/apiClient.ts` reads from it; `shared/` cannot
-  depend on `features/`**).
-- `apiClient.ts` injects both headers on every request, reading from the
-  store on each call.
+- `hydratePreferences()` issues `GET /api/users/preferences` and
+  writes every recognized field into its store. Called at boot
+  (`AuthInit`), post-login, and post-token-refresh / post-save.
+  Each enum / bool field is value-set guarded — anything outside
+  the known value-set is dropped and the store keeps its default
+  rather than landing in an invalid state. `currency` + `timezone`
+  retain the `sanitizePreferences` printable-ASCII filter
+  (protects the in-memory store from poisoned legacy rows).
+- `subscribeToPreferenceStores()` subscribes the 6 enum / bool
+  preference stores and fires a fire-and-forget PATCH on every
+  user-driven `setX()`. Idempotent — invoked once at module init
+  on first import. A `hydrating` guard suppresses the patch-back
+  during hydrate, so a boot doesn't trigger eight pointless writes.
+  Currency / timezone are PATCHed explicitly by the Account
+  Preferences page's Save handler (not by a subscriber), because
+  that's the only writer.
+
+**Dependency-direction rule** — the preference *stores* live in
+`shared/state/` (a typed store with no API dependency); the hydrate
++ subscribe layer lives in `features/users/api/preferences.ts` and
+imports from them. The 6 selector / toggle components in
+`shared/components/` keep using the raw store setters — the
+subscriber pattern means no `features/` import sneaks into
+`shared/components/`.
 
 **Rules every batch must follow:**
 

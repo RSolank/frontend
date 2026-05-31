@@ -7,10 +7,11 @@ import { persist } from 'zustand/middleware';
 // utilities (px-4, fixed icon sizes) stay constant on purpose — chrome
 // stays usable at larger zoom levels.
 //
-// Stored locally only — the backend's UserPreferencesMiddleware does not
-// (yet) carry a zoom column. A future batch can sync this to
-// /api/users/preferences if needed; for now, persistence is via the
-// Zustand `persist` middleware ⇒ `localStorage["zoom"]`.
+// Device accessibility — stays frontend-only by design. Per
+// docs/conventions.md → "Accessibility vs Preferences", text size
+// is device-shaped (the right zoom on a 32" monitor is wrong on a
+// 13" laptop), so it does NOT live in the `user_preferences` row.
+// Persistence is via Zustand `persist` ⇒ `localStorage["zoom"]`.
 
 export const ZOOM_MIN = 0.85;
 export const ZOOM_MAX = 1.4;

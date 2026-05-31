@@ -1,15 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Accessibility / personalization — picks the order and shape of every
-// user-facing date rendered through `formatDate` / `formatDateTime` in
+// Personalization — picks the order and shape of every user-facing
+// date rendered through `formatDate` / `formatDateTime` in
 // `shared/utils/dateUtils.ts`.
 //
-// Frontend-only (Zustand `persist` ⇒ `localStorage["date-format"]`) by
-// design. Does NOT follow the user across devices. Backend has no
-// `date_format` column today; when it lands, the same hydration shape
-// used for currency/timezone applies (extend `hydratePreferences()`
-// with one extra setter call). Until then this is on-device only.
+// Server-synced after BE Phase 1.9 — the `user_preferences` row's
+// `date_format` column is the SoT. Hydrated at boot by
+// `hydratePreferences()` and PATCHed back on user-driven setX by
+// `subscribeToPreferenceStores()` (see CONTRIBUTING.md §5).
+// Zustand `persist` (`localStorage["date-format"]`) is the local
+// cache that bridges between cold-boot and the GET response.
 
 export type DateFormatMode =
   | 'system' // Browser locale default, no override.

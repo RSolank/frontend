@@ -56,21 +56,23 @@ country than residence).
 
 ### Preferences
 
-Submits a partial PATCH to `/api/users/me` carrying only `country`,
-`currency`, `timezone`. On save, invalidates `userKeys.all` and runs
-`hydratePreferences()` so the
+After BE Phase 1.9 the page Save fans out two parallel PATCHes —
+`PATCH /api/users/me` carrying `{ country }` (identity slice) and
+`PATCH /api/users/preferences` carrying `{ currency, timezone }`
+(the preferences row's `currency` + `timezone` columns). On save,
+invalidates `userKeys.all` and runs `hydratePreferences()` so
 [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
-reflects the new values immediately — `x-user-currency` and
-`x-user-timezone` headers on subsequent requests, every
-`formatMoney` / `formatDate` call across the app, all stay in sync.
+reflects the new values immediately — every `formatMoney` /
+`formatDate` call across the app stays in sync.
 
 A "Defaults" card points users at `/account/accessibility` for the
-date format / number format / default landing controls (now
-shipped, frontend-only) and notes that cross-device sync of those
-+ default debit/credit on Add Transaction still needs backend
-columns — tracked in
-[`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.md)
-under "Backend follow-ups deferred" (defaults-cluster persistence).
+date format / number format / default landing route / default
+debit-credit / underline-links / focus-ring-always controls. All
+six are server-synced via the same `user_preferences` row (see
+[CONTRIBUTING.md §5](../../CONTRIBUTING.md#data-fetching--server-state)
+"User preferences contract") — `hydratePreferences()` writes to
+their stores at boot, and `subscribeToPreferenceStores()` PATCHes
+back on every user-driven `setX()`.
 
 ### Security
 

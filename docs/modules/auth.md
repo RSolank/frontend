@@ -67,16 +67,24 @@ carries an `errorElement` that resolves to
 
 ## User-preferences hydration
 
-Per CONTRIBUTING.md §5: every authenticated request injects
-`x-user-currency` and `x-user-timezone` headers from `usePreferencesStore`.
-This feature owns the hydration entry points:
+Per CONTRIBUTING.md §5: the backend's `user_preferences` row is the
+SoT for currency, timezone, and the six other server-synced
+preference fields. This feature owns the hydration entry points:
 
-- **Login success** — `useAuth.login()` calls `hydratePreferences()` →
-  `GET /api/users/preferences` → `usePreferencesStore.setPreferences(...)`.
+- **Login success** — `useAuth.login()` calls `hydratePreferences()`
+  → `GET /api/users/preferences` → writes every recognized field
+  into its store.
+- **Register success** — `useAuth.register()` calls
+  `hydratePreferences()` so the BE-seeded defaults (derived from
+  the registration `country`) reach the FE before the post-register
+  redirect.
 - **App boot (token already present)** — `AuthInit` calls
-  `refreshAuthUser()` + `hydratePreferences()` from a single `useEffect`.
+  `refreshAuthUser()` + `hydratePreferences()` from a single
+  `useEffect`.
 - **Logout** — `useAuth.logout()` calls `usePreferencesStore.reset()`
-  back to USD / UTC defaults.
+  back to USD / UTC defaults. The other six stores keep their last
+  value (cold-boot cache); the next login's hydrate overwrites them
+  with the new user's row.
 
 Profile updates invalidate `userKeys.preferences()` and call
 `setPreferences(...)` so changes propagate without a reload.

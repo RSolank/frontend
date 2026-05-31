@@ -245,19 +245,22 @@ graph.
     inline in [`index.html`](../index.html) before React mounts so
     there's no FOUC flash on first paint.
   - [`usePreferencesStore`](../src/shared/state/preferences.store.ts) —
-    currency + country + timezone. Persisted to
-    `localStorage["user-preferences"]`. Read by `apiClient.ts` on every
-    request to inject the `x-user-currency` and `x-user-timezone`
-    headers the backend reads. Defaults to USD / UTC, then hydrates from
-    `GET /api/users/preferences` after login.
+    currency + country + timezone slice of the `user_preferences`
+    contract. Persisted to `localStorage["user-preferences"]`. Hydrated
+    from `GET /api/users/preferences` after login; the Account
+    Preferences page Save handler PATCHes `{ currency, timezone }` back
+    to the same endpoint.
   - [`useAuthStore`](../src/shared/state/auth.store.ts) — authenticated
     user + constants, with `persist` for the access token; login/logout/
     refresh actions live in
     [`features/auth/state/useAuth.ts`](../src/features/auth/state/useAuth.ts).
-  - **Accessibility / on-device preference stores** (all
-    Zustand + `persist`, `localStorage` only, mirrored to `<html>`
-    via a `XBridge` in `app/providers.tsx` + no-FOUC inline script
-    in `index.html` where paint-time):
+  - **Device accessibility stores** — frontend-only, mirrored to
+    `<html>` via a `XBridge` in `app/providers.tsx` + no-FOUC inline
+    script in `index.html` where paint-time. Stay device-shaped (the
+    right value differs across user devices) so they don't live in
+    `user_preferences`:
+    - [`useThemeStore`](../src/shared/state/theme.store.ts) — light /
+      dark / system.
     - [`useZoomStore`](../src/shared/state/zoom.store.ts) — text
       size override (`<html>` fontSize).
     - [`useMotionStore`](../src/shared/state/motion.store.ts) —
@@ -266,6 +269,10 @@ graph.
       privacy mask (`html.mask-amounts`, blurs `.money` elements).
     - [`useContrastStore`](../src/shared/state/contrast.store.ts)
       — high-contrast palette (`html.high-contrast`).
+  - **Server-synced preference stores** — `localStorage` is the
+    cold-boot cache; `hydratePreferences()` writes the GET response
+    into each one, and `subscribeToPreferenceStores()` PATCHes back
+    on every user-driven `setX()`:
     - [`useLinkUnderlineStore`](../src/shared/state/linkUnderline.store.ts)
       — force `<a>` underlines (`html.underline-links`).
     - [`useFocusRingStore`](../src/shared/state/focusRing.store.ts)
@@ -278,22 +285,39 @@ graph.
     - [`useLandingRouteStore`](../src/shared/state/landingRoute.store.ts)
       — where login lands; read by `useAuth.login` and the
       already-authed `<LoginPage>` redirect.
+    - [`useDefaultTxnKindStore`](../src/shared/state/defaultTxnKind.store.ts)
+      — debit / credit default on the Add Transaction form.
 
 ## User preferences contract
 
-Mirrors the backend's `UserPreferencesMiddleware` (full spec:
-[CONTRIBUTING.md §5 "User preferences contract"](../CONTRIBUTING.md#user-preferences-contract-currency--timezone)).
+After BE Phase 1.9 the backend keeps a `user_preferences` row per
+user as the single source of truth for every cross-device
+preference. Full contract:
+[CONTRIBUTING.md §5 "User preferences contract"](../CONTRIBUTING.md#user-preferences-contract).
 Wiring:
 
-- **Store** — [`usePreferencesStore`](../src/shared/state/preferences.store.ts)
-  holds the live currency / country / timezone. Lives in `shared/` so
-  `apiClient.ts` can read it without features → shared violating the
-  dependency direction.
-- **Headers** — `apiClient.ts` calls `usePreferencesStore.getState()` on
-  every request and injects `x-user-currency` + `x-user-timezone`
-  alongside `Content-Type` + `Authorization`.
-  [`apiClient.test.ts`](../src/shared/api/apiClient.test.ts) pins this
-  via MSW request-capture.
+- **Stores** — currency / timezone live in
+  [`usePreferencesStore`](../src/shared/state/preferences.store.ts);
+  the other six fields live in their own typed stores under
+  `src/shared/state/` (see the bullet list above). Every store keeps
+  its existing `localStorage`-persist cache so cold-boot has a
+  reasonable value before the GET response arrives.
+- **Endpoint** — `GET / PATCH /api/users/preferences` is the only
+  wire surface. The retired `x-user-currency` / `x-user-timezone`
+  headers are no longer sent. PATCH accepts a partial body, so the
+  subscriber pattern always sends a single field at a time.
+- **Hydrate** — `features/users/api/preferences.ts:hydratePreferences()`
+  is called by `AuthInit` on boot, by `useAuth.login` post-login, and
+  by `useAuth.register` post-register. Writes every recognized field
+  to its store; enum/bool fields are value-set guarded so a drifting
+  server payload can't poison a typed store.
+- **Sync side-effect** — `subscribeToPreferenceStores()` (module-init,
+  idempotent) subscribes the six enum/bool preference stores and
+  fires a fire-and-forget PATCH on every user-driven `setX()`. A
+  `hydrating` guard suppresses patch-back during hydrate, so a boot
+  doesn't trigger eight pointless writes. Currency / timezone PATCH
+  is explicit (the Account Preferences page Save handler) since the
+  page is the only writer.
 - **Formatting** — every user-facing amount goes through
   [`formatMoney`](../src/shared/utils/currency.ts)
   (`${symbol}${amount}` / `${code} ${amount}` fallback); every
@@ -302,8 +326,6 @@ Wiring:
   `formatDateTime` (both require an explicit `tz`); date-input
   defaults use `todayInUserTz(tz)`; form submission goes back through
   `localToUtcIso(localDate, tz)`.
-- **Hydration** — the auth flow calls `GET /api/users/preferences` on
-  login/refresh and pipes the response through `setPreferences(...)`.
 - **Audit** — a grep of `src/features/` guards against any direct
   `toLocaleDateString` / `toLocaleString` / `${...} ${amount}` formatting
   that escapes the helpers.

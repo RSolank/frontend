@@ -1,15 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Accessibility / personalization — picks the thousands + decimal
-// separator pair used by every user-facing amount rendered through
-// `formatMoney` in `shared/utils/currency.ts`.
+// Personalization — picks the thousands + decimal separator pair used
+// by every user-facing amount rendered through `formatMoney` in
+// `shared/utils/currency.ts`.
 //
-// Frontend-only (Zustand `persist` ⇒ `localStorage["number-format"]`)
-// by design. Does NOT follow the user across devices. Backend has no
-// `number_format` column today; when it lands, the same hydration
-// shape used for currency/timezone applies. Until then this is
-// on-device only.
+// Server-synced after BE Phase 1.9 — the `user_preferences` row's
+// `number_format` column is the SoT. Hydrated at boot by
+// `hydratePreferences()` and PATCHed back on user-driven setX by
+// `subscribeToPreferenceStores()` (see CONTRIBUTING.md §5).
+// Zustand `persist` (`localStorage["number-format"]`) is the local
+// cache that bridges between cold-boot and the GET response.
 
 export type NumberFormatMode =
   | 'system' // Browser locale default, no override.

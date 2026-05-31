@@ -522,29 +522,37 @@ left in place.)
 
 ## Accessibility vs Preferences
 
-Locked 2026-05-26. Two
-distinct user-pref classes live in this app — they look similar
-but persist and surface differently:
+Locked 2026-05-26, reclassified 2026-06-01 after BE Phase 1.9 +
+Platform FE Batch 2. Two distinct user-pref classes live in this
+app — they look similar but persist and surface differently:
 
-- **Accessibility** — frontend-only, no backend column. Survive
-  reloads via `localStorage` (Zustand `persist`), do NOT follow
-  the user across devices. Implemented as small Zustand stores
-  with a `bridge` in `app/providers.tsx` that mirrors store state
-  onto the `<html>` element (class or style). No-FOUC inline in
-  `index.html` paints the initial state before React mounts.
-  Examples: theme (light / dark / system), text size (zoom),
-  reduced motion, privacy mask. Surfaced under a single
-  **Accessibility** group — `<AccessibilityPopover />` on desktop
-  (a single icon button in the top bar opening a popover with all
-  four controls) and a dedicated **ACCESSIBILITY** section in the
-  mobile drawer.
-- **Preferences** — backend-persisted, follow the user across
-  devices via the preference-headers contract (§5 above). Examples:
-  currency, country, timezone. Surfaced on the account surface
-  (`/account/preferences`). The "defaults" cluster (default landing
-  route, default debit/credit on Add Transaction, date-format /
-  number-format overrides) belongs to this group; some of those still
-  need backend columns (a deferred backend follow-up).
+- **Device accessibility** — frontend-only, no backend column.
+  Survive reloads via `localStorage` (Zustand `persist`), do NOT
+  follow the user across devices. Implemented as small Zustand
+  stores with a `bridge` in `app/providers.tsx` that mirrors store
+  state onto the `<html>` element (class or style). No-FOUC inline
+  in `index.html` paints the initial state before React mounts.
+  These are device-shaped settings — the right value on the user's
+  desktop may be wrong on their phone. Examples: theme (light /
+  dark / system), text size (zoom), reduced motion, privacy mask.
+  Surfaced under a single **Accessibility** group —
+  `<AccessibilityPopover />` on desktop (a single icon button in
+  the top bar opening a popover with all four controls) and a
+  dedicated **ACCESSIBILITY** section in the mobile drawer.
+- **Preferences** — backend-persisted via the `user_preferences`
+  row (§5 above); follow the user across devices. Hydrated at boot
+  by `hydratePreferences()`, and every user-driven `setX()` fires
+  a PATCH side-effect via `subscribeToPreferenceStores()`. The
+  full SoT set is: currency, timezone, date_format, number_format,
+  landing_route, default_txn_kind, underline_links,
+  focus_ring_always. **Note:** underline-links and focus-ring-
+  always *are* a11y flags by behaviour (they affect contrast /
+  visible focus) but live in Preferences because the right value
+  is a property of the *user*, not the *device* — a user who needs
+  a visible focus ring on their laptop needs it on their phone
+  too. Surfaced on the account surface — currency / timezone /
+  country on `/account/preferences`, the rest on
+  `/account/accessibility` (UI grouping by feel, not by SoT).
 
 **Pattern for new Accessibility surfaces** (in case more get
 added):
