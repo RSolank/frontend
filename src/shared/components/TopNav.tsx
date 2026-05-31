@@ -11,18 +11,20 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
-import { ContrastToggle } from './ContrastToggle';
-import { MotionToggle } from './MotionToggle';
-import { PrivacyToggle } from './PrivacyToggle';
-import { ThemeOptions } from './ThemeOptions';
+import { ProfileImage } from './ProfileImage';
 import { ThemeToggle } from './ThemeToggle';
-import { ZoomSlider } from './ZoomSlider';
+
+// The 5 inline accessibility toggles inside the mobile drawer are
+// deferred via the same lazy chunk the desktop popover uses — they
+// only matter when the drawer is open, which is rare per session
+// (the drawer is mobile-only). Frees ~1.5 kB gz from first-paint.
+const AccessibilityPanel = lazy(() => import('./AccessibilityPanel'));
 
 interface TopNavProps {
   onLogout: () => void | Promise<void>;
@@ -50,14 +52,6 @@ const SETTINGS_LINKS: NavLinkSpec[] = [
   { to: '/settings/categorization-rules', label: 'Categorization Rules' },
   { to: '/settings/taxation-rules', label: 'Taxation Rules' },
 ];
-
-function initialsFor(email: string, firstName?: string, lastName?: string) {
-  if (firstName && lastName) {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  }
-  if (firstName) return firstName.slice(0, 2).toUpperCase();
-  return (email[0] ?? '?').toUpperCase();
-}
 
 function mainLinkClass({ isActive }: { isActive: boolean }): string {
   return [
@@ -348,11 +342,15 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             <span>Accessibility</span>
             <ChevronRight aria-hidden="true" size={14} />
           </Link>
-          <ThemeOptions />
-          <ZoomSlider />
-          <MotionToggle />
-          <PrivacyToggle />
-          <ContrastToggle />
+          <Suspense
+            fallback={
+              <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+                Loading toggles…
+              </div>
+            }
+          >
+            <AccessibilityPanel showMoreLink={false} />
+          </Suspense>
 
           <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
@@ -413,13 +411,17 @@ function DrawerSection({ label, links }: DrawerSectionProps) {
 }
 
 interface UserDropdownProps {
-  user: { email_id: string; first_name?: string; last_name?: string };
+  user: {
+    email_id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string | null;
+  };
   onLogout: () => void | Promise<void>;
 }
 
 function UserDropdown({ user, onLogout }: UserDropdownProps) {
   const email = user.email_id;
-  const initials = initialsFor(email, user.first_name, user.last_name);
 
   return (
     <DropdownMenu.Root modal={false}>
@@ -428,9 +430,15 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
           type="button"
           aria-label="Account menu"
           title={email}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:ring-offset-slate-950"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-indigo-300 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
         >
-          {initials}
+          <ProfileImage
+            profileImageUrl={user.profile_image_url ?? null}
+            email={email}
+            firstName={user.first_name ?? null}
+            lastName={user.last_name ?? null}
+            sizeClassName="h-11 w-11"
+          />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>

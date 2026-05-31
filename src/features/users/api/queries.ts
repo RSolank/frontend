@@ -8,7 +8,9 @@ import { userKeys } from './keys';
 // `GET /api/users/me` returns identity only after BE Phase 1.9 —
 // currency moved to `/api/users/preferences` (the new server SoT for
 // preferences). Timezone follows the same logic; surface it from the
-// preferences query, not from /me.
+// preferences query, not from /me. `profile_image_url` is the BE
+// Phase 1.13 single nullable field that carries `null` (initials),
+// `/media/presets/<id>.webp`, or `/media/profile-images/<user>/<uuid>.webp`.
 export interface UserProfile {
   user_id: number;
   email_id: string;
@@ -17,6 +19,7 @@ export interface UserProfile {
   dob?: string | null;
   contact?: string | null;
   country?: string | null;
+  profile_image_url?: string | null;
   [key: string]: unknown;
 }
 
@@ -73,6 +76,33 @@ export function fetchCurrentUser(): Promise<UserMeResponse> {
 
 export function fetchUserPreferences(): Promise<PreferencesResponse> {
   return apiFetch<PreferencesResponse>(routes.users.preferences());
+}
+
+// BE Phase 1.13 — 12 shared geometric Pillow-rendered tiles served
+// from `/media/presets/<id>.webp`. The `url` field is the path the
+// FE feeds straight to `<ProfileImage profileImageUrl=...>` (or any
+// `<img>` after prefixing with `VITE_API_URL`).
+export interface ProfileImagePreset {
+  id: string;
+  url: string;
+}
+
+interface PresetsResponse {
+  presets?: ProfileImagePreset[];
+}
+
+export function fetchProfileImagePresets(): Promise<PresetsResponse> {
+  return apiFetch<PresetsResponse>(routes.users.profileImagePresets());
+}
+
+export function useProfileImagePresetsQuery(enabled = true) {
+  return useQuery({
+    queryKey: userKeys.profileImagePresets(),
+    queryFn: async () => (await fetchProfileImagePresets()).presets ?? [],
+    enabled,
+    // Presets only change between deploys.
+    staleTime: 60 * 60 * 1000,
+  });
 }
 
 export function fetchRecoveryQuestions(): Promise<RecoveryListResponse> {

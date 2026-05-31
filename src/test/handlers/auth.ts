@@ -47,4 +47,18 @@ export const authHandlers = [
   http.post('http://localhost:4000/api/auth/recovery', () =>
     HttpResponse.json({ status: 'ok' })
   ),
+  // Sessions list — empty by default; tests override with
+  // `server.use(http.get('/api/auth/sessions', ...))` for richer data.
+  http.get('http://localhost:4000/api/auth/sessions', () =>
+    HttpResponse.json({ sessions: [] })
+  ),
+  // BE Phase 2.8 email-change — happy path defaults. Tests override
+  // via `server.use(...)` to exercise 401/409/429/etc.
+  http.post('http://localhost:4000/api/auth/change-email-request', () =>
+    HttpResponse.json({ status: 'ok' })
+  ),
+  http.post('http://localhost:4000/api/auth/change-email-confirm', async ({ request }) => {
+    await request.json();
+    return HttpResponse.json({ status: 'ok', email: 'new@example.test' });
+  }),
 ];

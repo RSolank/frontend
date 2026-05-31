@@ -131,11 +131,35 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    throw await buildApiError(res);
+    const err = await buildApiError(res);
+    handleAccountPendingDeletion(err);
+    throw err;
   }
 
   if (res.status === 204) return {} as T;
   return (await res.json()) as T;
+}
+
+// BE Phase 2.1 — while an account is in the 14-day soft-delete grace
+// window, EVERY authenticated request returns
+// `403 {detail: "ACCOUNT_PENDING_DELETION"}`. Hard-logout the tab and
+// redirect to /account/cancel-deletion so the user sees the cancel
+// flow instead of a cryptic toast. The page handles the no-token
+// informational mode in addition to the email-link cancel flow.
+function handleAccountPendingDeletion(err: ApiError): void {
+  if (err.status !== 403) return;
+  if (err.detail !== 'ACCOUNT_PENDING_DELETION') return;
+  // Avoid a redirect loop if the cancel-deletion page itself triggers
+  // the 403 (it shouldn't — the cancel endpoint is unauthenticated —
+  // but be defensive).
+  if (typeof window !== 'undefined') {
+    if (window.location.pathname.startsWith('/account/cancel-deletion')) {
+      return;
+    }
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/account/cancel-deletion';
+  }
 }
 
 // Builds the `ApiError` thrown on a non-2xx response. Extracted out

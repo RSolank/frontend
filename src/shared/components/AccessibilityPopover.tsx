@@ -1,12 +1,11 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 
-import { ContrastToggle } from './ContrastToggle';
-import { MotionToggle } from './MotionToggle';
-import { PrivacyToggle } from './PrivacyToggle';
-import { ThemeOptions } from './ThemeOptions';
-import { ZoomSlider } from './ZoomSlider';
+// The 5 toggles inside the popover are deferred into a lazy chunk —
+// only loaded when the user opens this surface. Frees the first-
+// paint bundle of ~1.5 kB gz (CONTRIBUTING.md §3 ratchet, Platform
+// FE Batch 5).
+const AccessibilityPanel = lazy(() => import('./AccessibilityPanel'));
 
 // Desktop-only popover with the five most-flipped accessibility
 // controls: theme, text size, reduced motion, privacy mask, and
@@ -66,20 +65,15 @@ export function AccessibilityPopover() {
           aria-label="Accessibility settings"
           className="absolute right-0 z-50 mt-2 w-80 rounded-md border border-slate-200 bg-white py-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
         >
-          <ThemeOptions />
-          <ZoomSlider />
-          <MotionToggle />
-          <PrivacyToggle />
-          <ContrastToggle />
-          <div className="mt-1 border-t border-slate-100 px-4 py-2 dark:border-slate-800">
-            <Link
-              to="/account/accessibility"
-              onClick={() => setOpen(false)}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300"
-            >
-              More accessibility settings →
-            </Link>
-          </div>
+          <Suspense
+            fallback={
+              <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+                Loading…
+              </div>
+            }
+          >
+            <AccessibilityPanel onClose={() => setOpen(false)} />
+          </Suspense>
         </div>
       )}
     </div>

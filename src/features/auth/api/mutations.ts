@@ -86,3 +86,44 @@ export function resetPasswordFinalRequest(
     body: JSON.stringify({ reset_token, new_password }),
   });
 }
+
+export function revokeSessionRequest(
+  session_id: number
+): Promise<unknown> {
+  return apiFetch<unknown>(routes.auth.sessionById(session_id), {
+    method: 'DELETE',
+  });
+}
+
+// BE Phase 2.8 — authenticated email change. `code` is required
+// when the user has 2FA on; FE omits it initially and reveals the
+// field on a 401 (the BE response disambiguates wrong-password vs
+// missing-code only via the front-channel "did 2FA fail?" hint).
+export interface ChangeEmailRequestPayload {
+  new_email: string;
+  password: string;
+  code?: string;
+}
+
+export function changeEmailRequestStart(
+  payload: ChangeEmailRequestPayload
+): Promise<unknown> {
+  return apiFetch<unknown>(routes.auth.changeEmailRequest(), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface ChangeEmailConfirmResponse {
+  status?: string;
+  email?: string;
+}
+
+export function changeEmailConfirmRequest(
+  otp: string
+): Promise<ChangeEmailConfirmResponse> {
+  return apiFetch<ChangeEmailConfirmResponse>(routes.auth.changeEmailConfirm(), {
+    method: 'POST',
+    body: JSON.stringify({ otp }),
+  });
+}

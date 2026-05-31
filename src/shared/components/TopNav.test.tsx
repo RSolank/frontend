@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,7 +68,7 @@ describe('TopNav', () => {
     expect(screen.queryByText('About')).not.toBeInTheDocument();
   });
 
-  it('opens the mobile drawer with all sections + ThemeToggle + Profile + Sign Out', () => {
+  it('opens the mobile drawer with all sections + ThemeToggle + Profile + Sign Out', async () => {
     setUser({ user_id: 1, email_id: 'a@b.c', first_name: 'A', last_name: 'B' });
     renderNav();
 
@@ -102,10 +102,13 @@ describe('TopNav', () => {
     ).toHaveAttribute('href', '/settings/taxation-rules');
     // Accessibility section header.
     expect(within(drawer).getByText(/^Accessibility$/i)).toBeInTheDocument();
-    // ThemeOptions segmented row (3 icon buttons).
-    expect(
-      within(drawer).getByRole('button', { name: /light theme/i })
-    ).toBeInTheDocument();
+    // ThemeOptions segmented row (3 icon buttons) — lives inside the
+    // lazy-loaded AccessibilityPanel chunk; wait for it to resolve.
+    await waitFor(() =>
+      expect(
+        within(drawer).getByRole('button', { name: /light theme/i })
+      ).toBeInTheDocument()
+    );
     expect(
       within(drawer).getByRole('button', { name: /dark theme/i })
     ).toBeInTheDocument();

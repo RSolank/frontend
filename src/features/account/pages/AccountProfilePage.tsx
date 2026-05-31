@@ -5,6 +5,7 @@ import { DateField } from '../../../shared/components/DateField';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
 import { useCurrentUserQuery } from '../../users/api/queries';
+import { ProfileImagePicker } from '../components/ProfileImagePicker';
 import { UserStatsCard } from '../components/UserStatsCard';
 
 interface FormState {
@@ -111,6 +112,17 @@ export function AccountProfilePage() {
   // top edge aligns with the sidebar's first NavLink top edge.
   return (
     <div className="space-y-6">
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Profile picture
+        </h2>
+        <ProfileImagePicker
+          profileImageUrl={user.profile_image_url ?? null}
+          email={user.email_id}
+          firstName={user.first_name ?? null}
+          lastName={user.last_name ?? null}
+        />
+      </div>
       <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
         <form onSubmit={handleSubmit} className="grid gap-3">
           <div>

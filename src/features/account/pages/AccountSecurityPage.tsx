@@ -10,6 +10,8 @@ import {
   fetchRecoveryQuestions,
   type RecoveryQuestionItem,
 } from '../../users/api/queries';
+import { EmailChangeForm } from '../components/EmailChangeForm';
+import { SessionList } from '../components/SessionList';
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first school?',
@@ -266,18 +268,24 @@ export function AccountSecurityPage() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-6 dark:border-slate-700 dark:bg-slate-900/40">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Change email
+        </h2>
+        <EmailChangeForm />
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
           Active sessions
         </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Coming soon. The backend already tracks sessions in{' '}
-          <code className="rounded bg-slate-200 px-1 py-0.5 text-xs dark:bg-slate-800">
-            user_sessions
-          </code>{' '}
-          but no list/revoke endpoint is exposed yet. Tracked under
-          &ldquo;Backend follow-ups&rdquo; in the implementation plan.
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Devices currently signed in to your account. Revoke any you
+          don&rsquo;t recognise — the affected device will be signed
+          out immediately. Backend enforces a 5-session cap; new
+          sign-ins evict the oldest device.
         </p>
+        <SessionList />
       </div>
     </div>
   );

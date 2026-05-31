@@ -65,11 +65,15 @@ describe('AccountSecurityPage', () => {
     );
   });
 
-  it('renders the active-sessions coming-soon placeholder', () => {
+  it('renders the active-sessions card backed by /api/auth/sessions', async () => {
     renderPage();
     expect(
       screen.getByRole('heading', { name: 'Active sessions' })
     ).toBeInTheDocument();
-    expect(screen.getByText(/Coming soon/i)).toBeInTheDocument();
+    // Default MSW handler returns an empty session list — the
+    // SessionList renders the empty state inline.
+    await waitFor(() =>
+      expect(screen.getByText(/No active sessions/i)).toBeInTheDocument()
+    );
   });
 });

@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
 import { accountRoutes } from '../features/account/account.routes';
@@ -14,11 +15,23 @@ import { HelpPage } from './pages/Help';
 import { HomePage } from './pages/Home';
 import { protectedRoutes } from './routeHelpers';
 
+// `/account/cancel-deletion` is unauthenticated by design — the user
+// IS logged out while the BE central lock is active, and the email
+// link is the canonical entry point. Lives outside `accountRoutes`
+// (which sit inside ProtectedRoute) so reaching it doesn't bounce
+// through the login gate.
+const CancelDeletionPage = lazy(() =>
+  import('../features/account/pages/CancelDeletionPage').then((m) => ({
+    default: m.CancelDeletionPage,
+  }))
+);
+
 // Public-facing routes (no auth gate). The auth feature owns /login and
 // /register from Batch 2 onwards.
 const publicRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
   { path: '/help', element: <HelpPage /> },
+  { path: '/account/cancel-deletion', element: <CancelDeletionPage /> },
   ...authRoutes,
 ];
 

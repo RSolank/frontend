@@ -36,12 +36,22 @@ export const routes = {
     changePassword: () => `${V}/auth/change-password`,
     // `/api/auth/recovery` — list (GET) + upsert (POST) recovery Q&A.
     recovery: () => `${V}/auth/recovery`,
+    sessions: () => `${V}/auth/sessions`,
+    sessionById: (sessionId: number | string) =>
+      `${V}/auth/sessions/${sessionId}`,
+    changeEmailRequest: () => `${V}/auth/change-email-request`,
+    changeEmailConfirm: () => `${V}/auth/change-email-confirm`,
   },
 
   users: {
     me: () => `${V}/users/me`,
     meStats: () => `${V}/users/me/stats`,
     preferences: () => `${V}/users/preferences`,
+    profileImagePresets: () => `${V}/users/profile-image-presets`,
+    profileImage: () => `${V}/users/me/profile-image`,
+    profileImagePreset: () => `${V}/users/me/profile-image/preset`,
+    delete: () => `${V}/users/me/delete`,
+    deleteCancel: () => `${V}/users/me/delete/cancel`,
   },
 
   metadata: {
@@ -49,6 +59,11 @@ export const routes = {
     countries: () => `${V}/metadata/countries`,
     currencies: () => `${V}/metadata/currencies`,
     timezones: () => `${V}/metadata/timezones`,
+  },
+
+  exports: {
+    resource: (resource: string, format: 'csv' | 'json') =>
+      `${V}/exports/${resource}?format=${format}`,
   },
 
   beneficiaries: {
