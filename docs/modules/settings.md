@@ -3,8 +3,7 @@
 > Composes the three settings surfaces (categories, categorization
 > rules, taxation rules) under a single `/settings/*` URL space with a
 > shared sidebar + breadcrumb. Lives at
-> [`src/features/settings/`](../../src/features/settings/). Landed in
-> Batch 9.
+> [`src/features/settings/`](../../src/features/settings/).
 
 ## Purpose
 

@@ -33,9 +33,8 @@ carries an `errorElement` that resolves to
 - `components/AuthErrorFallback.tsx` — per-route `errorElement`.
 - `recovery/components/RecoveryFlow.tsx` — multi-step forgot-password UI
   (email → choice → question / OTP → reset).
-- `../metadata/components/TimezoneSelect.tsx` — single / multi / unknown
-  timezone selector built early in Batch 2 because Register needs it;
-  Batch 3 reuses it in Profile.
+- `shared/components/TimezoneSelect.tsx` — single / multi / unknown
+  timezone selector; used by Register and by the account Profile form.
 
 ## State
 
@@ -56,8 +55,8 @@ carries an `errorElement` that resolves to
 - `api/schemas.ts` — Zod schemas for login / register / recovery inputs.
   `registerFormSchema` shapes the RHF form state; `RegisterPayload`
   shapes the wire body sent to `/api/auth/register` (`timezone` field
-  included; see CONTRIBUTING.md §5 + the "Backend follow-ups" section
-  of `docs/refactor/implementation_plan.md`).
+  included; see CONTRIBUTING.md §5 + the "Backend follow-ups deferred"
+  section of `docs/archive/refactor-v1.0/summary.md`).
 - `api/queries.ts` — `useCurrentUserQuery`, `useUserPreferencesQuery`,
   plus imperative `fetchCurrentUser` / `fetchUserPreferences` used by
   `state/useAuth.ts`.
@@ -79,9 +78,8 @@ This feature owns the hydration entry points:
 - **Logout** — `useAuth.logout()` calls `usePreferencesStore.reset()`
   back to USD / UTC defaults.
 
-Profile updates (Batch 3) will invalidate
-`userKeys.preferences()` and call `setPreferences(...)` so changes
-propagate without a reload.
+Profile updates invalidate `userKeys.preferences()` and call
+`setPreferences(...)` so changes propagate without a reload.
 
 ## Register form: country / locale / timezone defaulting
 
@@ -107,7 +105,7 @@ propagate without a reload.
   hydration + recovery entry.
 - `features/auth/pages/RegisterPage.test.tsx` — country/timezone default,
   payload shape (timezone included), password gate.
-- `features/metadata/components/TimezoneSelect.test.tsx` — single /
+- `shared/components/TimezoneSelect.test.tsx` — single /
   multi / unknown branches + override expansion.
 - `shared/components/ProtectedRoute.test.tsx` — unchanged behaviour
   against `useAuthStore` instead of the old context.
@@ -117,9 +115,9 @@ MSW handlers live at
 with permissive defaults; tests override via `server.use(...)` to
 assert error paths.
 
-## Batch 6.5 — hybrid auth + extracted form components
+## Hybrid auth + extracted form components
 
-The form bodies moved out of `pages/LoginPage.tsx` and
+The form bodies live outside `pages/LoginPage.tsx` and
 `pages/RegisterPage.tsx` into shared
 `components/LoginForm.tsx` + `components/RegisterForm.tsx`. The page
 wrappers shrink to thin shells; the same forms also mount inside

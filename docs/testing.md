@@ -28,6 +28,24 @@ The `error` mode means any test that hits a real fetch without a
 matching handler fails. Tests can register one-off handlers via
 `server.use(...)` inside the test body.
 
+## Known issue — the committed service worker
+
+`public/mockServiceWorker.js` is committed deliberately (so a future
+browser-mode MSW or Storybook setup can adopt it), but the app never
+calls `worker.start()`, so it should never run. If it ever gets
+registered as a browser service worker it **silently breaks login and
+every dev fetch**: the console shows `TypeError: Failed to fetch`,
+DevTools → Network shows no request at all, and the backend logs
+nothing.
+
+- **Diagnose:** DevTools → Application → Service Workers; if
+  `mockServiceWorker.js` is listed, it's the culprit.
+- **Fix:** DevTools → Application → Storage → "Clear site data" (or
+  "Unregister" on the SW entry).
+- **Kill-switch (if it recurs):** delete `public/mockServiceWorker.js`
+  outright — nothing in the codebase needs it; `npx msw init public/
+  --save` regenerates it when a batch actually adopts browser MSW.
+
 ## Adding a feature handler
 
 1. Drop a file in `src/test/handlers/<feature>.ts` exporting a handler

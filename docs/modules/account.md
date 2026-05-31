@@ -2,18 +2,17 @@
 
 > The five-section user-management area at `/account/*` — profile,
 > security, privacy, accessibility, preferences. Lives at
-> [`src/features/account/`](../../src/features/account/). Landed in
-> Batch 9.
+> [`src/features/account/`](../../src/features/account/).
 
 ## Purpose
 
 - Reorganize the user-related surface from a monolithic ProfilePage
   into a multi-section area with a shared layout + sidebar, mirroring
-  the Batch 9 Settings shell.
+  the Settings shell.
 - Separate **frontend-persisted accessibility prefs** (theme / zoom /
   motion / privacy-mask) from **backend-persisted preferences**
   (currency / country / timezone / future defaults), each on its own
-  section, per the CONTRIBUTING.md §6 "Accessibility vs Preferences"
+  section, per [`docs/conventions.md`](../conventions.md) "Accessibility vs Preferences"
   contract.
 - Give security knobs (password, recovery question, future active
   sessions) their own focused surface.
@@ -70,8 +69,8 @@ date format / number format / default landing controls (now
 shipped, frontend-only) and notes that cross-device sync of those
 + default debit/credit on Add Transaction still needs backend
 columns — tracked in
-[`docs/refactor/implementation_plan.md`](../refactor/implementation_plan.md)
-under "Backend follow-ups → Defaults cluster persistence".
+[`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.md)
+under "Backend follow-ups deferred" (defaults-cluster persistence).
 
 ### Security
 
@@ -121,8 +120,8 @@ toggle in either surface updates this page live and vice versa.
 user across devices** (Zustand `persist` middleware, one
 `localStorage` key per store). To make any of them sync, the
 backend needs a column on `UserProfile` and the corresponding
-hydrate path; see "Backend follow-ups" in
-[`implementation_plan.md`](../refactor/implementation_plan.md).
+hydrate path; see "Backend follow-ups deferred" in
+[`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.md).
 
 The contrast / underline / focus toggles are page-only for now —
 the AccessibilityPopover stays compact (the original four). If

@@ -1,7 +1,7 @@
 # Users feature
 
-> Mirrors `backend/app/modules/users`. As of Batch 9 this feature
-> ships **no pages of its own** — the Profile UI was split into the
+> Mirrors `backend/app/modules/users`. This feature ships **no pages of
+> its own** — the Profile UI was split into the
 > [Account surface](account.md) at `/account/*`. The feature still
 > owns the `/api/users/me` and `/api/users/preferences` API hooks
 > (plus a couple of `/api/auth/*` helpers exclusively consumed by the

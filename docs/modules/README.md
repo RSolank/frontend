@@ -12,7 +12,7 @@ readers should be able to open the page on either side and map it
   account surface.
 - [`metadata.md`](metadata.md) — **no longer a feature.** The read-only
   reference data (countries / currencies) + the Country/Currency/Timezone
-  pickers were dissolved into `shared/` in Batch 10 (infra, not a feature):
+  pickers were dissolved into `shared/` (infra, not a feature):
   `shared/api/referenceData.ts` + `shared/components/*Select.tsx`. Page
   kept as a pointer.
 - [`tags.md`](tags.md) — hierarchical tags + tag types + aliases.

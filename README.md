@@ -26,7 +26,7 @@ npm run dev        # Vite dev server on :5173
 | `npm test` | Vitest run (happy-dom), coverage-free for speed |
 | `npm run coverage` | Vitest run with v8 coverage → `coverage/` |
 | `npm run typecheck` | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`) |
-| `npm run lint` | ESLint (gate: 0 errors; warnings allowed) |
+| `npm run lint` | ESLint (gate: 0 errors / 0 warnings) |
 | `npm run format` / `format:check` | Prettier |
 | `npm run size` | `size-limit` bundle budgets |
 | `npm run gen:api` | Regenerate `src/shared/types/api.ts` from the backend OpenAPI schema |
@@ -63,9 +63,12 @@ Key conventions:
 
 Full detail:
 
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how we work: architecture
+  principles, tooling, the code-quality gates, testing.
+- [`docs/conventions.md`](docs/conventions.md) — the component / UI
+  patterns to follow when building a feature (the playbook).
 - [`docs/architecture.md`](docs/architecture.md) — layout, routing, data
   fetching, state, toolchain gates, user-preferences contract.
 - [`docs/modules/`](docs/modules/) — one page per feature.
 - [`docs/testing.md`](docs/testing.md) — Vitest + MSW + coverage.
 - [`docs/performance.md`](docs/performance.md) — bundle budgets.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — the convention catalog (§1–§10).

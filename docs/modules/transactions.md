@@ -58,7 +58,7 @@ The list filters (page / sort / view-mode / tag / month /
 beneficiary-id filter) are page-local `useState` rather than URL
 search params — keeps the legacy behaviour where back-navigating from
 the Add page reuses the prior filter state. URL-driven filters are a
-post-Batch-9 polish, not in scope here.
+a future polish, not in scope here.
 
 ## API
 
@@ -93,7 +93,7 @@ Endpoints touched:
 
 ## Responsive
 
-Per CONTRIBUTING.md §6:
+Per [`docs/conventions.md`](../conventions.md):
 
 - TransactionsPage table scrolls *inside its card*
   (`overflow-x-auto` on the wrapper + `min-w-[36rem]` on the
@@ -120,19 +120,18 @@ Per CONTRIBUTING.md §6:
   startup path doesn't pay for a hook).
 - **Reads `fetchBeneficiaries`** from
   `features/beneficiaries/api/queries` for the BeneficiarySearch
-  dropdown; same direction as Batch 4 set (beneficiaries → tags,
-  transactions → both).
-- **Reads `useCurrenciesQuery`** from `features/metadata/api/queries`
+  dropdown (beneficiaries → tags, transactions → both).
+- **Reads `useCurrenciesQuery`** from `shared/api/referenceData`
   so TransactionsPage can resolve `code → symbol` for the
   `formatMoney` calls. Currency code itself comes from
   `usePreferencesStore` (the source of truth for the header).
 - **Imports `createCategorizationRule`** from
   `features/beneficiaries/api/mutations.ts`. That helper sits in the
-  beneficiaries feature per Batch 4's choice — creating a rule from
-  a transaction's beneficiary + tag pair is the same write that
-  BeneficiaryFormFields uses, and we keep one canonical home for the
-  rule mutation surface (Batch 6's categorization feature will read
-  / manage rules but won't relocate the writes).
+  beneficiaries feature — creating a rule from a transaction's
+  beneficiary + tag pair is the same write that BeneficiaryFormFields
+  uses, so the rule mutation surface keeps one canonical home; the
+  categorization feature reads / manages rules but doesn't relocate
+  the writes.
 
 ## Money + date formatting
 
@@ -156,10 +155,9 @@ transactions feature doesn't yet have permissive defaults in
 `src/test/handlers/`. Future batches that hit the same endpoints can
 promote a shared `transactions.ts` handler if convergence emerges.
 
-## Batch 6.5 — modal-first CRUD on the list
+## Modal-first CRUD on the list
 
-`TransactionsPage.tsx` now hosts add / edit / delete as modals over
-the list:
+`TransactionsPage.tsx` hosts add / edit / delete as modals over the list:
 
 - **Add** — `+ Add Transaction` button calls
   `useModal({ urlKey: 'add' }).open()`. The modal mounts
@@ -175,14 +173,14 @@ The legacy routes `/add-transaction` and `/transactions/:id/edit`
 have become **redirects** (`transactions.routes.tsx`) that bounce to
 `/transactions?add=true` and `/transactions?edit=<id>` respectively.
 Deep links from older bookmarks still land on the canonical modal
-surface; the route URL renames are deferred to Batch 9 per the plan.
+surface via these redirect aliases.
 
 The `AddTransactionPage` / `EditTransactionPage` modules remain
 mount-as-page-able because of the `embedded` flag — when `true` they
 skip their outer card + h1 (the modal supplies them); when `false`
 (default) they render with their original page chrome.
 
-## Batch 9.6 — View system, calendar, filter sidebar, infinite scroll
+## View system — calendar, filter sidebar, infinite scroll
 
 Overhaul of the page chrome alongside the calendar view. Single source
 of truth for every filter is the URL via `useTransactionFilters`
@@ -195,7 +193,7 @@ filter deep-links shareable.
 `[ List | Merchant | Calendar ]` driven by `?view=list|merchant|calendar`.
 All three are sibling views — List and Calendar are visualizations,
 Merchant is a server-side `group_by` aggregation. The earlier "List
-View / Merchant View" inner toggle (post-Batch-6.5) is gone; Merchant
+View / Merchant View" inner toggle is gone; Merchant
 is a top-level peer.
 
 ### Filter sidebar
@@ -232,8 +230,8 @@ component, fully responsive:
   `formatDate(..., { weekday: 'short', month: 'short', day: 'numeric' }, respectUserFormat=false)`.
   Tags as chips inline before the amount. Amount right-aligned, tabular
   numerals. `⋯` button on the far right is the view + edit affordance
-  (per the "modal-as-view+edit" convention locked in this batch — see
-  CONTRIBUTING.md §6).
+  (per the DetailModal convention — see
+  [`docs/conventions.md`](../conventions.md)).
 - **Mobile < md:** same `<ul>` reflows to `flex-col` per row, name
   above amount, tags wrap; functionally a card without the explicit
   border. Same DOM, different shape — Tailwind responsive utilities
@@ -287,7 +285,7 @@ Responsive shape:
 Both surfaces render simultaneously and Tailwind's `lg:` breakpoint
 controls visibility. Keyboard nav (arrow keys move focus; Enter /
 Space opens the day) works on whichever grid is mounted, per
-[CONTRIBUTING.md §6](../../CONTRIBUTING.md) a11y contract.
+[`docs/conventions.md`](../conventions.md) a11y contract.
 
 **Data flow.** Calendar mode issues its own `useTransactionsQuery`
 with `month=<YYYY-MM>` and no debit/credit filter — page filters
@@ -319,7 +317,7 @@ All pure functions; tests under `api/calendar.test.ts`.
 
 **Week convention** — ISO 8601 (Mon → Sun), per the project
 convention locked alongside this batch
-([CONTRIBUTING.md §6 "Week convention"](../../CONTRIBUTING.md)).
+([`docs/conventions.md` "Week convention"](../conventions.md)).
 `weekRangeInTz` from
 [`features/taxation/api/billPeriod.ts`](../../src/features/taxation/api/billPeriod.ts)
 is the canonical helper; the calendar's month grid pads to full

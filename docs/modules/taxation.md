@@ -26,28 +26,17 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/consumption-tax` | `pages/TaxTrackerPage.tsx` | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per Batch 6.5's "rename labels, not URLs" rule. |
-| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at the canonical Batch 9 URL so the Settings shell consolidation lands without a redirect. |
+| `/consumption-tax` | `pages/TaxTrackerPage.tsx` | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per the rename-labels-not-URLs rule. |
+| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at its canonical URL inside the Settings shell. |
 
 Routes are exported from
 [`taxation.routes.tsx`](../../src/features/taxation/taxation.routes.tsx)
 and composed into the root router by `src/app/routes.tsx`
 (both pages are wrapped by `protectedRoutes()`).
 
-Before Batch 7 these surfaces lived at:
-- `src/pages/tax/ConsumptionTaxPage.jsx` (raw `apiFetch` + inline
-  `useState` + inline-styled bills list with expandable detail rows).
-- `src/pages/user/settings/TaxationRulesTab.jsx` (rendered inside the
-  `/settings` husk as the only remaining tab).
+## Tax Tracker (current-week card)
 
-Both legacy files are deleted in Batch 7; the `/settings` husk is
-thinned to a three-link landing index that points at Taxation Rules
-+ Categorization Rules + Categories. Batch 9's `SettingsLayout` shell
-replaces this index.
-
-## Tax Tracker enhancement (Batch 7)
-
-The current-week tracker card is the new surface in Batch 7. It calls
+The current-week tracker card calls
 `GET /api/consumption-tax/tracker/current-week` for:
 
 - `running_tax` / `running_penalty` — sum of tax / penalty accrued for
@@ -193,17 +182,13 @@ expect it to reset on reload.
   client-side `safeDivide(runningTax, fractionOfWeekElapsed(...))`
   fallback the tracker uses today.
 - Bill-detail download — a CSV/PDF export action for accountants.
-  Not in scope for Batch 7; flag if user requests.
-- Settings shell integration — Batch 9 wraps `/settings/taxation-rules`
-  in the shared `SettingsLayout` sidebar; the page itself needs no
-  changes to slot in (it already lives at the canonical URL).
-- **User-preferred date format integration (Batch 9.5).** Bill dates
+  Not yet implemented; flag if requested.
+- **User-preferred date-format override.** Bill dates
   default to **`dd/mon/yyyy`** (e.g. `15/Feb/2026`) via
   `api/billPeriod.ts:formatBillDate` — a single-file swap point.
-  When Batch 9.5's `/account/preferences` page ships the
-  user-persisted date-format override (tracked in
-  implementation_plan "Defaults cluster persistence"), replace the
-  hardcoded `{day:'2-digit', month:'short', year:'numeric'}`
+  Once a user-persisted date-format preference is available (it needs
+  the backend defaults-cluster columns — a deferred backend follow-up),
+  replace the hardcoded `{day:'2-digit', month:'short', year:'numeric'}`
   pattern with a lookup from `usePreferencesStore.dateFormat`. The
   helper is intentionally isolated so the swap is one diff. Native
   `<input type="date">` controls continue to use the browser

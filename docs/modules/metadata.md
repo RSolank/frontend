@@ -1,9 +1,9 @@
-# Metadata — dissolved into `shared/` (Batch 10)
+# Metadata — dissolved into `shared/`
 
 > **This is no longer a feature.** Metadata had no UI of its own and was
 > consumed by ~15 files across 6 features (currency symbol for
-> `formatMoney`, the region pickers), so Batch 10 moved it into `shared/`
-> as the cross-cutting reference-data infrastructure it always was:
+> `formatMoney`, the region pickers), so it lives in `shared/` as the
+> cross-cutting reference-data infrastructure it always was:
 > - reference-data queries → [`src/shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts)
 >   (`useCountriesQuery`, `useCurrenciesQuery`)
 > - pickers → [`src/shared/components/`](../../src/shared/components/)
@@ -29,7 +29,8 @@ None — metadata is a supporting feature, not a routed surface.
 
 ## Components
 
-[`components/`](../../src/features/metadata/components/)
+[`shared/components/`](../../src/shared/components/) — `CountrySelect.tsx`,
+`CurrencySelect.tsx`, `TimezoneSelect.tsx`
 
 | Component | Purpose |
 |---|---|
@@ -37,13 +38,11 @@ None — metadata is a supporting feature, not a routed surface.
 | `CurrencySelect.tsx` | `<select>` over the currencies list. Options render as `${label} (${symbol})` (e.g. `INR - Indian Rupee (₹)`) — the backend `label` already carries the `CODE - Name` shape; the trailing symbol makes the choice unambiguous for users who don't recognise every ISO code. Falls back to just `${label}` when the metadata row's `symbol` is `null`. Exports `formatCurrencyOption(c)` for callers that need the label outside the dropdown. |
 | `TimezoneSelect.tsx` | Three-mode timezone picker. Country known + single tz → read-only display with "Use a different timezone" override. Country known + multiple tzs → country-scoped dropdown. Unknown country / explicit override → full IANA list defaulted to `getBrowserTimezone()`. |
 
-All three use the shared `.form-input` class from `src/index.css`
-(applied in Batch 3 — resolves the TimezoneSelect visual-debt entry
-from the inter-batch polish pass).
+All three use the shared `.form-input` class from `src/index.css`.
 
 ## API
 
-[`api/`](../../src/features/metadata/api/)
+[`shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts)
 
 | File | Exports |
 |---|---|
@@ -65,7 +64,7 @@ keyed by `metadataKeys`; staleness is the only cache control.
 |---|---|
 | `components/CountrySelect.test.tsx` | Emits `(value, country)` on selection; emits `(_, null)` for the prefer-not-say sentinel; hides the sentinel option when disabled |
 | `components/CurrencySelect.test.tsx` | `${code} (${symbol})` rendering with symbol fallback; `onChange` emits the code; `formatCurrencyOption` is a pure helper |
-| `components/TimezoneSelect.test.tsx` | Read-only / country-scoped / fallback modes (Batch 2) |
+| `components/TimezoneSelect.test.tsx` | Read-only / country-scoped / fallback modes |
 
 `src/test/handlers/metadata.ts` serves the three endpoints with
 sample data; tests override via `server.use(...)` for edge cases.
@@ -84,8 +83,8 @@ sample data; tests override via `server.use(...)` for edge cases.
 
 ## Backend follow-ups (queued)
 
-See [`docs/refactor/implementation_plan.md`](../refactor/implementation_plan.md)
-"Backend follow-ups". The two most relevant to this feature:
+See [`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.md)
+"Backend follow-ups deferred". The two most relevant to this feature:
 
 1. **`/api/metadata/countries` should return `timezones: List[str]`** per
    country. Once shipped, `shared/utils/countryTimezones.ts` can be

@@ -26,9 +26,8 @@ Routes are exported from
 [`features/tags/tags.routes.tsx`](../../src/features/tags/tags.routes.tsx)
 and composed into the root router by `src/app/routes.tsx`
 (`<TagsPage>` is wrapped by `protectedRoutes()`). The Settings gear
-icon in the app header navigates to this route; the (legacy)
-`/settings` page still hosts the categorization + taxation rule tabs
-until Batches 6 / 7 extract those.
+icon in the app header opens the Settings shell, where Categories sits
+alongside Categorization Rules and Taxation Rules under `/settings/*`.
 
 ## Components
 
@@ -38,7 +37,7 @@ until Batches 6 / 7 extract those.
 
 ## Responsive
 
-Per CONTRIBUTING.md §6:
+Per [`docs/conventions.md`](../conventions.md):
 
 - The page header + the "All tags" section header use
   `flex-wrap items-start gap-3` so the title block, back link, and
@@ -101,9 +100,9 @@ MSW handlers for `/api/tags` + `/api/metadata/constants` live in the
 test file's `beforeEach` since the global handlers (in
 `src/test/handlers/`) don't yet expose a permissive tags default.
 
-## Batch 6.5 — modal-first CRUD
+## Modal-first CRUD
 
-Add and edit now open `components/TagFormDialog.tsx`, a single
+Add and edit open `components/TagFormDialog.tsx`, a single
 `<Modal>` wrapping the tag form. `?add=true` and `?edit=<tag_id>`
 URL state make both surfaces shareable. Delete opens
 `<ConfirmDialog intent="danger" />` instead of `window.confirm()`. The

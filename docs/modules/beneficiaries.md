@@ -79,7 +79,7 @@ Endpoints touched:
 
 ## Responsive
 
-Per CONTRIBUTING.md §6:
+Per [`docs/conventions.md`](../conventions.md):
 
 - The beneficiaries list table scrolls *inside its card*
   (`overflow-x-auto` + `min-w-[28rem]` on the `<table>`) below
@@ -97,14 +97,12 @@ Per CONTRIBUTING.md §6:
   to populate the merchant-category dropdown. Beneficiaries depends
   on tags, not the reverse.
 - **Owns categorization-rule mutation helpers** even though the rule
-  surface itself moves to `features/categorization/` in Batch 6.
-  Rationale: setting a merchant's category from the beneficiary form
-  is the canonical write path. Batch 6 will manage the rule list /
-  filter UI but will reuse these mutation helpers.
-- **`features/categorization/` (Batch 6 will land)** already consumes
-  `formatAliasesDisplay` from `features/beneficiaries/api/aliases`
-  (CategorizationRulesTab updated mid-Batch-4 to follow the
-  refactor).
+  surface itself lives in `features/categorization/`.
+  Rationale: setting a merchant's category from the beneficiary form is
+  the canonical write path; the categorization feature owns the rule
+  list / filter UI but reuses these mutation helpers.
+- **`features/categorization/`** also consumes `formatAliasesDisplay`
+  from `features/beneficiaries/api/aliases`.
 
 ## Tests
 
@@ -120,10 +118,9 @@ the beneficiary endpoints don't yet have permissive defaults in
 `src/test/handlers/`; future batches that touch the same endpoints
 can promote a shared `beneficiaries.ts` handler if convergence emerges.
 
-## Batch 6.5 — modal-first CRUD on the list
+## Modal-first CRUD on the list
 
-`BeneficiariesPage.tsx` now hosts all CRUD flows as modals over the
-list (Batch 6.5 retrofit):
+`BeneficiariesPage.tsx` hosts all CRUD flows as modals over the list:
 
 - **Add** — `+ Add New` button calls `useModal({ urlKey: 'add' }).open()`;
   `?add=true` survives reloads / share-links.
@@ -136,6 +133,6 @@ list (Batch 6.5 retrofit):
   merge / type-switch workflow, which lives on the detail page).
 
 `components/BeneficiaryFormDialog.tsx` is the unified create/edit
-dialog (replaces the post-Batch-6 create-only `CreateBeneficiaryDialog`).
+dialog.
 The categorization rules page consumes it as the inline "Add new
 beneficiary" entry point.

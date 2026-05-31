@@ -25,10 +25,8 @@ Routes are exported from
 and composed into the root router by `src/app/routes.tsx`
 (`<CategorizationRulesPage>` is wrapped by `protectedRoutes()`).
 
-Before Batch 6 this surface lived as a tab inside `/settings`. The
-extraction matches the Batch 4 pattern (`CategoriesTab → /categories`)
-so each rule set is a first-class route with its own bundle. `/settings`
-now hosts only the taxation tab until Batch 7 extracts that too.
+This surface is a first-class route with its own bundle, mounted in the
+Settings shell alongside Categories and Taxation Rules under `/settings/*`.
 
 ## Rule-name conventions
 
@@ -70,8 +68,8 @@ into one group:
 
 - **Group key:** sorted-dedup'd `tag_ids` joined with `,`. `[12, 15]`
   and `[15, 12]` share the same group key.
-- **Single-rule groups** render as the same rule card the page
-  shipped in Batch 6 — no UX regression for the simple case.
+- **Single-rule groups** render as a plain rule card — no added
+  chrome for the simple case.
 - **Multi-rule groups** collapse by default. Header shows the
   tag chips + "Applied to N beneficiaries" + chevron; expanded
   renders compact per-rule rows (beneficiary name + aliases +
@@ -127,7 +125,7 @@ state (tags, notes, etc.) survives untouched.
 
 ## Responsive
 
-Per CONTRIBUTING.md §6:
+Per [`docs/conventions.md`](../conventions.md):
 
 - Page + section headers use `flex-wrap items-start gap-3` so the
   title block, back link, and CTA reflow gracefully on phones.
@@ -182,7 +180,7 @@ Endpoints touched:
   beneficiary form can fire them without reaching back into
   categorization. This page imports them rather than relocating —
   rule writes belong to the form that owns the beneficiary, not the
-  rules list (Batch 4 note 2; Batch 5 note 7). The full-payload PUT
+  rules list. The full-payload PUT
   (`updateCategorizationRuleRequest`) lives here because only the
   rules form uses it.
 - **`features/tags/api/queries.ts`** owns `fetchTags` and
@@ -205,13 +203,12 @@ file's `beforeEach`; per-test overrides via `server.use(...)`.
 
 ## Follow-ups
 
-- Both Batch 6 follow-ups (add-beneficiary inline + rule grouping)
-  landed in the Post-Batch-6 commit. No outstanding TODOs on this
-  feature surface.
+- Add-beneficiary-inline and rule grouping both shipped. No
+  outstanding follow-ups on this feature surface.
 
-## Batch 6.5 — modal-first CRUD
+## Modal-first CRUD
 
-The inline form on `CategorizationRulesPage.tsx` is now mounted
+The inline form on `CategorizationRulesPage.tsx` is mounted
 inside a `<Modal size="lg">` ("Add categorization rule" / "Edit
 categorization rule"). Add and Edit reuse the same form state
 machine. Delete opens `<ConfirmDialog intent="danger" />` instead

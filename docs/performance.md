@@ -1,16 +1,16 @@
 # Frontend Performance
 
 Bundle size budget and current numbers. Authoritative budgets live in
-[`CONTRIBUTING.md` §10 row 11](../CONTRIBUTING.md#-10-architectural-decisions-resolved--planning-session-2026-05-24);
+[`CONTRIBUTING.md` §3 "Code-quality gates"](../CONTRIBUTING.md#code-quality-gates-strict-enforcement);
 `.size-limit.json` is the executable form.
 
 ## Bundle budgets
 
 | Surface | Budget (gzipped) | Enforced |
 |---|---|---|
-| Initial JS (first paint) | ≤ 120 kB | Local only (`npm run size`); CI gate in Batch 9 |
-| Per-feature lazy chunk | ≤ 80 kB | Not yet measurable — feature batches add `lazy(() => import(...))` boundaries starting in Batch 1; entry returns to `.size-limit.json` then |
-| Initial CSS | ≤ 15 kB | Local only; CI gate in Batch 9 |
+| Initial JS (first paint) | ≤ 125 kB | Local (`npm run size`); CI pipeline deferred |
+| Per-feature lazy chunk | ≤ 80 kB | Documented target; not yet wired into `.size-limit.json` |
+| Initial CSS | ≤ 15 kB | Local (`npm run size`); CI pipeline deferred |
 
 ## Current numbers (Batch 0 baseline — 2026-05-24)
 
@@ -94,7 +94,7 @@ splits naturally into a `BeneficiaryFormFields-*.js` chunk.
 `npm run size` reports initial JS 102.10 kB gz (headroom 17.90 kB) and
 initial CSS 6.68 kB gz (headroom 8.32 kB).
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -129,7 +129,7 @@ TagSelector into its own chunk (consumed by both Add + Edit).
 `npm run size` reports initial JS 96.05 kB gz (headroom 23.95 kB) and
 initial CSS 7.22 kB gz (headroom 7.78 kB).
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -166,7 +166,7 @@ ships when a user opens `/categorization-rules`.
 `npm run size` reports initial JS 92.95 kB gz (headroom 27.05 kB) and
 initial CSS 7.30 kB gz (headroom 7.70 kB).
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -207,7 +207,7 @@ only here).
 `npm run size` reports initial JS 92.95 kB gz (headroom 27.05 kB)
 and initial CSS 7.65 kB gz (headroom 7.35 kB).
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -249,7 +249,7 @@ intentional Modal + ConfirmDialog Radix overhead absorbed in Batch
 6.5; Batch 9 will revisit budget sizing once `size-limit` becomes a
 CI gate.
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -317,7 +317,7 @@ bundle drops as a result.
 5.81 kB headroom) and initial CSS **10.24 kB** gz (budget 15 kB —
 4.76 kB headroom). Both gates green.
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified at 375 px (`sm`), 768 px (`md`), and ≥ 1280 px (desktop):
 
@@ -383,7 +383,7 @@ shell + account-page surface (Batch 9 first draft) and 22 for the
 six on-device preference stores + their helper-override paths +
 the refreshed AccessibilityPage assertion.
 
-### Responsive check (per CONTRIBUTING.md §6)
+### Responsive check (per docs/conventions.md)
 
 Verified the shells render cleanly at 375 px (`sm`), 768 px (`md`),
 and ≥ 1280 px (`lg+`):

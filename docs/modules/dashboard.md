@@ -10,8 +10,8 @@
 
 - Render `/dashboard` as the post-login home — the user lands here
   after login, after a tab refresh on any authenticated route, and
-  via the TopNav brand link (Batch 6.5 wired the brand → `/dashboard`
-  when authenticated).
+  via the TopNav brand link (the brand routes → `/dashboard` when
+  authenticated).
 - Surface enough at-a-glance signal that the user can answer "what
   did I spend, how close am I to a breach, what's my current tax
   burden" without navigating into any feature page.
@@ -35,11 +35,8 @@ Routes are exported from
 and composed into the root router by `src/app/routes.tsx` (wrapped
 by `protectedRoutes()` like every authenticated surface).
 
-Before Batch 8.5 this surface lived as `src/pages/Dashboard.jsx`
-(562 lines of inline-styled JSX, raw `apiFetch`, with its own user
-menu and header chrome inline). The move splits the page into a
-lazy chunk + delegates all header chrome to the shared
-`<TopNav />` from Batch 6.5.
+The page is a lazy chunk and delegates all header chrome to the shared
+`<TopNav />`.
 
 ## Composition
 
@@ -52,7 +49,7 @@ card is in its empty state.
 | Card | Hook(s) | Content |
 |---|---|---|
 | `components/TransactionsCard.tsx` | `useTransactionsQuery` (recent + week-bounded) | Weekly stat strip (spend + debit count) → 5 most recent rows → "Add transaction" inline CTA → footer link to `/transactions`. |
-| `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` + (Batch 9.5) `useTransactionsQuery` + `useTagsQuery` | Total Spent / Limit rollup with gradient progress bar → top 3 monthly categories with mini progress bars → **week-by-category strip** (top 3 tags by spend this week, aggregated client-side from the same weekly transactions slice TransactionsCard uses; React Query dedupes the fetch) → breach count chip when any category is over → footer link to `/budgets`. |
+| `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` + `useTransactionsQuery` + `useTagsQuery` | Total Spent / Limit rollup with gradient progress bar → top 3 monthly categories with mini progress bars → **week-by-category strip** (top 3 tags by spend this week, aggregated client-side from the same weekly transactions slice TransactionsCard uses; React Query dedupes the fetch) → breach count chip when any category is over → footer link to `/budgets`. |
 | `components/TaxTrackerCard.tsx` | `useTrackerCurrentWeekQuery` | Accrued + projected stat pair → week progress bar → top 3 contributors → footer link to `/consumption-tax`. |
 
 Empty states (fresh signup) — each card shows a friendly headline
@@ -68,9 +65,8 @@ primary cards, so no extra network cost.
 
 Ordered by priority (left → right on desktop, top → bottom on
 mobile) so the most actionable signal lands first either way.
-Per the Batch 8.5 design lock, the dashboard only carries signal
-worth glancing at — what's worth desktop space is worth mobile
-space too.
+By design, the dashboard only carries signal worth glancing at —
+what's worth desktop space is worth mobile space too.
 
 | Widget | Notes |
 |---|---|
@@ -87,8 +83,8 @@ primary card:
   the chrome (border + header + footer slot). `pending` flips to a
   dashed border for empty states.
 - `<DashboardCardEmpty headline body ctaHref ctaLabel>` — the
-  friendly empty-state interior (icon-less per the Batch 8.5 design
-  choice — copy + CTA, no illustration).
+  friendly empty-state interior (icon-less by design — copy + CTA,
+  no illustration).
 
 ## Hooks
 
@@ -100,7 +96,7 @@ the feature module it pulls data from:
 | `useTransactionsQuery` | `features/transactions/api/queries.ts` |
 | `useBudgetStatusQuery` | `features/budgets/api/queries.ts` |
 | `useTrackerCurrentWeekQuery` | `features/taxation/api/queries.ts` |
-| `useCurrenciesQuery` | `features/metadata/api/queries.ts` |
+| `useCurrenciesQuery` | `shared/api/referenceData.ts` |
 | `weekRangeInTz` / `fractionOfWeekElapsed` | `features/taxation/api/billPeriod.ts` |
 
 `usePreferencesStore.currency` + `.timezone` are the source of
@@ -171,7 +167,7 @@ across cards.
   read well in both themes — mirrors the pattern in
   `BudgetCategoryCard` and `CurrentWeekTracker`.
 - Money values carry `class="money"` for privacy-mask compatibility
-  per CONTRIBUTING.md §6. Non-money values (counts) opt out of the
+  per [`docs/conventions.md`](../conventions.md). Non-money values (counts) opt out of the
   `money` class so the privacy toggle doesn't blur them.
 - Empty-state variant uses a dashed `border-slate-300
   dark:border-slate-700` so the "fresh signup" cards visually stand
@@ -197,11 +193,10 @@ overview.
   [`task-handoff-fe-to-be.md §4`](../../../.scratch/task-handoff-fe-to-be.md).
   Once the backend ships a unified events endpoint, swap the
   `RecentActivityWidget` placeholder for a real list.
-- **Statement-upload dock widget** — backend §3.3 in the FE handoff
-  (post-refactor). When the async upload pipeline ships, this is
-  where the in-flight job progress lives.
-- **Personalization / drag-to-reorder cards** — out of scope per
-  the Batch 8.5 brief.
+- **Statement-upload dock widget** — a queued backend follow-up (the
+  async upload pipeline). When it ships, this is where the in-flight
+  job progress lives.
+- **Personalization / drag-to-reorder cards** — out of scope by design.
 - **Bill state surfacing** — once Phase 0.7's 5-state bill
   lifecycle lands, the Tax Tracker card can surface ACCRUING /
   BILLED / OVERDUE counts in the title chip.

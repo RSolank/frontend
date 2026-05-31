@@ -23,17 +23,12 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/budgets` | `pages/ExpenseTrackerPage.tsx` | Lazy-loaded. URL preserved per Batch 6.5's "labels rename, URLs stay" rule. Nav label is "Expense Tracker"; a Batch 9 audit will consider renaming the URL to `/expense-tracker`. |
+| `/budgets` | `pages/ExpenseTrackerPage.tsx` | Lazy-loaded. URL preserved per the labels-rename-URLs-stay rule; nav label is "Expense Tracker" (the URL stays `/budgets`). |
 
 Routes are exported from
 [`budgets.routes.tsx`](../../src/features/budgets/budgets.routes.tsx)
 and composed into the root router by `src/app/routes.tsx` (the page is
 wrapped by `protectedRoutes()`).
-
-Before Batch 8 this surface lived as `src/pages/budgets/BudgetsPage.jsx`
-(762 lines of inline-styled JSX bundled into the initial chunk). The
-move splits the page into a lazy chunk + drops the inline edit panel
-in favor of the modal-first CRUD locked across Batches 6.5 / 7.
 
 ## Components
 
@@ -49,8 +44,8 @@ in favor of the modal-first CRUD locked across Batches 6.5 / 7.
   budget" when no limit; "Edit budget" otherwise). The same
   component renders the Total Budget surface with `emphasis` set,
   which paints an indigo-tinted background to mark it as the
-  top-level rollup. Carries an **anomaly badge** (Batch 9.5)
-  inline with the title that classifies the current month's spend
+  top-level rollup. Carries an **anomaly badge** inline with the title
+  that classifies the current month's spend
   against `avg_expense` / `max_expense` into four bands —
   `Below typical` (emerald, current ≤ avg×0.75),
   `Typical` (slate, within ±25 % of avg),
@@ -68,7 +63,7 @@ in favor of the modal-first CRUD locked across Batches 6.5 / 7.
 | Hook | Purpose |
 |---|---|
 | `useBudgetStatusQuery(month)` | `GET /api/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`. |
-| `useBudgetLimitsQuery(period)` | `GET /api/budget-limits/?budget_period=<period>` — lightweight limits-only list. Currently unused by the page; exported so Batch 8.5's Dashboard card can pull just the limits without the full status payload. |
+| `useBudgetLimitsQuery(period)` | `GET /api/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/budgets/api/mutations.ts) —
@@ -153,8 +148,7 @@ Write endpoints consumed:
   neutral category cards in both themes.
 - Native widgets (the month-picker dropdown, calendar pickers used
   elsewhere) inherit the active theme via the project-wide
-  `color-scheme: light` / `html.dark { color-scheme: dark }` rule
-  shipped in Batch 7.
+  `color-scheme: light` / `html.dark { color-scheme: dark }` rule.
 
 ## URL state
 
@@ -167,9 +161,6 @@ Write endpoints consumed:
 - **Backend DELETE endpoint** — see "No remove action" under Form
   semantics. Surface a "Remove budget" action in the modal once
   the endpoint exists.
-- **Settings consolidation** — when Batch 9.5's `/account/preferences`
-  page persists `default_landing_route`, users who set landing to
-  `/budgets` get this surface as their post-login home.
-- **Dashboard card** — Batch 8.5 consumes `useBudgetStatusQuery`
-  (current month) for a glance-value card on `/dashboard`; the
-  hook + filter logic is already extractable.
+- **Settings consolidation** — once the backend persists
+  `default_landing_route` (deferred defaults-cluster follow-up), users
+  who set landing to `/budgets` get this surface as their post-login home.
