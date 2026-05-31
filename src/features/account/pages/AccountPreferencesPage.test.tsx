@@ -36,6 +36,9 @@ describe('AccountPreferencesPage', () => {
     });
     usePreferencesStore.getState().reset();
     localStorage.clear();
+    // After BE Phase 1.9 `/api/users/me` returns identity only —
+    // currency + timezone live on `/api/users/preferences`. The page
+    // hydrates from both queries before first paint.
     server.use(
       http.get('http://localhost:4000/api/users/me', () =>
         HttpResponse.json({
@@ -45,34 +48,51 @@ describe('AccountPreferencesPage', () => {
             first_name: 'Taylor',
             last_name: 'Doe',
             country: 'India',
-            currency: 'INR',
-            timezone: 'Asia/Kolkata',
           },
+        })
+      ),
+      http.get('http://localhost:4000/api/users/preferences', () =>
+        HttpResponse.json({
+          currency: 'INR',
+          timezone: 'Asia/Kolkata',
         })
       )
     );
   });
 
-  it('hydrates preferences from /api/users/me', async () => {
+  it('hydrates the form from /api/users/me + /api/users/preferences', async () => {
     renderPage();
     await waitFor(() =>
       expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
     );
   });
 
-  it('PATCHes only the preferences slice and re-hydrates the store', async () => {
-    let patchBody: Record<string, unknown> | null = null;
+  it('PATCHes /me (country) + /preferences (currency, timezone) in parallel and re-hydrates the store', async () => {
+    let mePatchBody: Record<string, unknown> | null = null;
+    let prefsPatchBody: Record<string, unknown> | null = null;
+    // Track the server's current preferences view so the post-save
+    // re-hydrate GET reflects the just-PATCHed values.
+    const serverPrefs: { currency: string; timezone: string } = {
+      currency: 'INR',
+      timezone: 'Asia/Kolkata',
+    };
     server.use(
+      http.get('http://localhost:4000/api/users/preferences', () =>
+        HttpResponse.json({ ...serverPrefs })
+      ),
       http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
-        patchBody = (await request.json()) as Record<string, unknown>;
+        mePatchBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ user: { user_id: 1 } });
       }),
-      http.get('http://localhost:4000/api/users/preferences', () =>
-        HttpResponse.json({
-          currency: 'USD',
-          country: 'United States',
-          timezone: 'America/New_York',
-        })
+      http.patch(
+        'http://localhost:4000/api/users/preferences',
+        async ({ request }) => {
+          prefsPatchBody = (await request.json()) as Record<string, unknown>;
+          // Server-side flip — the next GET sees the new values.
+          serverPrefs.currency = 'USD';
+          serverPrefs.timezone = 'America/New_York';
+          return HttpResponse.json({ ...serverPrefs });
+        }
       )
     );
 
@@ -86,22 +106,22 @@ describe('AccountPreferencesPage', () => {
     });
 
     await waitFor(() => {
-      expect(patchBody).toMatchObject({
-        country: 'India',
+      // /me PATCH carries country only — no preferences fields.
+      expect(mePatchBody).toMatchObject({ country: 'India' });
+      expect(mePatchBody).not.toHaveProperty('currency');
+      expect(mePatchBody).not.toHaveProperty('timezone');
+      // /preferences PATCH carries the preferences slice — no /me fields.
+      expect(prefsPatchBody).toMatchObject({
         currency: 'INR',
         timezone: 'Asia/Kolkata',
       });
-      // Profile-page slice must NOT be in the payload — preferences
-      // PATCHes only its own fields.
-      expect(patchBody).not.toHaveProperty('first_name');
-      expect(patchBody).not.toHaveProperty('last_name');
-      expect(patchBody).not.toHaveProperty('contact');
+      expect(prefsPatchBody).not.toHaveProperty('country');
+      expect(prefsPatchBody).not.toHaveProperty('first_name');
     });
 
     // Hydrate side-effect: the preferences store now reflects the
-    // /preferences response (USD / America/New_York) so the
-    // x-user-currency / x-user-timezone headers update on the next
-    // request.
+    // re-fetched /preferences response so every consumer of
+    // `usePreferencesStore` reads the new currency + timezone.
     await waitFor(() => {
       const prefs = usePreferencesStore.getState();
       expect(prefs.currency).toBe('USD');

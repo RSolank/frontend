@@ -11,9 +11,15 @@ import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindS
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
 import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
 import { userKeys } from '../../users/api/keys';
-import { updateProfileRequest } from '../../users/api/mutations';
+import {
+  updatePreferencesRequest,
+  updateProfileRequest,
+} from '../../users/api/mutations';
 import { hydratePreferences } from '../../users/api/preferences';
-import { useCurrentUserQuery } from '../../users/api/queries';
+import {
+  useCurrentUserQuery,
+  useUserPreferencesQuery,
+} from '../../users/api/queries';
 
 interface FormState {
   country: string;
@@ -31,8 +37,10 @@ interface ApiErrorShape {
 export function AccountPreferencesPage() {
   const queryClient = useQueryClient();
   const { data: countries = [] } = useCountriesQuery();
-  const { data: meData, isLoading } = useCurrentUserQuery();
+  const { data: meData, isLoading: meLoading } = useCurrentUserQuery();
+  const { data: prefsData, isLoading: prefsLoading } = useUserPreferencesQuery();
   const user = meData?.user;
+  const isLoading = meLoading || prefsLoading;
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [hydrated, setHydrated] = useState(false);
@@ -40,14 +48,17 @@ export function AccountPreferencesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || hydrated) return;
+    // Wait for both /me (country) AND /preferences (currency, timezone)
+    // before hydrating the form — otherwise the first paint flickers
+    // through a half-empty state.
+    if (!user || !prefsData || hydrated) return;
     setForm({
       country: user.country ?? '',
-      currency: user.currency ?? '',
-      timezone: user.timezone ?? getBrowserTimezone(),
+      currency: prefsData.currency ?? '',
+      timezone: prefsData.timezone ?? getBrowserTimezone(),
     });
     setHydrated(true);
-  }, [user, hydrated]);
+  }, [user, prefsData, hydrated]);
 
   const currentCountry: CountryOption | null = useMemo(() => {
     if (!form.country || form.country === COUNTRY_PREFER_NOT_SAY) return null;
@@ -90,19 +101,27 @@ export function AccountPreferencesPage() {
       return;
     }
 
-    const payload = {
+    const profilePayload = {
       country:
         !form.country || form.country === COUNTRY_PREFER_NOT_SAY
           ? null
           : form.country,
+    };
+    const preferencesPayload = {
       currency: form.currency || null,
       timezone: form.timezone,
     };
 
     try {
-      await updateProfileRequest(payload);
-      // Refresh /me + preferences store so headers + every component
-      // reading formatMoney / formatDate see the new values immediately.
+      // /me holds identity (country lives here); /preferences is the SoT
+      // for currency + timezone after BE Phase 1.9. PATCH both slices in
+      // parallel; either alone is a no-op the BE handles idempotently.
+      await Promise.all([
+        updateProfileRequest(profilePayload),
+        updatePreferencesRequest(preferencesPayload),
+      ]);
+      // Refresh /me + preferences store so every component reading
+      // formatMoney / formatDate sees the new values immediately.
       await queryClient.invalidateQueries({ queryKey: userKeys.all });
       await hydratePreferences();
       setSaved(true);

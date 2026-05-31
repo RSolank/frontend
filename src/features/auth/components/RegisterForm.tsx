@@ -2,15 +2,12 @@ import { useEffect, useState } from 'react';
 
 import {
   fetchCountries,
-  fetchCurrencies,
   type CountryOption,
-  type CurrencyOption,
 } from '../../../shared/api/referenceData';
 import {
   COUNTRY_PREFER_NOT_SAY,
   CountrySelect,
 } from '../../../shared/components/CountrySelect';
-import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
@@ -44,7 +41,6 @@ interface FormState {
   dob: string;
   contact_local: string;
   country: string;
-  currency: string;
   timezone: string;
 }
 
@@ -58,7 +54,6 @@ const INITIAL_FORM: FormState = {
   dob: '',
   contact_local: '',
   country: '',
-  currency: '',
   timezone: '',
 };
 
@@ -99,7 +94,6 @@ function buildRegisterPayload(form: FormState, dialCode: string) {
     contact: phoneDigits ? `${dialCode}${phoneDigits}` : null,
     country:
       !form.country || form.country === PREFER_NOT_SAY ? null : form.country,
-    currency: form.currency || 'INR',
     timezone: form.timezone,
   };
 }
@@ -114,7 +108,6 @@ function useRegisterForm(onSuccess?: () => void) {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [countries, setCountries] = useState<CountryOption[]>([]);
-  const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
   const [dialCode, setDialCode] = useState('+91');
 
   useEffect(() => {
@@ -122,15 +115,11 @@ function useRegisterForm(onSuccess?: () => void) {
 
     async function load() {
       try {
-        const [countriesResp, currenciesResp] = await Promise.all([
-          fetchCountries(),
-          fetchCurrencies(),
-        ]);
+        const countriesResp = await fetchCountries();
         if (cancelled) return;
 
         const allCountries = countriesResp.countries ?? [];
         setCountries(allCountries);
-        setCurrencies(currenciesResp.currencies ?? []);
 
         const region = getBrowserRegion();
         const regionName = region ? getCountryNameFromRegion(region) : null;
@@ -151,7 +140,6 @@ function useRegisterForm(onSuccess?: () => void) {
           setForm((f) => ({
             ...f,
             country: matched.name,
-            currency: matched.default_currency || f.currency || 'INR',
             timezone: fallbackTz,
           }));
         } else {
@@ -203,7 +191,6 @@ function useRegisterForm(onSuccess?: () => void) {
       setForm((f) => ({
         ...f,
         country: country.name,
-        currency: country.default_currency || f.currency,
         timezone: tz,
       }));
     } else {
@@ -213,11 +200,6 @@ function useRegisterForm(onSuccess?: () => void) {
         timezone: f.timezone || getBrowserTimezone(),
       }));
     }
-    if (error) setError(null);
-  }
-
-  function handleCurrencyChange(code: string) {
-    setForm((f) => ({ ...f, currency: code }));
     if (error) setError(null);
   }
 
@@ -251,13 +233,11 @@ function useRegisterForm(onSuccess?: () => void) {
     form,
     dialCode,
     countries,
-    currencies,
     submitting,
     currentCountry,
     countryLocked,
     handleChange,
     handleCountryChange,
-    handleCurrencyChange,
     handleTimezoneChange,
     handleSubmit,
   };
@@ -267,14 +247,12 @@ interface RegisterFieldsProps {
   form: FormState;
   dialCode: string;
   countries: CountryOption[];
-  currencies: CurrencyOption[];
   currentCountry: CountryOption | null;
   countryLocked: boolean;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
   onCountryChange: (value: string, country: CountryOption | null) => void;
-  onCurrencyChange: (code: string) => void;
   onTimezoneChange: (timezone: string) => void;
 }
 
@@ -285,12 +263,10 @@ function RegisterFields({
   form,
   dialCode,
   countries,
-  currencies,
   currentCountry,
   countryLocked,
   onChange,
   onCountryChange,
-  onCurrencyChange,
   onTimezoneChange,
 }: RegisterFieldsProps) {
   return (
@@ -427,29 +403,16 @@ function RegisterFields({
           </div>
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
-        <div className="flex-1">
-          <label htmlFor="register-country" className="form-label">
-            Country
-          </label>
-          <CountrySelect
-            id="register-country"
-            value={form.country}
-            onChange={onCountryChange}
-            countries={countries}
-          />
-        </div>
-        <div className="flex-1">
-          <label htmlFor="register-currency" className="form-label">
-            Currency
-          </label>
-          <CurrencySelect
-            id="register-currency"
-            value={form.currency}
-            onChange={onCurrencyChange}
-            currencies={currencies}
-          />
-        </div>
+      <div className="mt-3">
+        <label htmlFor="register-country" className="form-label">
+          Country
+        </label>
+        <CountrySelect
+          id="register-country"
+          value={form.country}
+          onChange={onCountryChange}
+          countries={countries}
+        />
       </div>
       <div className="mt-3">
         <label htmlFor="register-timezone" className="form-label">
@@ -480,13 +443,11 @@ export function RegisterForm({
     form,
     dialCode,
     countries,
-    currencies,
     submitting,
     currentCountry,
     countryLocked,
     handleChange,
     handleCountryChange,
-    handleCurrencyChange,
     handleTimezoneChange,
     handleSubmit,
   } = useRegisterForm(onSuccess);
@@ -499,12 +460,10 @@ export function RegisterForm({
           form={form}
           dialCode={dialCode}
           countries={countries}
-          currencies={currencies}
           currentCountry={currentCountry}
           countryLocked={countryLocked}
           onChange={handleChange}
           onCountryChange={handleCountryChange}
-          onCurrencyChange={handleCurrencyChange}
           onTimezoneChange={handleTimezoneChange}
         />
         <button

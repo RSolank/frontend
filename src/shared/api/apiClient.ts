@@ -1,8 +1,3 @@
-import {
-  sanitizePreferences,
-  usePreferencesStore,
-} from '../state/preferences.store';
-
 import { routes } from './routes';
 
 const BASE_URL =
@@ -18,26 +13,6 @@ export type ApiError = {
   status: number;
   [key: string]: unknown;
 };
-
-// Pulled out so the smoke test can assert exactly the two headers
-// implementing the CONTRIBUTING.md §5 contract land on every request.
-// Read via getState() — outside the React render path so non-component
-// callers (apiFetch is a module-level function) work without hooks.
-function preferenceHeaders(): Record<string, string> {
-  // Sanitize at the wire boundary — even if the in-memory store has been
-  // poisoned (e.g. legacy backend row with the currency *symbol* "₹"
-  // instead of the ISO code "INR"), the headers stay ByteString-safe so
-  // `fetch()` never throws a `Cannot convert value in record<ByteString…>`.
-  // Defaults to USD / UTC for any field that fails the printable-ASCII
-  // check. See shared/state/preferences.store.ts:isHeaderSafe for why.
-  const { currency, timezone } = sanitizePreferences(
-    usePreferencesStore.getState()
-  );
-  return {
-    'x-user-currency': currency,
-    'x-user-timezone': timezone,
-  };
-}
 
 // Outcome of a 401-triggered refresh attempt:
 //   'retried'   — refresh succeeded, `res` is the replayed request's response.
@@ -105,7 +80,6 @@ export async function apiFetch<T = unknown>(
   const headers: Record<string, string> = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...preferenceHeaders(),
     ...((options.headers as Record<string, string> | undefined) ?? {}),
   };
 

@@ -5,6 +5,10 @@ import { routes } from '../../../shared/api/routes';
 
 import { userKeys } from './keys';
 
+// `GET /api/users/me` returns identity only after BE Phase 1.9 —
+// currency moved to `/api/users/preferences` (the new server SoT for
+// preferences). Timezone follows the same logic; surface it from the
+// preferences query, not from /me.
 export interface UserProfile {
   user_id: number;
   email_id: string;
@@ -13,8 +17,6 @@ export interface UserProfile {
   dob?: string | null;
   contact?: string | null;
   country?: string | null;
-  currency?: string | null;
-  timezone?: string | null;
   [key: string]: unknown;
 }
 
@@ -22,10 +24,19 @@ export interface UserMeResponse {
   user: UserProfile;
 }
 
+// Server `user_preferences` row shape (flat) — the SoT for every
+// cross-device user preference after BE Phase 1.9. Each key is
+// optional + nullable because partial PATCHes leave unset rows null
+// and the wire shape preserves that for forward-compat.
 export interface PreferencesResponse {
   currency?: string | null;
-  country?: string | null;
   timezone?: string | null;
+  date_format?: string | null;
+  number_format?: string | null;
+  landing_route?: string | null;
+  default_txn_kind?: string | null;
+  underline_links?: boolean | null;
+  focus_ring_always?: boolean | null;
 }
 
 export interface RecoveryQuestionItem {

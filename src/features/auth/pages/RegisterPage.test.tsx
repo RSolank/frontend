@@ -120,8 +120,11 @@ describe('RegisterPage', () => {
         password: 'SecurePass123!',
         timezone: 'Asia/Kolkata',
         country: 'India',
-        currency: 'INR',
       });
+      // Currency was removed from the register payload after BE
+      // Phase 1.9 — the backend derives it from `country` when seeding
+      // the new `user_preferences` row.
+      expect(captured).not.toHaveProperty('currency');
     });
   });
 

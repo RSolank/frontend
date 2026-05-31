@@ -35,13 +35,13 @@ export const registerFormSchema = z.object({
   dialCode: z.string().optional().default('+91'),
   contact_local: z.string().optional().default(''),
   country: z.string().optional().default(''),
-  currency: z.string().optional().default(''),
   timezone: z.string().min(1, 'Timezone is required'),
 });
 export type RegisterFormInput = z.infer<typeof registerFormSchema>;
 
-// Server-shape payload (matches RegisterRequest plus the queued-for-
-// follow-up `timezone` field). Built in handleSubmit from the form input.
+// Server-shape payload (matches the BE RegisterRequest after Phase 1.9 —
+// currency is no longer accepted; the backend derives it from `country`
+// during seed-default insertion on the new `user_preferences` row).
 export interface RegisterPayload {
   email_id: string;
   password: string;
@@ -52,7 +52,6 @@ export interface RegisterPayload {
   dob: string | null;
   contact: string | null;
   country: string | null;
-  currency: string;
   timezone: string;
 }
 

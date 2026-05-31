@@ -3,6 +3,7 @@ import { routes } from '../../../shared/api/routes';
 
 import type {
   ChangePasswordInput,
+  PreferencesUpdatePayload,
   ProfileUpdatePayload,
   SetRecoveryQuestionInput,
 } from './schemas';
@@ -11,6 +12,15 @@ export function updateProfileRequest(
   payload: ProfileUpdatePayload
 ): Promise<unknown> {
   return apiFetch<unknown>(routes.users.me(), {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updatePreferencesRequest(
+  payload: PreferencesUpdatePayload
+): Promise<unknown> {
+  return apiFetch<unknown>(routes.users.preferences(), {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
