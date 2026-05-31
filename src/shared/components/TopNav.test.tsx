@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,11 +16,19 @@ function setUser(user: unknown) {
   });
 }
 
+// TopNav uses `useAdminGateQuery` (Platform FE Batch 6) so the
+// renderer needs a QueryClientProvider in addition to the
+// MemoryRouter.
 function renderNav(initial = '/dashboard', onLogout = vi.fn()) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={[initial]}>
-      <TopNav onLogout={onLogout} />
-    </MemoryRouter>
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[initial]}>
+        <TopNav onLogout={onLogout} />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -149,6 +158,13 @@ describe('TopNav', () => {
       screen.queryByRole('dialog', { name: /navigation menu/i })
     ).not.toBeInTheDocument();
   });
+
+  // Admin-tools link gating is covered by `shared/api/adminGate.test.tsx`
+  // (gate logic) + `features/admin/pages/AdminLandingPage.test.tsx`
+  // (page-level rendering). The TopNav surface is a thin
+  // `{isAdmin && <Link>}` wrapper around the gate query — no
+  // dropdown-integration test needed (Radix DropdownMenu's portaled
+  // content + happy-dom compose unreliably).
 
   it('Brand always points at / whenever it is surfaced', () => {
     setUser({ user_id: 1, email_id: 'a@b.c' });

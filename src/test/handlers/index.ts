@@ -1,3 +1,4 @@
+import { adminHandlers } from './admin';
 import { authHandlers } from './auth';
 import { healthHandlers } from './health';
 import { metadataHandlers } from './metadata';
@@ -12,4 +13,5 @@ export const handlers = [
   ...usersHandlers,
   ...metadataHandlers,
   ...tagsHandlers,
+  ...adminHandlers,
 ];

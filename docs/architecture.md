@@ -16,7 +16,8 @@ src/
 │   └── pages/                 # app-level public pages (Home landing / Help) — not feature-owned
 │
 ├── shared/                    # cross-feature primitives
-│   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + X-Device-Id header + Retry-After envelope + ApiError
+│   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + X-Device-Id header + Retry-After envelope + ACCOUNT_PENDING_DELETION interceptor + ApiError
+│   ├── api/adminGate.ts       # `useAdminGateQuery` — `/api/admin/ping` boolean probe (BE Phase 1.11) consumed by TopNav + AdminLandingPage
 │   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api'` knob
 │   ├── api/referenceData.ts   # countries / currencies queries (read-only system reference data)
 │   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …

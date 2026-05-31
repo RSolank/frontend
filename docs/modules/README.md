@@ -30,6 +30,8 @@ readers should be able to open the page on either side and map it
   page.
 - [`settings.md`](settings.md) — settings layout shell + breadcrumb
   + sidebar.
+- [`admin.md`](admin.md) — operator-only `/admin/*` surface and the
+  shared admin-gate hook.
 
 ## Page outline
 

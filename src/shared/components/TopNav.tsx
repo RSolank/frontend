@@ -14,6 +14,7 @@ import {
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
+import { useAdminGateQuery } from '../api/adminGate';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
@@ -422,6 +423,10 @@ interface UserDropdownProps {
 
 function UserDropdown({ user, onLogout }: UserDropdownProps) {
   const email = user.email_id;
+  // Gate on `GET /api/admin/ping` — link renders only for admins.
+  // BE Phase 1.11 lays the groundwork; FE wires it as the admin
+  // portal entry point until `role` lands on `/me`.
+  const { data: isAdmin = false } = useAdminGateQuery();
 
   return (
     <DropdownMenu.Root modal={false}>
@@ -462,6 +467,18 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
               Account
             </Link>
           </DropdownMenu.Item>
+          {isAdmin && (
+            <DropdownMenu.Item asChild>
+              <Link
+                to="/admin"
+                data-testid="topnav-admin-link"
+                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
+              >
+                <Settings aria-hidden="true" size={14} />
+                Admin tools
+              </Link>
+            </DropdownMenu.Item>
+          )}
           <DropdownMenu.Item asChild>
             <button
               type="button"

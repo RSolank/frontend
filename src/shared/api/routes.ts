@@ -66,6 +66,10 @@ export const routes = {
       `${V}/exports/${resource}?format=${format}`,
   },
 
+  admin: {
+    ping: () => `${V}/admin/ping`,
+  },
+
   beneficiaries: {
     list: () => `${V}/beneficiaries`,
     create: () => `${V}/beneficiaries`,

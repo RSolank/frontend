@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 
 import { accountRoutes } from '../features/account/account.routes';
+import { adminRoutes } from '../features/admin/admin.routes';
 import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { budgetsRoutes } from '../features/budgets/budgets.routes';
@@ -44,6 +45,7 @@ const publicRoutes: RouteObject[] = [
 const authedRoutes: RouteObject[] = protectedRoutes([
   ...dashboardRoutes,
   ...accountRoutes,
+  ...adminRoutes,
   ...beneficiariesRoutes,
   ...transactionsRoutes,
   ...taxationRoutes,
