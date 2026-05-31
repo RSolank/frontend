@@ -32,10 +32,7 @@ interface GenerateBillsDialogProps {
   onGenerated: (billIds: number[]) => void | Promise<void>;
   // Active user timezone — needed to compute the preceding-week
   // guard and to derive ISO Mon→Sun boundaries from a single picked
-  // date. NOTE: the backend still iterates Sun-Sat internally; the
-  // request range produced here may not align with stored bill
-  // boundaries until the backend convention cutover lands (see
-  // `.scratch/task-handoff-fe-to-be.md §12`).
+  // date.
   timezone: string;
 }
 

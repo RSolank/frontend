@@ -445,42 +445,6 @@ describe('ExpenseTrackerPage', () => {
     });
   });
 
-  it('Remove button surfaces a "backend pending" notice when DELETE 404s (scaffold path)', async () => {
-    let deleteHit = false;
-    server.use(
-      http.delete(
-        'http://localhost:4000/api/budget-limits/:tagId',
-        () => {
-          deleteHit = true;
-          return new HttpResponse(null, { status: 404 });
-        }
-      )
-    );
-
-    renderWithProviders(<ExpenseTrackerPage />);
-    await waitFor(() =>
-      expect(screen.getByTestId('budget-card-11')).toBeInTheDocument()
-    );
-
-    fireEvent.click(screen.getByTestId('budget-card-edit-11'));
-    const dialog = await screen.findByRole('dialog');
-
-    fireEvent.click(within(dialog).getByTestId('budget-form-remove'));
-
-    // ConfirmDialog opens. Click Remove to fire the request.
-    const confirm = await screen.findByRole('dialog', {
-      name: /Remove this budget/,
-    });
-    fireEvent.click(within(confirm).getByRole('button', { name: /Remove/ }));
-
-    await waitFor(() => expect(deleteHit).toBe(true));
-    await waitFor(() => {
-      expect(
-        within(dialog).getByRole('alert')
-      ).toHaveTextContent(/backend endpoint that hasn['’]t shipped yet/);
-    });
-  });
-
   it('Remove button on a budget without an existing limit is hidden (no Remove for fresh budgets)', async () => {
     renderWithProviders(<ExpenseTrackerPage />);
     await waitFor(() =>

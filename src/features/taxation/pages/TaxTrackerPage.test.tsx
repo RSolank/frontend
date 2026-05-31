@@ -173,15 +173,6 @@ describe('TaxTrackerPage', () => {
     expect(screen.getByTestId('bill-modal-pay')).toBeInTheDocument();
   });
 
-  it('shows the pending tracker empty state when the endpoint 404s', async () => {
-    renderWithProviders(<TaxTrackerPage />);
-    await waitFor(() =>
-      expect(
-        screen.getByText(/Live accrual will appear here/)
-      ).toBeInTheDocument()
-    );
-  });
-
   it('renders the running tracker when the endpoint returns data', async () => {
     server.use(
       http.get(

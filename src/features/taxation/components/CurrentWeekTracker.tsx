@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { fractionOfWeekElapsed, weekRangeInTz } from '../api/billPeriod';
+import { fractionOfWeekElapsed } from '../api/billPeriod';
 import {
   useTrackerCurrentWeekQuery,
   type PerTagContribution,
@@ -10,32 +10,23 @@ import {
 } from '../api/queries';
 
 // Single-card surface for the in-progress week's tax accrual. Reads
-// /api/consumption-tax/tracker/current-week when the backend supports
-// it; if the endpoint 404s (still pending — see
-// `.scratch/task-handoff-fe-to-be.md §1`), falls back to a
-// "pending" empty state with the active week label so the surface still
-// looks structurally complete.
+// `/api/consumption-tax/tracker/current-week` (shipped BE Phase 2.6,
+// `e7c05aa` — see `task-platform.md → taxation.tracker-current-week`).
 //
-// The component is intentionally read-only — no mutation paths, no
-// generate / pay actions live here. The bills list below this card
-// handles those. This card is the live-accrual view; bills are the
-// settled history.
+// Read-only by design — no mutation paths, no generate/pay actions
+// live here. The bills list below this card handles those. This is
+// the live-accrual view; bills are the settled history.
 export function CurrentWeekTracker() {
   const timezone = usePreferencesStore((s) => s.timezone);
   const { money } = useMoneyFormatter();
   const { data, isLoading } = useTrackerCurrentWeekQuery();
 
-  const fallbackWeek = useMemo(
-    () => weekRangeInTz(new Date(), timezone),
-    [timezone]
-  );
   const elapsedFraction = useMemo(
     () => fractionOfWeekElapsed(new Date(), timezone),
     [timezone]
   );
 
-
-  if (isLoading && data == null) {
+  if (isLoading || !data) {
     return (
       <section
         aria-labelledby="tracker-heading"
@@ -49,12 +40,6 @@ export function CurrentWeekTracker() {
         </div>
       </section>
     );
-  }
-
-  // Backend endpoint not implemented yet — render the empty/pending state
-  // with the active week label and a hint about the backend gap.
-  if (data == null) {
-    return <PendingState weekStart={fallbackWeek.period_start} weekEnd={fallbackWeek.period_end} />;
   }
 
   const projectedTax =
@@ -82,8 +67,8 @@ export function CurrentWeekTracker() {
 
       {data.is_estimate && (
         <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
-          Backend is returning approximate data while the live ledger is in
-          flight — see the Tax Tracker handoff for status.
+          Showing approximate accrual while the live ledger backfills
+          historic weeks — totals settle once a fresh full week has accrued.
         </p>
       )}
 
@@ -202,38 +187,6 @@ function PerTagBreakdown({
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-function PendingState({
-  weekStart,
-  weekEnd,
-}: {
-  weekStart: string;
-  weekEnd: string;
-}) {
-  return (
-    <section
-      aria-labelledby="tracker-pending-heading"
-      className="rounded-lg border border-dashed border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-    >
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3
-          id="tracker-pending-heading"
-          className="text-base font-semibold text-slate-900 dark:text-slate-100"
-        >
-          This week — running tax
-        </h3>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          {weekStart} → {weekEnd}
-        </span>
-      </header>
-      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-        Live accrual will appear here once the backend&rsquo;s incremental
-        taxation ledger ships. Until then, see the finalized bills below
-        for completed-week detail.
-      </p>
     </section>
   );
 }

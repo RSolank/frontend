@@ -38,17 +38,6 @@ const POPULATED = {
 };
 
 describe('CurrentWeekTracker', () => {
-  it('renders the pending state when the endpoint returns no data', () => {
-    mockQuery.mockReturnValue({
-      data: null,
-      isLoading: false,
-    } as unknown as QueryResult);
-    renderWithProviders(<CurrentWeekTracker />);
-    expect(
-      screen.getByText(/Live accrual will appear here/)
-    ).toBeInTheDocument();
-  });
-
   it('renders the populated stats (accent / default / muted) + contributors', () => {
     mockQuery.mockReturnValue({
       data: POPULATED,

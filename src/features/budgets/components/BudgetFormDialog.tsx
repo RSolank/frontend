@@ -5,7 +5,6 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import {
-  BUDGET_DELETE_NOT_IMPLEMENTED,
   deleteBudgetLimitRequest,
   upsertBudgetLimitRequest,
 } from '../api/mutations';
@@ -121,14 +120,7 @@ function useBudgetMutations(
       setConfirmRemoveOpen(false);
       onClose();
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === BUDGET_DELETE_NOT_IMPLEMENTED) {
-        setError(
-          'Removing a budget needs a backend endpoint that hasn’t shipped yet. See the coordination note for status — workaround: lower the limit to a value above your expected spend.'
-        );
-      } else {
-        setError(errorMessage(err, 'Failed to remove budget'));
-      }
+      setError(errorMessage(err, 'Failed to remove budget'));
       setConfirmRemoveOpen(false);
     } finally {
       setRemoving(false);

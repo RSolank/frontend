@@ -36,22 +36,24 @@ export interface RecoveryListResponse {
   questions: RecoveryQuestionItem[];
 }
 
-// Stats shape for the Profile page's <UserStatsCard /> placeholder.
-// Backend ask: `.scratch/task-handoff-fe-to-be.md §5` (queued for
-// Phase 0.5 / Phase 1). When it ships at GET /api/users/me/stats
-// (or /api/v1/users/me/stats post-prefix-cutover), this is the shape
-// the card expects — mirrors §5's documented payload.
+// Stats shape for the Profile page's <UserStatsCard />. Backend
+// shipped this at `GET /api/users/me/stats` in Phase 1.15 (`1e05a17`)
+// per `task-platform.md → users.me-stats`. Two BE-reframed semantics
+// vs the original spec worth knowing for the card copy:
+// - `last_active_at` = `MAX(user_sessions.last_modified)` (reframed
+//   from "last edit", which was unimplementable).
+// - `total_beneficiaries` counts user-added only (the ~21 seeded
+//   demo merchants + Self are excluded), so a brand-new account
+//   shows 0.
+// - `active_recurring` = templates currently forecasting (active +
+//   locked/review). Always present now that T-recurring shipped.
 export interface UserStatsResponse {
-  joined_at: string; // ISO datetime, e.g. "2026-01-12T08:00:00Z".
+  joined_at: string;
+  last_active_at: string | null;
   total_transactions: number;
   total_budgets: number;
   total_beneficiaries: number;
-  // Optional — populated once the recurring infrastructure (§10) ships;
-  // backend omits when the feature isn't live yet.
-  active_recurring?: number;
-  // ISO datetime of the most recent txn / budget edit. Optional so a
-  // brand-new account with zero activity can return only counts.
-  last_active_at?: string | null;
+  active_recurring: number;
 }
 
 export function fetchCurrentUser(): Promise<UserMeResponse> {
@@ -82,18 +84,8 @@ export function useUserPreferencesQuery(enabled = true) {
   });
 }
 
-// Returns null when the endpoint is not yet implemented (404 / 501) so
-// the Profile card can render a friendly "Coming soon" state instead of
-// surfacing a hard error. Same swallow pattern as the Tax Tracker
-// current-week endpoint (see features/taxation/api/queries.ts).
-export async function fetchUserStats(): Promise<UserStatsResponse | null> {
-  try {
-    return await apiFetch<UserStatsResponse>(routes.users.meStats());
-  } catch (err) {
-    const e = err as { status?: number };
-    if (e?.status === 404 || e?.status === 501) return null;
-    throw err;
-  }
+export function fetchUserStats(): Promise<UserStatsResponse> {
+  return apiFetch<UserStatsResponse>(routes.users.meStats());
 }
 
 export function useUserStatsQuery(enabled = true) {

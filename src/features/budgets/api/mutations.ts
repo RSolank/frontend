@@ -15,35 +15,15 @@ export function upsertBudgetLimitRequest(
   });
 }
 
-// Sentinel error tag used by `<BudgetFormDialog />` to detect the
-// "backend endpoint not implemented yet" case and surface a clearer
-// message than the apiClient's generic "Request failed" string.
-export const BUDGET_DELETE_NOT_IMPLEMENTED = 'BUDGET_DELETE_NOT_IMPLEMENTED';
-
-// DELETE /api/budget-limits/{tag_id}?budget_period=monthly — proposed
-// endpoint, not yet implemented on the backend. Contract spec at
-// `.scratch/task-handoff-fe-to-be.md §3`. The
-// frontend wires the call now so the surface is complete and the
-// only follow-up is a backend ship; we catch HTTP 404 / 405 / 501
-// and rethrow a typed sentinel so the modal can render the right
-// "coming soon" message instead of an opaque error.
-export async function deleteBudgetLimitRequest(
+// DELETE /api/budget-limits/{tag_id}?budget_period=monthly — shipped
+// BE Phase 1.3 (`a89ebfc`). 204 on success, 404 if no row, 400 on
+// unknown tag id. See `task-platform.md → budgets.delete-endpoint`.
+export function deleteBudgetLimitRequest(
   tag_id: number,
   budget_period = 'monthly'
 ): Promise<void> {
-  try {
-    await apiFetch(
-      `${routes.budgets.byTag(tag_id)}?budget_period=${encodeURIComponent(budget_period)}`,
-      { method: 'DELETE' }
-    );
-  } catch (err) {
-    const e = err as { status?: number };
-    if (e?.status === 404 || e?.status === 405 || e?.status === 501) {
-      const wrapped = new Error(BUDGET_DELETE_NOT_IMPLEMENTED);
-      (wrapped as Error & { code?: string }).code =
-        BUDGET_DELETE_NOT_IMPLEMENTED;
-      throw wrapped;
-    }
-    throw err;
-  }
+  return apiFetch(
+    `${routes.budgets.byTag(tag_id)}?budget_period=${encodeURIComponent(budget_period)}`,
+    { method: 'DELETE' }
+  );
 }

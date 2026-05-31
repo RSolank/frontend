@@ -4,14 +4,8 @@
 //
 // PROJECT CONVENTION: weeks are ISO 8601 — Monday through Sunday in
 // the user's active timezone. Locked 2026-05-28 during Batch 9.6; see
-// CONTRIBUTING.md §6 "Week convention" + the matching backend handoff
-// in `.scratch/task-handoff-fe-to-be.md §12`. The backend's bill
-// generator still iterates Sun-Sat internally
-// (`backend/app/modules/taxation/taxation_services.py:_iter_week_ranges`),
-// so the Tax Tracker bill-write path (`GenerateBillsDialog` →
-// `/api/consumption-tax/generate`) carries a known temporary mismatch
-// until the backend cutover lands. Read-only display surfaces are
-// frontend-only and already correct.
+// `docs/conventions.md` "Week convention". Backend matches since
+// Phase 2.6 (`e7c05aa`) — see `task-platform.md → taxation.iso-week-convention`.
 //
 // All boundary math is done against the user's timezone so e.g. a
 // user in Asia/Kolkata on Sunday evening UTC reads as Monday-in-IST
@@ -91,12 +85,6 @@ export function weekRangeInTz(
 // period ends that fall inside or after the preceding week (the
 // current accruing week is never billable; the preceding one is
 // reserved as the in-flight to-be-billed week).
-//
-// NOTE during the convention transition: the backend's internal week
-// iterator still produces Sun-Sat ranges, so the eligibility guard
-// uses an *approximation* — a frontend-Monday will be one day later
-// than the matching backend-Sunday. Acceptable while the backend
-// catches up; over-restricts by one day at worst.
 export function precedingWeekStartInTz(tz: string): string {
   const current = weekRangeInTz(new Date(), tz);
   const [y, m, d] = current.period_start.split('-').map(Number);

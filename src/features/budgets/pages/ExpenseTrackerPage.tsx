@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
-import { useAuthStore } from '../../../shared/state/auth.store';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { budgetKeys } from '../api/keys';
 import {
@@ -15,22 +14,8 @@ import {
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
 
-// Total tag is a system-only tag (`tag_type = "total"`) — its row is
-// never surfaced in user-visible tag pickers. The backend's
-// `_load_total_budget_row` currently selects spend aggregates + the
-// limit only, omitting `tag_id`/`tag_name`/`tag_type` (a backend gap
-// — `_load_category_rows` does select them). Until that's fixed the
-// frontend stitches identity from `useAuthStore.constants.TOTAL_TAG_ID`
-// as a FALLBACK; when the backend response carries identity columns,
-// the fallback values are simply not used. Once the backend SELECT
-// is widened per `.scratch/task-handoff-fe-to-be.md §2`
-// this constant + the stitch in `totalBudget` can be deleted.
-const TOTAL_TAG_NAME_FALLBACK = 'Total Budget';
-const TOTAL_TAG_TYPE_FALLBACK = 'total';
-
 export function ExpenseTrackerPage() {
   const queryClient = useQueryClient();
-  const constants = useAuthStore((s) => s.constants);
   const [activeMonth, setActiveMonth] = useState<string | null>(null);
   const { data, isLoading, error } = useBudgetStatusQuery(activeMonth);
 
@@ -50,23 +35,10 @@ export function ExpenseTrackerPage() {
     );
   }, [data]);
 
-  // Total Budget row identity — prefer backend-supplied fields,
-  // otherwise stitch from constants. See
-  // `.scratch/task-handoff-fe-to-be.md §2`
-  // for the backend follow-up; once landed this memo collapses to
-  // `data?.total_budget ?? null`.
-  const totalBudget: BudgetCategory | null = useMemo(() => {
-    const raw = data?.total_budget;
-    if (!raw) return null;
-    const tagId = (raw.tag_id as number | undefined) ?? constants?.TOTAL_TAG_ID;
-    if (tagId == null) return null;
-    return {
-      ...raw,
-      tag_id: tagId,
-      tag_name: raw.tag_name ?? TOTAL_TAG_NAME_FALLBACK,
-      tag_type: raw.tag_type ?? TOTAL_TAG_TYPE_FALLBACK,
-    };
-  }, [data, constants]);
+  const totalBudget: BudgetCategory | null = useMemo(
+    () => data?.total_budget ?? null,
+    [data]
+  );
 
   // Look up the active edit target by tag_id across (total + categories).
   // Total is editable too — same modal, same POST.

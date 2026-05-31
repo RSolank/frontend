@@ -585,17 +585,6 @@ Never roll your own Monday math; use the helper so a future
 convention change is one file. `fractionOfWeekElapsed` and
 `precedingWeekStartInTz` also operate on ISO weeks.
 
-**Backend status — TRANSITIONAL.** The backend's bill generator
-(`backend/app/modules/taxation/taxation_services.py:_iter_week_ranges`)
-still iterates Sun → Sat. Frontend display surfaces are
-self-contained and already correct; the bill write path
-(`GenerateBillsDialog` → `POST /api/consumption-tax/generate`) will
-send Mon → Sun ranges that don't align with stored Sun → Sat
-bills until the backend cutover lands. The ask is filed in
-[`.scratch/task-handoff-fe-to-be.md §12`](../.scratch/task-handoff-fe-to-be.md)
-as a high-priority backend follow-up. Until that lands, do **not**
-batch-generate bills across the convention boundary.
-
 **Naming.** Use `weekStart` / `weekEnd` (or `period_start` /
 `period_end` when matching backend payload shape) — never
 `mondayStart` / `sundayEnd`. The labels stay neutral so the next

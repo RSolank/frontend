@@ -101,15 +101,11 @@ export function useBillQuery(billId: number | null) {
   });
 }
 
-// --- Tax Tracker — current-week running tax (scaffold) ----------------------
+// --- Tax Tracker — current-week running tax ---------------------------------
 
-// Scaffold shape for the Tax Tracker enhancement. Backend will implement
-// GET /api/consumption-tax/tracker/current-week (see
-// `.scratch/task-handoff-fe-to-be.md §1` for the spec). Until then
-// the query falls back to a client-side aggregation built from the
-// transactions list — `useTrackerCurrentWeekQuery` swallows the 404 and
-// returns an empty payload so the page renders the "Backend pending"
-// empty state instead of an error.
+// Shape for `GET /api/consumption-tax/tracker/current-week` (shipped
+// BE Phase 2.6, `e7c05aa` — see `task-platform.md → taxation.tracker-current-week`).
+// Period boundaries are ISO Mon → Sun in the user's timezone.
 export interface PerTagContribution {
   tag_id: number;
   tag_name: string;
@@ -119,38 +115,28 @@ export interface PerTagContribution {
 }
 
 export interface TrackerCurrentWeekResponse {
-  period_start: string; // YYYY-MM-DD (week start, Sun in user tz)
-  period_end: string; // YYYY-MM-DD (week end, Sat in user tz)
+  period_start: string; // YYYY-MM-DD (week start, Mon in user tz)
+  period_end: string; // YYYY-MM-DD (week end, Sun in user tz)
   // Sum so far of accrued tax in the in-progress week.
   running_tax: number;
   // Sum of penalty accruals so far.
   running_penalty: number;
-  // Linear projection to week end, based on day-of-week elapsed.
+  // Linear projection to week end, based on fraction of week elapsed.
   projected_tax: number;
   projected_penalty: number;
-  // Breakdown by tag (top contributors) for the in-progress week.
+  // Breakdown by tag (top contributors, ≤10, sorted by
+  // tax_amount + penalty desc) for the in-progress week.
   per_tag: PerTagContribution[];
-  // Optional flag set by the backend when the endpoint is feature-gated
-  // off (pending real data). The UI uses this to surface a "Backend
-  // pending — showing approximate data" hint.
-  is_estimate?: boolean;
+  // Backend sets this during the T-taxation rollout window while
+  // the ledger backfills historic weeks; cleared once a fresh full
+  // week has accrued. UI renders an amber banner when true.
+  is_estimate: boolean;
 }
 
-export async function fetchTrackerCurrentWeek(): Promise<
-  TrackerCurrentWeekResponse | null
-> {
-  try {
-    return await apiFetch<TrackerCurrentWeekResponse>(
-      routes.taxation.trackerCurrentWeek()
-    );
-  } catch (err) {
-    // Endpoint not yet implemented (HTTP 404 / 501). The page treats
-    // this as "no data" rather than an error so the rest of the Tax
-    // Tracker still renders. See `.scratch/task-handoff-fe-to-be.md §1`.
-    const e = err as { status?: number };
-    if (e?.status === 404 || e?.status === 501) return null;
-    throw err;
-  }
+export function fetchTrackerCurrentWeek(): Promise<TrackerCurrentWeekResponse> {
+  return apiFetch<TrackerCurrentWeekResponse>(
+    routes.taxation.trackerCurrentWeek()
+  );
 }
 
 export function useTrackerCurrentWeekQuery() {
