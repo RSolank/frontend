@@ -242,6 +242,25 @@ extractable logic).
 - **CSRF / cookies** — the backend issues a cookie + Bearer dual; the SPA
   uses Bearer + `localStorage` today. If that changes, audit every fetch
   call site.
+- **`X-Device-Id` header** — `apiClient` sends a stable UUID v4
+  (`localStorage["pba.device_id"]`, minted by
+  `shared/utils/deviceId.ts`) on every request and on the
+  unauthenticated `POST /auth/refresh`. The backend uses it to
+  sharpen device-aware lockout (BE Phase 1.4) and to pre-wire the
+  new-device OTP challenge. It is NOT a secret — never put a
+  fingerprint, IP, or any user-identifying value into it. Treat the
+  module as the only writer of the storage key; do not read/write
+  `pba.device_id` from anywhere else in the app.
+- **`Retry-After` envelope** — `apiFetch` extracts `Retry-After` on 429
+  (rate-limit) and 403 (device-block) responses and attaches
+  `retryAfterSeconds: number` to the thrown `ApiError`. Auth forms
+  render an inline live countdown via
+  `features/auth/components/AuthErrorNotice` —
+  see [`docs/modules/auth.md`](docs/modules/auth.md#rate-limit--device-block-ux).
+  When you add a new feature surface that hits a rate-limited route,
+  decide whether the page needs the same live-countdown UX or the
+  generic error path suffices, and document the choice in its
+  module page.
 
 ### Dev/test environment
 

@@ -1,3 +1,5 @@
+import { getDeviceId } from '../utils/deviceId';
+
 import { routes } from './routes';
 
 const BASE_URL =
@@ -8,11 +10,38 @@ const BASE_URL =
 // (not an Error subclass). We preserve that shape so JS callers under
 // src/pages/** keep working; feature batches can migrate to a richer
 // error type when they convert.
+//
+// `retryAfterSeconds` is attached by Platform FE Batch 3 whenever the
+// response carries a `Retry-After` header on a 429 (auth.rate-limit)
+// or 403 (auth.devices device-block). Forms read it via
+// `useRetryCountdown(err.retryAfterSeconds)` to render an inline
+// "try again in N seconds" message; non-form callers fall through to
+// the generic error path.
 export type ApiError = {
   error?: string;
   status: number;
+  retryAfterSeconds?: number;
   [key: string]: unknown;
 };
+
+// Parses a `Retry-After` header into a positive integer of seconds.
+// The header may carry either a delta-seconds value (`120`) or an
+// HTTP-date (`Wed, 21 Oct 2026 07:28:00 GMT`). Returns `undefined` if
+// the header is missing or unparseable so the caller falls through
+// to the generic error path.
+function parseRetryAfter(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const trimmed = header.trim();
+  if (trimmed === '') return undefined;
+  if (/^\d+$/.test(trimmed)) {
+    const n = parseInt(trimmed, 10);
+    return n > 0 ? n : undefined;
+  }
+  const stamp = Date.parse(trimmed);
+  if (Number.isNaN(stamp)) return undefined;
+  const delta = Math.ceil((stamp - Date.now()) / 1000);
+  return delta > 0 ? delta : undefined;
+}
 
 // Outcome of a 401-triggered refresh attempt:
 //   'retried'   — refresh succeeded, `res` is the replayed request's response.
@@ -43,6 +72,11 @@ async function refreshAndRetry(
       headers: {
         'Content-Type': 'application/json',
         'X-Refresh-Token': refreshToken,
+        // Refresh is part of the device-aware lockout surface — the
+        // BE's suspicious-refresh path (Phase 1.4) needs X-Device-Id
+        // to tell "same browser, expired token" apart from "stolen
+        // token replay from a new device".
+        'X-Device-Id': getDeviceId(),
       },
     });
 
@@ -80,6 +114,7 @@ export async function apiFetch<T = unknown>(
   const headers: Record<string, string> = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    'X-Device-Id': getDeviceId(),
     ...((options.headers as Record<string, string> | undefined) ?? {}),
   };
 
@@ -96,16 +131,35 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    let err: ApiError;
-    try {
-      err = (await res.json()) as ApiError;
-    } catch {
-      err = { error: 'Request failed', status: res.status };
-    }
-    err.status = res.status;
-    throw err;
+    throw await buildApiError(res);
   }
 
   if (res.status === 204) return {} as T;
   return (await res.json()) as T;
+}
+
+// Builds the `ApiError` thrown on a non-2xx response. Extracted out
+// of `apiFetch` so the function stays under the complexity ceiling
+// (CONTRIBUTING.md §3 — ratchet, no suppression). Reads the JSON body
+// best-effort, normalises the status, and (on 429/403) decorates the
+// error with `retryAfterSeconds` so the auth-form countdown hook can
+// surface a live tick.
+async function buildApiError(res: Response): Promise<ApiError> {
+  let err: ApiError;
+  try {
+    err = (await res.json()) as ApiError;
+  } catch {
+    err = { error: 'Request failed', status: res.status };
+  }
+  err.status = res.status;
+  // `Retry-After` is meaningful on both 429 (auth.rate-limit) and
+  // 403 (auth.devices device-block). Other statuses with the header
+  // are out-of-spec for this project and ignored.
+  if (res.status === 429 || res.status === 403) {
+    const retryAfter = parseRetryAfter(res.headers.get('Retry-After'));
+    if (retryAfter !== undefined) {
+      err.retryAfterSeconds = retryAfter;
+    }
+  }
+  return err;
 }

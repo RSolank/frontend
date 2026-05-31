@@ -11,6 +11,7 @@ import {
 import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
+import { useAuthStore } from '../../../shared/state/auth.store';
 import {
   getBrowserRegion,
   getBrowserTimezone,
@@ -19,6 +20,8 @@ import {
 } from '../../../shared/utils/countryTimezones';
 import { validatePassword } from '../../../shared/utils/validation';
 import { useAuth } from '../state/useAuth';
+
+import { AuthErrorNotice } from './AuthErrorNotice';
 
 const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;
 
@@ -451,10 +454,15 @@ export function RegisterForm({
     handleTimezoneChange,
     handleSubmit,
   } = useRegisterForm(onSuccess);
+  const retryAfterSeconds = useAuthStore((s) => s.retryAfterSeconds);
 
   return (
     <>
-      {error && <div className="form-error mb-2">{error}</div>}
+      <AuthErrorNotice
+        error={error}
+        retryAfterSeconds={retryAfterSeconds}
+        action="registration"
+      />
       <form onSubmit={handleSubmit}>
         <RegisterFields
           form={form}

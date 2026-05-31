@@ -31,6 +31,11 @@ carries an `errorElement` that resolves to
 - `components/AuthInit.tsx` — mounted once inside the root `<App />`.
   Fires the boot-time `refreshAuthUser()` + `hydratePreferences()`.
 - `components/AuthErrorFallback.tsx` — per-route `errorElement`.
+- `components/AuthErrorNotice.tsx` — shared error surface for Login /
+  Register / RecoveryFlow. Renders the plain `form-error` div for
+  ordinary failures and live-ticks a "Try again in N seconds" message
+  when the auth store carries a `retryAfterSeconds` value (see
+  "Rate-limit + device-block UX" below).
 - `recovery/components/RecoveryFlow.tsx` — multi-step forgot-password UI
   (email → choice → question / OTP → reset).
 - `shared/components/TimezoneSelect.tsx` — single / multi / unknown
@@ -64,6 +69,44 @@ carries an `errorElement` that resolves to
   (`loginRequest`, `registerRequest`, `logoutRequest`,
   `recoveryQuestionRequest`, `forgotPasswordRequest`, `verifyOtpRequest`,
   `verifyAnswerRequest`, `resetPasswordFinalRequest`).
+
+## Rate-limit + device-block UX
+
+The backend rate-limits hot auth routes (BE Phase 1.8, `auth.rate-limit`)
+and blocks devices after repeated failed logins (BE Phase 1.4,
+`auth.devices`). Both surface the same FE shape:
+
+- **`X-Device-Id`** — `shared/utils/deviceId.ts` mints a UUID v4 on first
+  read and persists it to `localStorage["pba.device_id"]`. `apiFetch`
+  attaches it to every request (and to the unauthenticated
+  `POST /auth/refresh`) so the BE's device-lockout + suspicious-refresh
+  paths can distinguish "same browser, expired token" from "stolen
+  token replay from a new device". Backend is forward-compatible —
+  absent the header it falls back to a UA + client-hints + IP
+  composite.
+- **`Retry-After` envelope** — when the BE returns a 429 (rate-limited)
+  or 403 (device-blocked), `apiFetch` parses the `Retry-After` header
+  (delta-seconds or HTTP-date) and attaches `retryAfterSeconds: number`
+  to the thrown `ApiError`.
+- **`useAuthStore.retryAfterSeconds`** — `useAuth.login()` /
+  `register()` and the RecoveryFlow's `readError` write the parsed
+  value into the auth store. Cleared on the next input change or on
+  the next attempt.
+- **`<AuthErrorNotice action=… />`** — subscribes to
+  `retryAfterSeconds`, runs the value through
+  [`useRetryCountdown`](../../src/shared/hooks/useRetryCountdown.ts)
+  for the live tick, and renders "Too many *login* attempts. Please
+  try again in *N* seconds." The same component renders the plain
+  `error` string when `retryAfterSeconds` is null, so every auth form
+  has one error surface.
+- **`formatRetryAfter`** in `useRetryCountdown.ts` picks the coarsest
+  unit that fits (seconds → minutes → hours, rounded up) so long
+  device-blocks don't display as a four-digit second count.
+
+This is the only rate-limit-aware surface in the app today; for
+non-auth 429s the apiClient still attaches `retryAfterSeconds` to the
+thrown error so callers *can* handle it, but no other feature renders
+the countdown — failed-query screens use their generic error path.
 
 ## User-preferences hydration
 

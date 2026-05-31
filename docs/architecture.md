@@ -16,7 +16,7 @@ src/
 │   └── pages/                 # app-level public pages (Home landing / Help) — not feature-owned
 │
 ├── shared/                    # cross-feature primitives
-│   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + prefs headers + ApiError
+│   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + X-Device-Id header + Retry-After envelope + ApiError
 │   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api'` knob
 │   ├── api/referenceData.ts   # countries / currencies queries (read-only system reference data)
 │   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …
@@ -225,15 +225,29 @@ graph.
   expose `useXyzQuery` / `useXyzMutation` hooks, `keys.ts` the TanStack
   query keys, `schemas.ts` the request/response types.
 - Every request goes through `apiFetch(...)` in
-  [`src/shared/api/apiClient.ts`](../src/shared/api/apiClient.ts) (Bearer
-  token + refresh-on-401 + preference headers), and every URL is built
-  from the central [`src/shared/api/routes.ts`](../src/shared/api/routes.ts)
-  registry (`routes.<feature>.<action>(...)`) — no inline `/api/...`
-  strings. The `const V = '/api'` knob in `routes.ts` makes the eventual
+  [`src/shared/api/apiClient.ts`](../src/shared/api/apiClient.ts)
+  (Bearer token, refresh-on-401, `X-Device-Id` header), and every URL
+  is built from the central
+  [`src/shared/api/routes.ts`](../src/shared/api/routes.ts) registry
+  (`routes.<feature>.<action>(...)`) — no inline `/api/...` strings.
+  The `const V = '/api'` knob in `routes.ts` makes the eventual
   `/api/v1` cutover a one-line change.
-- **User-preferences headers** are injected on every `apiFetch` call —
-  see the dedicated [User preferences contract](#user-preferences-contract)
-  section below.
+- **`X-Device-Id`** is sent on every authenticated request (and on the
+  unauthenticated `POST /auth/refresh`) — a stable UUID v4 minted once
+  per browser install and persisted to `localStorage["pba.device_id"]`
+  by `shared/utils/deviceId.ts:getDeviceId()`. The backend uses it to
+  sharpen device-aware lockout (BE Phase 1.4) and to pre-wire the
+  upcoming new-device OTP challenge; absent the header the backend
+  falls back to a UA + client-hints + IP composite, so sending it is
+  recommended-but-not-required.
+- **`Retry-After` envelope on 429 / 403** — `apiFetch` parses the
+  header on those statuses and attaches `retryAfterSeconds: number`
+  to the thrown `ApiError`. The auth forms surface a live-ticking
+  inline countdown via
+  [`shared/hooks/useRetryCountdown`](../src/shared/hooks/useRetryCountdown.ts)
+  + [`features/auth/components/AuthErrorNotice`](../src/features/auth/components/AuthErrorNotice.tsx).
+  Other statuses with `Retry-After` set are out-of-spec for this
+  project and ignored.
 
 ## State
 

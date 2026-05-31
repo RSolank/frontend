@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { PasswordRequirements } from '../../../../shared/components/PasswordRequirements';
+import { useAuthStore } from '../../../../shared/state/auth.store';
 import { validatePassword } from '../../../../shared/utils/validation';
 import {
   forgotPasswordRequest,
@@ -16,6 +17,14 @@ type RecoveryStep = 'email' | 'choice' | 'question' | 'otp' | 'reset';
 interface ApiErrorShape {
   detail?: string;
   error?: string;
+  retryAfterSeconds?: number;
+}
+
+function formatRetrySeconds(seconds: number): string {
+  if (seconds <= 1) return '1 second';
+  if (seconds < 60) return `${seconds} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? '1 minute' : `${minutes} minutes`;
 }
 
 interface RecoveryFlowProps {
@@ -44,6 +53,14 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
 
   function readError(err: unknown, fallback: string) {
     const e = err as ApiErrorShape;
+    // Recovery routes are rate-limited (auth.rate-limit) on an
+    // (IP, email) composite key — surface the live countdown via the
+    // auth store so `<AuthErrorNotice action="recovery" />` upstream
+    // in `<LoginForm>` ticks down on the inline copy.
+    if (typeof e.retryAfterSeconds === 'number' && e.retryAfterSeconds > 0) {
+      useAuthStore.getState().setRetryAfterSeconds(e.retryAfterSeconds);
+      return `Too many recovery attempts. Please try again in ${formatRetrySeconds(e.retryAfterSeconds)}.`;
+    }
     return e.detail || e.error || fallback;
   }
 

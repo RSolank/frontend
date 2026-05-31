@@ -23,15 +23,18 @@
 ## State
 
 The users feature holds no Zustand state. The two account-adjacent
-stores live in `shared/state/` because `shared/api/apiClient.ts`
-reads from them:
+stores live in `shared/state/` because `shared/components/ProtectedRoute`
+and the cross-feature `formatMoney` / `formatDate` helpers read them
+— the dependency direction rule blocks pulling them into
+`features/users/state/`:
 
 - [`useAuthStore`](../../src/shared/state/auth.store.ts) — the user
   object the header / nav reads from after `refreshAuthUser()`
-  populates it.
+  populates it. Also carries `retryAfterSeconds` for the auth-form
+  live countdown.
 - [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
-  — rewritten on Preferences save via `hydratePreferences()`. Headers
-  + every `formatMoney` / `formatDate` call observe the change.
+  — rewritten on Preferences save via `hydratePreferences()`. Every
+  `formatMoney` / `formatDate` call observes the change.
 
 ## API
 

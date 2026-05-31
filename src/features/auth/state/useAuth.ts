@@ -19,6 +19,37 @@ interface ApiErrorShape {
   status?: number;
   detail?: string | { msg?: string; loc?: (string | number)[] }[];
   error?: string;
+  retryAfterSeconds?: number;
+}
+
+// Translates the `Retry-After`-carrying error envelope into a
+// concrete inline message. Lives here (not in apiClient) because the
+// copy depends on whether the user is on the login form, the
+// register form, or the recovery flow — apiClient stays UX-agnostic.
+function rateLimitMessage(seconds: number, action: string): string {
+  return `Too many ${action} attempts. Please try again in ${formatRetrySeconds(seconds)}.`;
+}
+
+function formatRetrySeconds(seconds: number): string {
+  if (seconds <= 1) return '1 second';
+  if (seconds < 60) return `${seconds} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? '1 minute' : `${minutes} minutes`;
+}
+
+// Pulls the Retry-After signal into the auth store + crafts the
+// inline message. Returns the seconds so the caller can also let
+// the form-level countdown hook live-tick.
+function applyRetryAfter(
+  e: ApiErrorShape,
+  action: string,
+  setError: (msg: string | null) => void
+): number | null {
+  const seconds = e.retryAfterSeconds;
+  if (typeof seconds !== 'number' || seconds <= 0) return null;
+  setError(rateLimitMessage(seconds, action));
+  useAuthStore.getState().setRetryAfterSeconds(seconds);
+  return seconds;
 }
 
 function persistTokens(data: TokenResponse) {
@@ -77,6 +108,7 @@ export function useAuth() {
 
   async function login(input: LoginInput): Promise<void> {
     setError(null);
+    useAuthStore.getState().setRetryAfterSeconds(null);
     try {
       const data = await loginRequest(input);
       persistTokens(data);
@@ -87,13 +119,16 @@ export function useAuth() {
       navigate(getLandingRoute());
     } catch (err) {
       const e = err as ApiErrorShape;
-      setError(typeof e.detail === 'string' ? e.detail : 'Login failed');
+      if (applyRetryAfter(e, 'login', setError) === null) {
+        setError(typeof e.detail === 'string' ? e.detail : 'Login failed');
+      }
       throw err;
     }
   }
 
   async function register(payload: RegisterPayload): Promise<void> {
     setError(null);
+    useAuthStore.getState().setRetryAfterSeconds(null);
     try {
       const data = await registerRequest(payload);
       persistTokens(data);
@@ -109,13 +144,15 @@ export function useAuth() {
       navigate('/dashboard');
     } catch (err) {
       const e = err as ApiErrorShape;
-      const msg =
-        Array.isArray(e.detail)
-          ? e.detail.map((d) => d.msg || d.loc?.join('.')).join(', ')
-          : (e.detail as string | undefined) ||
-            e.error ||
-            'Registration failed';
-      setError(msg);
+      if (applyRetryAfter(e, 'registration', setError) === null) {
+        const msg =
+          Array.isArray(e.detail)
+            ? e.detail.map((d) => d.msg || d.loc?.join('.')).join(', ')
+            : (e.detail as string | undefined) ||
+              e.error ||
+              'Registration failed';
+        setError(msg);
+      }
       throw err;
     }
   }

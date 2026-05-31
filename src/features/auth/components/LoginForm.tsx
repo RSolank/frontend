@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
+import { useAuthStore } from '../../../shared/state/auth.store';
 import { RecoveryFlow } from '../recovery/components/RecoveryFlow';
 import { useAuth } from '../state/useAuth';
+
+import { AuthErrorNotice } from './AuthErrorNotice';
 
 interface LoginFormProps {
   // Called after a successful login. Defaults to the standard
@@ -27,6 +30,8 @@ export function LoginForm({
   hideRegisterPrompt = false,
 }: LoginFormProps) {
   const { login, error, setError } = useAuth();
+  const retryAfterSeconds = useAuthStore((s) => s.retryAfterSeconds);
+  const setRetryAfterSeconds = useAuthStore((s) => s.setRetryAfterSeconds);
   const [form, setForm] = useState({ email_id: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -34,6 +39,7 @@ export function LoginForm({
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     if (error) setError(null);
+    if (retryAfterSeconds !== null) setRetryAfterSeconds(null);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -52,12 +58,17 @@ export function LoginForm({
   if (forgotMode) {
     return (
       <>
-        {error && <div className="form-error mb-2">{error}</div>}
+        <AuthErrorNotice
+          error={error}
+          retryAfterSeconds={retryAfterSeconds}
+          action="recovery"
+        />
         <RecoveryFlow
           onError={setError}
           onExit={() => {
             setForgotMode(false);
             setError(null);
+            setRetryAfterSeconds(null);
           }}
         />
       </>
@@ -66,7 +77,11 @@ export function LoginForm({
 
   return (
     <>
-      {error && <div className="form-error mb-2">{error}</div>}
+      <AuthErrorNotice
+        error={error}
+        retryAfterSeconds={retryAfterSeconds}
+        action="login"
+      />
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label htmlFor="login-email" className="form-label">
@@ -107,6 +122,7 @@ export function LoginForm({
         onClick={() => {
           setForgotMode(true);
           setError(null);
+          setRetryAfterSeconds(null);
         }}
         className="btn-link mt-2"
       >

@@ -1,9 +1,11 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { server } from '../../../test/server';
 
 import { LoginPage } from './LoginPage';
 
@@ -22,6 +24,7 @@ function resetStores() {
     constants: null,
     loading: false,
     error: null,
+    retryAfterSeconds: null,
   });
   usePreferencesStore.getState().reset();
   localStorage.clear();
@@ -30,6 +33,10 @@ function resetStores() {
 describe('LoginPage', () => {
   beforeEach(() => {
     resetStores();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
   });
 
   it('renders login form when unauthenticated', () => {
@@ -94,6 +101,69 @@ describe('LoginPage', () => {
       expect(usePreferencesStore.getState().currency).toBe('INR');
       expect(usePreferencesStore.getState().timezone).toBe('Asia/Kolkata');
     });
+  });
+
+  it('renders the rate-limit inline countdown when /login returns 429 + Retry-After', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/auth/login', () =>
+        HttpResponse.json(
+          { detail: 'Too many attempts' },
+          { status: 429, headers: { 'Retry-After': '120' } }
+        )
+      )
+    );
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: 'fixture@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/Password/), {
+      target: { value: 'SecurePass123!' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+    });
+
+    const notice = await screen.findByTestId('auth-rate-limit');
+    // Sub-hour values are rounded up to whole minutes — 120s → "in 2 minutes".
+    expect(notice).toHaveTextContent(/Too many login attempts/);
+    expect(notice).toHaveTextContent(/in 2 minutes/);
+    expect(useAuthStore.getState().retryAfterSeconds).toBe(120);
+  });
+
+  it('surfaces the device-block countdown when /login returns 403 + Retry-After', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/auth/login', () =>
+        HttpResponse.json(
+          { detail: 'Device blocked' },
+          { status: 403, headers: { 'Retry-After': '45' } }
+        )
+      )
+    );
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Email/), {
+      target: { value: 'fixture@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/Password/), {
+      target: { value: 'SecurePass123!' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+    });
+
+    const notice = await screen.findByTestId('auth-rate-limit');
+    expect(notice).toHaveTextContent(/in 45 seconds/);
   });
 
   it('exposes the forgot-password flow', () => {
