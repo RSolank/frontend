@@ -90,11 +90,27 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   back to a "pending" empty state when the endpoint 404s.
 - `components/BillDetailDialog.tsx` — `<Modal size="xl">` wrapper for
   the bill detail surfaces. Items table renders **Date / Beneficiary
-  / Type / Amount / Tax / Penalty / Penalty tag**. When the bill is
-  `pending` and the caller passes an `onPay` prop, a **Pay bill**
-  action appears in the modal footer alongside Close — mirroring
-  the row-level Pay button so the user can settle the bill without
-  exiting the breakdown view.
+  / Type / Amount / Tax / Penalty / Penalty tag**. BE Phase 2.6
+  splits the items into a real-transactions table + a separate
+  **Adjustments** section for `is_adjustment=true` rows (corrections
+  to past finalized bills that landed on the current ACCRUING bill
+  per Decision 23). The header strip shows the per-state pill and
+  the `amount_paid / amount` progress when partial. When the bill is
+  in a settleable state (`BILLED` / `OVERDUE`) and the caller passes
+  `onMarkPaid`, a **Mark paid** action appears in the footer; for
+  `PAID` bills the inverse **Reopen** action surfaces via
+  `onMarkUnpaid`.
+- `components/billStatus.tsx` — shared bill-state visual treatment:
+  `BillStatusPill`, `billStatusDescriptor`, `isPayable`, and
+  `isUnpayable` helpers. Used by both the page row and the detail
+  dialog so the icon + colour + label are identical across surfaces.
+- `state/taxMode.store.ts` and the matching
+  `shared/components/TaxModeToggle` — the `auto_enabled` toggle UI.
+  Store lives in `shared/state/` to match the rest of the
+  preference-store cluster; toggle in `shared/components/` so the
+  `/account/preferences` page can compose it across the feature
+  boundary. Hydrated + PATCHed via the existing
+  `hydratePreferences()` + `subscribeToPreferenceStores()` pipeline.
 
 ## Hooks
 
@@ -107,22 +123,33 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/taxation/api/mutations.ts) —
-`updateTaxationRuleRequest`, `generateBillsRequest`, `payBillRequest`.
+`updateTaxationRuleRequest`, `generateBillsRequest`,
+`markBillPaidRequest`, `markBillUnpaidRequest`. (`payBillRequest`
+was removed in Platform FE Batch 8 — BE Phase 2.6 deleted the
+`pay_bill` endpoint per Decision 25.)
 
 ## API
 
 Read endpoints consumed (under `/api`):
 
 - `GET /api/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
-- `GET /api/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount }`.
-- `GET /api/consumption-tax/bills/:id` → detail with `totals` + `items[]`.
+- `GET /api/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
+- `GET /api/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
 - `GET /api/consumption-tax/tracker/current-week` → see Backend handoff (scaffold, may 404 today).
 
 Write endpoints consumed:
 
 - `PUT /api/taxation-rules/:txn_type` — body `{ tax_rate, default_penalty_rate }`.
 - `POST /api/consumption-tax/bills/generate` — body `{ period_start, period_end }`.
-- `POST /api/consumption-tax/bills/:id/pay`.
+- `POST /api/consumption-tax/bills/:id/mark-paid` — body `{ payment_txn_id?, amount? }` (BE Phase 2.6, Decision 25).
+- `POST /api/consumption-tax/bills/:id/mark-unpaid` — no body. The undo path.
+
+Preferences:
+
+- `auto_enabled` on `/api/users/preferences` — taxation auto-mode
+  toggle (Decision 26). Wired via the existing preference-store
+  pipeline; the toggle lives on
+  [`/account/preferences`](account.md).
 
 ## Backend handoff
 
@@ -146,7 +173,9 @@ Until the endpoint ships:
 | Test file | What it covers |
 |---|---|
 | `pages/TaxationRulesPage.test.tsx` | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert. |
-| `pages/TaxTrackerPage.test.tsx` | Bills list renders with status pills + formatted money; opening a row shows the bill detail modal with penalty breakdown by tag; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
+| `pages/TaxTrackerPage.test.tsx` | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
+| `components/billStatus.test.tsx` | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states. |
+| `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state. |
 | `api/billPeriod.test.ts` | Sun → Sat week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 on Sun midnight, ~1 on Sat late, ~0.5 mid-week. |
 
 ## Responsive design

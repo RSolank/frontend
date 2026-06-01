@@ -20,6 +20,7 @@ import {
   sanitizePreferences,
   usePreferencesStore,
 } from '../../../shared/state/preferences.store';
+import { useTaxModeStore } from '../../../shared/state/taxMode.store';
 
 import { updatePreferencesRequest } from './mutations';
 import { fetchUserPreferences, type PreferencesResponse } from './queries';
@@ -129,6 +130,10 @@ function applyHydratedPreferences(prefs: PreferencesResponse): void {
   if (typeof prefs.focus_ring_always === 'boolean') {
     useFocusRingStore.getState().setAlwaysVisible(prefs.focus_ring_always);
   }
+  // auto_enabled — taxation auto-mode toggle (BE Phase 2.6).
+  if (typeof prefs.auto_enabled === 'boolean') {
+    useTaxModeStore.getState().setEnabled(prefs.auto_enabled);
+  }
 }
 
 // Subscribe each preference store so any user-driven `setX()` fans out
@@ -170,6 +175,11 @@ export function subscribeToPreferenceStores(): void {
   useFocusRingStore.subscribe((state, prev) => {
     if (hydrating || state.alwaysVisible === prev.alwaysVisible) return;
     void updatePreferencesRequest({ focus_ring_always: state.alwaysVisible });
+  });
+
+  useTaxModeStore.subscribe((state, prev) => {
+    if (hydrating || state.enabled === prev.enabled) return;
+    void updatePreferencesRequest({ auto_enabled: state.enabled });
   });
 }
 

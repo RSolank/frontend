@@ -333,6 +333,7 @@ flat object with these keys:
 | `default_txn_kind` | `debit \| credit` | `useDefaultTxnKindStore.kind` |
 | `underline_links` | boolean | `useLinkUnderlineStore.underline` |
 | `focus_ring_always` | boolean | `useFocusRingStore.alwaysVisible` |
+| `auto_enabled` | boolean | `useTaxModeStore.enabled` |
 
 PATCH accepts a partial body — sync side-effects always send a single
 field at a time.
@@ -347,11 +348,12 @@ field at a time.
   rather than landing in an invalid state. `currency` + `timezone`
   retain the `sanitizePreferences` printable-ASCII filter
   (protects the in-memory store from poisoned legacy rows).
-- `subscribeToPreferenceStores()` subscribes the 6 enum / bool
-  preference stores and fires a fire-and-forget PATCH on every
-  user-driven `setX()`. Idempotent — invoked once at module init
-  on first import. A `hydrating` guard suppresses the patch-back
-  during hydrate, so a boot doesn't trigger eight pointless writes.
+- `subscribeToPreferenceStores()` subscribes the 7 enum / bool
+  preference stores (6 generic + tax-mode) and fires a fire-and-
+  forget PATCH on every user-driven `setX()`. Idempotent — invoked
+  once at module init on first import. A `hydrating` guard
+  suppresses the patch-back during hydrate, so a boot doesn't
+  trigger pointless writes.
   Currency / timezone are PATCHed explicitly by the Account
   Preferences page's Save handler (not by a subscriber), because
   that's the only writer.

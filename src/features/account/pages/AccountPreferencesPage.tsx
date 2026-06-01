@@ -8,6 +8,7 @@ import {
 } from '../../../shared/components/CountrySelect';
 import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
+import { TaxModeToggle } from '../../../shared/components/TaxModeToggle';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
 import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
 import { userKeys } from '../../users/api/keys';
@@ -224,6 +225,13 @@ export function AccountPreferencesPage() {
           . All defaults persist to this browser only — cross-device
           sync is queued as a backend follow-up.
         </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <div className="border-b border-slate-100 px-4 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:text-slate-400">
+          Taxation
+        </div>
+        <TaxModeToggle />
       </div>
     </div>
   );

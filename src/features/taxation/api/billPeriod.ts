@@ -104,7 +104,10 @@ export function precedingWeekStartInTz(tz: string): string {
 // follow-ups" + "Defaults cluster persistence" entries — backend
 // columns + hydration ship in Batch 9.5; this helper is the
 // single-file swap point on the frontend.
-export function formatBillDate(value: string, tz: string): string {
+export function formatBillDate(
+  value: string | null | undefined,
+  tz: string
+): string {
   if (!value) return '—';
   const iso = /^\d{4}-\d{2}-\d{2}$/.test(value)
     ? `${value}T12:00:00Z`

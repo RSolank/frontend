@@ -135,8 +135,13 @@ export const routes = {
     billById: (billId: number | string) =>
       `${V}/consumption-tax/bills/${billId}`,
     billGenerate: () => `${V}/consumption-tax/bills/generate`,
-    billPay: (billId: number | string) =>
-      `${V}/consumption-tax/bills/${billId}/pay`,
+    // BE Phase 2.6 — `mark-paid` + `mark-unpaid` replace the removed
+    // `pay` endpoint (Decision 25 — user-attestation, never creates a
+    // transaction). The engine reconciles existing txn data.
+    billMarkPaid: (billId: number | string) =>
+      `${V}/consumption-tax/bills/${billId}/mark-paid`,
+    billMarkUnpaid: (billId: number | string) =>
+      `${V}/consumption-tax/bills/${billId}/mark-unpaid`,
     trackerCurrentWeek: () => `${V}/consumption-tax/tracker/current-week`,
   },
 } as const;

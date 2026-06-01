@@ -56,6 +56,9 @@ export interface PreferencesUpdatePayload {
   default_txn_kind?: string;
   underline_links?: boolean;
   focus_ring_always?: boolean;
+  // BE Phase 2.6 — taxation auto-mode toggle. See PreferencesResponse
+  // in queries.ts for the semantics.
+  auto_enabled?: boolean;
 }
 
 export const changePasswordSchema = z.object({

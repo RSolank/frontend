@@ -83,6 +83,15 @@ six are server-synced via the same `user_preferences` row (see
 their stores at boot, and `subscribeToPreferenceStores()` PATCHes
 back on every user-driven `setX()`.
 
+A "Taxation" card surfaces the `auto_enabled` toggle (BE Phase 2.6,
+Decision 26 — Auto-finalize weekly bills). Same hydrate / subscribe
+pipeline as the other preferences; toggle is the shared
+`<TaxModeToggle>` component. When OFF, bills stay in ACCRUING for
+visibility and the user drives generation manually from the Tax
+Tracker. When the BE stale-bill worker EXPIREs unpaid bills past
+`STALE_BILL_THRESHOLD`, this flag flips off server-side — the
+hydrate path catches that on the next boot/refresh.
+
 ### Security
 
 Change password POSTs `/api/auth/change-password`. Security question

@@ -9,13 +9,14 @@ import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatBillDate } from '../api/billPeriod';
 import { taxationKeys } from '../api/keys';
-import { payBillRequest } from '../api/mutations';
-import {
-  useBillsQuery,
-  type BillStatus,
-  type BillSummary,
-} from '../api/queries';
+import { markBillPaidRequest, markBillUnpaidRequest } from '../api/mutations';
+import { useBillsQuery, type BillSummary } from '../api/queries';
 import { BillDetailDialog } from '../components/BillDetailDialog';
+import {
+  BillStatusPill,
+  isPayable,
+  isUnpayable,
+} from '../components/billStatus';
 import { CurrentWeekTracker } from '../components/CurrentWeekTracker';
 import { GenerateBillsDialog } from '../components/GenerateBillsDialog';
 
@@ -27,6 +28,34 @@ interface ApiErrorShape {
 function errorMessage(err: unknown, fallback: string): string {
   const e = err as ApiErrorShape;
   return e?.detail || e?.error || fallback;
+}
+
+// ConfirmDialog copy keyed off the active mode — extracted so the
+// page render stays under the §3 complexity ceiling.
+interface ConfirmCopy {
+  title: string;
+  message: string;
+  label: string;
+  intent: 'primary' | 'danger';
+}
+
+function confirmCopy(mode: 'paid' | 'unpaid' | undefined): ConfirmCopy {
+  if (mode === 'unpaid') {
+    return {
+      title: 'Reopen this bill?',
+      message:
+        'This clears the paid status and reverts any manual allocation against this bill. The engine will redirect auto-FIFO allocations to the oldest outstanding bill on the next worker run. Continue?',
+      label: 'Reopen',
+      intent: 'danger',
+    };
+  }
+  return {
+    title: 'Mark bill as paid',
+    message:
+      'This records that you settled this bill outside the app (the engine does not create a transaction). Continue?',
+    label: 'Mark paid',
+    intent: 'primary',
+  };
 }
 
 export function TaxTrackerPage() {
@@ -47,8 +76,13 @@ export function TaxTrackerPage() {
   // this now" action surface.
   const [generateOpen, setGenerateOpen] = useState(false);
 
-  const [confirmPayBillId, setConfirmPayBillId] = useState<number | null>(null);
-  const [paying, setPaying] = useState(false);
+  // Two confirm flows in flight: mark-paid (most common) and
+  // mark-unpaid (the undo path). One `useState` covers both because
+  // the dialog is single-instance — `mode` decides copy + handler.
+  const [confirmBill, setConfirmBill] = useState<
+    { bill_id: number; mode: 'paid' | 'unpaid' } | null
+  >(null);
+  const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { id: highlightBillId, flash } = useRowHighlight<number>();
@@ -60,22 +94,39 @@ export function TaxTrackerPage() {
     if (firstId != null) flash(firstId);
   }
 
-  async function handleConfirmPay() {
-    if (confirmPayBillId == null) return;
+  async function handleConfirm() {
+    if (confirmBill == null) return;
     setActionError(null);
-    setPaying(true);
+    setSubmitting(true);
     try {
-      await payBillRequest(confirmPayBillId);
+      if (confirmBill.mode === 'paid') {
+        await markBillPaidRequest(confirmBill.bill_id);
+      } else {
+        await markBillUnpaidRequest(confirmBill.bill_id);
+      }
       await queryClient.invalidateQueries({ queryKey: taxationKeys.bills() });
-      flash(confirmPayBillId);
-      setConfirmPayBillId(null);
-      // Close the detail modal too — bill is now paid, the in-modal
-      // Pay action shouldn't linger after success.
-      viewModal.close();
+      // Detail query for this bill also needs to reload so the in-modal
+      // surface reflects the new state if the user just acted from
+      // inside the modal.
+      await queryClient.invalidateQueries({
+        queryKey: taxationKeys.billDetail(confirmBill.bill_id),
+      });
+      flash(confirmBill.bill_id);
+      setConfirmBill(null);
+      // Mark-paid closes the detail modal (action complete); mark-unpaid
+      // leaves it open so the user can review the reopened bill.
+      if (confirmBill.mode === 'paid') viewModal.close();
     } catch (err) {
-      setActionError(errorMessage(err, 'Failed to pay bill'));
+      setActionError(
+        errorMessage(
+          err,
+          confirmBill.mode === 'paid'
+            ? 'Failed to mark bill paid'
+            : 'Failed to reopen bill'
+        )
+      );
     } finally {
-      setPaying(false);
+      setSubmitting(false);
     }
   }
 
@@ -107,7 +158,10 @@ export function TaxTrackerPage() {
             money={money}
             timezone={timezone}
             onView={(id) => viewModal.openWith(String(id))}
-            onPay={(id) => setConfirmPayBillId(id)}
+            onMarkPaid={(id) => setConfirmBill({ bill_id: id, mode: 'paid' })}
+            onMarkUnpaid={(id) =>
+              setConfirmBill({ bill_id: id, mode: 'unpaid' })
+            }
           />
         ))}
       </ul>
@@ -192,7 +246,8 @@ export function TaxTrackerPage() {
         billId={viewBillId}
         open={viewBillId != null}
         onClose={viewModal.close}
-        onPay={(id) => setConfirmPayBillId(id)}
+        onMarkPaid={(id) => setConfirmBill({ bill_id: id, mode: 'paid' })}
+        onMarkUnpaid={(id) => setConfirmBill({ bill_id: id, mode: 'unpaid' })}
         onViewTransaction={(txnId) => {
           viewModal.close();
           navigate(`/transactions?edit=${txnId}`);
@@ -200,14 +255,14 @@ export function TaxTrackerPage() {
       />
 
       <ConfirmDialog
-        open={confirmPayBillId != null}
-        title="Mark bill as paid"
-        message="This records the bill as paid and creates the corresponding consumption-tax transaction. Continue?"
-        confirmLabel="Mark paid"
-        intent="primary"
-        busy={paying}
-        onClose={() => setConfirmPayBillId(null)}
-        onConfirm={handleConfirmPay}
+        open={confirmBill != null}
+        title={confirmCopy(confirmBill?.mode).title}
+        message={confirmCopy(confirmBill?.mode).message}
+        confirmLabel={confirmCopy(confirmBill?.mode).label}
+        intent={confirmCopy(confirmBill?.mode).intent}
+        busy={submitting}
+        onClose={() => setConfirmBill(null)}
+        onConfirm={handleConfirm}
       />
     </div>
   );
@@ -219,37 +274,59 @@ interface BillRowProps {
   money: (n: number | null | undefined) => string;
   timezone: string;
   onView: (billId: number) => void;
-  onPay: (billId: number) => void;
+  onMarkPaid: (billId: number) => void;
+  onMarkUnpaid: (billId: number) => void;
 }
 
-// Bill row: View + Pay live on the same action line on every viewport
-// (per the 2026-05-26 design lock). At narrow viewports the row wraps
-// the action cluster below the date+status block via `flex-wrap`.
+// Bill row: View + (Mark paid | Reopen) live on the same action line on
+// every viewport (per the 2026-05-26 design lock). At narrow viewports
+// the row wraps the action cluster below the date+status block via
+// `flex-wrap`. Partial payments surface an `amount_paid / amount`
+// progress bar inline so the user reads the settlement state without
+// opening the detail modal.
 function BillRow({
   bill,
   isHighlighted,
   money,
   timezone,
   onView,
-  onPay,
+  onMarkPaid,
+  onMarkUnpaid,
 }: BillRowProps) {
   const ringClass = isHighlighted
     ? 'ring-2 ring-inset ring-indigo-500'
     : 'ring-0';
+  const paid = bill.amount_paid ?? 0;
+  const total = bill.amount ?? 0;
+  const showProgress =
+    total > 0 && paid > 0 && paid < total && bill.status !== 'PAID';
   return (
     <li
       data-testid={`bill-row-${bill.bill_id}`}
       className={`flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${ringClass}`}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="font-semibold text-slate-900 dark:text-slate-100">
           {formatBillDate(bill.period_start, timezone)} →{' '}
           {formatBillDate(bill.period_end, timezone)}
         </div>
-        <div className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          <StatusPill status={bill.status} />
-          <span className="ml-2 tabular-nums money">{money(bill.amount)}</span>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+          <BillStatusPill status={bill.status} />
+          <span className="tabular-nums money">{money(total)}</span>
+          {showProgress && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              · <span className="money tabular-nums">{money(paid)}</span> paid
+            </span>
+          )}
         </div>
+        {showProgress && (
+          <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <div
+              className="h-full bg-emerald-500 dark:bg-emerald-400"
+              style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
+            />
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -259,37 +336,27 @@ function BillRow({
         >
           View
         </button>
-        {bill.status === 'pending' && (
+        {isPayable(bill.status) && (
           <button
             type="button"
-            onClick={() => onPay(bill.bill_id)}
+            onClick={() => onMarkPaid(bill.bill_id)}
             className="btn-primary !w-auto"
+            data-testid={`bill-mark-paid-${bill.bill_id}`}
           >
-            Pay
+            Mark paid
+          </button>
+        )}
+        {isUnpayable(bill.status) && (
+          <button
+            type="button"
+            onClick={() => onMarkUnpaid(bill.bill_id)}
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-rose-300 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-rose-800 dark:hover:text-rose-300"
+            data-testid={`bill-mark-unpaid-${bill.bill_id}`}
+          >
+            Reopen
           </button>
         )}
       </div>
     </li>
-  );
-}
-
-// Pill colour by bill status — if/else (not a nested ternary) so it stays
-// off sonarjs/no-nested-conditional.
-function statusTone(status: BillStatus): string {
-  if (status === 'paid')
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200';
-  if (status === 'pending')
-    return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
-}
-
-function StatusPill({ status }: { status: BillStatus }) {
-  const tone = statusTone(status);
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${tone}`}
-    >
-      {status}
-    </span>
   );
 }
