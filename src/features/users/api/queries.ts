@@ -11,6 +11,12 @@ import { userKeys } from './keys';
 // preferences query, not from /me. `profile_image_url` is the BE
 // Phase 1.13 single nullable field that carries `null` (initials),
 // `/media/presets/<id>.webp`, or `/media/profile-images/<user>/<uuid>.webp`.
+//
+// `two_factor_enabled` (BE Phase 2.7) — column exists on `UserAuth`
+// but isn't yet returned by `/me`. Typed as optional so the FE can
+// consume it once the BE wires it (one-line BE change, no FE change).
+// Until then, the TwoFactorSection treats absent as `false` and the
+// EmailChangeForm reveals its code field on a 401 (existing fallback).
 export interface UserProfile {
   user_id: number;
   email_id: string;
@@ -20,6 +26,7 @@ export interface UserProfile {
   contact?: string | null;
   country?: string | null;
   profile_image_url?: string | null;
+  two_factor_enabled?: boolean;
   [key: string]: unknown;
 }
 

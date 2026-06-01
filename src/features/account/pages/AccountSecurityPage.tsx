@@ -12,6 +12,7 @@ import {
 } from '../../users/api/queries';
 import { EmailChangeForm } from '../components/EmailChangeForm';
 import { SessionList } from '../components/SessionList';
+import { TwoFactorSection } from '../components/TwoFactorSection';
 
 const SECURITY_QUESTIONS = [
   'What was the name of your first school?',
@@ -266,6 +267,13 @@ export function AccountSecurityPage() {
             </div>
           )}
         </form>
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Two-factor authentication
+        </h2>
+        <TwoFactorSection />
       </div>
 
       <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">

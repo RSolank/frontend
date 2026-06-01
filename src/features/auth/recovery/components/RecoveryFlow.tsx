@@ -7,6 +7,7 @@ import { validatePassword } from '../../../../shared/utils/validation';
 import {
   forgotPasswordRequest,
   recoveryQuestionRequest,
+  isTwoFactorChallenge,
   resetPasswordFinalRequest,
   verifyAnswerRequest,
   verifyOtpRequest,
@@ -120,7 +121,17 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await resetPasswordFinalRequest(resetToken, newPassword);
+      const res = await resetPasswordFinalRequest(resetToken, newPassword);
+      // BE Phase 2.7 — recovery for a 2FA-enabled user lands on the
+      // TOTP challenge (new password saved, but no session issued
+      // yet). Backup codes are the escape hatch if the authenticator
+      // is lost.
+      if (isTwoFactorChallenge(res)) {
+        navigate('/verify/2fa', {
+          state: { pending_token: res.pending_token },
+        });
+        return;
+      }
       navigate('/dashboard');
     } catch (err) {
       onError(readError(err, 'Failed to reset password'));

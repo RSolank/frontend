@@ -19,6 +19,8 @@
 |---|---|---|
 | `/login` | `pages/LoginPage.tsx` | Bears the recovery flow inline via `recovery/components/RecoveryFlow.tsx` |
 | `/register` | `pages/RegisterPage.tsx` | Includes timezone field + locale-driven country default |
+| `/verify/2fa` | `pages/VerifyTwoFactorPage.tsx` | BE Phase 2.7 — TOTP / backup-code entry. Reached via `navigate('/verify/2fa', { state: { pending_token } })` from `useAuth.login` when the BE returns `{status:"two_factor_required"}` and from the recovery flow on the same shape. Submits to `/api/auth/2fa/login-verify` to finalize the session. |
+| `/verify/new-device` | `pages/VerifyNewDevicePage.tsx` | BE Phase 2.3 stub — placeholder until Platform FE Batch 10 (`auth.new-device-otp`) wires the OTP-entry surface. Reached from `useAuth.login` when the BE returns `{status:"new_device_verification_required"}`. Exists in Batch 9 so the login-polymorphism wiring routes new-device challenges somewhere safe instead of dropping them on the floor. |
 
 Routes are exported from
 [`features/auth/auth.routes.tsx`](../../src/features/auth/auth.routes.tsx)
@@ -72,7 +74,45 @@ carries an `errorElement` that resolves to
   `recoveryQuestionRequest`, `forgotPasswordRequest`, `verifyOtpRequest`,
   `verifyAnswerRequest`, `resetPasswordFinalRequest`,
   `revokeSessionRequest`, `changeEmailRequestStart`,
-  `changeEmailConfirmRequest`).
+  `changeEmailConfirmRequest`). Login + recovery returns are typed
+  as a `LoginResponse` discriminated union (`TokenResponse` vs
+  `TwoFactorRequiredChallenge` vs `NewDeviceChallenge` — see
+  "Polymorphic login response" below).
+- `api/twoFactor.ts` — BE Phase 2.7 TOTP wrappers
+  (`enrollTwoFactorRequest`, `verifyEnrollTwoFactorRequest`,
+  `disableTwoFactorRequest`, `loginVerifyTwoFactorRequest`).
+
+## Polymorphic login response (BE Phase 2.3 + 2.7)
+
+`POST /api/auth/login` and `POST /api/auth/reset-password-final` can
+now return three shapes — all as 200 OK responses, NOT errors:
+
+1. `TokenResponse` (`{access_token, refresh_token}`) — the happy path.
+2. `{status: "two_factor_required", pending_token}` — BE Phase 2.7
+   challenge for 2FA-enabled users.
+3. `{status: "new_device_verification_required", pending_token,
+   masked_email}` — BE Phase 2.3 challenge for unknown-device logins.
+
+`useAuth.login()` discriminates on `status` via the narrowing
+helpers in `api/mutations.ts` (`isTwoFactorChallenge`,
+`isNewDeviceChallenge`) and routes:
+
+| Discriminator | Routes to | Carries via `location.state` |
+|---|---|---|
+| `two_factor_required` | `/verify/2fa` | `pending_token` |
+| `new_device_verification_required` | `/verify/new-device` | `pending_token` + `masked_email` |
+| (no status) | landing-route preference | tokens persisted, prefs hydrated |
+
+`useAuth.loginVerify2fa(pending_token, code)` finishes the 2FA
+challenge with a POST to `/api/auth/2fa/login-verify` and applies
+the same post-login flow as a non-2FA login (persist + hydrate +
+navigate to the landing route).
+
+Recovery (`RecoveryFlow`'s `handleFinalReset`) carries the same
+discriminator — a 2FA-enabled user who recovers their password
+saves the new password BE-side and then routes to `/verify/2fa`
+exactly like a normal login. Recovery no longer bypasses 2FA;
+backup codes are the escape hatch if the authenticator is lost.
 
 ## Rate-limit + device-block UX
 

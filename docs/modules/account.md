@@ -98,6 +98,36 @@ Change password POSTs `/api/auth/change-password`. Security question
 POSTs `/api/auth/recovery` (one question per user, replaces the
 previous choice).
 
+**Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7).
+Three flow states managed by a `FlowState` discriminator:
+
+1. **idle** — reads `meData.user.two_factor_enabled` to render
+   either the Enable CTA (off) or the Enabled-with-Disable card
+   (on). Treats absent `two_factor_enabled` as false (the BE
+   hasn't surfaced the flag on /me yet; the 409 from `/2fa/enroll`
+   is the authoritative signal).
+2. **enrolling** — `/2fa/enroll` returned a staged secret +
+   provisioning URI. The panel shows the base32 secret prominently
+   for manual authenticator entry and an `otpauth://` deep link
+   that mobile authenticators register. (A proper QR render is
+   queued as polish — bundle headroom is at 0.73 kB so a QR
+   library would punch the §3 ceiling.) Submitting a 6-digit code
+   POSTs `/2fa/verify-enroll`.
+3. **showing-backup-codes** — verify-enroll returned 10 one-time
+   backup codes. Panel renders them in a 2- / 3-column grid + a
+   Download button (text-file blob). Code visibility is one-shot;
+   the BE only returns hashes — no regenerate endpoint.
+
+Disable lives behind a `<Modal size="sm">` that re-confirms with
+the password (BE step-up). The undo / regenerate of backup codes is
+intentionally out of scope (no BE endpoint).
+
+**Change email** is 2FA-aware via the same `meData.user.two_factor_enabled`
+read: when on, the code field renders unconditionally in step 1.
+The existing 401-reveal fallback (form starts without the code field,
+adds it on a 401) covers the case where /me doesn't surface the flag
+yet — both paths converge on the same form shape.
+
 **Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
 flow: step 1 POSTs `/api/auth/change-email-request {new_email,
 password, code?}` and the BE emails an OTP to the new address +

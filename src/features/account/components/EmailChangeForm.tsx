@@ -6,6 +6,7 @@ import {
   changeEmailRequestStart,
 } from '../../auth/api/mutations';
 import { userKeys } from '../../users/api/keys';
+import { useCurrentUserQuery } from '../../users/api/queries';
 
 interface ApiErrorShape {
   detail?: string;
@@ -25,11 +26,19 @@ type Step =
 // thin three-step render.
 function useEmailChangeForm() {
   const queryClient = useQueryClient();
+  const { data: meData } = useCurrentUserQuery();
+  // BE Phase 2.7 — when the BE exposes `two_factor_enabled` on /me
+  // we render the code field unconditionally for 2FA users (cleaner
+  // than the 401-reveal fallback below). The field is typed
+  // optional, so until BE wires it `twoFactorOn` is just `false` and
+  // the 401-reveal path covers us.
+  const twoFactorOn = meData?.user.two_factor_enabled ?? false;
+
   const [step, setStep] = useState<Step>({ kind: 'idle' });
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [codeRequired, setCodeRequired] = useState(false);
+  const [codeRequired, setCodeRequired] = useState(twoFactorOn);
   const [otp, setOtp] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 

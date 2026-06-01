@@ -41,6 +41,11 @@ export const routes = {
       `${V}/auth/sessions/${sessionId}`,
     changeEmailRequest: () => `${V}/auth/change-email-request`,
     changeEmailConfirm: () => `${V}/auth/change-email-confirm`,
+    // BE Phase 2.7 — TOTP 2FA.
+    twoFactorEnroll: () => `${V}/auth/2fa/enroll`,
+    twoFactorVerifyEnroll: () => `${V}/auth/2fa/verify-enroll`,
+    twoFactorDisable: () => `${V}/auth/2fa/disable`,
+    twoFactorLoginVerify: () => `${V}/auth/2fa/login-verify`,
   },
 
   users: {

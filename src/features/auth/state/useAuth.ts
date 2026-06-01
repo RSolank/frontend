@@ -8,12 +8,15 @@ import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { hydratePreferences } from '../../users/api/preferences';
 import { fetchCurrentUser } from '../../users/api/queries';
 import {
+  isNewDeviceChallenge,
+  isTwoFactorChallenge,
   loginRequest,
   logoutRequest,
   registerRequest,
   type TokenResponse,
 } from '../api/mutations';
 import type { LoginInput, RegisterPayload } from '../api/schemas';
+import { loginVerifyTwoFactorRequest } from '../api/twoFactor';
 
 interface ApiErrorShape {
   status?: number;
@@ -111,6 +114,28 @@ export function useAuth() {
     useAuthStore.getState().setRetryAfterSeconds(null);
     try {
       const data = await loginRequest(input);
+      // BE Phase 2.7 — login can return three shapes (TokenResponse
+      // OR a pending-token challenge). The challenges arrive as 200s
+      // so we discriminate on `status` before persisting tokens.
+      if (isTwoFactorChallenge(data)) {
+        navigate('/verify/2fa', {
+          state: { pending_token: data.pending_token },
+        });
+        return;
+      }
+      if (isNewDeviceChallenge(data)) {
+        // BE Phase 2.3 — new-device OTP flow. FE wiring is queued for
+        // Platform FE Batch 10; route to a placeholder for now so a
+        // 2FA-disabled user on an unknown device sees a clear next
+        // step instead of a silent token-persist failure.
+        navigate('/verify/new-device', {
+          state: {
+            pending_token: data.pending_token,
+            masked_email: data.masked_email,
+          },
+        });
+        return;
+      }
       persistTokens(data);
       await Promise.all([refreshAuthUser(), hydratePreferences()]);
       // Honor the user's `useLandingRouteStore` preference (frontend-
@@ -121,6 +146,33 @@ export function useAuth() {
       const e = err as ApiErrorShape;
       if (applyRetryAfter(e, 'login', setError) === null) {
         setError(typeof e.detail === 'string' ? e.detail : 'Login failed');
+      }
+      throw err;
+    }
+  }
+
+  // BE Phase 2.7 — finishes a 2FA-gated login. The pending_token comes
+  // from the challenge response (stashed in `location.state` by
+  // `login()`); `code` is the user-entered 6-digit TOTP or 8-char
+  // backup code. Returns a normal TokenResponse, which we persist +
+  // route on identically to a no-2FA login.
+  async function loginVerify2fa(
+    pending_token: string,
+    code: string
+  ): Promise<void> {
+    setError(null);
+    useAuthStore.getState().setRetryAfterSeconds(null);
+    try {
+      const data = await loginVerifyTwoFactorRequest(pending_token, code);
+      persistTokens(data);
+      await Promise.all([refreshAuthUser(), hydratePreferences()]);
+      navigate(getLandingRoute());
+    } catch (err) {
+      const e = err as ApiErrorShape;
+      if (applyRetryAfter(e, 'login', setError) === null) {
+        setError(
+          typeof e.detail === 'string' ? e.detail : 'Verification failed'
+        );
       }
       throw err;
     }
@@ -184,6 +236,7 @@ export function useAuth() {
     error,
     setError,
     login,
+    loginVerify2fa,
     register,
     logout,
     refreshUser: refreshAuthUser,

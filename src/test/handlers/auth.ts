@@ -61,4 +61,41 @@ export const authHandlers = [
     await request.json();
     return HttpResponse.json({ status: 'ok', email: 'new@example.test' });
   }),
+  // BE Phase 2.7 — 2FA endpoints. Tests override via `server.use(...)`
+  // to assert failures (401 / 400 / 409) or the polymorphic login
+  // challenge response (login returns `{status:"two_factor_required",
+  // pending_token}` instead of TokenResponse when 2FA is enabled).
+  http.post('http://localhost:4000/api/auth/2fa/enroll', () =>
+    HttpResponse.json({
+      secret: 'JBSWY3DPEHPK3PXP',
+      provisioning_uri:
+        'otpauth://totp/Personal%20Budget:test@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Personal%20Budget',
+    })
+  ),
+  http.post('http://localhost:4000/api/auth/2fa/verify-enroll', () =>
+    HttpResponse.json({
+      backup_codes: [
+        'ABCD1234',
+        'EFGH5678',
+        'IJKL9012',
+        'MNOP3456',
+        'QRST7890',
+        'UVWX1234',
+        'YZAB5678',
+        'CDEF9012',
+        'GHIJ3456',
+        'KLMN7890',
+      ],
+    })
+  ),
+  http.post('http://localhost:4000/api/auth/2fa/disable', () =>
+    HttpResponse.json({ status: 'ok' })
+  ),
+  http.post('http://localhost:4000/api/auth/2fa/login-verify', () =>
+    HttpResponse.json({
+      access_token: 'verified-access',
+      refresh_token: 'verified-refresh',
+      token_type: 'bearer',
+    })
+  ),
 ];
