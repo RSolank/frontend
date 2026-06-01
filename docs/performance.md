@@ -448,12 +448,13 @@ merge to main. Numbers are pre-deploy; the size budget is the same
 | Platform FE Batch 8 (`taxation.bill-state-machine`, L) | 124.27 kB | 0 kB | First L-batch. Substantial taxation refactor (5-state bill machine, mark-paid / mark-unpaid endpoint swap, adjustment-lines split, `auto_enabled` preference) rode entirely on the existing taxation lazy chunk + the existing preference-store cluster. New `<TaxModeToggle>` and `taxMode.store` are tiny additions to `shared/components/` + `shared/state/`; both are tree-shake-eligible and the initial-paint cost rounds to zero. New shared `billStatus.tsx` helpers ship in the taxation chunk. CSS unchanged at 12.17 kB gz. |
 | Platform FE Batch 9 (`auth.2fa-totp`, L) | 124.27 kB | 0 kB | Second L-batch. New `features/auth/api/twoFactor.ts`, the `/verify/2fa` + `/verify/new-device` lazy pages, the `<TwoFactorSection>` account card (~6 kB raw) all ship in the auth / account lazy chunks. The login-response polymorphism is type-only (`LoginResponse` union + `isTwoFactorChallenge` / `isNewDeviceChallenge` narrowers) so it tree-shakes cleanly. **Held off on a QR-rendering library** to preserve the 0.73 kB initial-bundle headroom; the enrollment flow uses the base32 secret + `otpauth://` deep-link as the manual-entry fallback. CSS unchanged at 12.17 kB gz. |
 | Platform FE Batch 10 (`auth.new-device-otp`, L) | 124.27 kB | 0 kB | Third L-batch. New `features/auth/api/newDevice.ts` + the `<TrustedDeviceList>` account card + the `RevokeDevicePage` public route + the full `/verify/new-device` OTP entry (replacing the Batch 9 stub) all ship in lazy chunks. The UA-string parser is duplicated from `SessionList.tsx` — promoting to `shared/utils/` would have required either a third consumer or breaking the boundaries-eslint rule; the 50-line dup is cheaper. CSS unchanged at 12.17 kB gz. |
+| Platform FE Batch 11 (`recurring.templates`, L) | 124.27 kB | 0 kB | Fourth L-batch — first new feature module since the refactor. Entire `features/recurring/` (page + 5 components + 4 API files) ships in its own lazy chunk via `recurring.routes.tsx`. The dashboard `<UpcomingBillsWidget>` is eager-imported into `DashboardPage` (which is itself lazy) so it rides the dashboard chunk. The widget's row markup is inlined rather than re-using `features/recurring/components/UpcomingBillsList` — the eslint boundaries rule restricts dashboard to other features' `api/` surface only, and 30 lines of duplication is cheaper than promoting the list to `shared/`. Dashboard secondary-widget grid flipped from `lg:grid-cols-3` to `sm:grid-cols-2 xl:grid-cols-4` to accommodate the 4th tile cleanly. CSS unchanged at 12.17 kB gz. |
 
 **Bundle-budget posture going forward.** Headroom holds at 0.73 kB
-after Batch 10 — third consecutive L-batch without an initial-
-bundle regression. Remaining L tasks (11: recurring templates /
-12: async statement upload / 13: bank accounts CRUD — XL) all
-add weight; keep lazy-loading aggressively. **Open polish:**
-QR rendering on the 2FA enrollment flow. The AccessibilityPanel
-pattern (extract eager imports into a lazy chunk consumed by both
-eager + lazy callers) is a documented escape hatch.
+after Batch 11 — fourth consecutive L-batch without an initial-
+bundle regression. Remaining L tasks (12: async statement upload /
+13: bank accounts CRUD — XL) all add weight; keep lazy-loading
+aggressively. **Open polish:** QR rendering on the 2FA enrollment
+flow. The AccessibilityPanel pattern (extract eager imports into a
+lazy chunk consumed by both eager + lazy callers) is a documented
+escape hatch.

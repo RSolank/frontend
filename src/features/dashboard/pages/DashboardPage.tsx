@@ -4,6 +4,7 @@ import { ExpenseTrackerCard } from '../components/ExpenseTrackerCard';
 import { RecentActivityWidget } from '../components/RecentActivityWidget';
 import { TaxTrackerCard } from '../components/TaxTrackerCard';
 import { TransactionsCard } from '../components/TransactionsCard';
+import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
 import { WeekSummaryWidget } from '../components/WeekSummaryWidget';
 
 // /dashboard surface — the authenticated home. Three primary cards
@@ -67,11 +68,12 @@ export function DashboardPage() {
        */}
       <section
         aria-label="Secondary widgets"
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3"
+        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         data-testid="dashboard-secondary-grid"
       >
         <BreachAlertsWidget />
         <WeekSummaryWidget />
+        <UpcomingBillsWidget />
         <RecentActivityWidget />
       </section>
     </div>

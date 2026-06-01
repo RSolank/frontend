@@ -41,6 +41,7 @@ const MAIN_LINKS: NavLinkSpec[] = [
   { to: '/transactions', label: 'Transactions' },
   { to: '/budgets', label: 'Expense Tracker' },
   { to: '/consumption-tax', label: 'Tax Tracker' },
+  { to: '/recurring', label: 'Recurring' },
   { to: '/beneficiaries', label: 'Beneficiaries' },
 ];
 

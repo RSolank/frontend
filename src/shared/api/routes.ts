@@ -137,6 +137,19 @@ export const routes = {
     trend: () => `${V}/expense-tracker/`,
   },
 
+  // BE Phase 1.5 — recurring-transaction inference engine. The worker
+  // (via the APScheduler ladder) detects patterns from history and
+  // forecasts upcoming materializations into `recurring_bills`; the FE
+  // surfaces detected templates for the user to Confirm / Edit /
+  // Dismiss, exposes user-authored CRUD, and renders forecast +
+  // settled bill rows from the read endpoints.
+  recurring: {
+    templates: () => `${V}/recurring/templates`,
+    templateById: (uid: number | string) => `${V}/recurring/templates/${uid}`,
+    upcoming: () => `${V}/recurring/upcoming`,
+    history: () => `${V}/recurring/history`,
+  },
+
   taxation: {
     // Trailing slash — FastAPI-significant (see budgets note above).
     rules: () => `${V}/taxation-rules/`,

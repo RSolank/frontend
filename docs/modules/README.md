@@ -24,6 +24,9 @@ readers should be able to open the page on either side and map it
   list, beneficiary→tag pipeline.
 - [`taxation.md`](taxation.md) — rules + bills + tax tracker page.
 - [`budgets.md`](budgets.md) — budget limits + expense tracker.
+- [`recurring.md`](recurring.md) — recurring-transaction inference
+  engine surface (`/recurring` management page + dashboard
+  upcoming-bills widget).
 - [`dashboard.md`](dashboard.md) — landing surface, cross-feature
   widgets.
 - [`account.md`](account.md) — settings shell + account preferences

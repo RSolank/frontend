@@ -7,6 +7,7 @@ import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { budgetsRoutes } from '../features/budgets/budgets.routes';
 import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
+import { recurringRoutes } from '../features/recurring/recurring.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
@@ -59,6 +60,7 @@ const authedRoutes: RouteObject[] = protectedRoutes([
   ...transactionsRoutes,
   ...taxationRoutes,
   ...budgetsRoutes,
+  ...recurringRoutes,
   ...settingsRoutes,
 ]);
 

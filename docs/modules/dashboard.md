@@ -72,6 +72,7 @@ what's worth desktop space is worth mobile space too.
 |---|---|
 | `components/BreachAlertsWidget.tsx` | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert. |
 | `components/WeekSummaryWidget.tsx` | "This week" mini-summary — date range + spend + debit count + tax accrued. |
+| `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
 | `components/RecentActivityWidget.tsx` | Live list backed by BE Phase 2.4 (`77cffb3`) `GET /api/activity`. One row per worker / engine-originated event (bill generated, budget breached, statement import failed, …) with icon + summary + relative time. Fires `POST /api/activity/seen` with `signal=soft` once per `event_id` per session (BE dedupes per cycle) and with `signal=hard` on click; FE composes its own deep-link from `subject_type` + `subject_id`. Server-ordered by `value` (decay/escalation score) — never re-sort client-side. Empty by default for new accounts (friendly empty-state copy). |
 
 ### Shared chrome

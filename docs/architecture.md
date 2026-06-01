@@ -30,7 +30,7 @@ src/
 │
 ├── features/                  # one folder per surface — each owns components / hooks / api / routes / tests
 │   ├── auth/  users/  tags/  beneficiaries/  transactions/ (+ statement_upload/)
-│   ├── categorization/  taxation/  budgets/  dashboard/
+│   ├── categorization/  taxation/  budgets/  recurring/  dashboard/
 │   └── account/  settings/    # account surface + settings shell (no "metadata" feature — dissolved into shared/)
 │
 ├── test/                      # shared MSW infra (server.ts + handlers/)
@@ -66,7 +66,7 @@ viewport — there is **no desktop sidebar**.
 **Desktop (≥1024 px)** layout:
 
 ```
-[Brand] Transactions  Expense Tracker  Tax Tracker   [☼] [About] [⚙▾] [👤▾]
+[Brand] Transactions  Expense Tracker  Tax Tracker  Recurring   [☼] [About] [⚙▾] [👤▾]
 ```
 
 - **Brand** (left). 3-state link target:
