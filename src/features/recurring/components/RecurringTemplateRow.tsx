@@ -1,7 +1,8 @@
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Pencil, X } from 'lucide-react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
-import { formatDisplayDate } from '../../../shared/utils/dateUtils';
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatDate } from '../../../shared/utils/dateUtils';
 import type { Beneficiary } from '../../beneficiaries/api/queries';
 import type { RecurringCadence, RecurringTemplate } from '../api/schemas';
 
@@ -32,6 +33,7 @@ export function RecurringTemplateRow({
   highlighted = false,
 }: Props) {
   const { money } = useMoneyFormatter();
+  const timezone = usePreferencesStore((s) => s.timezone);
   const beneficiary = beneficiaryById.get(template.beneficiary_id);
   const directionIcon =
     template.debit_credit === 'debit' ? (
@@ -81,7 +83,13 @@ export function RecurringTemplateRow({
           <dt className="text-xs uppercase tracking-wide text-slate-500">
             Next due
           </dt>
-          <dd>{formatDisplayDate(template.next_due_date)}</dd>
+          <dd>
+            {formatDate(template.next_due_date, timezone, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </dd>
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-slate-500">

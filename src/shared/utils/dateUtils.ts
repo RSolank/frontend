@@ -162,25 +162,10 @@ export function localToUtcIso(localDateString: string, tz: string): string {
   return new Date(asUtcMidnight.getTime() - offsetMs).toISOString();
 }
 
-// Legacy helpers retained for callers under src/pages/** that haven't
-// migrated. New code uses formatDate / formatDateTime (which require a
-// tz). Feature batches replace each call site as they convert the
-// containing page.
-
-export function formatDisplayDate(isoString: string | null | undefined): string {
-  if (!isoString) return '—';
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return isoString;
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return isoString;
-  }
-}
+// (Pre-Batch-15 carried a `formatDisplayDate` helper here as a legacy
+// shim for `src/pages/**` — that directory is gone post-refactor, and
+// the three new consumers that had grandfathered onto it migrated to
+// `formatDate(iso, tz, { month: 'short', day, year })` in Batch 15b.)
 
 export function formatInputDate(isoString: string | null | undefined): string {
   if (!isoString) return '';

@@ -10,6 +10,8 @@ import {
   getTimezonesForCountryName,
 } from '../utils/countryTimezones';
 
+import { SearchableSelect } from './SearchableSelect';
+
 interface TimezoneSelectProps {
   // Selected country's display name (e.g. "India"). Drives whether we
   // render a read-only field, a country-scoped dropdown, or the full
@@ -72,23 +74,21 @@ export function TimezoneSelect({
   );
 
   // alwaysFullList consumers skip every country-scoped mode below and
-  // fall through to the full IANA dropdown at the bottom.
+  // fall through to the full IANA dropdown at the bottom. ~400 zones
+  // → SearchableSelect per the §6 searchable-dropdown convention.
   if (alwaysFullList) {
     const selected = value || getBrowserTimezone();
     return (
-      <select
+      <SearchableSelect
         id={id}
+        ariaLabel="Timezone"
         value={selected}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="form-input"
-      >
-        {allTimezones.map((tz) => (
-          <option key={tz} value={tz}>
-            {formatTimezoneOption(tz)}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        options={allTimezones.map((tz) => ({
+          value: tz,
+          label: formatTimezoneOption(tz),
+        }))}
+      />
     );
   }
 
@@ -159,20 +159,19 @@ export function TimezoneSelect({
 
   // Fallback / unknown country / explicit override → full IANA dropdown,
   // defaulted to the browser's resolved tz when no value is set yet.
+  // ~400 IANA zones — SearchableSelect per the §6 searchable-dropdown
+  // convention (>15 items, data-driven, no inherent scan order).
   const selected = value || getBrowserTimezone();
   return (
-    <select
+    <SearchableSelect
       id={id}
+      ariaLabel="Timezone"
       value={selected}
-      onChange={(e) => onChange(e.target.value)}
-      required={required}
-      className="form-input"
-    >
-      {allTimezones.map((tz) => (
-        <option key={tz} value={tz}>
-          {formatTimezoneOption(tz)}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={allTimezones.map((tz) => ({
+        value: tz,
+        label: formatTimezoneOption(tz),
+      }))}
+    />
   );
 }

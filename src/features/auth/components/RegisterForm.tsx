@@ -11,6 +11,7 @@ import {
 import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
+import { SECURITY_QUESTIONS } from '../../../shared/constants/securityQuestions';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import {
   getBrowserRegion,
@@ -23,15 +24,6 @@ import { useAuth } from '../state/useAuth';
 import { AuthErrorNotice } from './AuthErrorNotice';
 
 const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;
-
-const SECURITY_QUESTIONS = [
-  'What was the name of your first school?',
-  'What is the name of your favorite childhood friend?',
-  'What is your mother’s maiden name?',
-  'What was the name of your first pet?',
-  'What city were you born in?',
-  'What is your favorite teacher’s name?',
-];
 
 interface FormState {
   email_id: string;

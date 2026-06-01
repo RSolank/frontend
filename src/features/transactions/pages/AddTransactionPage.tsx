@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DateField } from '../../../shared/components/DateField';
 import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
@@ -121,6 +122,26 @@ function useAddTransactionForm({
   // Open them from the picker dropdowns rather than navigating away.
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
   const [createTagOpen, setCreateTagOpen] = useState(false);
+  // Mid-submit "create categorization rule?" prompt — opens after the
+  // user submits and we have both tags + beneficiary. ConfirmDialog
+  // replaces the legacy window.confirm; ref-stored resolver keeps the
+  // existing await flow inside handleSubmit.
+  const [confirmRuleOpen, setConfirmRuleOpen] = useState(false);
+  const ruleResolveRef = useRef<((createRule: boolean) => void) | null>(null);
+
+  function promptForRule(): Promise<boolean> {
+    return new Promise((resolve) => {
+      ruleResolveRef.current = resolve;
+      setConfirmRuleOpen(true);
+    });
+  }
+
+  function decideRule(create: boolean) {
+    setConfirmRuleOpen(false);
+    const r = ruleResolveRef.current;
+    ruleResolveRef.current = null;
+    r?.(create);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -202,11 +223,8 @@ function useAddTransactionForm({
     try {
       let ruleIdToLink: number | null = null;
       if (tagIds.length > 0 && beneficiaryId) {
-        if (
-          window.confirm(
-            'Would you like to create a categorization rule for this beneficiary?'
-          )
-        ) {
+        const shouldCreateRule = await promptForRule();
+        if (shouldCreateRule) {
           const payload: CreateCategorizationRulePayload = {
             name: `Rule for ${beneficiaryName}`,
             beneficiary_id: beneficiaryId,
@@ -275,6 +293,8 @@ function useAddTransactionForm({
     handleAddTag,
     handleRemoveTag,
     handleSubmit,
+    confirmRuleOpen,
+    decideRule,
   };
 }
 
@@ -316,6 +336,8 @@ export function AddTransactionPage({
     handleAddTag,
     handleRemoveTag,
     handleSubmit,
+    confirmRuleOpen,
+    decideRule,
   } = useAddTransactionForm({ onClose, onSaved, defaultDate });
 
   const body = (
@@ -444,6 +466,16 @@ export function AddTransactionPage({
           onClose={() => setCreateTagOpen(false)}
           onSaved={handleTagCreated}
           flatTags={tags}
+        />
+        <ConfirmDialog
+          open={confirmRuleOpen}
+          title="Create categorization rule?"
+          message="Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
+          confirmLabel="Create rule"
+          cancelLabel="Skip"
+          intent="primary"
+          onConfirm={() => decideRule(true)}
+          onClose={() => decideRule(false)}
         />
       </>
   );

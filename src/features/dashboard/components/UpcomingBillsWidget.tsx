@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
-import { formatDisplayDate } from '../../../shared/utils/dateUtils';
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatDate } from '../../../shared/utils/dateUtils';
 import { useBeneficiariesQuery } from '../../beneficiaries/api/queries';
 import { useRecurringUpcomingQuery } from '../../recurring/api/queries';
 import type { RecurringBill } from '../../recurring/api/schemas';
@@ -23,6 +24,7 @@ const MAX_ROWS = 5;
 export function UpcomingBillsWidget() {
   const navigate = useNavigate();
   const { money } = useMoneyFormatter();
+  const timezone = usePreferencesStore((s) => s.timezone);
   const upcoming = useRecurringUpcomingQuery(WIDGET_DAYS);
   const benQuery = useBeneficiariesQuery();
   const benData = benQuery.data;
@@ -63,6 +65,7 @@ export function UpcomingBillsWidget() {
         benNames={benNames}
         money={money}
         hasMore={hasMore}
+        timezone={timezone}
       />
     </section>
   );
@@ -74,9 +77,17 @@ interface BodyProps {
   benNames: Map<number, string>;
   money: (n: number | string | null | undefined) => string;
   hasMore: boolean;
+  timezone: string;
 }
 
-function UpcomingBody({ isLoading, bills, benNames, money, hasMore }: BodyProps) {
+function UpcomingBody({
+  isLoading,
+  bills,
+  benNames,
+  money,
+  hasMore,
+  timezone,
+}: BodyProps) {
   if (isLoading)
     return (
       <p className="text-sm text-slate-500" data-testid="dashboard-upcoming-loading">
@@ -104,6 +115,7 @@ function UpcomingBody({ isLoading, bills, benNames, money, hasMore }: BodyProps)
               `Beneficiary #${bill.beneficiary_id}`
             }
             moneyLabel={money(bill.expected_amount)}
+            timezone={timezone}
           />
         ))}
       </ul>
@@ -120,10 +132,12 @@ function UpcomingRow({
   bill,
   beneficiaryName,
   moneyLabel,
+  timezone,
 }: {
   bill: RecurringBill;
   beneficiaryName: string;
   moneyLabel: string;
+  timezone: string;
 }) {
   return (
     <li
@@ -135,7 +149,11 @@ function UpcomingRow({
           {beneficiaryName}
         </span>
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          {formatDisplayDate(bill.due_date)}
+          {formatDate(bill.due_date, timezone, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
         </span>
       </div>
       <span

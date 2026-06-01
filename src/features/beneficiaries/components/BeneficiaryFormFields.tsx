@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { fetchTags, type TagNode } from '../../tags/api/queries';
 import {
   deleteCategorizationRule,
@@ -295,22 +296,32 @@ function MerchantFields({
         <label htmlFor="beneficiary-category" className="form-label">
           Category
         </label>
-        <select
-          id="beneficiary-category"
-          value={category}
-          onChange={(e) => onCategoryChange(e.target.value)}
-          disabled={disabled}
-          className="form-input"
-        >
-          <option value="">-- None --</option>
-          {tags
-            .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
-            .map((t) => (
-              <option key={t.tag_id} value={t.tag_id}>
-                {formatTagAssignment(t.tag_id, tags)}
-              </option>
-            ))}
-        </select>
+        {disabled ? (
+          <input
+            id="beneficiary-category"
+            value={
+              category
+                ? formatTagAssignment(Number(category), tags)
+                : '— None —'
+            }
+            readOnly
+            className="form-input cursor-not-allowed bg-slate-50 dark:bg-slate-900"
+          />
+        ) : (
+          <SearchableSelect
+            id="beneficiary-category"
+            ariaLabel="Category"
+            placeholder="— None —"
+            value={category}
+            onChange={onCategoryChange}
+            options={tags
+              .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
+              .map((t) => ({
+                value: String(t.tag_id),
+                label: formatTagAssignment(t.tag_id, tags),
+              }))}
+          />
+        )}
       </div>
 
       {ruleTags.length > 0 && (

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
-import { formatDisplayDate } from '../../../shared/utils/dateUtils';
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatDate } from '../../../shared/utils/dateUtils';
 import { useBeneficiariesQuery } from '../../beneficiaries/api/queries';
 import { useRecurringUpcomingQuery } from '../api/queries';
 import type { RecurringBill } from '../api/schemas';
@@ -17,6 +18,7 @@ interface Props {
 // /history (so non-null here is unusual but rendered defensively).
 export function UpcomingBillsList({ days }: Props) {
   const { money } = useMoneyFormatter();
+  const timezone = usePreferencesStore((s) => s.timezone);
   const upcoming = useRecurringUpcomingQuery(days);
   const benQuery = useBeneficiariesQuery();
   const benById = useMemo(() => {
@@ -57,6 +59,7 @@ export function UpcomingBillsList({ days }: Props) {
             `Beneficiary #${bill.beneficiary_id}`
           }
           moneyLabel={money(bill.expected_amount)}
+          timezone={timezone}
         />
       ))}
     </ul>
@@ -67,10 +70,12 @@ function UpcomingRow({
   bill,
   beneficiaryName,
   moneyLabel,
+  timezone,
 }: {
   bill: RecurringBill;
   beneficiaryName: string;
   moneyLabel: string;
+  timezone: string;
 }) {
   return (
     <li
@@ -82,7 +87,12 @@ function UpcomingRow({
           {beneficiaryName}
         </span>
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          Due {formatDisplayDate(bill.due_date)}
+          Due{' '}
+          {formatDate(bill.due_date, timezone, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
         </span>
       </div>
       <span

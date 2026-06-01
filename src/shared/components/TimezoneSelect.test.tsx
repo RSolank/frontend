@@ -47,15 +47,22 @@ describe('TimezoneSelect', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Use a different timezone/ })
     );
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    // Post-Batch-15: the fallback path is now a SearchableSelect.
+    // Options render only when the combobox gains focus.
+    const combobox = await screen.findByRole('combobox', { name: 'Timezone' });
+    fireEvent.focus(combobox);
+    const optionTexts = await waitFor(() => {
+      const opts = screen.getAllByRole('option');
+      expect(opts.length).toBeGreaterThan(3);
+      return opts.map((o) => o.textContent ?? '');
+    });
     // The MSW handler returns the full IANA list including non-Indian
     // zones — verifying the dropdown's scope flipped from
     // country-scoped to all-IANA.
-    const optionValues = Array.from(select.options).map((o) => o.value);
-    expect(optionValues).toContain('Asia/Kolkata');
-    expect(optionValues).toContain('America/New_York');
-    expect(optionValues).toContain('Europe/Berlin');
-    expect(optionValues).toContain('UTC');
+    expect(optionTexts.some((t) => t.includes('Asia/Kolkata'))).toBe(true);
+    expect(optionTexts.some((t) => t.includes('America/New_York'))).toBe(true);
+    expect(optionTexts.some((t) => t.includes('Europe/Berlin'))).toBe(true);
+    expect(optionTexts.some((t) => t.includes('UTC'))).toBe(true);
   });
 
   it('renders a country-scoped dropdown for multi-tz countries', async () => {
@@ -92,13 +99,15 @@ describe('TimezoneSelect', () => {
         onChange={() => {}}
       />
     );
+    // SearchableSelect input — options render after focus.
+    const combobox = await screen.findByRole('combobox', { name: 'Timezone' });
+    fireEvent.focus(combobox);
     await waitFor(() => {
-      const select = screen.getByRole('combobox') as HTMLSelectElement;
-      const values = Array.from(select.options).map((o) => o.value);
+      const texts = screen.getAllByRole('option').map((o) => o.textContent ?? '');
       // Full IANA reach — assert we see zones from multiple continents.
-      expect(values).toContain('Asia/Kolkata');
-      expect(values).toContain('Europe/Berlin');
-      expect(values).toContain('America/New_York');
+      expect(texts.some((t) => t.includes('Asia/Kolkata'))).toBe(true);
+      expect(texts.some((t) => t.includes('Europe/Berlin'))).toBe(true);
+      expect(texts.some((t) => t.includes('America/New_York'))).toBe(true);
     });
   });
 
@@ -117,13 +126,18 @@ describe('TimezoneSelect', () => {
     expect(
       screen.queryByRole('button', { name: /Use a different timezone/ })
     ).not.toBeInTheDocument();
-    const select = await waitFor(() => {
-      const s = screen.getByRole('combobox') as HTMLSelectElement;
-      expect(s.value).toBe('UTC');
-      return s;
+    const combobox = (await screen.findByRole('combobox', {
+      name: 'Timezone',
+    })) as HTMLInputElement;
+    // Selected label includes the current UTC offset (formatTimezoneOption);
+    // wait for `allTimezones` to land + SearchableSelect's effect to sync
+    // the draft.
+    await waitFor(() => expect(combobox.value.startsWith('UTC')).toBe(true));
+    fireEvent.focus(combobox);
+    await waitFor(() => {
+      const texts = screen.getAllByRole('option').map((o) => o.textContent ?? '');
+      expect(texts.some((t) => t.includes('Europe/Berlin'))).toBe(true);
+      expect(texts.some((t) => t.includes('America/Los_Angeles'))).toBe(true);
     });
-    const values = Array.from(select.options).map((o) => o.value);
-    expect(values).toContain('Europe/Berlin');
-    expect(values).toContain('America/Los_Angeles');
   });
 });

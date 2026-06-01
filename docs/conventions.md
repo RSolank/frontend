@@ -321,10 +321,12 @@ ordinary entry in `options[]`.
 | Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create) | Data-driven, user can add |
 | Tag picker on Add Tx | `SearchableList` (pick-or-create, multi) | Data-driven, user can add |
 | Tag dropdown in Filter Sidebar | `SearchableSelect` | Data-driven, often > 15 |
+| Beneficiary category (Beneficiary form) | `SearchableSelect` | Data-driven, ~25+ tags in the default seed |
 | Merchant search bar (Transactions filter row) | bespoke (per-feature `MerchantSearchBar`) | Filter-row chrome, not a sidebar dropdown |
 | Country picker (Register, Profile) | `SearchableSelect` | 250 items |
 | Currency picker (Profile, Preferences) | `SearchableSelect` | 170 items |
-| Timezone picker (Register, Profile) | bespoke `TimezoneSelect` (country-narrowing) | Specialised filter cascade |
+| Timezone picker (Register, Profile) | bespoke `TimezoneSelect` (country-narrowing + `SearchableSelect` fallback) | Specialised filter cascade; full IANA fallback is searchable per the >15-items rule |
+| Bank-account picker (Add / Edit transaction) | plain `<select>` | Per-user count is bounded (≤ ~5 in practice); the "user-extendable" trigger doesn't fire because users don't accumulate accounts past a visual-scan threshold. Documented carve-out. |
 | Month dropdown (Transactions filter) | plain `<select>` | Sequential, 25 items, native jump works |
 | Type filter (debit/credit/all) | pill toggle | 3 items — toggle, not dropdown |
 | Sort field / direction (Filter Sidebar) | plain `<select>` | ≤ 4 items, fixed |
@@ -476,6 +478,7 @@ crowding the Cancel / Save footer.
 | Transactions edit modal | ✅ | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate). |
 | `RecurringFormDialog` | ✅ | Modal is the primary delete surface — soft-deactivate via DELETE on the template uid. |
 | `BankAccountFormDialog` | ✅ | Modal is the primary delete surface — hard-delete; statement-upload identifier matches stop working (warning copy in the ConfirmDialog). |
+| `CategorizationRuleFormDialog` | ✅ | Header Trash for user rules; hidden when `isUserRule` is false. |
 | `TaxationRuleFormDialog` | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete". |
 | `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete. |
 
@@ -549,7 +552,8 @@ app — they look similar but persist and surface differently:
   a PATCH side-effect via `subscribeToPreferenceStores()`. The
   full SoT set is: currency, timezone, date_format, number_format,
   landing_route, default_txn_kind, underline_links,
-  focus_ring_always. **Note:** underline-links and focus-ring-
+  focus_ring_always, auto_enabled (the taxation auto-finalize toggle
+  added in BE Phase 2.6 — Decision 26). **Note:** underline-links and focus-ring-
   always *are* a11y flags by behaviour (they affect contrast /
   visible focus) but live in Preferences because the right value
   is a property of the *user*, not the *device* — a user who needs
@@ -580,6 +584,16 @@ the privacy-mask CSS rule (`html.mask-amounts .money`) can blur
 it. Examples in `features/transactions/pages/TransactionsPage.tsx`
 amount cells. Future surfaces that render money adopt this
 className as they're touched.
+
+**Known carve-out — SVG `<title>` tooltips.** The privacy-mask
+CSS targets styled DOM nodes; SVG `<title>` is an accessibility
+metadata element that doesn't respond to CSS class selectors.
+`ExpenseTrendChart`'s per-bar hover tooltip embeds `money(value)`
+in a `<title>` and is therefore unblurrable from that surface.
+Severity is low (the bar height already conveys magnitude) and
+working around it would require a `<foreignObject>` overlay that
+costs more bundle than the privacy delta. Documented here so
+future readers don't flag it as a violation.
 
 ## Week convention
 

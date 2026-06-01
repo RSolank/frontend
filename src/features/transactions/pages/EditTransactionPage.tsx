@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
@@ -112,22 +113,23 @@ interface RuleResolutionArgs {
   tagIds: number[];
 }
 
+// Discriminator for the two distinct confirm steps in
+// `resolveRuleToLink`. The page supplies a `confirm` async whose UX
+// is a ConfirmDialog (Batch 15 — replaces the legacy window.confirm
+// pair). Kept as a parameter so this helper stays a pure async
+// flow free of UI state.
+type RulePromptKind = 'create-or-update' | 'update-existing';
+
 // The "tags changed → offer to create/update a categorization rule" flow.
 // Returns the rule uid to link to the txn, or null if the user declines at
-// any prompt / there's nothing to link. Extracted from handleSubmit (where it
-// was a depth-5 confirm tree) and rewritten with guard-clause early returns —
-// behaviour is identical, the nesting is gone.
-async function resolveRuleToLink({
-  tagsChanged,
-  beneficiaryId,
-  beneficiaryName,
-  tagIds,
-}: RuleResolutionArgs): Promise<number | null> {
+// any prompt / there's nothing to link.
+async function resolveRuleToLink(
+  args: RuleResolutionArgs,
+  confirm: (kind: RulePromptKind) => Promise<boolean>
+): Promise<number | null> {
+  const { tagsChanged, beneficiaryId, beneficiaryName, tagIds } = args;
   if (!tagsChanged || !beneficiaryId) return null;
-  const createRule = window.confirm(
-    'You updated the tags. Would you like to create/update a categorization rule for this beneficiary?'
-  );
-  if (!createRule) return null;
+  if (!(await confirm('create-or-update'))) return null;
 
   const { rules } = await fetchCategorizationRules();
   const existingRule = rules.find(
@@ -135,13 +137,7 @@ async function resolveRuleToLink({
   );
 
   if (existingRule) {
-    if (
-      !window.confirm(
-        `A rule for this beneficiary already exists. Update it with these tags?`
-      )
-    ) {
-      return null;
-    }
+    if (!(await confirm('update-existing'))) return null;
     await updateCategorizationRuleTags(existingRule.uid, tagIds);
     return existingRule.uid;
   }
@@ -206,6 +202,31 @@ export function EditTransactionPage({
   // cleared automatically on the first successful edit. See the
   // LockedFieldBanner component for the auto-dismiss contract.
   const [lockedReason, setLockedReason] = useState<string | null>(null);
+  // Discard-changes confirm modal — opens when the Cancel button is
+  // clicked while the form is dirty. The Modal's X / backdrop click
+  // already routes through `confirmOnDirty`; this dialog matches that
+  // flow for the explicit Cancel button.
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  // Mid-submit "create / update categorization rule?" prompt. Two
+  // distinct ConfirmDialog steps (create-or-update → update-existing
+  // if a rule already exists) driven by a ref-stored resolver so
+  // `resolveRuleToLink` keeps its straight-line await flow.
+  const [rulePromptKind, setRulePromptKind] = useState<
+    RulePromptKind | null
+  >(null);
+  const ruleResolveRef = useRef<((ok: boolean) => void) | null>(null);
+  function promptRule(kind: RulePromptKind): Promise<boolean> {
+    return new Promise((resolve) => {
+      ruleResolveRef.current = resolve;
+      setRulePromptKind(kind);
+    });
+  }
+  function decideRule(ok: boolean) {
+    setRulePromptKind(null);
+    const r = ruleResolveRef.current;
+    ruleResolveRef.current = null;
+    r?.(ok);
+  }
 
   // Snapshot of the form fields at load time. Used for the Cancel
   // (revert to loaded values) flow + the isDirty diff.
@@ -338,12 +359,15 @@ export function EditTransactionPage({
 
     try {
       const tagsChanged = sortedKey(tagIds) !== sortedKey(txn.tag_ids ?? []);
-      const ruleIdToLink = await resolveRuleToLink({
-        tagsChanged,
-        beneficiaryId,
-        beneficiaryName,
-        tagIds,
-      });
+      const ruleIdToLink = await resolveRuleToLink(
+        {
+          tagsChanged,
+          beneficiaryId,
+          beneficiaryName,
+          tagIds,
+        },
+        promptRule
+      );
 
       const payload = buildTransactionPayload(txn, {
         amount,
@@ -408,8 +432,7 @@ export function EditTransactionPage({
       dismiss();
       return;
     }
-    if (!window.confirm('Discard unsaved changes?')) return;
-    dismiss();
+    setConfirmDiscardOpen(true);
   }
 
   const onLockedFieldClick = isStatement
@@ -520,6 +543,39 @@ export function EditTransactionPage({
         onClose={() => setCreateTagOpen(false)}
         onSaved={handleTagCreated}
         flatTags={tags}
+      />
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard changes?"
+        message="You have unsaved changes. Discard them and close?"
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        intent="danger"
+        onConfirm={() => {
+          setConfirmDiscardOpen(false);
+          dismiss();
+        }}
+        onClose={() => setConfirmDiscardOpen(false)}
+      />
+      <ConfirmDialog
+        open={rulePromptKind === 'create-or-update'}
+        title="Update categorization rule?"
+        message="You changed the tags. Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
+        confirmLabel="Yes, update rule"
+        cancelLabel="Skip"
+        intent="primary"
+        onConfirm={() => decideRule(true)}
+        onClose={() => decideRule(false)}
+      />
+      <ConfirmDialog
+        open={rulePromptKind === 'update-existing'}
+        title="Overwrite existing rule?"
+        message="A categorization rule for this beneficiary already exists. Replace its tags with the new selection?"
+        confirmLabel="Overwrite"
+        cancelLabel="Cancel"
+        intent="primary"
+        onConfirm={() => decideRule(true)}
+        onClose={() => decideRule(false)}
       />
     </>
   );

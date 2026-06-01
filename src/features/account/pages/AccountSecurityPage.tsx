@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
+import { SECURITY_QUESTIONS } from '../../../shared/constants/securityQuestions';
 import { validatePassword } from '../../../shared/utils/validation';
 import {
   changePasswordRequest,
@@ -14,15 +15,6 @@ import { EmailChangeForm } from '../components/EmailChangeForm';
 import { SessionList } from '../components/SessionList';
 import { TrustedDeviceList } from '../components/TrustedDeviceList';
 import { TwoFactorSection } from '../components/TwoFactorSection';
-
-const SECURITY_QUESTIONS = [
-  'What was the name of your first school?',
-  'What is the name of your favorite childhood friend?',
-  'What is your mother’s maiden name?',
-  'What was the name of your first pet?',
-  'What city were you born in?',
-  'What is your favorite teacher’s name?',
-];
 
 interface ApiErrorShape {
   detail?: string;

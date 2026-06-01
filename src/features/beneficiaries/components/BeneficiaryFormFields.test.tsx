@@ -52,7 +52,11 @@ describe('BeneficiaryFormFields', () => {
     render(<Harness initialType="merchant" />);
     expect(screen.getByLabelText('Category')).toBeInTheDocument();
     expect(screen.getByLabelText('Contact (phone or website)')).toBeInTheDocument();
-    // The data-driven category options arrive after the tags fetch resolves.
+    // The category picker is a SearchableSelect — options only render
+    // once the combobox gains focus. Wait for the tags fetch to land
+    // first, then open the dropdown to inspect the option list.
+    await waitFor(() => expect(mockTags).toHaveBeenCalled());
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Category' }));
     await waitFor(() =>
       expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument()
     );
@@ -62,10 +66,10 @@ describe('BeneficiaryFormFields', () => {
 
   it('selecting a category surfaces it as an assigned-tag chip', async () => {
     render(<Harness initialType="merchant" />);
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument()
-    );
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '5' } });
+    await waitFor(() => expect(mockTags).toHaveBeenCalled());
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Category' }));
+    const groceries = await screen.findByRole('option', { name: 'Groceries' });
+    fireEvent.mouseDown(groceries);
     expect(screen.getByText('Assigned Tags')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Remove tag Groceries' })

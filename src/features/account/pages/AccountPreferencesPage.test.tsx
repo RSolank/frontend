@@ -64,7 +64,11 @@ describe('AccountPreferencesPage', () => {
   it('hydrates the form from /api/users/me + /api/users/preferences', async () => {
     renderPage();
     await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
+      expect(
+        (screen.getByRole('combobox', {
+          name: 'Timezone',
+        }) as HTMLInputElement).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
   });
 
@@ -99,7 +103,11 @@ describe('AccountPreferencesPage', () => {
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
+      expect(
+        (screen.getByRole('combobox', {
+          name: 'Timezone',
+        }) as HTMLInputElement).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
 
     await act(async () => {
@@ -137,7 +145,11 @@ describe('AccountPreferencesPage', () => {
     // stores (date / number / landing route).
     renderPage();
     await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
+      expect(
+        (screen.getByRole('combobox', {
+          name: 'Timezone',
+        }) as HTMLInputElement).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
     expect(screen.getByText('Defaults')).toBeInTheDocument();
     expect(

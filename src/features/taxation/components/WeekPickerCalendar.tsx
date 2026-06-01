@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import {
   shiftIso,
   shiftMonthKey,
@@ -46,11 +47,9 @@ function weekDayClass(isToday: boolean, inMonth: boolean): string {
 // week (project convention — see CONTRIBUTING.md §6 + the
 // `billPeriod.ts` helpers). Clicking a row selects the whole week
 // rather than a single date, so the user picks the unit of billing
-// directly instead of picking-a-date-and-resolving.
-//
-// Distinct from the transactions browser calendar which is Sun → Sat
-// for visual convention. Here, billing is the domain, so the row
-// header reads `Mon Tue Wed Thu Fri Sat Sun`.
+// directly instead of picking-a-date-and-resolving. The transactions
+// browser calendar follows the same ISO Mon → Sun convention; both
+// row headers read `Mon Tue Wed Thu Fri Sat Sun`.
 export function WeekPickerCalendar({
   selectedWeekStart,
   onSelect,
@@ -65,15 +64,10 @@ export function WeekPickerCalendar({
     timezone,
   ]);
 
-  const monthLabel = useMemo(() => {
-    const [y, m] = viewMonth.split('-').map(Number);
-    return new Date(Date.UTC(y as number, (m as number) - 1, 1, 12))
-      .toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      });
-  }, [viewMonth]);
+  const monthLabel = useMemo(
+    () => formatYearMonth(viewMonth, 'long'),
+    [viewMonth]
+  );
 
   return (
     <div className="rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">

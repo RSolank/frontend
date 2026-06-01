@@ -593,19 +593,19 @@ function BudgetFormBody({
         <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>
             Min{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseMin)}
             </strong>
           </span>
           <span>
             Avg{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseAvg)}
             </strong>
           </span>
           <span>
             Max{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseMax)}
             </strong>
           </span>
@@ -698,7 +698,7 @@ function SliderWithBubble({
   return (
     <div className="relative pt-9">
       <div
-        className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white shadow-md dark:bg-indigo-500"
+        className="money pointer-events-none absolute top-0 -translate-x-1/2 rounded-md bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white shadow-md dark:bg-indigo-500"
         style={{ left: `${bubblePercent}%` }}
         data-testid="budget-slider-bubble"
       >
