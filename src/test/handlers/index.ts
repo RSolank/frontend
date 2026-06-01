@@ -1,6 +1,7 @@
 import { activityHandlers } from './activity';
 import { adminHandlers } from './admin';
 import { authHandlers } from './auth';
+import { bankAccountHandlers } from './bank-accounts';
 import { expenseTrackerHandlers } from './expense-tracker';
 import { healthHandlers } from './health';
 import { metadataHandlers } from './metadata';
@@ -24,4 +25,5 @@ export const handlers = [
   ...taxationHandlers,
   ...recurringHandlers,
   ...statementUploadHandlers,
+  ...bankAccountHandlers,
 ];

@@ -310,12 +310,16 @@ export default [
             // Inline "create without leaving the flow": the transactions
             // and categorization flows embed beneficiaries' + tags' create
             // dialogs (BeneficiaryFormDialog / TagFormDialog).
+            // Transactions also embed the bankAccounts picker
+            // (BankAccountPicker on the manual-txn forms — Batch 13f);
+            // same precedent.
             {
               from: { type: 'feature', captured: { feature: 'transactions' } },
               allow: [
                 ...featureSelfAllow,
                 { to: { type: 'feature', captured: { feature: 'beneficiaries' } } },
                 { to: { type: 'feature', captured: { feature: 'tags' } } },
+                { to: { type: 'feature', captured: { feature: 'bankAccounts' } } },
               ],
             },
             {

@@ -148,6 +148,29 @@ export const routes = {
     trend: () => `${V}/expense-tracker/`,
   },
 
+  // BE Phase 1.1 — bank accounts + identifier sub-resource. Optional
+  // per Decision 27; the taxation engine works fine with zero
+  // accounts. One account per user can be flagged
+  // `is_committee_account=true` (single-committee invariant
+  // enforced BE-side — PATCHing one auto-demotes the prior). Account
+  // identifiers (UPI handles today) match against incoming
+  // statement-upload txns for auto-attribution.
+  //
+  // FastAPI route registration uses a trailing slash on the
+  // collection root, mirroring `budgets.root` / `taxation.rules` —
+  // a slashless request 307-redirects and drops the request body on
+  // some clients.
+  bankAccounts: {
+    root: () => `${V}/bank-accounts/`,
+    byId: (uid: number | string) => `${V}/bank-accounts/${uid}`,
+    identifiers: (uid: number | string) =>
+      `${V}/bank-accounts/${uid}/identifiers`,
+    identifierById: (
+      uid: number | string,
+      identifierUid: number | string
+    ) => `${V}/bank-accounts/${uid}/identifiers/${identifierUid}`,
+  },
+
   // BE Phase 1.5 — recurring-transaction inference engine. The worker
   // (via the APScheduler ladder) detects patterns from history and
   // forecasts upcoming materializations into `recurring_bills`; the FE

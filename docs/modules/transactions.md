@@ -64,6 +64,16 @@ and composed into the root router by `src/app/routes.tsx`
   next upload. The match-card is rendered inline inside
   `UploadStatementPage`'s `<UploadCard>` (small, feature-private,
   not exported).
+- Cross-feature embeds (Batch 13): the Add and Edit transaction
+  forms mount
+  [`bankAccounts/components/BankAccountField`](../../src/features/bankAccounts/components/BankAccountField.tsx) —
+  a label + picker + helper field that hides entirely when the
+  user has no bank accounts. Selection is sent as
+  `bank_account_id` on the POST/PATCH body; FastAPI ignores
+  unknown fields until BE adds the column to the
+  transaction schemas (open BE handoff). The Edit picker can't
+  pre-load the saved value until that lands; helper text spells
+  out the gap.
 
 ## State
 

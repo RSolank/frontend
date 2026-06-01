@@ -27,6 +27,7 @@ live in their owning feature module:
 | `/settings/categories` | `TagsPage` | [`features/tags/`](../../src/features/tags/) |
 | `/settings/categorization-rules` | `CategorizationRulesPage` | [`features/categorization/`](../../src/features/categorization/) |
 | `/settings/taxation-rules` | `TaxationRulesPage` | [`features/taxation/`](../../src/features/taxation/) |
+| `/settings/bank-accounts` | `BankAccountsPage` | [`features/bankAccounts/`](../../src/features/bankAccounts/) (Batch 13) |
 
 The pre-Batch-9 `/categories` and `/categorization-rules` URLs are
 **retired** — no `<Navigate>` redirects, no route entries. A repo-wide

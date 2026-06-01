@@ -6,6 +6,7 @@ import { DateField } from '../../../shared/components/DateField';
 import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { todayInUserTz } from '../../../shared/utils/dateUtils';
+import { BankAccountField } from '../../bankAccounts/components/BankAccountField';
 import {
   createCategorizationRule,
   type CreateCategorizationRulePayload,
@@ -108,6 +109,10 @@ function useAddTransactionForm({
   );
   const [notes, setNotes] = useState('');
   const [tagIds, setTagIds] = useState<number[]>([]);
+  // Batch 13f: optional bank-account picker. Sent in the POST
+  // payload; BE transaction routes don't read it yet (handoff
+  // item), so it's a graceful no-op until BE wires it in.
+  const [bankAccountId, setBankAccountId] = useState<number | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,6 +223,7 @@ function useAddTransactionForm({
           debit_credit: debitCredit,
           beneficiary_id: resolveBeneficiaryId(beneficiaryId),
           beneficiary_name: beneficiaryName || null,
+          bank_account_id: bankAccountId,
           txn_date: txnDate,
           notes: notes || null,
           tag_ids: tagIds,
@@ -255,6 +261,8 @@ function useAddTransactionForm({
     setTxnDate,
     notes,
     setNotes,
+    bankAccountId,
+    setBankAccountId,
     tagIds,
     submitting,
     error,
@@ -294,6 +302,8 @@ export function AddTransactionPage({
     setTxnDate,
     notes,
     setNotes,
+    bankAccountId,
+    setBankAccountId,
     tagIds,
     submitting,
     error,
@@ -382,6 +392,13 @@ export function AddTransactionPage({
             onAdd={handleAddTag}
             onRemove={handleRemoveTag}
             onRequestAddTag={() => setCreateTagOpen(true)}
+          />
+
+          <BankAccountField
+            id="bank-account-picker-add"
+            label="Bank account"
+            value={bankAccountId}
+            onChange={setBankAccountId}
           />
 
           <div>

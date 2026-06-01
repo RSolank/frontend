@@ -22,6 +22,12 @@ const TaxationRulesPage = lazy(() =>
   }))
 );
 
+const BankAccountsPage = lazy(() =>
+  import('../bankAccounts/pages/BankAccountsPage').then((m) => ({
+    default: m.BankAccountsPage,
+  }))
+);
+
 // Wrapped in <ProtectedRoute> by app/routes.tsx via protectedRoutes().
 // Children inherit protection through the parent's gated <Outlet />.
 //
@@ -45,6 +51,7 @@ export const settingsRoutes: RouteObject[] = [
       { path: 'categories', element: <TagsPage /> },
       { path: 'categorization-rules', element: <CategorizationRulesPage /> },
       { path: 'taxation-rules', element: <TaxationRulesPage /> },
+      { path: 'bank-accounts', element: <BankAccountsPage /> },
     ],
   },
 ];

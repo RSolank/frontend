@@ -579,27 +579,39 @@ function TerminalBody({
   );
 }
 
-// Informational notice rendered when the BE detected a source
+// Actionable notice rendered when the BE detected a source
 // identifier (e.g. UPI handle in a PhonePe statement) but no
-// registered bank account matched. Placeholder copy until
-// bank-accounts.crud (Batch 13) provides a real "register this
-// account" action — the suggest_register_account field is
-// already truthy on the BE response, so a no-op pass-through
-// would silently drop user-relevant signal.
+// registered bank account matched. Links to
+// /settings/bank-accounts?register=<identifier> which deep-links
+// into the Add modal pre-seeded with one pending UPI identifier
+// (Batch 13 wiring). When the BE didn't surface a specific
+// identifier the CTA still routes to the plain Add flow.
 function RegisterAccountNotice({
   identifier,
 }: {
   identifier: string | null;
 }) {
+  const target = identifier
+    ? `/settings/bank-accounts?register=${encodeURIComponent(identifier)}`
+    : '/settings/bank-accounts';
   return (
     <div
       data-testid="statement-job-suggest-register-account"
       role="status"
-      className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+      className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
     >
-      {identifier
-        ? `We noticed this statement came from an account we don't recognise (${identifier}). Account registration is coming soon.`
-        : "We noticed this statement came from an account we don't recognise. Account registration is coming soon."}
+      <span>
+        {identifier
+          ? `We noticed this statement came from an account we don't recognise (${identifier}).`
+          : "We noticed this statement came from an account we don't recognise."}
+      </span>
+      <Link
+        to={target}
+        data-testid="statement-job-register-account-cta"
+        className="font-semibold text-amber-900 underline-offset-2 hover:underline dark:text-amber-100"
+      >
+        Register this account →
+      </Link>
     </div>
   );
 }

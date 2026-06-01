@@ -17,11 +17,21 @@ export type TransactionFormInput = z.infer<typeof transactionFormSchema>;
 // Server-shape payload for POST/PATCH /api/transactions. The backend
 // accepts `beneficiary_id: null` to clear the link and `beneficiary_name`
 // to spawn a new beneficiary in one call (Add flow).
+//
+// `bank_account_id` (Batch 13f, BE handoff item): nullable link to a
+// user's bank account; the DB column exists on `transactions` and is
+// consumed by the statement-upload auto-attribution path, but the BE
+// transaction POST/PATCH routes do NOT yet expose the field in their
+// Pydantic schemas. The FE sends it speculatively — FastAPI ignores
+// unknown body fields, so it's a graceful no-op until BE adds it.
+// `TransactionDTO` likewise omits it for now; once BE returns it
+// EditTransaction can pre-select the saved value.
 export interface TransactionCreatePayload {
   amount: number;
   debit_credit: 'debit' | 'credit';
   beneficiary_id: number | null;
   beneficiary_name?: string | null;
+  bank_account_id?: number | null;
   txn_date: string;
   notes: string | null;
   tag_ids: number[];

@@ -220,6 +220,14 @@ describe('UploadStatementPage', () => {
         screen.getByTestId('statement-job-suggest-register-account')
       ).toHaveTextContent(/user@upi/)
     );
+    // Batch 13 upgrade: CTA links to /settings/bank-accounts with
+    // the detected identifier as the ?register= deep-link param.
+    expect(
+      screen.getByTestId('statement-job-register-account-cta')
+    ).toHaveAttribute(
+      'href',
+      '/settings/bank-accounts?register=user%40upi'
+    );
   });
 
   test('FAILED status renders error_detail + Try again', async () => {

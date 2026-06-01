@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
+import { BankAccountField } from '../../bankAccounts/components/BankAccountField';
 import {
   createCategorizationRule,
   updateCategorizationRuleTags,
@@ -74,6 +75,11 @@ interface PayloadFields {
   beneficiaryName: string;
   txnDate: string;
   notes: string;
+  // Batch 13f: optional bank-account link (manual rows only).
+  // The BE doesn't yet read this field on PATCH — graceful no-op
+  // until the BE handoff lands (see TransactionCreatePayload
+  // schemas.ts comment).
+  bankAccountId: number | null;
   tagIds: number[];
 }
 
@@ -92,6 +98,7 @@ function buildTransactionPayload(
     debit_credit: fields.debitCredit,
     beneficiary_id: resolveBeneficiaryId(fields.beneficiaryId),
     beneficiary_name: fields.beneficiaryName || null,
+    bank_account_id: fields.bankAccountId,
     txn_date: fields.txnDate,
     notes: fields.notes || null,
     tag_ids: fields.tagIds,
@@ -183,6 +190,12 @@ export function EditTransactionPage({
   const [beneficiaryId, setBeneficiaryId] = useState<number | string>('');
   const [txnDate, setTxnDate] = useState('');
   const [notes, setNotes] = useState('');
+  // Batch 13f: optional bank-account picker. Pre-load is gated on
+  // the BE returning `bank_account_id` on `TransactionResponse`
+  // (handoff item); until then, the picker loads as "No account"
+  // and the field helper text spells out the gap so users know to
+  // re-pick when they care.
+  const [bankAccountId, setBankAccountId] = useState<number | null>(null);
   const [tagIds, setTagIds] = useState<number[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -203,6 +216,7 @@ export function EditTransactionPage({
     beneficiaryId: number | string;
     txnDate: string;
     notes: string;
+    bankAccountId: number | null;
     tagIds: number[];
   } | null>(null);
 
@@ -271,6 +285,10 @@ export function EditTransactionPage({
           beneficiaryId: loadedBenId,
           txnDate: loadedDate,
           notes: loadedNotes,
+          // Batch 13f: BE doesn't return `bank_account_id` on
+          // TransactionResponse yet (handoff). Snapshot is null;
+          // any picker change registers as dirty.
+          bankAccountId: null,
           tagIds: [...loadedTagIds],
         };
         setLockedReason(null);
@@ -334,6 +352,7 @@ export function EditTransactionPage({
         beneficiaryName,
         txnDate,
         notes,
+        bankAccountId,
         tagIds,
       });
 
@@ -366,6 +385,7 @@ export function EditTransactionPage({
     if (beneficiaryId !== snap.beneficiaryId) return true;
     if (txnDate !== snap.txnDate) return true;
     if (notes !== snap.notes) return true;
+    if (bankAccountId !== snap.bankAccountId) return true;
     if (sortedKey(tagIds) !== sortedKey(snap.tagIds)) return true;
     return false;
   }, [
@@ -375,6 +395,7 @@ export function EditTransactionPage({
     beneficiaryId,
     txnDate,
     notes,
+    bankAccountId,
     tagIds,
   ]);
 
@@ -445,6 +466,7 @@ export function EditTransactionPage({
         }
         totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
         notes={notes}
+        bankAccountId={bankAccountId}
         submitting={submitting}
         isDirty={isDirty}
         dismissLabel={dismissLabel}
@@ -479,6 +501,10 @@ export function EditTransactionPage({
         onNotesChange={(value) => {
           clearLockedBannerOnEdit();
           setNotes(value);
+        }}
+        onBankAccountChange={(value) => {
+          clearLockedBannerOnEdit();
+          setBankAccountId(value);
         }}
         onCloseRequest={handleCloseRequest}
       />
@@ -516,6 +542,7 @@ interface EditTransactionFormProps {
   miscellaneousTagId: number | undefined;
   totalTagId: number | undefined;
   notes: string;
+  bankAccountId: number | null;
   submitting: boolean;
   isDirty: boolean;
   dismissLabel: string;
@@ -529,6 +556,7 @@ interface EditTransactionFormProps {
   onRemoveTag: (tid: number) => void;
   onRequestAddTag: () => void;
   onNotesChange: (value: string) => void;
+  onBankAccountChange: (value: number | null) => void;
   onCloseRequest: () => void;
 }
 
@@ -555,6 +583,7 @@ function EditTransactionForm({
   miscellaneousTagId,
   totalTagId,
   notes,
+  bankAccountId,
   submitting,
   isDirty,
   dismissLabel,
@@ -568,6 +597,7 @@ function EditTransactionForm({
   onRemoveTag,
   onRequestAddTag,
   onNotesChange,
+  onBankAccountChange,
   onCloseRequest,
 }: EditTransactionFormProps) {
   return (
@@ -682,6 +712,16 @@ function EditTransactionForm({
           onRemove={onRemoveTag}
           onRequestAddTag={onRequestAddTag}
         />
+
+        {!isStatement && (
+          <BankAccountField
+            id="bank-account-picker-edit"
+            label="Bank account"
+            value={bankAccountId}
+            onChange={onBankAccountChange}
+            helper="The backend doesn't yet return the saved bank account on edit — re-pick if you want to update it."
+          />
+        )}
 
         <div>
           <label htmlFor="notes" className="form-label">

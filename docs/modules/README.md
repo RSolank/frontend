@@ -27,6 +27,10 @@ readers should be able to open the page on either side and map it
 - [`recurring.md`](recurring.md) — recurring-transaction inference
   engine surface (`/recurring` management page + dashboard
   upcoming-bills widget).
+- [`bank-accounts.md`](bank-accounts.md) — user bank accounts +
+  identifier sub-resource (`/settings/bank-accounts` CRUD,
+  tax-pot designation, optional picker on manual transaction
+  forms).
 - [`dashboard.md`](dashboard.md) — landing surface, cross-feature
   widgets.
 - [`account.md`](account.md) — settings shell + account preferences

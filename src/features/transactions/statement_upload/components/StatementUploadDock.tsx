@@ -60,12 +60,22 @@ export function StatementUploadDock() {
         txnsInserted={job.txns_inserted}
       />
       {job.status === 'COMPLETE' && job.suggest_register_account && (
-        <p
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              job.detected_identifier
+                ? `/settings/bank-accounts?register=${encodeURIComponent(
+                    job.detected_identifier
+                  )}`
+                : '/settings/bank-accounts'
+            )
+          }
           data-testid="statement-upload-dock-suggest-account"
-          className="text-xs text-amber-700 dark:text-amber-300"
+          className="text-left text-xs font-semibold text-amber-700 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none dark:text-amber-300"
         >
-          New account detected — registration coming soon.
-        </p>
+          Register this account →
+        </button>
       )}
       <DockActions
         status={job.status}

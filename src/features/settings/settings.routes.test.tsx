@@ -63,7 +63,7 @@ describe('settingsRoutes', () => {
     await expectActiveBreadcrumb('Categories');
   });
 
-  it('shell exposes the three sidebar links at their canonical /settings/* paths', async () => {
+  it('shell exposes all sidebar links at their canonical /settings/* paths', async () => {
     renderAt('/settings/taxation-rules');
     await expectActiveBreadcrumb('Taxation Rules');
     const navs = screen.getAllByRole('navigation', { name: 'Settings sections' });
@@ -79,6 +79,10 @@ describe('settingsRoutes', () => {
       expect(within(nav).getByRole('link', { name: 'Taxation Rules' })).toHaveAttribute(
         'href',
         '/settings/taxation-rules'
+      );
+      expect(within(nav).getByRole('link', { name: 'Bank Accounts' })).toHaveAttribute(
+        'href',
+        '/settings/bank-accounts'
       );
     }
   });

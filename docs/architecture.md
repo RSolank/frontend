@@ -30,7 +30,7 @@ src/
 │
 ├── features/                  # one folder per surface — each owns components / hooks / api / routes / tests
 │   ├── auth/  users/  tags/  beneficiaries/  transactions/ (+ statement_upload/)
-│   ├── categorization/  taxation/  budgets/  recurring/  dashboard/
+│   ├── categorization/  taxation/  budgets/  recurring/  bankAccounts/  dashboard/
 │   └── account/  settings/    # account surface + settings shell (no "metadata" feature — dissolved into shared/)
 │
 ├── test/                      # shared MSW infra (server.ts + handlers/)
