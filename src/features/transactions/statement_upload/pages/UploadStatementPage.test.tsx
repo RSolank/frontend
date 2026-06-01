@@ -1,112 +1,261 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
+import { useStatementUploadJobStore } from '../../../../shared/state/statementUploadJob.store';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { server } from '../../../../test/server';
 
 import { UploadStatementPage } from './UploadStatementPage';
 
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>(
-    'react-router-dom'
-  );
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
+beforeEach(() => {
+  useStatementUploadJobStore.getState().reset();
 });
 
-beforeEach(() => {
-  mockNavigate.mockReset();
-  server.use(
-    http.get('http://localhost:4000/api/tags', () =>
-      HttpResponse.json({ tags: [] })
-    )
-  );
+afterEach(() => {
+  useStatementUploadJobStore.getState().reset();
 });
+
+function fileWithName(name: string, type = 'text/csv') {
+  return new File(['date,amount\n2026-06-01,10.00'], name, { type });
+}
 
 describe('UploadStatementPage', () => {
-  it('renders title and file picker', () => {
+  test('renders the upload card initially', () => {
     renderWithProviders(<UploadStatementPage />);
-    expect(screen.getByText(/Upload statement/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Choose file/i)).toBeInTheDocument();
+    expect(screen.getByTestId('statement-file-input')).toBeInTheDocument();
+    expect(screen.getByTestId('statement-upload-submit')).toBeDisabled();
   });
 
-  it('runs the upload → map → categorize pipeline', async () => {
-    const hits: string[] = [];
-    server.use(
-      http.post(
-        'http://localhost:4000/api/transactions/upload-statement',
-        () => {
-          hits.push('upload');
-          return HttpResponse.json({
-            upload_id: 7,
-            inserted_count: 1,
-            categorized_count: 0,
-            problematic_count: 0,
-          });
-        }
-      ),
-      http.post(
-        'http://localhost:4000/api/transactions/upload-statement/7/map-beneficiaries',
-        () => {
-          hits.push('map');
-          return HttpResponse.json({ ok: true });
-        }
-      ),
-      http.post(
-        'http://localhost:4000/api/transactions/upload-statement/7/categorize',
-        () => {
-          hits.push('categorize');
-          return HttpResponse.json({
-            upload_id: 7,
-            inserted_count: 1,
-            categorized_count: 1,
-            problematic_count: 0,
-            requires_confirmation: false,
-          });
-        }
-      )
-    );
-
+  test('filename match → renders match card + enables Upload', async () => {
     renderWithProviders(<UploadStatementPage />);
-
-    const file = new File(['date,beneficiary,amount\n2023-01-01,Test,100'], 'statement.csv', {
-      type: 'text/csv',
-    });
-    fireEvent.change(screen.getByLabelText(/Choose file/i), {
-      target: { files: [file] },
-    });
-
-    fireEvent.click(screen.getByText('Upload'));
-
-    await waitFor(() => {
-      expect(hits).toEqual(['upload', 'map', 'categorize']);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe-may-2026.pdf', 'application/pdf')
+    );
+    await waitFor(() =>
       expect(
-        screen.getByText(/Upload completed and categorized/i)
-      ).toBeInTheDocument();
-    });
+        screen.getByTestId('statement-parser-match-card')
+      ).toHaveTextContent(/PhonePe statement \(PDF\)/)
+    );
+    expect(screen.getByTestId('statement-upload-submit')).toBeEnabled();
   });
 
-  it('shows error if upload fails', async () => {
+  test('no filename match → inline dropdown forces an explicit pick', async () => {
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('budget.csv', 'text/csv')
+    );
+    // No match — match card hidden, dropdown visible, Upload disabled.
+    await waitFor(() =>
+      expect(screen.getByTestId('parser-inline-picker')).toBeInTheDocument()
+    );
+    expect(screen.queryByTestId('statement-parser-match-card')).toBeNull();
+    expect(screen.getByTestId('statement-upload-submit')).toBeDisabled();
+
+    // Pick from the dropdown — match card now renders + Upload enabled.
+    await userEvent.selectOptions(
+      screen.getByTestId('parser-inline-select'),
+      'csv'
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('statement-parser-match-card')
+      ).toBeInTheDocument()
+    );
+    expect(screen.getByTestId('statement-upload-submit')).toBeEnabled();
+  });
+
+  test('Change parser link opens picker; pick overrides match', async () => {
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('statement-parser-match-card')
+      ).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByTestId('statement-parser-change'));
+    expect(screen.getByTestId('parser-picker-list')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('parser-picker-option-csv'));
+    await userEvent.click(screen.getByTestId('parser-picker-confirm'));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('statement-parser-match-card')
+      ).toHaveTextContent(/Generic CSV statement/)
+    );
+  });
+
+  test('upload sends parser_override in the FormData', async () => {
+    let receivedOverride: string | null = null;
     server.use(
-      http.post('http://localhost:4000/api/transactions/upload-statement', () =>
-        HttpResponse.json({ error: 'Invalid file format' }, { status: 400 })
+      http.post(
+        'http://localhost:4000/api/statement-uploads',
+        async ({ request }) => {
+          const fd = await request.formData();
+          const val = fd.get('parser_override');
+          receivedOverride = typeof val === 'string' ? val : null;
+          return HttpResponse.json(
+            { job_id: 99, status: 'PENDING' },
+            { status: 202 }
+          );
+        }
+      ),
+      http.get('http://localhost:4000/api/statement-uploads/99', () =>
+        HttpResponse.json({
+          job_id: 99,
+          status: 'COMPLETE',
+          file_name: 'phonepe.pdf',
+          parser_used: 'phonepe',
+          source_type: 'phonepe',
+          txns_parsed: 1,
+          txns_inserted: 1,
+          error_detail: null,
+          detected_identifier: null,
+          bank_account_id: null,
+          suggest_register_account: false,
+          created_at: '2026-06-01T00:00:00Z',
+          completed_at: '2026-06-01T00:00:01Z',
+        })
       )
     );
-
     renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('statement-job-complete')).toBeInTheDocument()
+    );
+    expect(receivedOverride).toBe('phonepe');
+  });
 
-    const file = new File(['x'], 'test.csv', { type: 'text/csv' });
-    fireEvent.change(screen.getByLabelText(/Choose file/i), {
-      target: { files: [file] },
-    });
-    fireEvent.click(screen.getByText('Upload'));
+  test('409 duplicate surfaces inline error (no Pick parser button)', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/statement-uploads', () =>
+        HttpResponse.json({ detail: 'duplicate' }, { status: 409 })
+      )
+    );
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('statement-upload-error')).toHaveTextContent(
+        /already uploaded this exact file/i
+      )
+    );
+    expect(screen.queryByTestId('statement-upload-pick-parser')).toBeNull();
+  });
 
-    await waitFor(() => {
-      expect(screen.getByText(/Invalid file format/i)).toBeInTheDocument();
-    });
+  test('422 surfaces "Pick parser" button that opens the modal', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/statement-uploads', () =>
+        HttpResponse.json(
+          {
+            detail: {
+              message: 'No parser detected',
+              available_parsers: [
+                { key: 'phonepe', label: 'PhonePe statement (PDF)', source_type: 'phonepe' },
+                { key: 'csv', label: 'Generic CSV statement', source_type: 'csv' },
+              ],
+            },
+          },
+          { status: 422 }
+        )
+      )
+    );
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('statement-upload-pick-parser')).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-pick-parser'));
+    expect(screen.getByTestId('parser-picker-list')).toBeInTheDocument();
+  });
+
+  test('COMPLETE + suggest_register_account renders informational notice', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/statement-uploads', () =>
+        HttpResponse.json({ job_id: 5, status: 'PENDING' }, { status: 202 })
+      ),
+      http.get('http://localhost:4000/api/statement-uploads/5', () =>
+        HttpResponse.json({
+          job_id: 5,
+          status: 'COMPLETE',
+          file_name: 'phonepe.pdf',
+          parser_used: 'phonepe',
+          source_type: 'upi',
+          txns_parsed: 12,
+          txns_inserted: 12,
+          error_detail: null,
+          detected_identifier: 'user@upi',
+          bank_account_id: null,
+          suggest_register_account: true,
+          created_at: '2026-06-01T00:00:00Z',
+          completed_at: '2026-06-01T00:00:01Z',
+        })
+      )
+    );
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-submit'));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('statement-job-suggest-register-account')
+      ).toHaveTextContent(/user@upi/)
+    );
+  });
+
+  test('FAILED status renders error_detail + Try again', async () => {
+    server.use(
+      http.post('http://localhost:4000/api/statement-uploads', () =>
+        HttpResponse.json({ job_id: 7, status: 'PENDING' }, { status: 202 })
+      ),
+      http.get('http://localhost:4000/api/statement-uploads/7', () =>
+        HttpResponse.json({
+          job_id: 7,
+          status: 'FAILED',
+          file_name: 'broken.pdf',
+          parser_used: null,
+          source_type: null,
+          txns_parsed: 0,
+          txns_inserted: 0,
+          error_detail: 'PDF was password-protected.',
+          detected_identifier: null,
+          bank_account_id: null,
+          suggest_register_account: false,
+          created_at: '2026-06-01T00:00:00Z',
+          completed_at: '2026-06-01T00:00:01Z',
+        })
+      )
+    );
+    renderWithProviders(<UploadStatementPage />);
+    await userEvent.upload(
+      screen.getByTestId('statement-file-input'),
+      fileWithName('phonepe.pdf', 'application/pdf')
+    );
+    await userEvent.click(screen.getByTestId('statement-upload-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('statement-job-failed')).toBeInTheDocument()
+    );
+    expect(
+      screen.getByText(/PDF was password-protected/i)
+    ).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { AuthInit } from '../features/auth/components/AuthInit';
@@ -5,6 +6,17 @@ import { useAuth } from '../features/auth/state/useAuth';
 import { TopNav } from '../shared/components/TopNav';
 import { useDateFormatStore } from '../shared/state/dateFormat.store';
 import { useNumberFormatStore } from '../shared/state/numberFormat.store';
+import { useStatementUploadJobStore } from '../shared/state/statementUploadJob.store';
+
+// BE Phase 2.2 — global in-flight statement-upload dock. Lazy so
+// the initial-paint bundle stays under the 125 kB ceiling; only
+// imported once the user actually has an active job. Hides itself
+// on /upload-statement (the page renders the same panel inline).
+const StatementUploadDock = lazy(() =>
+  import(
+    '../features/transactions/statement_upload/components/StatementUploadDock'
+  ).then((m) => ({ default: m.StatementUploadDock }))
+);
 
 // Root layout for every route. AuthInit hydrates the auth store on mount
 // and kicks off the preferences fetch. TopNav is the single navigation
@@ -12,6 +24,7 @@ import { useNumberFormatStore } from '../shared/state/numberFormat.store';
 // frontend/docs/refactor/implementation_plan.md.
 export function App() {
   const { logout } = useAuth();
+  const activeJobId = useStatementUploadJobStore((s) => s.activeJobId);
 
   // Subscribe to the data-formatter stores so a mode change re-renders
   // every descendant. `formatDate` / `formatMoney` read via getState()
@@ -29,6 +42,11 @@ export function App() {
       <main className="flex-1">
         <Outlet />
       </main>
+      {activeJobId !== null && (
+        <Suspense fallback={null}>
+          <StatementUploadDock />
+        </Suspense>
+      )}
     </div>
   );
 }

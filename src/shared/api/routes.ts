@@ -115,13 +115,24 @@ export const routes = {
     create: () => `${V}/transactions`,
     byId: (id: number | string) => `${V}/transactions/${id}`,
     manualTags: (id: number | string) => `${V}/transactions/${id}/manual-tags`,
-    uploadStatement: () => `${V}/transactions/upload-statement`,
-    uploadStatementMapBeneficiaries: (id: number | string) =>
-      `${V}/transactions/upload-statement/${id}/map-beneficiaries`,
-    uploadStatementCategorize: (id: number | string) =>
-      `${V}/transactions/upload-statement/${id}/categorize`,
-    uploadStatementFinalize: (id: number | string) =>
-      `${V}/transactions/upload-statement/${id}/finalize`,
+  },
+
+  // BE Phase 2.2 — async statement-upload pipeline. The legacy
+  // 4-step synchronous flow (`/upload-statement` +
+  // `/map-beneficiaries` + `/categorize` + `/finalize`) was retired
+  // BE-side; the FE now POSTs to `/statement-uploads` and polls
+  // `/statement-uploads/{job_id}` for status. Parser auto-detection,
+  // bank-account auto-attribution, and categorization-via-MISC
+  // default all run inside the background job.
+  statementUploads: {
+    root: () => `${V}/statement-uploads`,
+    byId: (jobId: number | string) => `${V}/statement-uploads/${jobId}`,
+    // BE-side handoff: when BE ships GET `/api/statement-uploads/parsers`
+    // it returns the parser catalog as `[{key, label, source_type}, ...]`
+    // (same shape as the 422 envelope's `available_parsers`). FE
+    // queries it on file selection to populate the parser picker;
+    // gracefully falls back to a hardcoded local catalog on 404.
+    parsers: () => `${V}/statement-uploads/parsers`,
   },
 
   // Trailing slash on the collection root is FastAPI-significant — the

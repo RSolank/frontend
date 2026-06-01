@@ -72,21 +72,8 @@ export interface SingleTransactionResponse {
   transaction: TransactionDTO | null;
 }
 
-// Statement-upload pipeline responses (POST upload, POST map, POST categorize).
-export interface ProblematicTxn {
-  txn_id: number;
-  beneficiary?: string | null;
-  txn_date: string;
-  debit_credit: 'debit' | 'credit';
-  amount: number;
-  tag_ids?: number[];
-}
-
-export interface UploadResult {
-  upload_id: number;
-  inserted_count: number;
-  categorized_count: number;
-  problematic_count: number;
-  problematic?: ProblematicTxn[];
-  requires_confirmation?: boolean;
-}
+// Statement-upload responses moved to
+// [`statement_upload/api/schemas.ts`](../statement_upload/api/schemas.ts)
+// alongside the BE Phase 2.2 async-job DTOs. The legacy
+// `UploadResult` / `ProblematicTxn` shapes (4-step sync pipeline)
+// are retired with the BE endpoints.

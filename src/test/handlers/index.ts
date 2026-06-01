@@ -5,6 +5,7 @@ import { expenseTrackerHandlers } from './expense-tracker';
 import { healthHandlers } from './health';
 import { metadataHandlers } from './metadata';
 import { recurringHandlers } from './recurring';
+import { statementUploadHandlers } from './statement-upload';
 import { tagsHandlers } from './tags';
 import { taxationHandlers } from './taxation';
 import { usersHandlers } from './users';
@@ -22,4 +23,5 @@ export const handlers = [
   ...expenseTrackerHandlers,
   ...taxationHandlers,
   ...recurringHandlers,
+  ...statementUploadHandlers,
 ];

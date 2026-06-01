@@ -13,8 +13,15 @@
 - Drive the manual Add / Edit transaction flows, including the
   optional "create a categorization rule from this tag + beneficiary
   pair" prompt.
-- Run the statement-upload pipeline: parse → map beneficiaries →
-  categorize → per-row review → finalize.
+- Run the async statement-upload pipeline (BE Phase 2.2,
+  `ac4ad00`): POST a file → 202 with `{job_id}` → poll
+  `GET /statement-uploads/{job_id}` for status until the job
+  hits `COMPLETE` or `FAILED`. The FE owns parser-class
+  selection (filename match + a picker modal); the chosen class
+  is sent as `parser_override` so the BE skips its own detection,
+  with internal failover to detection if parsing with the chosen
+  class fails. Bank-account auto-attribution + categorization
+  run in the background task.
 
 ## Pages
 
@@ -23,7 +30,7 @@
 | `/transactions` | `pages/TransactionsPage.tsx` | List + merchant views, filters, paging. Lazy-loaded. |
 | `/add-transaction` | `pages/AddTransactionPage.tsx` | Manual create. Lazy-loaded. |
 | `/transactions/:id/edit` | `pages/EditTransactionPage.tsx` | Edit; statement-sourced rows restrict editable fields to `notes` + `tag_ids`. Lazy-loaded. |
-| `/upload-statement` | `statement_upload/pages/UploadStatementPage.tsx` | Three-step async upload pipeline + per-row review. Lazy-loaded. |
+| `/upload-statement` | `statement_upload/pages/UploadStatementPage.tsx` | Async upload + job-poll surface (file picker → 202 → progress states → COMPLETE/FAILED card). Lazy-loaded. |
 
 Routes are exported from
 [`features/transactions/transactions.routes.tsx`](../../src/features/transactions/transactions.routes.tsx)
@@ -41,18 +48,39 @@ and composed into the root router by `src/app/routes.tsx`
   when a real tag is added, re-add misc when the last tag is removed)
   live in the parent's `onAdd` / `onRemove` so both forms apply the
   same rule from a single place.
-- `statement_upload/components/ProblematicTxnRow.tsx` — per-row
-  categorize panel used in the upload review step. Keeps the legacy
-  keyboard nav (↑ / ↓ / Enter / Esc through the tag dropdown) since
-  statement uploads can include many problematic rows.
+- `statement_upload/components/StatementUploadDock.tsx` — fixed
+  bottom-right widget mounted from the app shell when the
+  `useStatementUploadJobStore` reports an active job id. Polls
+  `GET /statement-uploads/{job_id}` and surfaces the in-flight
+  status to users who navigate away from `/upload-statement`
+  while the parse is still running. Hides on `/upload-statement`
+  (the page renders the same content inline) and auto-clears on
+  COMPLETE; FAILED states persist until the user dismisses them.
+- `statement_upload/components/ParserPickerModal.tsx` — radio-
+  list modal listing the parser catalog. Opens from the
+  "Change parser" link on the matched-parser card and from the
+  "Pick parser" button in the 422 inline error. Confirm sends
+  the chosen registry **class key** as `parser_override` on the
+  next upload. The match-card is rendered inline inside
+  `UploadStatementPage`'s `<UploadCard>` (small, feature-private,
+  not exported).
 
 ## State
 
-No Zustand state owned by this feature. Server state lives in React
-Query under `transactionKeys.{list, detail}`; mutations
-(create / update / delete + finalize) invalidate `transactionKeys.all`
-and `tagKeys.all` (the list page renders tag chips, so a tag rename
-elsewhere bubbles up here).
+One Zustand store — `shared/state/statementUploadJob.store.ts`
+(lives in `shared/` so the app shell can mount the dock without
+crossing the boundaries rule). Tracks `activeJobId` + a
+`dismissed` flag; `persist`-backed under `pba.statement-upload-job`
+so an in-flight job survives a tab refresh.
+
+Server state lives in React Query under `transactionKeys.{list,
+detail}` and `statementUploadKeys.job(jobId)`. Mutations
+(create / update / delete) invalidate `transactionKeys.all` and
+`tagKeys.all` (the list page renders tag chips, so a tag rename
+elsewhere bubbles up here). The job poll has `staleTime:
+Infinity` once it lands a terminal payload — `COMPLETE` /
+`FAILED` rows never change, so a navigation away and back doesn't
+re-fire the GET.
 
 The list filters (page / sort / view-mode / tag / month /
 beneficiary-id filter) are page-local `useState` rather than URL
@@ -66,10 +94,21 @@ a future polish, not in scope here.
 
 | File | Exports |
 |---|---|
-| `keys.ts` | `transactionKeys` (`all`, `lists()`, `list(params)`, `detail(id)`), `statementUploadKeys`, `TransactionListParams` |
-| `schemas.ts` | `transactionFormSchema` (Zod), `TransactionFormInput`, `TransactionCreatePayload`, `TransactionUpdatePayload`, `TransactionDTO`, `TransactionListResponse`, `MerchantGroup`, `SingleTransactionResponse`, `ProblematicTxn`, `UploadResult` |
+| `keys.ts` | `transactionKeys` (`all`, `lists()`, `list(params)`, `detail(id)`), `TransactionListParams` |
+| `schemas.ts` | `transactionFormSchema` (Zod), `TransactionFormInput`, `TransactionCreatePayload`, `TransactionUpdatePayload`, `TransactionDTO`, `TransactionListResponse`, `MerchantGroup`, `SingleTransactionResponse` |
 | `queries.ts` | `fetchTransactions`, `fetchTransaction`, `useTransactionsQuery` |
-| `mutations.ts` | `createTransactionRequest`, `updateTransactionRequest`, `deleteTransactionRequest`, `uploadStatementRequest`, `mapBeneficiariesRequest`, `categorizeUploadRequest`, `saveManualTagsRequest`, `finalizeUploadRequest`, `FinalizeDecision` |
+| `mutations.ts` | `createTransactionRequest`, `updateTransactionRequest`, `deleteTransactionRequest` |
+
+The async statement-upload API lives at
+[`statement_upload/api/`](../../src/features/transactions/statement_upload/api/):
+
+| File | Exports |
+|---|---|
+| `keys.ts` | `statementUploadKeys` (`all`, `job(id)`, `parsers()`) |
+| `schemas.ts` | `JobStatus`, `TERMINAL_JOB_STATUSES`, `isTerminalStatus`, `UploadAcceptedResponse`, `JobStatusResponse`, `ParserOption`, `HARDCODED_PARSER_CATALOG`, `NoParserDetectedDetail`, `extractNoParserDetail` |
+| `queries.ts` | `fetchJobStatus`, `useJobStatusQuery(jobId)` (2s adaptive poll; `staleTime: Infinity` once terminal), `fetchParserCatalog`, `useParserCatalogQuery()` (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`) |
+| `mutations.ts` | `uploadStatementJobRequest(file, parserOverride?)` (POST 202 + `{job_id}`; appends `parser_override` to FormData when set), `manualTagTransactionRequest(txnId, tagIds)` (re-tag statement-imported rows) |
+| `parserMatch.ts` | `matchParserByFilename(filename, catalog)` — pure predictor matching the filename stem against each parser's `key` / `source_type` / first label word; tie-break by registration order (mirrors BE `detect_parser`). |
 
 Endpoints touched:
 
@@ -80,11 +119,10 @@ Endpoints touched:
 | `POST /api/transactions[?rule_id=…]` | AddTransactionPage |
 | `PATCH /api/transactions/:id[?rule_id=…]` | EditTransactionPage |
 | `DELETE /api/transactions/:id` | TransactionsPage row action menu |
-| `POST /api/transactions/upload-statement` | UploadStatementPage step 1 |
-| `POST /api/transactions/upload-statement/:id/map-beneficiaries` | UploadStatementPage step 2 |
-| `POST /api/transactions/upload-statement/:id/categorize` | UploadStatementPage step 3 |
-| `POST /api/transactions/:id/manual-tags` | UploadStatementPage per-row save |
-| `POST /api/transactions/upload-statement/:id/finalize` | UploadStatementPage commit / set_misc / rollback |
+| `POST /api/statement-uploads` | UploadStatementPage submit (sends `parser_override` form field) |
+| `GET /api/statement-uploads/{job_id}` | UploadStatementPage + StatementUploadDock poll |
+| `GET /api/statement-uploads/parsers` | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
+| `POST /api/transactions/:id/manual-tags` | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow) |
 | `GET /api/categorization-rules` | EditTransactionPage tag-changed flow |
 | `POST /api/categorization-rules` | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
 | `PUT /api/categorization-rules/:uid` | EditTransactionPage update-existing-rule path |
@@ -109,8 +147,12 @@ Per [`docs/conventions.md`](../conventions.md):
   everything else stays full-width so labels never collide with
   inputs.
 - Submit + Cancel buttons stack on phones (`flex-col sm:flex-row`).
-- UploadStatementPage's finalize actions row uses `flex-wrap gap-3`;
-  the three CTAs stack rather than overflow horizontally.
+- UploadStatementPage's panel footer uses `flex-wrap gap-3`; the
+  "View transactions" + "Upload another" / "Try again" / "Start
+  over" CTAs stack rather than overflow horizontally.
+- StatementUploadDock is `fixed bottom-4 right-4 w-72` —
+  comfortably above the iOS Safari toolbar; clipped narrow
+  widths still leave room for the touch-target controls.
 
 ## Cross-feature seams
 

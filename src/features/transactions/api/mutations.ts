@@ -4,7 +4,6 @@ import { routes } from '../../../shared/api/routes';
 import type {
   TransactionCreatePayload,
   TransactionUpdatePayload,
-  UploadResult,
 } from './schemas';
 
 // POST /api/transactions[?rule_id=…] — backend optionally links a
@@ -43,61 +42,9 @@ export function deleteTransactionRequest(
   return apiFetch<unknown>(routes.transactions.byId(id), { method: 'DELETE' });
 }
 
-// Statement-upload pipeline — three sequential POSTs.
-//   1. /upload-statement       — parses file, inserts raw rows
-//   2. /upload-statement/:id/map-beneficiaries — links to existing beneficiaries
-//   3. /upload-statement/:id/categorize        — runs categorization engine
-//
-// Plus the manual-tags + finalize endpoints used by the per-row review
-// flow.
-export function uploadStatementRequest(file: File): Promise<UploadResult> {
-  const fd = new FormData();
-  fd.append('file', file);
-  return apiFetch<UploadResult>(routes.transactions.uploadStatement(), {
-    method: 'POST',
-    body: fd,
-  });
-}
-
-export function mapBeneficiariesRequest(
-  uploadId: number | string
-): Promise<unknown> {
-  return apiFetch<unknown>(
-    routes.transactions.uploadStatementMapBeneficiaries(uploadId),
-    { method: 'POST' }
-  );
-}
-
-export function categorizeUploadRequest(
-  uploadId: number | string
-): Promise<UploadResult> {
-  return apiFetch<UploadResult>(
-    routes.transactions.uploadStatementCategorize(uploadId),
-    { method: 'POST' }
-  );
-}
-
-export function saveManualTagsRequest(
-  txnId: number | string,
-  tagIds: number[]
-): Promise<unknown> {
-  return apiFetch<unknown>(routes.transactions.manualTags(txnId), {
-    method: 'POST',
-    body: JSON.stringify({ tag_ids: tagIds }),
-  });
-}
-
-export type FinalizeDecision = 'commit' | 'set_misc' | 'rollback';
-
-export function finalizeUploadRequest(
-  uploadId: number | string,
-  decision: FinalizeDecision
-): Promise<unknown> {
-  return apiFetch<unknown>(
-    routes.transactions.uploadStatementFinalize(uploadId),
-    {
-      method: 'POST',
-      body: JSON.stringify({ decision }),
-    }
-  );
-}
+// BE Phase 2.2 (`ac4ad00`) — the legacy 4-step synchronous upload
+// pipeline (`/upload-statement` + map-beneficiaries + categorize +
+// finalize) is retired. The async surface
+// (`uploadStatementJobRequest`, `useJobStatusQuery`,
+// `manualTagTransactionRequest`) now lives at
+// [`statement_upload/api/`](../statement_upload/api).
