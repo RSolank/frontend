@@ -33,8 +33,9 @@ readers should be able to open the page on either side and map it
   forms).
 - [`dashboard.md`](dashboard.md) — landing surface, cross-feature
   widgets.
-- [`account.md`](account.md) — settings shell + account preferences
-  page.
+- [`account.md`](account.md) — `/account/*` shell (profile,
+  security, privacy, accessibility, preferences) — five sections,
+  shared sidebar.
 - [`settings.md`](settings.md) — settings layout shell + breadcrumb
   + sidebar.
 - [`admin.md`](admin.md) — operator-only `/admin/*` surface and the

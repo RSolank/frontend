@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
@@ -168,10 +169,10 @@ const populatedTracker = {
 
 function installPopulatedHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json(populatedBudgetStatus)
     ),
-    http.get('http://localhost:4000/api/transactions', ({ request }) => {
+    http.get(`${API_BASE}/transactions`, ({ request }) => {
       const url = new URL(request.url);
       // Recent list (limit=5, no debit_credit filter) returns the full
       // populated list; week-aggregate query (debit_credit=debit) gets
@@ -187,10 +188,10 @@ function installPopulatedHandlers() {
       return HttpResponse.json(populatedTransactions);
     }),
     http.get(
-      'http://localhost:4000/api/consumption-tax/tracker/current-week',
+      `${API_BASE}/consumption-tax/tracker/current-week`,
       () => HttpResponse.json(populatedTracker)
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -200,7 +201,7 @@ function installPopulatedHandlers() {
 
 function installEmptyHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json({
         categories: [],
         total_budget: null,
@@ -209,14 +210,14 @@ function installEmptyHandlers() {
         available_months: ['2026-02'],
       })
     ),
-    http.get('http://localhost:4000/api/transactions', () =>
+    http.get(`${API_BASE}/transactions`, () =>
       HttpResponse.json({ transactions: [], returned_count: 0 })
     ),
     http.get(
-      'http://localhost:4000/api/consumption-tax/tracker/current-week',
+      `${API_BASE}/consumption-tax/tracker/current-week`,
       () => new HttpResponse(null, { status: 404 })
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -378,7 +379,7 @@ describe('DashboardPage', () => {
     // (Uncategorized) → Dining.
     it('Week-by-category strip aggregates weekly debits by primary tag', async () => {
       server.use(
-        http.get('http://localhost:4000/api/tags', () =>
+        http.get(`${API_BASE}/tags`, () =>
           HttpResponse.json({
             tags: [
               {

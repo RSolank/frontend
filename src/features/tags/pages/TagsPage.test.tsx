@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -39,10 +40,10 @@ const constants = {
 
 beforeEach(() => {
   server.use(
-    http.get('http://localhost:4000/api/tags', () =>
+    http.get(`${API_BASE}/tags`, () =>
       HttpResponse.json(tagsResponse)
     ),
-    http.get('http://localhost:4000/api/metadata/constants', () =>
+    http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(constants)
     )
   );
@@ -68,7 +69,7 @@ describe('TagsPage', () => {
   it('submits a new tag with aliases and reloads the list', async () => {
     const postSpy = vi.fn();
     server.use(
-      http.post('http://localhost:4000/api/tags', async ({ request }) => {
+      http.post(`${API_BASE}/tags`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
         postSpy(body);
         return HttpResponse.json({ tag: { tag_id: 99 } });

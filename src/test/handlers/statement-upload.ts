@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
+import { API_BASE } from '../baseUrl';
+
 // BE Phase 2.2 (`ac4ad00`) — async statement-upload endpoints.
 //
 // Defaults below let tests for unrelated surfaces render through
@@ -19,14 +21,14 @@ export const statementUploadHandlers = [
   // path override this with a 200 + a custom parser list via
   // `server.use(...)`.
   http.get(
-    'http://localhost:4000/api/statement-uploads/parsers',
+    `${API_BASE}/statement-uploads/parsers`,
     () => new HttpResponse(null, { status: 404 })
   ),
-  http.post('http://localhost:4000/api/statement-uploads', () =>
+  http.post(`${API_BASE}/statement-uploads`, () =>
     HttpResponse.json({ job_id: 1, status: 'PENDING' }, { status: 202 })
   ),
   http.get(
-    'http://localhost:4000/api/statement-uploads/:jobId',
+    `${API_BASE}/statement-uploads/:jobId`,
     ({ params }) =>
       HttpResponse.json({
         job_id: Number(params.jobId),

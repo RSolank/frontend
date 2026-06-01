@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -31,7 +32,7 @@ describe('<VerifyNewDevicePage>', () => {
     let seenBody: Record<string, unknown> | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/new-device/verify',
+        `${API_BASE}/auth/new-device/verify`,
         async ({ request }) => {
           seenBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({
@@ -40,10 +41,10 @@ describe('<VerifyNewDevicePage>', () => {
           });
         }
       ),
-      http.get('http://localhost:4000/api/users/me', () =>
+      http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({ user: { user_id: 1, email_id: 'a@b' } })
       ),
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({})
       )
     );
@@ -70,7 +71,7 @@ describe('<VerifyNewDevicePage>', () => {
 
   it('chains through to /verify/2fa when the BE returns a 2FA challenge', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/new-device/verify', () =>
+      http.post(`${API_BASE}/auth/new-device/verify`, () =>
         HttpResponse.json({
           status: 'two_factor_required',
           pending_token: '2fa-pend-1',
@@ -100,7 +101,7 @@ describe('<VerifyNewDevicePage>', () => {
 
   it('resend issues a fresh challenge and updates the masked email', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/new-device/resend', () =>
+      http.post(`${API_BASE}/auth/new-device/resend`, () =>
         HttpResponse.json({
           status: 'new_device_verification_required',
           pending_token: 'pend-NEW',

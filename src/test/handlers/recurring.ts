@@ -1,18 +1,20 @@
 import { http, HttpResponse } from 'msw';
 
+import { API_BASE } from '../baseUrl';
+
 // BE Phase 1.5 (`f369ce2`) — recurring inference engine endpoints.
 // Defaults below return empty arrays so the management page + the
 // dashboard widget render their empty states without per-test
 // fixture wiring. Tests that exercise specific shapes call
 // `server.use(...)` with a fixture-bearing handler.
 export const recurringHandlers = [
-  http.get('http://localhost:4000/api/recurring/templates', () =>
+  http.get(`${API_BASE}/recurring/templates`, () =>
     HttpResponse.json([])
   ),
-  http.get('http://localhost:4000/api/recurring/upcoming', () =>
+  http.get(`${API_BASE}/recurring/upcoming`, () =>
     HttpResponse.json([])
   ),
-  http.get('http://localhost:4000/api/recurring/history', () =>
+  http.get(`${API_BASE}/recurring/history`, () =>
     HttpResponse.json([])
   ),
   // Mutations: minimal happy-path stubs so per-test overrides only
@@ -20,7 +22,7 @@ export const recurringHandlers = [
   // echoed-back template that has uid=1 + every required field
   // defaulted; PATCH echoes the body merged onto a stub row; DELETE
   // returns 204.
-  http.post('http://localhost:4000/api/recurring/templates', async () =>
+  http.post(`${API_BASE}/recurring/templates`, async () =>
     HttpResponse.json(
       {
         uid: 1,
@@ -47,7 +49,7 @@ export const recurringHandlers = [
     )
   ),
   http.patch(
-    'http://localhost:4000/api/recurring/templates/:uid',
+    `${API_BASE}/recurring/templates/:uid`,
     async ({ params }) =>
       HttpResponse.json({
         uid: Number(params.uid),
@@ -72,7 +74,7 @@ export const recurringHandlers = [
       })
   ),
   http.delete(
-    'http://localhost:4000/api/recurring/templates/:uid',
+    `${API_BASE}/recurring/templates/:uid`,
     () => new HttpResponse(null, { status: 204 })
   ),
 ];

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import {
@@ -30,7 +31,7 @@ describe('twoFactor api surface', () => {
     let seenBody: { password?: string } | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/2fa/disable',
+        `${API_BASE}/auth/2fa/disable`,
         async ({ request }) => {
           seenBody = (await request.json()) as { password: string };
           return HttpResponse.json({ status: 'ok' });
@@ -45,7 +46,7 @@ describe('twoFactor api surface', () => {
     let seenBody: Record<string, unknown> | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/2fa/login-verify',
+        `${API_BASE}/auth/2fa/login-verify`,
         async ({ request }) => {
           seenBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({

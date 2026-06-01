@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, test } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import type { BankAccount } from '../api/schemas';
@@ -24,7 +25,7 @@ function fixture(overrides: Partial<BankAccount> = {}): BankAccount {
 
 function withAccounts(rows: BankAccount[]) {
   server.use(
-    http.get('http://localhost:4000/api/bank-accounts/', () =>
+    http.get(`${API_BASE}/bank-accounts/`, () =>
       HttpResponse.json(rows)
     )
   );

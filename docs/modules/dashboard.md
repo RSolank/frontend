@@ -59,9 +59,12 @@ applicable). See the per-card source for the exact copy.
 
 ### Secondary widgets (always visible, ordered by priority)
 
-Three smaller cards in `grid-cols-1 lg:grid-cols-3` that cluster
-cross-feature signals. They reuse the same query slices as the
-primary cards, so no extra network cost.
+Four smaller cards in `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`
+that cluster cross-feature signals. They reuse the same query
+slices as the primary cards, so no extra network cost. (Grid
+flipped from `lg:grid-cols-3` to the current 2/4 split in Batch
+11 to fit the 4th tile — UpcomingBillsWidget — cleanly across
+breakpoints.)
 
 Ordered by priority (left → right on desktop, top → bottom on
 mobile) so the most actionable signal lands first either way.
@@ -128,7 +131,9 @@ cards.
 ## Filtering / display rules
 
 - **Active week** — every "this week" surface uses `weekRangeInTz`
-  in the user's tz (Sun → Sat). The TransactionsCard + WeekSummaryWidget
+  in the user's tz (ISO 8601, Mon → Sun — see the project-wide
+  [ISO week convention](../conventions.md#week-convention)). The
+  TransactionsCard + WeekSummaryWidget
   filter transactions client-side using `txn_date >= period_start`
   and `txn_date <= period_end + 'T23:59:59'` so any ISO timestamp
   inside the active week is counted.
@@ -160,9 +165,10 @@ cards.
   "set one to track headroom" inline hint.
 - **Tax Tracker** — when the backend endpoint 404s OR `data ==
   null`, renders the friendly "No tax accrual yet this week" empty
-  with an Add transaction CTA. Once the Phase 0.7 endpoint ships
-  (see [`task-handoff-be-to-fe.md §1`](../../../.scratch/task-handoff-be-to-fe.md))
-  the populated path takes over automatically.
+  with an Add transaction CTA. The
+  `GET /api/consumption-tax/tracker/current-week` endpoint shipped
+  in BE Phase 2.6 (`e7c05aa`), so the populated path is live; the
+  404-tolerant fallback stays for accounts with zero accrual.
 
 ## Responsive design
 
@@ -171,9 +177,10 @@ cards.
   primary grid breathes on desktop.
 - Primary grid: `grid-cols-1 lg:grid-cols-3 items-stretch` so cards
   align in a row at `lg+`, stack on mobile.
-- Secondary grid: `grid-cols-1 lg:grid-cols-3` — always visible.
-  Priority order (BreachAlerts → WeekSummary → RecentActivity)
-  flows left-to-right on desktop and top-to-bottom on mobile via
+- Secondary grid: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` —
+  always visible. Priority order (BreachAlerts → WeekSummary →
+  UpcomingBills → RecentActivity) flows left-to-right on desktop
+  and top-to-bottom on mobile via
   the same grid; mobile keeps every signal the desktop carries.
 - All interactive controls (CTAs, links) keep a ≥ 44 px tap target.
 
@@ -203,13 +210,13 @@ overview.
 | Test file | What it covers |
 |---|---|
 | `pages/DashboardPage.test.tsx` | Welcome heading reads the user first name; the three primary cards render in the primary grid with the right stat values; breach chip appears when any category is over; Top-3 categories filtered + sorted; Tax Tracker renders accrued + projected + contributors; secondary widgets render with the correct stats; empty-state copy + CTAs render when each underlying dataset is empty; BreachAlertsWidget hides itself when no breach exists. |
+| `components/ExpenseTrackerCard.test.tsx` | Per-card rollup of Total Spent / Limit + top 3 categories + breach chip; week-by-category strip aggregation; empty + populated branches. |
+| `components/TaxTrackerCard.test.tsx` | Accrued + projected stat pair, top-3 contributors, 404-tolerant empty branch, populated state via the BE Phase 2.6 endpoint. |
+| `components/UpcomingBillsWidget.test.tsx` | 7-day forecast render, "more in /recurring" cap hint, empty + populated branches. |
+| `components/RecentActivityWidget.test.tsx` | Activity-feed render + `signal=soft` seen-mutation per session + `signal=hard` click-mutation. |
 
 ## Future polish (queued)
 
-- **Statement-upload dock widget** — gated on
-  [[statement-upload.async]] FE wiring (deferred to a post-cleanup
-  feature batch). When it ships, this is where the in-flight job
-  progress lives.
 - **Personalization / drag-to-reorder cards** — out of scope by design.
 - **Bill state surfacing** — once [[taxation.bill-state-machine]]
   FE wiring lands, the Tax Tracker card can surface ACCRUING /

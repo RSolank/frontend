@@ -45,11 +45,9 @@ The current-week tracker card calls
   client-derived linear projection.
 - `per_tag[]` — top contributing tags for the in-progress week.
 
-When the backend hasn't shipped the endpoint yet (HTTP 404 / 501), the
-card renders a "Backend pending — see Tax Tracker handoff" empty state
-with the active week label so the surface still looks structurally
-complete. Once the endpoint lands, the card automatically populates —
-no frontend follow-up.
+The endpoint shipped in BE Phase 2.6 (`e7c05aa`); the 404 / 501 path is
+kept as a defensive fallback so accounts with zero accrual still render
+a friendly empty state with the active week label rather than an error.
 
 Bill detail modal (`components/BillDetailDialog.tsx`):
 
@@ -82,9 +80,11 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   available types. Save calls `PUT /api/taxation-rules/:txn_type`
   (upsert — see backend handoff for why no POST is needed).
 - `components/GenerateBillsDialog.tsx` — modal-first generation
-  surface. Week-picker or date-range mode; computes Sun→Sat
-  boundaries in the user's tz; blocks generation for periods ending
-  at-or-after `precedingWeekStart`.
+  surface. Week-picker or date-range mode; computes ISO Mon→Sun
+  boundaries in the user's tz (per the project-wide week
+  convention — see [`docs/conventions.md`](../conventions.md#week-convention));
+  blocks generation for periods ending at-or-after
+  `precedingWeekStart`.
 - `components/CurrentWeekTracker.tsx` — running-tax card with status
   stats, a week-progress bar, and a top-5 per-tag breakdown. Falls
   back to a "pending" empty state when the endpoint 404s.
@@ -151,23 +151,6 @@ Preferences:
   pipeline; the toggle lives on
   [`/account/preferences`](account.md).
 
-## Backend handoff
-
-The current-week tracker surface depends on a new backend endpoint
-that's not yet shipped. Spec lives at
-`.scratch/task-handoff-fe-to-be.md` §1 — the
-`.scratch/` folder is the canonical coordination point between
-frontend and backend tracks during the platform plan, sitting next
-to `task-backend-platform.md` so the backend team picks it up as
-part of Phase 0.7's incremental taxation engine work.
-
-Until the endpoint ships:
-- The CurrentWeekTracker card renders a pending empty state showing
-  the active week label and a "Live accrual will appear here once the
-  backend's incremental taxation ledger ships" hint.
-- Bill generation + finalized bill detail still work; the entire
-  pre-Batch-7 surface continues to function.
-
 ## Tests
 
 | Test file | What it covers |
@@ -176,7 +159,7 @@ Until the endpoint ships:
 | `pages/TaxTrackerPage.test.tsx` | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
 | `components/billStatus.test.tsx` | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states. |
 | `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state. |
-| `api/billPeriod.test.ts` | Sun → Sat week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 on Sun midnight, ~1 on Sat late, ~0.5 mid-week. |
+| `api/billPeriod.test.ts` | ISO Mon → Sun week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 at the start of Monday, ~1 at the end of Sunday, ~0.5 mid-week. |
 
 ## Responsive design
 
@@ -206,10 +189,12 @@ expect it to reset on reload.
 
 ## Future polish (queued)
 
-- Backend-sourced projections — once the live ledger lands, the
-  projection numbers will come from the backend rather than the
-  client-side `safeDivide(runningTax, fractionOfWeekElapsed(...))`
-  fallback the tracker uses today.
+- Drop the client-side projection fallback — BE Phase 2.6 ships
+  `projected_tax` / `projected_penalty` on the tracker payload, but
+  the tracker still falls back to
+  `safeDivide(runningTax, fractionOfWeekElapsed(...))` when those
+  fields are `0`. Once the ledger reliably emits non-zero
+  projections mid-week we can delete the fallback.
 - Bill-detail download — a CSV/PDF export action for accountants.
   Not yet implemented; flag if requested.
 - **User-preferred date-format override.** Bill dates

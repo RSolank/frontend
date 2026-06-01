@@ -103,6 +103,8 @@ Write endpoints consumed:
   limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
   The legacy frontend POSTed without a trailing slash; the new code
   uses the canonical `POST /` shape exposed by the backend router.
+- `DELETE /api/budget-limits/{tag_id}` — 204 on success. Drives the
+  Remove action on `BudgetFormDialog`.
 
 ## Filtering / display rules
 
@@ -129,11 +131,12 @@ Write endpoints consumed:
   `api/rateInput.ts`. Accepts `5%` (explicit percent), `0.05` (raw
   fraction), or `5` (bare number ≥ 1, assumed percent). The Zod
   schema's `max=10` rejects pathological inputs like a typed `500`.
-- **No remove action** — the backend has no DELETE endpoint. Users
-  who want to "remove" a budget can save `limit_amt = 0`; the card
-  then shows `Limit: $0` and the progress bar paints red as soon as
-  any spend occurs in that category. Wiring up a proper soft-delete
-  endpoint is a backend follow-up if the UX feedback shows demand.
+- **Remove action** — `BudgetFormDialog` exposes a Remove button
+  in edit mode (trash header per the DetailModal convention).
+  Confirms via a nested `<ConfirmDialog />` then calls
+  `deleteBudgetLimitRequest(tag_id)` → `DELETE /api/budget-limits/{tag_id}`
+  (BE 204). The category card flips back to its "Set budget" empty
+  state once the mutation resolves.
 
 ## Tests
 
@@ -141,6 +144,7 @@ Write endpoints consumed:
 |---|---|
 | `api/rateInput.test.ts` | `formatRateForInput` and `parseRateInput` — fraction → `%` display, `%`-suffix parsing, bare ≥1 lenient mode, raw fraction passthrough, invalid input → null. |
 | `pages/ExpenseTrackerPage.test.tsx` | Renders the Total card + filtered category cards; cards expose no input controls (read-only enforcement); Edit / Set affordance opens the modal with prefilled values; over-budget pill renders for the discretionary case; save POST body shape is correct; month picker switches the active month query param. |
+| `components/ExpenseTrendChart.test.tsx` | Six-month SVG bar chart render against `useExpenseTrendQuery` output; empty + populated branches. |
 
 ## Responsive design
 
@@ -175,9 +179,6 @@ Write endpoints consumed:
 
 ## Future polish (queued)
 
-- **Backend DELETE endpoint** — see "No remove action" under Form
-  semantics. Surface a "Remove budget" action in the modal once
-  the endpoint exists.
 - **Settings consolidation** — once the backend persists
   `default_landing_route` (deferred defaults-cluster follow-up), users
   who set landing to `/budgets` get this surface as their post-login home.

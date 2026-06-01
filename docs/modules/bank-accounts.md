@@ -67,7 +67,7 @@ entry sits last in `SETTINGS_SECTIONS`.
 | File | Exports |
 |---|---|
 | `keys.ts` | `bankAccountKeys` (`all`, `list()`, `detail(uid)`) |
-| `schemas.ts` | `UserAccountType` (`REGULAR \| SAVINGS \| OTHER`), `USER_ACCOUNT_TYPES`, `ACCOUNT_TYPE_LABEL`, `AccountIdentifierType` (`'UPI'`), `BankAccount`, `AccountIdentifier`, `BankAccountCreatePayload`, `BankAccountUpdatePayload`, `AccountIdentifierCreatePayload`, `BankAccountFormInput`, `emptyBankAccountForm`, `bankAccountToForm`, `formToCreatePayload`, `formToUpdatePayload` |
+| `schemas.ts` | `UserAccountType` (`REGULAR \| SAVINGS \| OTHER`), `USER_ACCOUNT_TYPES`, `ACCOUNT_TYPE_LABEL`, `AccountIdentifierType` (`'UPI'`), `ACCOUNT_IDENTIFIER_TYPES`, `BankAccount`, `AccountIdentifier`, `BankAccountCreatePayload`, `BankAccountUpdatePayload`, `AccountIdentifierCreatePayload`, `BankAccountFormInput`, `emptyBankAccountForm`, `bankAccountToForm`, `formToCreatePayload`, `formToUpdatePayload` |
 | `queries.ts` | `fetchBankAccounts`, `useBankAccountsQuery(enabled?)` |
 | `mutations.ts` | `createBankAccountRequest`, `updateBankAccountRequest`, `deleteBankAccountRequest`, `addAccountIdentifierRequest`, `deleteAccountIdentifierRequest` |
 

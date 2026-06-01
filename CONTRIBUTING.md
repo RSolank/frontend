@@ -81,7 +81,13 @@ frontend/
 │   │   ├── transactions/          # + statement_upload/ subfolder mirroring backend
 │   │   ├── categorization/
 │   │   ├── taxation/              # consumption-tax bills + rules
-│   │   └── budgets/
+│   │   ├── budgets/
+│   │   ├── recurring/             # recurring-transaction inference engine surface (Batch 11)
+│   │   ├── bankAccounts/          # bank accounts + identifier sub-resource (Batch 13)
+│   │   ├── dashboard/             # /dashboard cross-feature aggregator
+│   │   ├── account/               # account shell + preferences + security + privacy
+│   │   ├── settings/              # settings shell mounting tags / categorization / taxation / bank-accounts
+│   │   └── admin/                 # operator-only /admin/* surface (gated on /api/admin/ping)
 │   │
 │   ├── shared/                    # cross-feature primitives
 │   │   ├── api/                   # apiClient.ts (typed fetch + auth + error normalisation)
@@ -174,7 +180,7 @@ npm run dev      # Vite dev server on :5173
 npm run build    # production bundle
 npm test         # vitest run (happy-dom env, single shot)
 npx vitest       # vitest watch
-npx vitest run src/features/auth/pages/LoginPage.test.jsx   # single file
+npx vitest run src/features/auth/pages/LoginPage.test.tsx   # single file
 ```
 
 `VITE_API_URL` overrides the API base (default `http://localhost:4000`).

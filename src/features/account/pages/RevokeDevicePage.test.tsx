@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -22,7 +23,7 @@ describe('<RevokeDevicePage>', () => {
     let seenBody: { token?: string } | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/new-device/revoke',
+        `${API_BASE}/auth/new-device/revoke`,
         async ({ request }) => {
           seenBody = (await request.json()) as { token: string };
           return new HttpResponse(null, { status: 204 });
@@ -42,7 +43,7 @@ describe('<RevokeDevicePage>', () => {
 
   it('renders the Invalid panel on 400', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/new-device/revoke', () =>
+      http.post(`${API_BASE}/auth/new-device/revoke`, () =>
         HttpResponse.json({ detail: 'bad' }, { status: 400 })
       )
     );

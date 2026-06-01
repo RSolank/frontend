@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -78,7 +79,7 @@ describe('<ExpenseTrendChart>', () => {
 
   it('renders one bar per returned monthly bucket of the Total tag', async () => {
     server.use(
-      http.get('http://localhost:4000/api/expense-tracker/', () =>
+      http.get(`${API_BASE}/expense-tracker/`, () =>
         HttpResponse.json({
           period_type: 'monthly',
           returned_count: SAMPLE_ROWS.length,
@@ -108,7 +109,7 @@ describe('<ExpenseTrendChart>', () => {
 
   it('filters out rows that are not the Total tag', async () => {
     server.use(
-      http.get('http://localhost:4000/api/expense-tracker/', () =>
+      http.get(`${API_BASE}/expense-tracker/`, () =>
         HttpResponse.json({
           period_type: 'monthly',
           returned_count: 2,

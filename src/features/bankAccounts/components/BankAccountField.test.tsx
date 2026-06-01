@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, test } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import type { BankAccount } from '../api/schemas';
@@ -40,7 +41,7 @@ function NoopHarness({
 describe('BankAccountField', () => {
   test('renders nothing when the user has no accounts', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([])
       )
     );
@@ -52,7 +53,7 @@ describe('BankAccountField', () => {
 
   test('renders label + picker when accounts exist; tax-pot suffix on committee row', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([
           fixture({ uid: 1, label: 'HDFC' }),
           fixture({
@@ -74,7 +75,7 @@ describe('BankAccountField', () => {
 
   test('onChange fires with numeric uid (or null for "No account")', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([fixture({ uid: 7, label: 'Axis' })])
       )
     );

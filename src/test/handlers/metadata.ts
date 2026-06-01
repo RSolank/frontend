@@ -1,11 +1,13 @@
 import { http, HttpResponse } from 'msw';
 
+import { API_BASE } from '../baseUrl';
+
 // Default metadata handlers used across the suite. Mirror the BE
 // Phase 1.3 shape — `countries` carries a `timezones: string[]` and
 // the dedicated `/timezones` endpoint serves the full IANA list.
 
 export const metadataHandlers = [
-  http.get('http://localhost:4000/api/metadata/countries', () =>
+  http.get(`${API_BASE}/metadata/countries`, () =>
     HttpResponse.json({
       countries: [
         {
@@ -29,7 +31,7 @@ export const metadataHandlers = [
       ],
     })
   ),
-  http.get('http://localhost:4000/api/metadata/currencies', () =>
+  http.get(`${API_BASE}/metadata/currencies`, () =>
     HttpResponse.json({
       currencies: [
         { code: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
@@ -37,7 +39,7 @@ export const metadataHandlers = [
       ],
     })
   ),
-  http.get('http://localhost:4000/api/metadata/timezones', () =>
+  http.get(`${API_BASE}/metadata/timezones`, () =>
     HttpResponse.json({
       timezones: [
         { name: 'UTC', offset_winter: '+00:00', offset_summer: '+00:00' },
@@ -52,7 +54,7 @@ export const metadataHandlers = [
       ],
     })
   ),
-  http.get('http://localhost:4000/api/metadata/constants', () =>
+  http.get(`${API_BASE}/metadata/constants`, () =>
     HttpResponse.json({
       TOTAL_TAG_ID: 1,
       MISCELLANEOUS_TAG_ID: 2,

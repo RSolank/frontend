@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -47,7 +48,7 @@ describe('EmailChangeForm', () => {
 
   it('reveals the 2FA code field on the first 401 with defensive copy', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/change-email-request', () =>
+      http.post(`${API_BASE}/auth/change-email-request`, () =>
         HttpResponse.json({ detail: 'Auth failed' }, { status: 401 })
       )
     );
@@ -66,7 +67,7 @@ describe('EmailChangeForm', () => {
 
   it('surfaces 409 (email taken) inline on step 1', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/change-email-request', () =>
+      http.post(`${API_BASE}/auth/change-email-request`, () =>
         HttpResponse.json({ detail: 'Taken' }, { status: 409 })
       )
     );
@@ -82,7 +83,7 @@ describe('EmailChangeForm', () => {
 
   it('treats 409 on confirm as terminal — restarts from step 1', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/change-email-confirm', () =>
+      http.post(`${API_BASE}/auth/change-email-confirm`, () =>
         HttpResponse.json({ detail: 'Taken' }, { status: 409 })
       )
     );

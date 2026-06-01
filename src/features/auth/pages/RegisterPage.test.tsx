@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 
 import { RegisterPage } from './RegisterPage';
@@ -71,7 +72,7 @@ describe('RegisterPage', () => {
     const { http, HttpResponse } = await import('msw');
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/register',
+        `${API_BASE}/auth/register`,
         async ({ request }) => {
           captured = await request.json();
           return HttpResponse.json({

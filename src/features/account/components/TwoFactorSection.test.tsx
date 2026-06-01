@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -9,7 +10,7 @@ import { TwoFactorSection } from './TwoFactorSection';
 
 function installMe(twoFactorEnabled: boolean) {
   server.use(
-    http.get('http://localhost:4000/api/users/me', () =>
+    http.get(`${API_BASE}/users/me`, () =>
       HttpResponse.json({
         user: {
           user_id: 1,
@@ -82,7 +83,7 @@ describe('<TwoFactorSection>', () => {
     let seenBody: { password?: string } | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/auth/2fa/disable',
+        `${API_BASE}/auth/2fa/disable`,
         async ({ request }) => {
           seenBody = (await request.json()) as { password: string };
           return HttpResponse.json({ status: 'ok' });

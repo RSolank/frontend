@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import { useStatementUploadJobStore } from '../../../../shared/state/statementUploadJob.store';
+import { API_BASE } from '../../../../test/baseUrl';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { server } from '../../../../test/server';
 
@@ -33,7 +34,7 @@ describe('StatementUploadDock', () => {
 
   test('shows in-progress dock while job is non-terminal', async () => {
     server.use(
-      http.get('http://localhost:4000/api/statement-uploads/22', () =>
+      http.get(`${API_BASE}/statement-uploads/22`, () =>
         HttpResponse.json({
           job_id: 22,
           status: 'PARSING',
@@ -61,7 +62,7 @@ describe('StatementUploadDock', () => {
 
   test('FAILED state surfaces error_detail + persists until dismissed', async () => {
     server.use(
-      http.get('http://localhost:4000/api/statement-uploads/33', () =>
+      http.get(`${API_BASE}/statement-uploads/33`, () =>
         HttpResponse.json({
           job_id: 33,
           status: 'FAILED',

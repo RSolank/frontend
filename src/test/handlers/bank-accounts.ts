@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw';
 
+import { API_BASE } from '../baseUrl';
+
 // BE Phase 1.1 (`1bc5454`) — bank accounts + identifier sub-resource.
 //
 // Defaults below return empty lists / minimal happy-path responses
@@ -17,28 +19,28 @@ const STUB_ACCOUNT = {
 };
 
 export const bankAccountHandlers = [
-  http.get('http://localhost:4000/api/bank-accounts/', () =>
+  http.get(`${API_BASE}/bank-accounts/`, () =>
     HttpResponse.json([])
   ),
-  http.post('http://localhost:4000/api/bank-accounts/', async () =>
+  http.post(`${API_BASE}/bank-accounts/`, async () =>
     HttpResponse.json(STUB_ACCOUNT, { status: 201 })
   ),
   http.get(
-    'http://localhost:4000/api/bank-accounts/:uid',
+    `${API_BASE}/bank-accounts/:uid`,
     ({ params }) =>
       HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
   ),
   http.patch(
-    'http://localhost:4000/api/bank-accounts/:uid',
+    `${API_BASE}/bank-accounts/:uid`,
     ({ params }) =>
       HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
   ),
   http.delete(
-    'http://localhost:4000/api/bank-accounts/:uid',
+    `${API_BASE}/bank-accounts/:uid`,
     () => new HttpResponse(null, { status: 204 })
   ),
   http.post(
-    'http://localhost:4000/api/bank-accounts/:uid/identifiers',
+    `${API_BASE}/bank-accounts/:uid/identifiers`,
     async () =>
       HttpResponse.json(
         { uid: 1, identifier: 'stub@upi', identifier_type: 'UPI' },
@@ -46,7 +48,7 @@ export const bankAccountHandlers = [
       )
   ),
   http.delete(
-    'http://localhost:4000/api/bank-accounts/:uid/identifiers/:identifierUid',
+    `${API_BASE}/bank-accounts/:uid/identifiers/:identifierUid`,
     () => new HttpResponse(null, { status: 204 })
   ),
 ];

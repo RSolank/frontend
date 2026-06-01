@@ -7,9 +7,9 @@
 
 ## Purpose
 
-- Render the standalone `/categories` page (the entry point for the
-  header Settings gear, see [`src/app/App.tsx`](../../src/app/App.tsx))
-  where users add, rename, retype, alias, or delete custom tags.
+- Render `/settings/categories` inside the
+  [Settings shell](settings.md) where users add, rename, retype,
+  alias, or delete custom tags.
 - Own the `/api/tags` query surface that the categorization rules tab
   and the beneficiary form's category dropdown also consume.
 - Surface system-tag protections — the seeded `TOTAL`,
@@ -20,14 +20,13 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/categories` | `pages/TagsPage.tsx` | Add / update / delete tags. Lazy-loaded via `tags.routes.tsx`. |
+| `/settings/categories` | `pages/TagsPage.tsx` | Mounted by the settings shell. Add / update / delete tags. Lazy-loaded. |
 
-Routes are exported from
-[`features/tags/tags.routes.tsx`](../../src/features/tags/tags.routes.tsx)
-and composed into the root router by `src/app/routes.tsx`
-(`<TagsPage>` is wrapped by `protectedRoutes()`). The Settings gear
-icon in the app header opens the Settings shell, where Categories sits
-alongside Categorization Rules and Taxation Rules under `/settings/*`.
+The TagsPage is registered by
+[`features/settings/settings.routes.tsx`](../../src/features/settings/settings.routes.tsx)
+as a child of `/settings`. The legacy top-level `/categories` URL
+was retired in the Batch 9 settings shell — see
+[`docs/modules/settings.md`](settings.md).
 
 ## Components
 

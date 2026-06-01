@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -34,7 +35,7 @@ describe('DataExportPanel', () => {
   it('downloads with the currently-selected format', async () => {
     let exportedPath: string | null = null;
     server.use(
-      http.get('http://localhost:4000/api/exports/transactions', ({ request }) => {
+      http.get(`${API_BASE}/exports/transactions`, ({ request }) => {
         exportedPath = new URL(request.url).search;
         return new HttpResponse('a,b\n1,2', {
           status: 200,
@@ -60,7 +61,7 @@ describe('DataExportPanel', () => {
 
   it('surfaces a non-OK response inline', async () => {
     server.use(
-      http.get('http://localhost:4000/api/exports/transactions', () =>
+      http.get(`${API_BASE}/exports/transactions`, () =>
         HttpResponse.json({ detail: 'Forbidden' }, { status: 403 })
       )
     );

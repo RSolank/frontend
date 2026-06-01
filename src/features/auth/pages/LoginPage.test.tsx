@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { LoginPage } from './LoginPage';
@@ -105,7 +106,7 @@ describe('LoginPage', () => {
 
   it('renders the rate-limit inline countdown when /login returns 429 + Retry-After', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Too many attempts' },
           { status: 429, headers: { 'Retry-After': '120' } }
@@ -138,7 +139,7 @@ describe('LoginPage', () => {
 
   it('surfaces the device-block countdown when /login returns 403 + Retry-After', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Device blocked' },
           { status: 403, headers: { 'Retry-After': '45' } }

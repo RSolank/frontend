@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -47,7 +48,7 @@ const fullyCustomized = {
 
 function installListHandler(rules = partiallyCustomized) {
   server.use(
-    http.get('http://localhost:4000/api/taxation-rules/', () =>
+    http.get(`${API_BASE}/taxation-rules/`, () =>
       HttpResponse.json(rules)
     )
   );
@@ -123,7 +124,7 @@ describe('TaxationRulesPage', () => {
     let getCount = 0;
     server.use(
       http.put(
-        'http://localhost:4000/api/taxation-rules/committed',
+        `${API_BASE}/taxation-rules/committed`,
         async ({ request }) => {
           putBody = await request.json();
           return HttpResponse.json({
@@ -139,7 +140,7 @@ describe('TaxationRulesPage', () => {
       // First GET (initial render) → original 5%. Subsequent GETs
       // (after invalidation) → 7.5%. Order matters for the prefill
       // assertion below.
-      http.get('http://localhost:4000/api/taxation-rules/', () => {
+      http.get(`${API_BASE}/taxation-rules/`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(partiallyCustomized);
         return HttpResponse.json({
@@ -193,7 +194,7 @@ describe('TaxationRulesPage', () => {
   it('Add modal pre-fills the single missing txn_type when exactly one slot remains', async () => {
     // 3 customized rules → exactly one missing (uncategorized).
     server.use(
-      http.get('http://localhost:4000/api/taxation-rules/', () =>
+      http.get(`${API_BASE}/taxation-rules/`, () =>
         HttpResponse.json({
           rules: [
             {

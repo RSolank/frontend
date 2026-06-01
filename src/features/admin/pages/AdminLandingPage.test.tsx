@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -14,7 +15,7 @@ describe('AdminLandingPage', () => {
 
   it('renders the admin scaffold when the gate returns 200', async () => {
     server.use(
-      http.get('http://localhost:4000/api/admin/ping', () =>
+      http.get(`${API_BASE}/admin/ping`, () =>
         HttpResponse.json({ status: 'ok', user_id: 1 })
       )
     );

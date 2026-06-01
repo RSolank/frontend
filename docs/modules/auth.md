@@ -219,6 +219,14 @@ Profile updates invalidate `userKeys.preferences()` and call
   hydration + recovery entry.
 - `features/auth/pages/RegisterPage.test.tsx` — country/timezone default,
   payload shape (timezone included), password gate.
+- `features/auth/pages/VerifyTwoFactorPage.test.tsx` — TOTP / backup-code
+  entry, `pending_token` carry-over from `location.state`, error states.
+- `features/auth/pages/VerifyNewDevicePage.test.tsx` — new-device OTP
+  entry, resend flow swapping the in-state `pending_token`, 2FA chain-
+  through routing to `/verify/2fa`.
+- `features/auth/recovery/components/RecoveryFlow.test.tsx` — recovery
+  step machine (email → choice → question / OTP → reset), 2FA chain-
+  through on successful reset.
 - `shared/components/TimezoneSelect.test.tsx` — single /
   multi / unknown branches + override expansion.
 - `shared/components/ProtectedRoute.test.tsx` — unchanged behaviour

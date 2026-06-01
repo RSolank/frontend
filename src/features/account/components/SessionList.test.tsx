@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -45,7 +46,7 @@ describe('SessionList', () => {
 
   it('renders one row per session with device label, IP, and "This device" badge on the current row', async () => {
     server.use(
-      http.get('http://localhost:4000/api/auth/sessions', () =>
+      http.get(`${API_BASE}/auth/sessions`, () =>
         HttpResponse.json(FIXTURE_SESSIONS)
       )
     );
@@ -66,16 +67,16 @@ describe('SessionList', () => {
   it('confirms before revoking a non-current session and removes the row on success', async () => {
     let deletedId: number | null = null;
     server.use(
-      http.get('http://localhost:4000/api/auth/sessions', () =>
+      http.get(`${API_BASE}/auth/sessions`, () =>
         HttpResponse.json(FIXTURE_SESSIONS)
       ),
       http.delete(
-        'http://localhost:4000/api/auth/sessions/:sessionId',
+        `${API_BASE}/auth/sessions/:sessionId`,
         ({ params }) => {
           deletedId = Number(params.sessionId);
           // Subsequent fetch returns the trimmed list.
           server.use(
-            http.get('http://localhost:4000/api/auth/sessions', () =>
+            http.get(`${API_BASE}/auth/sessions`, () =>
               HttpResponse.json({
                 sessions: FIXTURE_SESSIONS.sessions.filter(
                   (s) => s.session_id !== deletedId
@@ -111,7 +112,7 @@ describe('SessionList', () => {
 
   it('uses the stronger "Revoke this device?" copy when the targeted row is is_current=true', async () => {
     server.use(
-      http.get('http://localhost:4000/api/auth/sessions', () =>
+      http.get(`${API_BASE}/auth/sessions`, () =>
         HttpResponse.json(FIXTURE_SESSIONS)
       )
     );

@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -67,17 +68,17 @@ const billDetailResponse = {
 
 function installHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/consumption-tax/bills', () =>
+    http.get(`${API_BASE}/consumption-tax/bills`, () =>
       HttpResponse.json(billsResponse)
     ),
-    http.get('http://localhost:4000/api/consumption-tax/bills/101', () =>
+    http.get(`${API_BASE}/consumption-tax/bills/101`, () =>
       HttpResponse.json(billDetailResponse)
     ),
     http.get(
-      'http://localhost:4000/api/consumption-tax/tracker/current-week',
+      `${API_BASE}/consumption-tax/tracker/current-week`,
       () => new HttpResponse(null, { status: 404 })
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [
           { code: 'USD', label: 'USD - US Dollar', symbol: '$' },
@@ -184,7 +185,7 @@ describe('TaxTrackerPage', () => {
     const seenUrls: string[] = [];
     server.use(
       http.post(
-        'http://localhost:4000/api/consumption-tax/bills/:billId/mark-paid',
+        `${API_BASE}/consumption-tax/bills/:billId/mark-paid`,
         ({ request, params }) => {
           seenUrls.push(request.url);
           return HttpResponse.json({
@@ -228,7 +229,7 @@ describe('TaxTrackerPage', () => {
   it('renders adjustment rows in a separate section in the detail modal', async () => {
     server.use(
       http.get(
-        'http://localhost:4000/api/consumption-tax/bills/101',
+        `${API_BASE}/consumption-tax/bills/101`,
         () =>
           HttpResponse.json({
             ...billDetailResponse,
@@ -269,7 +270,7 @@ describe('TaxTrackerPage', () => {
   it('renders the running tracker when the endpoint returns data', async () => {
     server.use(
       http.get(
-        'http://localhost:4000/api/consumption-tax/tracker/current-week',
+        `${API_BASE}/consumption-tax/tracker/current-week`,
         () =>
           HttpResponse.json({
             period_start: '2026-03-01',

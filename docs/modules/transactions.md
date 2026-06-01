@@ -27,9 +27,9 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/transactions` | `pages/TransactionsPage.tsx` | List + merchant views, filters, paging. Lazy-loaded. |
-| `/add-transaction` | `pages/AddTransactionPage.tsx` | Manual create. Lazy-loaded. |
-| `/transactions/:id/edit` | `pages/EditTransactionPage.tsx` | Edit; statement-sourced rows restrict editable fields to `notes` + `tag_ids`. Lazy-loaded. |
+| `/transactions` | `pages/TransactionsPage.tsx` | List + merchant + calendar views, filters, paging. Hosts Add / Edit / Delete as modals (see "Modal-first CRUD on the list" below). Lazy-loaded. |
+| `/add-transaction` | `AddRedirect` (in `transactions.routes.tsx`) | Legacy alias — redirects to `/transactions?add=true`. The page module mounts inline inside the modal. |
+| `/transactions/:id/edit` | `EditRedirect` (in `transactions.routes.tsx`) | Legacy alias — redirects to `/transactions?edit=<id>`. Edit modal mounts the same `EditTransactionPage` component with `embedded`. Statement-sourced rows still restrict editable fields to `notes` + `tag_ids`. |
 | `/upload-statement` | `statement_upload/pages/UploadStatementPage.tsx` | Async upload + job-poll surface (file picker → 202 → progress states → COMPLETE/FAILED card). Lazy-loaded. |
 
 Routes are exported from
@@ -184,6 +184,14 @@ Per [`docs/conventions.md`](../conventions.md):
   uses, so the rule mutation surface keeps one canonical home; the
   categorization feature reads / manages rules but doesn't relocate
   the writes.
+- **Imports `<BankAccountField>`** from
+  `features/bankAccounts/components/BankAccountField.tsx` (Batch 13)
+  on Add / Edit transaction forms. The field self-hides when the
+  user has no bank accounts; selection is sent as
+  `bank_account_id` in the POST / PATCH body. eslint
+  `boundaries/dependencies` carries an explicit
+  `transactions → bankAccounts` allow entry alongside the
+  pre-existing `transactions → beneficiaries / tags` entries.
 
 ## Money + date formatting
 
@@ -200,12 +208,18 @@ date defaults respect the user's tz (per the §5 contract).
 | `pages/TransactionsPage.test.tsx` | List render, dropdown gating by source, pagination, merchant view + Details filter, delete-flow via MSW DELETE handler |
 | `pages/AddTransactionPage.test.tsx` | Field rendering, end-to-end POST body shape + navigate, error display on 500 |
 | `pages/EditTransactionPage.test.tsx` | Not-found render, manual edit + PATCH body, statement-source field restrictions, misc → real-tag replacement |
-| `statement_upload/pages/UploadStatementPage.test.tsx` | Pipeline call order (upload → map → categorize), error display on upload failure |
+| `statement_upload/pages/UploadStatementPage.test.tsx` | Async-job lifecycle (file picker → 202 → poll → COMPLETE/FAILED card), 409 duplicate inline error, 422 + `available_parsers` opens picker modal, `suggest_register_account` notice + CTA href, filename-match → match-card render, no-match → inline dropdown forces explicit pick, `Change parser` overrides match, upload POST sends `parser_override` in FormData. |
+| `statement_upload/components/StatementUploadDock.test.tsx` | No-render without active job; hides on `/upload-statement`; renders PARSING with file name + status; FAILED + dismiss clears the store. |
+| `statement_upload/api/parserMatch.test.ts` | Filename-match catalog matching (PhonePe / future parsers / case-insensitivity / first-label-word fallback); generic-filename returns null; first-registered tie-break; extension-strip false-positive guard. `ParserPickerModal` itself has no dedicated test file — exercised indirectly via UploadStatementPage tests. |
 
-All MSW handlers register per-test via `server.use(...)` — the
-transactions feature doesn't yet have permissive defaults in
-`src/test/handlers/`. Future batches that hit the same endpoints can
-promote a shared `transactions.ts` handler if convergence emerges.
+**MSW handlers.** The root `transactions` resource still registers
+per-test via `server.use(...)` — no permissive `transactions.ts`
+default in `src/test/handlers/`. The `statement_upload` submodule
+does have a shared default at `src/test/handlers/statement-upload.ts`
+(added Batch 12): POST 202 + GET COMPLETE happy-path stubs + GET
+/parsers 404 (graceful-catalog-fallback exercise). Future batches
+that hit the root txn endpoints can promote a shared `transactions.ts`
+handler if convergence emerges.
 
 ## Modal-first CRUD on the list
 

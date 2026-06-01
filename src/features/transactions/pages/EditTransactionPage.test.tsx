@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -60,13 +61,13 @@ function mountAt(id: string) {
 beforeEach(() => {
   mockNavigate.mockReset();
   server.use(
-    http.get('http://localhost:4000/api/tags', () =>
+    http.get(`${API_BASE}/tags`, () =>
       HttpResponse.json(mockTags)
     ),
-    http.get('http://localhost:4000/api/beneficiaries', () =>
+    http.get(`${API_BASE}/beneficiaries`, () =>
       HttpResponse.json([])
     ),
-    http.get('http://localhost:4000/api/metadata/constants', () =>
+    http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(mockConstants)
     )
   );
@@ -75,7 +76,7 @@ beforeEach(() => {
 describe('EditTransactionPage', () => {
   it('renders not-found when transaction missing', async () => {
     server.use(
-      http.get('http://localhost:4000/api/transactions/1', () =>
+      http.get(`${API_BASE}/transactions/1`, () =>
         HttpResponse.json({ transaction: null })
       )
     );
@@ -87,7 +88,7 @@ describe('EditTransactionPage', () => {
 
   it('loads a manual transaction and updates it', async () => {
     server.use(
-      http.get('http://localhost:4000/api/transactions/1', () =>
+      http.get(`${API_BASE}/transactions/1`, () =>
         HttpResponse.json({
           transaction: {
             txn_id: 1,
@@ -107,7 +108,7 @@ describe('EditTransactionPage', () => {
     let patchedBody: unknown = null;
     server.use(
       http.patch(
-        'http://localhost:4000/api/transactions/1',
+        `${API_BASE}/transactions/1`,
         async ({ request }) => {
           patchedBody = await request.json();
           return HttpResponse.json({ ok: true });
@@ -141,7 +142,7 @@ describe('EditTransactionPage', () => {
 
   it('restricts editable fields for statement-sourced rows', async () => {
     server.use(
-      http.get('http://localhost:4000/api/transactions/2', () =>
+      http.get(`${API_BASE}/transactions/2`, () =>
         HttpResponse.json({
           transaction: {
             txn_id: 2,
@@ -161,7 +162,7 @@ describe('EditTransactionPage', () => {
     let patchedBody: unknown = null;
     server.use(
       http.patch(
-        'http://localhost:4000/api/transactions/2',
+        `${API_BASE}/transactions/2`,
         async ({ request }) => {
           patchedBody = await request.json();
           return HttpResponse.json({ ok: true });
@@ -199,7 +200,7 @@ describe('EditTransactionPage', () => {
 
   it('replaces Miscellaneous when a real tag is picked', async () => {
     server.use(
-      http.get('http://localhost:4000/api/transactions/1', () =>
+      http.get(`${API_BASE}/transactions/1`, () =>
         HttpResponse.json({
           transaction: {
             txn_id: 1,

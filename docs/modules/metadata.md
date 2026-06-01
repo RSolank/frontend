@@ -42,12 +42,15 @@ All three use the shared `.form-input` class from `src/index.css`.
 
 ## API
 
-[`shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts)
+Consolidated into one file —
+[`shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts):
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `metadataKeys` — `all`, `countries()`, `currencies()`, `timezones()`, `constants()` |
-| `queries.ts` | `fetchCountries`, `fetchCurrencies`, `fetchTimezones`, `useCountriesQuery`, `useCurrenciesQuery`, `useTimezonesQuery`, types `CountryOption` + `CurrencyOption` + `TimezoneOption` |
+| Exports |
+|---|
+| `fetchCountries`, `fetchCurrencies`, `fetchTimezones`, `useCountriesQuery`, `useCurrenciesQuery`, `useTimezonesQuery`; types `CountryOption` + `CurrencyOption` + `TimezoneOption`. Cache keys (`referenceDataKeys`) are file-internal — no shared keys constant for downstream consumers. |
+
+The `/api/metadata/constants` endpoint is fetched separately by
+`features/tags/api/queries.ts` (`fetchTagConstants`).
 
 All three queries set `staleTime: 60 * 60 * 1000` (one hour) because
 metadata is reference data — it changes between deploys, not between
@@ -87,8 +90,9 @@ sample data; tests override via `server.use(...)` for edge cases.
   selects because the page already fetches countries + currencies in
   one parallel call (locale-defaulting needs the list before the user
   touches the dropdown).
-- **`features/users/pages/ProfilePage.tsx`** — same three components.
-  Reads `countries` from `useCountriesQuery()` directly so the country-
+- **`features/account/pages/AccountProfilePage.tsx`** +
+  **`AccountPreferencesPage.tsx`** — same three components. Reads
+  `countries` from `useCountriesQuery()` directly so the country-
   driven `dialCode` sync useEffect has access to the matched
   `CountryOption`.
 

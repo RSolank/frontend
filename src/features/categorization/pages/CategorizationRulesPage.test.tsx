@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -101,16 +102,16 @@ const constants = {
 
 beforeEach(() => {
   server.use(
-    http.get('http://localhost:4000/api/categorization-rules', () =>
+    http.get(`${API_BASE}/categorization-rules`, () =>
       HttpResponse.json(rulesResponse)
     ),
-    http.get('http://localhost:4000/api/tags', () =>
+    http.get(`${API_BASE}/tags`, () =>
       HttpResponse.json(tagsResponse)
     ),
-    http.get('http://localhost:4000/api/beneficiaries', () =>
+    http.get(`${API_BASE}/beneficiaries`, () =>
       HttpResponse.json(beneficiariesResponse)
     ),
-    http.get('http://localhost:4000/api/metadata/constants', () =>
+    http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(constants)
     )
   );
@@ -137,11 +138,11 @@ describe('CategorizationRulesPage', () => {
   it('creates a rule with beneficiary search and auto-generated name', async () => {
     const postSpy = vi.fn();
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: [] })
       ),
       http.post(
-        'http://localhost:4000/api/categorization-rules',
+        `${API_BASE}/categorization-rules`,
         async ({ request }) => {
           const body = (await request.json()) as Record<string, unknown>;
           postSpy(body);
@@ -202,7 +203,7 @@ describe('CategorizationRulesPage', () => {
     const deleteSpy = vi.fn();
     server.use(
       http.delete(
-        'http://localhost:4000/api/categorization-rules/1',
+        `${API_BASE}/categorization-rules/1`,
         () => {
           deleteSpy();
           return HttpResponse.json({ status: 'ok' });
@@ -239,7 +240,7 @@ describe('CategorizationRulesPage', () => {
   it('groups rules with the same tag-set into a collapsible header', async () => {
     // Three rules sharing tag_ids [12] → one multi-rule group.
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({
           rules: [
             {
@@ -299,7 +300,7 @@ describe('CategorizationRulesPage', () => {
     // Empty rule list so the form's beneficiary slot can take any
     // option (no existing-rule conflict).
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: [] })
       )
     );
@@ -398,7 +399,7 @@ describe('CategorizationRulesPage', () => {
     ];
 
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: manyRules })
       )
     );
@@ -426,7 +427,7 @@ describe('CategorizationRulesPage', () => {
     // Two singletons, no multi-rule groups. The Standalone heading
     // should still render (seed-data-friendly behavior).
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({
           rules: [
             {

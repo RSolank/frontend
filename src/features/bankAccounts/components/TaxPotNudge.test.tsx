@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import { useTaxPotNudgeStore } from '../state/taxPotNudge.store';
@@ -20,7 +21,7 @@ afterEach(() => {
 describe('TaxPotNudge', () => {
   test('renders banner when no accounts have is_committee_account', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([
           {
             uid: 1,
@@ -42,7 +43,7 @@ describe('TaxPotNudge', () => {
 
   test('hides when at least one account is the committee account', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([
           {
             uid: 1,
@@ -65,7 +66,7 @@ describe('TaxPotNudge', () => {
 
   test('dismiss button persists the dismissed flag', async () => {
     server.use(
-      http.get('http://localhost:4000/api/bank-accounts/', () =>
+      http.get(`${API_BASE}/bank-accounts/`, () =>
         HttpResponse.json([])
       )
     );

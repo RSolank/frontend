@@ -19,8 +19,8 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/beneficiaries` | `pages/BeneficiariesPage.tsx` | List + filter + inline create form. Lazy-loaded. |
-| `/beneficiaries/:id` | `pages/BeneficiaryDetailPage.tsx` | Read-only by default; Edit toggles the form + the merge consolidator. Lazy-loaded. |
+| `/beneficiaries` | `pages/BeneficiariesPage.tsx` | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded. |
+| `/beneficiaries/:id` | `DetailRedirect` (in `beneficiaries.routes.tsx`) | Legacy alias — redirects to `/beneficiaries?edit=<id>`. The standalone detail page was retired in the 2026-05-26 follow-up; the list-page modal owns the full view + edit + merge surface. |
 
 Routes are exported from
 [`features/beneficiaries/beneficiaries.routes.tsx`](../../src/features/beneficiaries/beneficiaries.routes.tsx)
@@ -37,10 +37,16 @@ and composed into the root router by `src/app/routes.tsx`
   category + assigned-tags editor (uses `fetchTags` from the tags
   feature) and the merchant↔person type switch.
 - `components/MergeBeneficiariesForm.tsx` — source / target picker
-  with swap + mismatched-type warning, used on the detail page in
-  edit mode. Source / target render as a 2-up grid (stacked below
-  `sm`); Swap + Merge buttons share a separate action row so the
-  swap arrow never lands between selects on narrow viewports.
+  with swap + mismatched-type warning, mounted inside
+  `MergeBeneficiariesDialog` from the list-page edit modal. Source
+  / target render as a 2-up grid (stacked below `sm`); Swap +
+  Merge buttons share a separate action row so the swap arrow
+  never lands between selects on narrow viewports.
+- `components/BeneficiaryFormDialog.tsx` — unified create / edit
+  modal (also reused inline by the categorization-rules page).
+- `components/MergeBeneficiariesDialog.tsx` — `<Modal>` wrapper
+  around `MergeBeneficiariesForm`, opened from the edit modal's
+  Merge action.
 
 ## State
 
@@ -59,7 +65,7 @@ No Zustand state. Server-state lives in React Query under
 | `aliases.ts` | `formatAliasesDisplay`, `buildAliasCheckUrl` (pure utilities) |
 | `schemas.ts` | `beneficiaryFormSchema` (Zod), `BeneficiaryFormInput`, `BeneficiaryPayload`, `MergePayload`, `emptyBeneficiaryForm`, `beneficiaryToForm`, `switchBeneficiaryType`, `formToPayload` |
 | `queries.ts` | `fetchBeneficiaries`, `fetchBeneficiary`, `fetchRelationships`, `fetchCategorizationRules`, `useBeneficiariesQuery`, `Beneficiary`, `BeneficiaryType` |
-| `mutations.ts` | `createBeneficiaryRequest`, `updateBeneficiaryRequest`, `deleteBeneficiaryRequest`, `mergeBeneficiariesRequest`, `updateCategorizationRuleTags`, `deleteCategorizationRule` |
+| `mutations.ts` | `createBeneficiaryRequest`, `updateBeneficiaryRequest`, `deleteBeneficiaryRequest`, `mergeBeneficiariesRequest`, `createCategorizationRule`, `updateCategorizationRuleTags`, `deleteCategorizationRule` |
 
 Endpoints touched:
 
@@ -110,8 +116,9 @@ Per [`docs/conventions.md`](../conventions.md):
 |---|---|
 | `api/aliases.test.ts` | `formatAliasesDisplay`, `buildAliasCheckUrl` |
 | `components/AliasChipsInput.test.tsx` | Debounced uniqueness check, taken → disabled Add, unique → chip added |
-| `pages/BeneficiariesPage.test.tsx` | List + alias bracket display, search + type filter, end-to-end create with alias check + POST body shape |
-| `pages/BeneficiaryDetailPage.test.tsx` | Read-only render, edit-mode merge form + alias add, type switch carries shared fields, type-mismatch merge warning |
+| `components/BeneficiaryFormFields.test.tsx` | Field rendering, type switch, category dropdown wiring against `fetchTags` |
+| `components/BeneficiaryFormDialog.test.tsx` | Modal-first CRUD flow — create + edit + merge entry from the list page |
+| `pages/BeneficiariesPage.test.tsx` | List + alias bracket display, search + type filter, end-to-end create with alias check + POST body shape; modal-first edit / delete / merge flows |
 
 All MSW handlers are registered per-test via `server.use(...)` —
 the beneficiary endpoints don't yet have permissive defaults in

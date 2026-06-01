@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../test/baseUrl';
 import { server } from '../../test/server';
 import { _resetDeviceIdCacheForTests } from '../utils/deviceId';
 
@@ -28,7 +29,7 @@ describe('apiFetch — X-Device-Id header', () => {
 
     let captured: Headers | undefined;
     server.use(
-      http.get('http://localhost:4000/api/health/device-id', ({ request }) => {
+      http.get(`${API_BASE}/health/device-id`, ({ request }) => {
         captured = request.headers;
         return HttpResponse.json({ ok: true });
       })
@@ -42,11 +43,11 @@ describe('apiFetch — X-Device-Id header', () => {
     let firstId: string | null = null;
     let secondId: string | null = null;
     server.use(
-      http.get('http://localhost:4000/api/health/dev-1', ({ request }) => {
+      http.get(`${API_BASE}/health/dev-1`, ({ request }) => {
         firstId = request.headers.get('x-device-id');
         return HttpResponse.json({ ok: true });
       }),
-      http.get('http://localhost:4000/api/health/dev-2', ({ request }) => {
+      http.get(`${API_BASE}/health/dev-2`, ({ request }) => {
         secondId = request.headers.get('x-device-id');
         return HttpResponse.json({ ok: true });
       })
@@ -71,7 +72,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
   it('attaches retryAfterSeconds to a 429 ApiError when Retry-After is a delta-seconds integer', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Too many attempts' },
           { status: 429, headers: { 'Retry-After': '90' } }
@@ -91,7 +92,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
   it('attaches retryAfterSeconds to a 403 ApiError when Retry-After is set (device-block path)', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Device blocked' },
           { status: 403, headers: { 'Retry-After': '600' } }
@@ -111,7 +112,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
   it('does NOT attach retryAfterSeconds on a 403 without a Retry-After header', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json({ detail: 'Forbidden' }, { status: 403 })
       )
     );
@@ -128,7 +129,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
   it('does NOT attach retryAfterSeconds on a 400 (only 429 + 403 carry it)', async () => {
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Bad request' },
           { status: 400, headers: { 'Retry-After': '120' } }
@@ -150,7 +151,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
     const targetMs = Date.now() + 45_000;
     const httpDate = new Date(targetMs).toUTCString();
     server.use(
-      http.post('http://localhost:4000/api/auth/login', () =>
+      http.post(`${API_BASE}/auth/login`, () =>
         HttpResponse.json(
           { detail: 'Too many attempts' },
           { status: 429, headers: { 'Retry-After': httpDate } }

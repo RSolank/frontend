@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -78,10 +79,10 @@ describe('TransactionsPage', () => {
       timezone: 'Asia/Kolkata',
     });
     server.use(
-      http.get('http://localhost:4000/api/tags', () =>
+      http.get(`${API_BASE}/tags`, () =>
         HttpResponse.json(tagsResponse)
       ),
-      http.get('http://localhost:4000/api/metadata/currencies', () =>
+      http.get(`${API_BASE}/metadata/currencies`, () =>
         HttpResponse.json({
           currencies: [
             { code: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
@@ -89,7 +90,7 @@ describe('TransactionsPage', () => {
           ],
         })
       ),
-      http.get('http://localhost:4000/api/beneficiaries', () =>
+      http.get(`${API_BASE}/beneficiaries`, () =>
         HttpResponse.json([])
       )
     );
@@ -97,7 +98,7 @@ describe('TransactionsPage', () => {
 
   function mountWithList(list: object = txnList) {
     server.use(
-      http.get('http://localhost:4000/api/transactions', () =>
+      http.get(`${API_BASE}/transactions`, () =>
         HttpResponse.json(list)
       )
     );
@@ -136,7 +137,7 @@ describe('TransactionsPage', () => {
   it('Merchant tab switches view; Details filters by beneficiary_id', async () => {
     const capturedUrls: string[] = [];
     server.use(
-      http.get('http://localhost:4000/api/transactions', ({ request }) => {
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
         capturedUrls.push(request.url);
         const url = new URL(request.url);
         if (url.searchParams.get('group_by') === 'merchant') {
@@ -205,7 +206,7 @@ describe('TransactionsPage', () => {
     try {
       const ANCHOR_DAY = '2026-05-27';
       server.use(
-        http.get('http://localhost:4000/api/transactions', ({ request }) => {
+        http.get(`${API_BASE}/transactions`, ({ request }) => {
           const url = new URL(request.url);
           const month = url.searchParams.get('month');
           if (month === '2026-05') {

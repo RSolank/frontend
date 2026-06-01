@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -44,7 +45,7 @@ describe('AccountPrivacyPage', () => {
 
   it('surfaces "Incorrect password" inline when the BE returns 403', async () => {
     server.use(
-      http.post('http://localhost:4000/api/users/me/delete', () =>
+      http.post(`${API_BASE}/users/me/delete`, () =>
         HttpResponse.json({ detail: 'Wrong password' }, { status: 403 })
       )
     );

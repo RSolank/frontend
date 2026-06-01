@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -82,10 +83,10 @@ const statusResponse = {
 
 function installHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json(statusResponse)
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -143,7 +144,7 @@ describe('ExpenseTrackerPage', () => {
 
   it('progress bar uses gradient thresholds — safe / watch / near / over', async () => {
     server.use(
-      http.get('http://localhost:4000/api/budget-limits/status', () =>
+      http.get(`${API_BASE}/budget-limits/status`, () =>
         HttpResponse.json({
           ...statusResponse,
           categories: [
@@ -373,7 +374,7 @@ describe('ExpenseTrackerPage', () => {
     let getCount = 0;
     server.use(
       http.post(
-        'http://localhost:4000/api/budget-limits/',
+        `${API_BASE}/budget-limits/`,
         async ({ request }) => {
           postBody = await request.json();
           return HttpResponse.json({
@@ -390,7 +391,7 @@ describe('ExpenseTrackerPage', () => {
           });
         }
       ),
-      http.get('http://localhost:4000/api/budget-limits/status', () => {
+      http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
@@ -464,13 +465,13 @@ describe('ExpenseTrackerPage', () => {
     let getCount = 0;
     server.use(
       http.delete(
-        'http://localhost:4000/api/budget-limits/:tagId',
+        `${API_BASE}/budget-limits/:tagId`,
         ({ params }) => {
           deletedTagId = String(params.tagId);
           return new HttpResponse(null, { status: 204 });
         }
       ),
-      http.get('http://localhost:4000/api/budget-limits/status', () => {
+      http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
@@ -518,7 +519,7 @@ describe('ExpenseTrackerPage', () => {
     let secondGetMonth: string | null = null;
     server.use(
       http.get(
-        'http://localhost:4000/api/budget-limits/status',
+        `${API_BASE}/budget-limits/status`,
         ({ request }) => {
           const url = new URL(request.url);
           const monthParam = url.searchParams.get('month');
@@ -583,7 +584,7 @@ describe('ExpenseTrackerPage', () => {
 
     it('renders "above" band when current > max and "below" when current ≤ 0.75 * avg', async () => {
       server.use(
-        http.get('http://localhost:4000/api/budget-limits/status', () =>
+        http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
             ...statusResponse,
             categories: [
@@ -631,7 +632,7 @@ describe('ExpenseTrackerPage', () => {
 
     it('hides the badge when there is no historical baseline yet (avg = 0)', async () => {
       server.use(
-        http.get('http://localhost:4000/api/budget-limits/status', () =>
+        http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
             ...statusResponse,
             categories: [

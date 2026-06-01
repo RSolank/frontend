@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -48,7 +49,7 @@ describe('<TrustedDeviceList>', () => {
 
   it('renders one row per device with This device label + Forget action', async () => {
     server.use(
-      http.get('http://localhost:4000/api/auth/devices', () =>
+      http.get(`${API_BASE}/auth/devices`, () =>
         HttpResponse.json(POPULATED_DEVICES)
       )
     );
@@ -71,11 +72,11 @@ describe('<TrustedDeviceList>', () => {
   it('Forget action DELETEs the device + invalidates the query', async () => {
     let deletedUid: string | null = null;
     server.use(
-      http.get('http://localhost:4000/api/auth/devices', () =>
+      http.get(`${API_BASE}/auth/devices`, () =>
         HttpResponse.json(POPULATED_DEVICES)
       ),
       http.delete(
-        'http://localhost:4000/api/auth/devices/:uid',
+        `${API_BASE}/auth/devices/:uid`,
         ({ params }) => {
           deletedUid = params.uid as string;
           return new HttpResponse(null, { status: 204 });

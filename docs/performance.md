@@ -419,7 +419,11 @@ paired `dark:` variant (excluding `.btn-primary` / `.form-input` /
 found** — both shells and all five account pages were authored
 with dark-aware classes from the start.
 
-## Future (Batch 10)
+## Future polish (still queued)
+
+The four items below were queued at Batch 10 close and remain
+outstanding through the platform upgrade — none of them ship size
+deltas, so the post-refactor batches didn't address them.
 
 - Wire `npm run size` into CI as a hard gate.
 - Reintroduce the per-feature lazy-chunk entry to `.size-limit.json`

@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { UserStatsCard } from './UserStatsCard';
@@ -29,7 +30,7 @@ describe('UserStatsCard', () => {
 
   it('renders counts + joined date when the endpoint returns data', async () => {
     server.use(
-      http.get('http://localhost:4000/api/users/me/stats', () =>
+      http.get(`${API_BASE}/users/me/stats`, () =>
         HttpResponse.json({
           joined_at: '2025-12-04T10:23:00Z',
           last_active_at: '2026-05-28T19:01:00Z',
@@ -54,7 +55,7 @@ describe('UserStatsCard', () => {
 
   it('renders active_recurring = 0 for a brand-new account', async () => {
     server.use(
-      http.get('http://localhost:4000/api/users/me/stats', () =>
+      http.get(`${API_BASE}/users/me/stats`, () =>
         HttpResponse.json({
           joined_at: '2025-12-04T10:23:00Z',
           last_active_at: null,

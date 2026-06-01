@@ -11,7 +11,7 @@
 | Runner | **Vitest** (`npm test` = `vitest run`; `npx vitest` watches) |
 | DOM env | **happy-dom** (configured in `vite.config.mts`) |
 | Assertion lib | `@testing-library/react` + `@testing-library/jest-dom` |
-| Backend mock | **MSW** — handlers in `src/test/handlers/<feature>.ts`; server in `src/test/server.ts`; lifecycle in `src/setupTests.ts` |
+| Backend mock | **MSW** — handlers in `src/test/handlers/<feature>.ts`; server in `src/test/server.ts`; lifecycle in `src/setupTests.ts`. Every handler URL flows through `API_BASE` from `src/test/baseUrl.ts` so the v1-prefix cutover is one const flip (see `docs/architecture.md` → Data fetching). |
 | Layout | **Co-located** `*.test.tsx` next to the file under test; `src/test/` is reserved for shared infra (MSW server, handlers, render helpers) |
 
 ## MSW lifecycle (live as of Batch 0)

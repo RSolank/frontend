@@ -421,10 +421,12 @@ as live inputs).
   view+edit; add+edit branch on `editing` prop).
 - `features/tags` — `TagFormDialog` (system tags render readonly).
 - `features/budgets` — `BudgetFormDialog`.
-- `features/categorization` — rule edit modal.
+- `features/categorization` — `CategorizationRuleFormDialog`.
 - `features/taxation` — `TaxationRuleFormDialog` for rules,
   `BillDetailDialog` for bills (read-only DetailModal — bills
   aren't edited, only viewed + paid).
+- `features/recurring` — `RecurringFormDialog`.
+- `features/bankAccounts` — `BankAccountFormDialog`.
 
 All CRUD features above comply; new features adopt this convention
 from the start.
@@ -472,6 +474,8 @@ crowding the Cancel / Save footer.
 | `BeneficiaryFormDialog` | ✅ | Row + modal both available. |
 | `TagFormDialog` | ✅ | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`). |
 | Transactions edit modal | ✅ | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate). |
+| `RecurringFormDialog` | ✅ | Modal is the primary delete surface — soft-deactivate via DELETE on the template uid. |
+| `BankAccountFormDialog` | ✅ | Modal is the primary delete surface — hard-delete; statement-upload identifier matches stop working (warning copy in the ConfirmDialog). |
 | `TaxationRuleFormDialog` | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete". |
 | `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete. |
 

@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, test } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -10,7 +11,7 @@ import { UpcomingBillsWidget } from './UpcomingBillsWidget';
 describe('UpcomingBillsWidget', () => {
   test('renders empty state when no upcoming bills', async () => {
     server.use(
-      http.get('http://localhost:4000/api/recurring/upcoming', () =>
+      http.get(`${API_BASE}/recurring/upcoming`, () =>
         HttpResponse.json([])
       )
     );
@@ -32,10 +33,10 @@ describe('UpcomingBillsWidget', () => {
       matched_txn_id: null,
     }));
     server.use(
-      http.get('http://localhost:4000/api/recurring/upcoming', () =>
+      http.get(`${API_BASE}/recurring/upcoming`, () =>
         HttpResponse.json(bills)
       ),
-      http.get('http://localhost:4000/api/beneficiaries', () =>
+      http.get(`${API_BASE}/beneficiaries`, () =>
         HttpResponse.json([
           {
             uid: 1,

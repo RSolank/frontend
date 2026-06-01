@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { AccountPreferencesPage } from './AccountPreferencesPage';
@@ -40,7 +41,7 @@ describe('AccountPreferencesPage', () => {
     // currency + timezone live on `/api/users/preferences`. The page
     // hydrates from both queries before first paint.
     server.use(
-      http.get('http://localhost:4000/api/users/me', () =>
+      http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({
           user: {
             user_id: 1,
@@ -51,7 +52,7 @@ describe('AccountPreferencesPage', () => {
           },
         })
       ),
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({
           currency: 'INR',
           timezone: 'Asia/Kolkata',
@@ -77,15 +78,15 @@ describe('AccountPreferencesPage', () => {
       timezone: 'Asia/Kolkata',
     };
     server.use(
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({ ...serverPrefs })
       ),
-      http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
+      http.patch(`${API_BASE}/users/me`, async ({ request }) => {
         mePatchBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ user: { user_id: 1 } });
       }),
       http.patch(
-        'http://localhost:4000/api/users/preferences',
+        `${API_BASE}/users/preferences`,
         async ({ request }) => {
           prefsPatchBody = (await request.json()) as Record<string, unknown>;
           // Server-side flip — the next GET sees the new values.

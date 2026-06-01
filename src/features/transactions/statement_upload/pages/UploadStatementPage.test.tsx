@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import { useStatementUploadJobStore } from '../../../../shared/state/statementUploadJob.store';
+import { API_BASE } from '../../../../test/baseUrl';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { server } from '../../../../test/server';
 
@@ -95,7 +96,7 @@ describe('UploadStatementPage', () => {
     let receivedOverride: string | null = null;
     server.use(
       http.post(
-        'http://localhost:4000/api/statement-uploads',
+        `${API_BASE}/statement-uploads`,
         async ({ request }) => {
           const fd = await request.formData();
           const val = fd.get('parser_override');
@@ -106,7 +107,7 @@ describe('UploadStatementPage', () => {
           );
         }
       ),
-      http.get('http://localhost:4000/api/statement-uploads/99', () =>
+      http.get(`${API_BASE}/statement-uploads/99`, () =>
         HttpResponse.json({
           job_id: 99,
           status: 'COMPLETE',
@@ -138,7 +139,7 @@ describe('UploadStatementPage', () => {
 
   test('409 duplicate surfaces inline error (no Pick parser button)', async () => {
     server.use(
-      http.post('http://localhost:4000/api/statement-uploads', () =>
+      http.post(`${API_BASE}/statement-uploads`, () =>
         HttpResponse.json({ detail: 'duplicate' }, { status: 409 })
       )
     );
@@ -158,7 +159,7 @@ describe('UploadStatementPage', () => {
 
   test('422 surfaces "Pick parser" button that opens the modal', async () => {
     server.use(
-      http.post('http://localhost:4000/api/statement-uploads', () =>
+      http.post(`${API_BASE}/statement-uploads`, () =>
         HttpResponse.json(
           {
             detail: {
@@ -188,10 +189,10 @@ describe('UploadStatementPage', () => {
 
   test('COMPLETE + suggest_register_account renders informational notice', async () => {
     server.use(
-      http.post('http://localhost:4000/api/statement-uploads', () =>
+      http.post(`${API_BASE}/statement-uploads`, () =>
         HttpResponse.json({ job_id: 5, status: 'PENDING' }, { status: 202 })
       ),
-      http.get('http://localhost:4000/api/statement-uploads/5', () =>
+      http.get(`${API_BASE}/statement-uploads/5`, () =>
         HttpResponse.json({
           job_id: 5,
           status: 'COMPLETE',
@@ -232,10 +233,10 @@ describe('UploadStatementPage', () => {
 
   test('FAILED status renders error_detail + Try again', async () => {
     server.use(
-      http.post('http://localhost:4000/api/statement-uploads', () =>
+      http.post(`${API_BASE}/statement-uploads`, () =>
         HttpResponse.json({ job_id: 7, status: 'PENDING' }, { status: 202 })
       ),
-      http.get('http://localhost:4000/api/statement-uploads/7', () =>
+      http.get(`${API_BASE}/statement-uploads/7`, () =>
         HttpResponse.json({
           job_id: 7,
           status: 'FAILED',

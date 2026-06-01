@@ -43,9 +43,9 @@ and the cross-feature `formatMoney` / `formatDate` helpers read them
 | File | Exports |
 |---|---|
 | `keys.ts` | `userKeys` — `all`, `me()`, `preferences()` |
-| `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` (every field optional — pages PATCH partial payloads) |
-| `queries.ts` | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `useCurrentUserQuery`, `useUserPreferencesQuery` |
-| `mutations.ts` | `updateProfileRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest` |
+| `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` + `PreferencesUpdatePayload` (every field optional — pages PATCH partial payloads) |
+| `queries.ts` | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `fetchProfileImagePresets`, `fetchUserStats`, `useCurrentUserQuery`, `useUserPreferencesQuery`, `useProfileImagePresetsQuery`, `useUserStatsQuery` |
+| `mutations.ts` | `updateProfileRequest`, `updatePreferencesRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest`, `setProfileImagePresetRequest`, `uploadProfileImageRequest`, `removeProfileImageRequest`, `deleteAccountRequest`, `cancelDeletionRequest` |
 
 Endpoints touched:
 
@@ -54,6 +54,14 @@ Endpoints touched:
 | `GET /api/users/me` | `AccountProfilePage` + `AccountPreferencesPage` hydrate, `refreshAuthUser` (auth boot) |
 | `PATCH /api/users/me` | `AccountProfilePage` save (partial), `AccountPreferencesPage` save (partial) |
 | `GET /api/users/preferences` | `hydratePreferences` (auth boot + post-login + post-Preferences-save) |
+| `PATCH /api/users/preferences` | `AccountPreferencesPage` save (currency, timezone) + every preference-store subscriber |
+| `GET /api/users/me/stats` | `UserStatsCard` on `AccountProfilePage` |
+| `GET /api/users/profile-image-presets` | `ProfileImagePicker` grid |
+| `PUT /api/users/me/profile-image/preset` | `ProfileImagePicker` preset select |
+| `POST /api/users/me/profile-image` | `ProfileImagePicker` upload (multipart) |
+| `DELETE /api/users/me/profile-image` | `ProfileImagePicker` remove |
+| `POST /api/users/me/delete` | `DangerZone` schedule deletion |
+| `POST /api/users/me/delete/cancel` | `CancelDeletionPage` (unauth) |
 | `GET /api/auth/recovery` | `AccountSecurityPage` |
 | `POST /api/auth/recovery` | `AccountSecurityPage` |
 | `POST /api/auth/change-password` | `AccountSecurityPage` |

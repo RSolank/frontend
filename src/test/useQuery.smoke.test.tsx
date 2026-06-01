@@ -6,6 +6,8 @@ import {
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { API_BASE } from './baseUrl';
+
 // End-to-end Batch 0 smoke: real useQuery -> real fetch -> MSW handler
 // in src/test/handlers/health.ts -> back through React Query into the
 // component. Proves the four pieces wired across steps 4 and 8 actually
@@ -21,7 +23,7 @@ function HealthCard() {
   const { data, isPending } = useQuery({
     queryKey: ['health'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4000/api/health');
+      const res = await fetch(`${API_BASE}/health`);
       return (await res.json()) as { status: string };
     },
   });

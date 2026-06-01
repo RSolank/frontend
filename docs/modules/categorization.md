@@ -7,9 +7,10 @@
 
 ## Purpose
 
-- Render the standalone `/categorization-rules` page where users
-  list, add, edit, and delete the `beneficiary → tags` rules the
-  backend's categorization engine consults.
+- Render `/settings/categorization-rules` inside the
+  [Settings shell](settings.md) where users list, add, edit, and
+  delete the `beneficiary → tags` rules the backend's
+  categorization engine consults.
 - Surface the "Re-run categorization" action that re-tags existing
   transactions against the current rule set.
 - Own the `/api/categorization-rules` query / cache key namespace.
@@ -18,15 +19,13 @@
 
 | Path | Component | Notes |
 |---|---|---|
-| `/categorization-rules` | `pages/CategorizationRulesPage.tsx` | Lazy-loaded via `categorization.routes.tsx`. |
+| `/settings/categorization-rules` | `pages/CategorizationRulesPage.tsx` | Mounted by the settings shell. Lazy-loaded. |
 
-Routes are exported from
-[`features/categorization/categorization.routes.tsx`](../../src/features/categorization/categorization.routes.tsx)
-and composed into the root router by `src/app/routes.tsx`
-(`<CategorizationRulesPage>` is wrapped by `protectedRoutes()`).
-
-This surface is a first-class route with its own bundle, mounted in the
-Settings shell alongside Categories and Taxation Rules under `/settings/*`.
+The CategorizationRulesPage is registered by
+[`features/settings/settings.routes.tsx`](../../src/features/settings/settings.routes.tsx)
+as a child of `/settings`. The legacy top-level `/categorization-rules`
+URL was retired in Batch 9 — see
+[`docs/modules/settings.md`](settings.md).
 
 ## Rule-name conventions
 
@@ -51,11 +50,17 @@ deleting the rule.
 
 ## Components
 
-- `pages/CategorizationRulesPage.tsx` — full standalone page with
-  header, create / update form, beneficiary search dropdown, tag
-  chip editor (with `Set Primary` + remove affordances), and the
-  grouped existing-rules list. Tailwind-styled with dark-mode
-  parity.
+- `pages/CategorizationRulesPage.tsx` — page-level surface with
+  header, "Re-run categorization" action, beneficiary search and
+  the grouped existing-rules list. The form itself lives in the
+  modal below.
+- `components/CategorizationRuleFormDialog.tsx` — `<Modal size="lg">`
+  wrapping the rule form (beneficiary search dropdown, tag chip
+  editor with `Set Primary` + remove affordances, auto-generated
+  rule-name preview). The "+ Add new beneficiary" CTA inside the
+  beneficiary search opens
+  `features/beneficiaries/components/BeneficiaryFormDialog.tsx`
+  nested inside this dialog.
 - `components/GroupedRulesList.tsx` — bucketed rule renderer.
   Single-rule groups render as the full rule card; multi-rule
   groups render as a collapsible header (chip row + count) with
@@ -113,10 +118,9 @@ between groups.
 
 The beneficiary search dropdown has an `＋ Add new beneficiary`
 CTA pinned at the top. Click → opens
-`features/beneficiaries/components/CreateBeneficiaryDialog.tsx`
-(a portaled modal wrapping the shared `BeneficiaryFormFields` +
-Save/Cancel footer). The Name field pre-fills from whatever's in
-the search box.
+`features/beneficiaries/components/BeneficiaryFormDialog.tsx`
+(the shared create / edit modal). The Name field pre-fills from
+whatever's in the search box.
 
 On success, the dialog closes, the page refetches
 `/api/beneficiaries`, and the rule form's beneficiary fields

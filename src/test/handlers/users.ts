@@ -1,12 +1,14 @@
 import { http, HttpResponse } from 'msw';
 
+import { API_BASE } from '../baseUrl';
+
 // Users feature handlers. Covers /api/users/me (GET + PATCH) and
 // /api/users/preferences (GET) — the surface the Batch 2 login flow and
 // the Batch 3 Profile page both depend on. Tests override per-case via
 // `server.use(...)` for assertions on request bodies.
 
 export const usersHandlers = [
-  http.get('http://localhost:4000/api/users/me', () =>
+  http.get(`${API_BASE}/users/me`, () =>
     HttpResponse.json({
       user: {
         user_id: 1,
@@ -16,11 +18,11 @@ export const usersHandlers = [
       },
     })
   ),
-  http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
+  http.patch(`${API_BASE}/users/me`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ user: { user_id: 1, ...body } });
   }),
-  http.get('http://localhost:4000/api/users/preferences', () =>
+  http.get(`${API_BASE}/users/preferences`, () =>
     HttpResponse.json({
       currency: 'INR',
       country: 'India',
@@ -31,13 +33,13 @@ export const usersHandlers = [
   // Default handler returns 404 so the <UserStatsCard /> Profile-page
   // placeholder renders its "Coming soon" empty state. Tests asserting
   // the populated card override this handler via `server.use(...)`.
-  http.get('http://localhost:4000/api/users/me/stats', () =>
+  http.get(`${API_BASE}/users/me/stats`, () =>
     HttpResponse.json({ detail: 'Not implemented' }, { status: 404 })
   ),
   // BE Phase 1.13 profile-image endpoints. 12 hand-picked Pillow
   // tiles are served from `/media/presets/<id>.webp`; we serve four
   // here — enough to exercise the picker grid without bloating MSW.
-  http.get('http://localhost:4000/api/users/profile-image-presets', () =>
+  http.get(`${API_BASE}/users/profile-image-presets`, () =>
     HttpResponse.json({
       presets: [
         { id: 'geo-01', url: '/media/presets/geo-01.webp' },
@@ -47,7 +49,7 @@ export const usersHandlers = [
       ],
     })
   ),
-  http.put('http://localhost:4000/api/users/me/profile-image/preset', async ({ request }) => {
+  http.put(`${API_BASE}/users/me/profile-image/preset`, async ({ request }) => {
     const body = (await request.json()) as { preset_id: string };
     return HttpResponse.json({
       user: {
@@ -59,7 +61,7 @@ export const usersHandlers = [
       },
     });
   }),
-  http.post('http://localhost:4000/api/users/me/profile-image', () =>
+  http.post(`${API_BASE}/users/me/profile-image`, () =>
     HttpResponse.json({
       user: {
         user_id: 1,
@@ -70,16 +72,16 @@ export const usersHandlers = [
       },
     })
   ),
-  http.delete('http://localhost:4000/api/users/me/profile-image', () =>
+  http.delete(`${API_BASE}/users/me/profile-image`, () =>
     new HttpResponse(null, { status: 204 })
   ),
   // BE Phase 2.1 — two-phase soft delete. Default accepts any
   // password and returns the scheduled-deletion envelope. Tests
   // override to exercise 403 wrong-password and the cancel paths.
-  http.post('http://localhost:4000/api/users/me/delete', () =>
+  http.post(`${API_BASE}/users/me/delete`, () =>
     HttpResponse.json({ detail: 'Account scheduled for deletion.', grace_days: 14 })
   ),
-  http.post('http://localhost:4000/api/users/me/delete/cancel', () =>
+  http.post(`${API_BASE}/users/me/delete/cancel`, () =>
     HttpResponse.json({ detail: 'Account reactivated.' })
   ),
 ];

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, test } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import type { RecurringTemplate } from '../api/schemas';
@@ -49,10 +50,10 @@ const BEN_FIXTURE = [
 
 function withTemplates(rows: RecurringTemplate[]) {
   server.use(
-    http.get('http://localhost:4000/api/recurring/templates', () =>
+    http.get(`${API_BASE}/recurring/templates`, () =>
       HttpResponse.json(rows)
     ),
-    http.get('http://localhost:4000/api/beneficiaries', () =>
+    http.get(`${API_BASE}/beneficiaries`, () =>
       HttpResponse.json(BEN_FIXTURE)
     )
   );

@@ -8,6 +8,7 @@ import { useLandingRouteStore } from '../../../shared/state/landingRoute.store';
 import { useLinkUnderlineStore } from '../../../shared/state/linkUnderline.store';
 import { useNumberFormatStore } from '../../../shared/state/numberFormat.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { hydratePreferences } from './preferences';
@@ -19,7 +20,7 @@ import { hydratePreferences } from './preferences';
 // errors when the store transitions from a prior test's non-default.
 function resetAllStores() {
   server.use(
-    http.patch('http://localhost:4000/api/users/preferences', () =>
+    http.patch(`${API_BASE}/users/preferences`, () =>
       HttpResponse.json({})
     )
   );
@@ -41,7 +42,7 @@ describe('hydratePreferences — expanded for all 8 server fields', () => {
 
   it('writes every recognized field from /api/users/preferences into its store', async () => {
     server.use(
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({
           currency: 'EUR',
           timezone: 'Europe/Berlin',
@@ -69,7 +70,7 @@ describe('hydratePreferences — expanded for all 8 server fields', () => {
 
   it('ignores invalid enum values rather than poisoning the typed stores', async () => {
     server.use(
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({
           // An older client could persist an unknown enum value; the
           // hydrate guard MUST drop it and keep the store's default.
@@ -92,7 +93,7 @@ describe('hydratePreferences — expanded for all 8 server fields', () => {
   it('leaves stores untouched on a hydrate failure', async () => {
     server.use(
       http.get(
-        'http://localhost:4000/api/users/preferences',
+        `${API_BASE}/users/preferences`,
         () => new HttpResponse(null, { status: 500 })
       )
     );
@@ -111,14 +112,14 @@ describe('hydratePreferences — expanded for all 8 server fields', () => {
   it('does NOT fire a PATCH back at the server during hydrate', async () => {
     let patchCount = 0;
     server.use(
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({
           date_format: 'mdy',
           landing_route: '/consumption-tax',
           underline_links: true,
         })
       ),
-      http.patch('http://localhost:4000/api/users/preferences', () => {
+      http.patch(`${API_BASE}/users/preferences`, () => {
         patchCount += 1;
         return HttpResponse.json({});
       })
@@ -142,7 +143,7 @@ describe('subscribeToPreferenceStores — auto-PATCH on user-driven setX', () =>
     const captured: Array<Record<string, unknown>> = [];
     server.use(
       http.patch(
-        'http://localhost:4000/api/users/preferences',
+        `${API_BASE}/users/preferences`,
         async ({ request }) => {
           captured.push((await request.json()) as Record<string, unknown>);
           return HttpResponse.json({});
@@ -171,7 +172,7 @@ describe('subscribeToPreferenceStores — auto-PATCH on user-driven setX', () =>
   it('does NOT fire a PATCH when a setX call lands the same value', async () => {
     let patchCount = 0;
     server.use(
-      http.patch('http://localhost:4000/api/users/preferences', () => {
+      http.patch(`${API_BASE}/users/preferences`, () => {
         patchCount += 1;
         return HttpResponse.json({});
       })

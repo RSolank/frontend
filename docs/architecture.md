@@ -31,7 +31,8 @@ src/
 ├── features/                  # one folder per surface — each owns components / hooks / api / routes / tests
 │   ├── auth/  users/  tags/  beneficiaries/  transactions/ (+ statement_upload/)
 │   ├── categorization/  taxation/  budgets/  recurring/  bankAccounts/  dashboard/
-│   └── account/  settings/    # account surface + settings shell (no "metadata" feature — dissolved into shared/)
+│   └── account/  settings/  admin/    # account surface + settings shell + operator portal
+│                                      # (no "metadata" feature — dissolved into shared/)
 │
 ├── test/                      # shared MSW infra (server.ts + handlers/)
 ├── index.css                  # @import "tailwindcss" + @custom-variant dark + @layer components
@@ -80,8 +81,9 @@ viewport — there is **no desktop sidebar**.
 - **ThemeToggle** (☼).
 - **About** link → `/`.
 - **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.
-  Items: Categories, Categorization Rules, Taxation Rules — all
-  pointing at their canonical `/settings/*` URLs.
+  Items: Categories, Categorization Rules, Taxation Rules,
+  Bank Accounts — all pointing at their canonical `/settings/*`
+  URLs.
   (Beneficiaries lives in MAIN, not Settings, so it isn't listed
   here.)
 - **User dropdown** (👤▾) — Radix DropdownMenu. Items: Profile,
@@ -234,7 +236,14 @@ graph.
   [`src/shared/api/routes.ts`](../src/shared/api/routes.ts) registry
   (`routes.<feature>.<action>(...)`) — no inline `/api/...` strings.
   The `const V = '/api'` knob in `routes.ts` makes the eventual
-  `/api/v1` cutover a one-line change.
+  `/api/v1` cutover a one-line change. The test surface mirrors the
+  same pattern: `src/test/baseUrl.ts` exports `API_BASE =
+  'http://localhost:4000/api'`, and every MSW handler + per-test
+  `server.use(...)` override consumes it as
+  `\`${API_BASE}/...\``. The v1 cutover is exactly two const flips
+  (`V` in `routes.ts` + `API_BASE` in `baseUrl.ts`) plus
+  `npm run gen:api` to refresh the generated paths shape in
+  `src/shared/types/api.ts`.
 - **`X-Device-Id`** is sent on every authenticated request (and on the
   unauthenticated `POST /auth/refresh`) — a stable UUID v4 minted once
   per browser install and persisted to `localStorage["pba.device_id"]`

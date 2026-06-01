@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -63,7 +64,7 @@ describe('<RecentActivityWidget>', () => {
 
   it('renders the returned events with summary + relative time', async () => {
     server.use(
-      http.get('http://localhost:4000/api/activity', () =>
+      http.get(`${API_BASE}/activity`, () =>
         HttpResponse.json({
           events: SAMPLE_EVENTS,
           returned_count: SAMPLE_EVENTS.length,
@@ -90,14 +91,14 @@ describe('<RecentActivityWidget>', () => {
   it('fires POST /seen with signal=soft on first render and hard on click', async () => {
     const seenSpy = vi.fn();
     server.use(
-      http.get('http://localhost:4000/api/activity', () =>
+      http.get(`${API_BASE}/activity`, () =>
         HttpResponse.json({
           events: SAMPLE_EVENTS,
           returned_count: SAMPLE_EVENTS.length,
           has_more: false,
         })
       ),
-      http.post('http://localhost:4000/api/activity/seen', async ({ request }) => {
+      http.post(`${API_BASE}/activity/seen`, async ({ request }) => {
         const body = (await request.json()) as {
           events: string[];
           signal: 'soft' | 'hard';
@@ -136,7 +137,7 @@ describe('<RecentActivityWidget>', () => {
 
   it('shows an error message when the feed fails to load', async () => {
     server.use(
-      http.get('http://localhost:4000/api/activity', () =>
+      http.get(`${API_BASE}/activity`, () =>
         HttpResponse.json({ detail: 'boom' }, { status: 500 })
       )
     );

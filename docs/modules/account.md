@@ -29,6 +29,7 @@
 | `/account/preferences` | `pages/AccountPreferencesPage.tsx` | country / currency / timezone + defaults placeholder |
 | `/profile` | redirect → `/account/profile` | legacy alias |
 | `/account/cancel-deletion` | `pages/CancelDeletionPage.tsx` (UNAUTH) | landing for the deletion-cancel email link + apiClient `ACCOUNT_PENDING_DELETION` 403 interceptor |
+| `/account/revoke-device` | `pages/RevokeDevicePage.tsx` (UNAUTH) | landing for the new-device intimation email's "this wasn't me" CTA — auto-POSTs `/api/auth/new-device/revoke {token}` on mount (BE Phase 2.3) |
 
 ## Shell
 
@@ -62,6 +63,13 @@ backed by BE Phase 1.13's `/api/users/profile-image-presets`. Each
 mutation invalidates `userKeys.me()` so the new `profile_image_url`
 propagates instantly to the TopNav avatar (which goes through the
 shared `<ProfileImage>` primitive in `shared/components/`).
+
+A "Your account at a glance" stats card
+([`<UserStatsCard>`](../../src/features/account/components/UserStatsCard.tsx))
+renders below the profile form. Reads BE Phase 1.15's
+`GET /api/users/me/stats` (member-since, last-active, txn count,
+beneficiaries added, active recurring count); falls back to a
+friendly hidden state when the route 404s.
 
 ### Preferences
 
@@ -248,6 +256,7 @@ through the relevant feature's `api/`:
 |---|---|
 | `GET /api/users/me` | Profile + Preferences hydrate; carries `profile_image_url` |
 | `PATCH /api/users/me` | Profile save (partial), Preferences save (partial: country only after Batch 2) |
+| `GET /api/users/me/stats` | Profile — UserStatsCard ("Your account at a glance") |
 | `GET /api/users/preferences` | Hydration of every preference store |
 | `PATCH /api/users/preferences` | Preferences save (currency, timezone slice) |
 | `GET /api/users/profile-image-presets` | Profile picture picker grid |
@@ -261,6 +270,12 @@ through the relevant feature's `api/`:
 | `POST /api/auth/change-email-confirm` | Security — change email step 2 |
 | `GET /api/auth/sessions` | Security — active sessions list |
 | `DELETE /api/auth/sessions/{id}` | Security — revoke session |
+| `GET /api/auth/devices` | Security — TrustedDeviceList |
+| `DELETE /api/auth/devices/{uid}` | Security — forget device |
+| `POST /api/auth/2fa/enroll` | Security — TwoFactorSection enrol step 1 |
+| `POST /api/auth/2fa/verify-enroll` | Security — TwoFactorSection enrol step 2 (returns backup codes) |
+| `POST /api/auth/2fa/disable` | Security — TwoFactorSection disable (password step-up) |
+| `POST /api/auth/new-device/revoke` | RevokeDevicePage (unauth) |
 | `GET /api/auth/recovery` | Security (current question) |
 | `POST /api/auth/recovery` | Security (set/replace question) |
 | `GET /api/exports/{resource}` | Privacy — data export |
@@ -281,3 +296,7 @@ through the relevant feature's `api/`:
 | Store smoke tests | `shared/state/{contrast,linkUnderline,focusRing,dateFormat,numberFormat,landingRoute}.store.test.ts` — toggle / setter + `apply*` class mirror where applicable |
 | Helper override paths | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore` |
 | `pages/AccountPrivacyPage.test.tsx` | Privacy controls + Danger Zone cards present, modal opens, 403 (wrong password) surfaces inline |
+| `components/TwoFactorSection.test.tsx` | idle → enrolling → showing-backup-codes flow, Disable modal password step-up, /2fa/enroll error handling |
+| `components/TrustedDeviceList.test.tsx` | Lists `/api/auth/devices`, "This device" chip on `is_current`, forget-device DELETE removes row |
+| `components/UserStatsCard.test.tsx` | Renders the 5 stat tiles from `/api/users/me/stats`; hidden state when the endpoint 404s |
+| `pages/RevokeDevicePage.test.tsx` | Auto-POSTs on mount with valid token (204 → success copy); 400 → invalid-token copy; no-token landing explains the email link |
