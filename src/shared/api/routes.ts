@@ -46,6 +46,12 @@ export const routes = {
     twoFactorVerifyEnroll: () => `${V}/auth/2fa/verify-enroll`,
     twoFactorDisable: () => `${V}/auth/2fa/disable`,
     twoFactorLoginVerify: () => `${V}/auth/2fa/login-verify`,
+    // BE Phase 2.3 — new-device OTP challenge + trusted-devices.
+    newDeviceVerify: () => `${V}/auth/new-device/verify`,
+    newDeviceResend: () => `${V}/auth/new-device/resend`,
+    newDeviceRevoke: () => `${V}/auth/new-device/revoke`,
+    devices: () => `${V}/auth/devices`,
+    deviceById: (uid: number | string) => `${V}/auth/devices/${uid}`,
   },
 
   users: {

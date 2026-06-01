@@ -26,6 +26,14 @@ const CancelDeletionPage = lazy(() =>
     default: m.CancelDeletionPage,
   }))
 );
+// BE Phase 2.3 — one-click revoke link from the new-device email.
+// Unauthenticated by design (the user is presumed locked out of the
+// just-revoked device); same shell as `/account/cancel-deletion`.
+const RevokeDevicePage = lazy(() =>
+  import('../features/account/pages/RevokeDevicePage').then((m) => ({
+    default: m.RevokeDevicePage,
+  }))
+);
 
 // Public-facing routes (no auth gate). The auth feature owns /login and
 // /register from Batch 2 onwards.
@@ -33,6 +41,7 @@ const publicRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
   { path: '/help', element: <HelpPage /> },
   { path: '/account/cancel-deletion', element: <CancelDeletionPage /> },
+  { path: '/account/revoke-device', element: <RevokeDevicePage /> },
   ...authRoutes,
 ];
 

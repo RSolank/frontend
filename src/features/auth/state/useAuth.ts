@@ -15,6 +15,7 @@ import {
   registerRequest,
   type TokenResponse,
 } from '../api/mutations';
+import { verifyNewDeviceRequest } from '../api/newDevice';
 import type { LoginInput, RegisterPayload } from '../api/schemas';
 import { loginVerifyTwoFactorRequest } from '../api/twoFactor';
 
@@ -178,6 +179,39 @@ export function useAuth() {
     }
   }
 
+  // BE Phase 2.3 — finishes a new-device-gated login. Response is
+  // polymorphic: TokenResponse (happy path) OR a 2FA challenge
+  // (2FA-enabled user clears device gate first, then owes a TOTP).
+  // The 2FA branch routes onward to /verify/2fa with the NEW
+  // pending_token; the FE never opens a session until tokens land.
+  async function verifyNewDevice(
+    pending_token: string,
+    otp: string
+  ): Promise<void> {
+    setError(null);
+    useAuthStore.getState().setRetryAfterSeconds(null);
+    try {
+      const data = await verifyNewDeviceRequest(pending_token, otp);
+      if (isTwoFactorChallenge(data)) {
+        navigate('/verify/2fa', {
+          state: { pending_token: data.pending_token },
+        });
+        return;
+      }
+      persistTokens(data);
+      await Promise.all([refreshAuthUser(), hydratePreferences()]);
+      navigate(getLandingRoute());
+    } catch (err) {
+      const e = err as ApiErrorShape;
+      if (applyRetryAfter(e, 'login', setError) === null) {
+        setError(
+          typeof e.detail === 'string' ? e.detail : 'Verification failed'
+        );
+      }
+      throw err;
+    }
+  }
+
   async function register(payload: RegisterPayload): Promise<void> {
     setError(null);
     useAuthStore.getState().setRetryAfterSeconds(null);
@@ -237,6 +271,7 @@ export function useAuth() {
     setError,
     login,
     loginVerify2fa,
+    verifyNewDevice,
     register,
     logout,
     refreshUser: refreshAuthUser,

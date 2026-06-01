@@ -128,6 +128,15 @@ The existing 401-reveal fallback (form starts without the code field,
 adds it on a 401) covers the case where /me doesn't surface the flag
 yet — both paths converge on the same form shape.
 
+**Trusted devices** — `<TrustedDeviceList>` (BE Phase 2.3,
+T-new-device-otp). Lists every device that has cleared the
+emailed-OTP gate (`GET /api/auth/devices`). Each row shows the
+parsed UA label, first / last seen timestamps, and a "This device"
+chip on the row whose `is_current === true`. Forgetting a device
+DELETEs it (cascades the active session if any) and forces re-
+verification on the next sign-in from that device. Lives next to
+Active sessions on `/account/security`.
+
 **Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
 flow: step 1 POSTs `/api/auth/change-email-request {new_email,
 password, code?}` and the BE emails an OTP to the new address +

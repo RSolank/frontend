@@ -36,19 +36,21 @@ export type LoginResponse =
   | TwoFactorRequiredChallenge
   | NewDeviceChallenge;
 
-// Narrowing helpers — pinned to the discriminator so call sites read
-// clean (`isTwoFactorChallenge(res)` vs `'status' in res`).
-export function isTwoFactorChallenge(
-  res: LoginResponse
-): res is TwoFactorRequiredChallenge {
-  return (
-    (res as { status?: string }).status === 'two_factor_required'
-  );
+// Narrowing helpers — pinned to the discriminator so call sites
+// read clean (`isTwoFactorChallenge(res)` vs `'status' in res`).
+// Accept any object so subsets of `LoginResponse` (e.g.
+// `VerifyNewDeviceResponse` = TokenResponse |
+// TwoFactorRequiredChallenge) narrow without an upcast — TokenResponse
+// has no `status` field at all, so we read defensively.
+export function isTwoFactorChallenge<T extends object>(
+  res: T
+): res is T & TwoFactorRequiredChallenge {
+  return (res as { status?: string }).status === 'two_factor_required';
 }
 
-export function isNewDeviceChallenge(
-  res: LoginResponse
-): res is NewDeviceChallenge {
+export function isNewDeviceChallenge<T extends object>(
+  res: T
+): res is T & NewDeviceChallenge {
   return (
     (res as { status?: string }).status ===
     'new_device_verification_required'

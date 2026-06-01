@@ -12,6 +12,7 @@ import {
 } from '../../users/api/queries';
 import { EmailChangeForm } from '../components/EmailChangeForm';
 import { SessionList } from '../components/SessionList';
+import { TrustedDeviceList } from '../components/TrustedDeviceList';
 import { TwoFactorSection } from '../components/TwoFactorSection';
 
 const SECURITY_QUESTIONS = [
@@ -294,6 +295,19 @@ export function AccountSecurityPage() {
           sign-ins evict the oldest device.
         </p>
         <SessionList />
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Trusted devices
+        </h2>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Devices that have cleared the new-device email-OTP gate.
+          Forget any you don&rsquo;t recognise — that device&rsquo;s
+          next sign-in will require an emailed code, and its active
+          session (if any) ends immediately.
+        </p>
+        <TrustedDeviceList />
       </div>
     </div>
   );

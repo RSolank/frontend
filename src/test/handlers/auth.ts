@@ -98,4 +98,34 @@ export const authHandlers = [
       token_type: 'bearer',
     })
   ),
+  // BE Phase 2.3 — new-device OTP + trusted-devices. Defaults:
+  // verify resolves to a TokenResponse, resend issues a fresh
+  // challenge shape, revoke is idempotent 204, devices list empty.
+  // Tests override to exercise the 2FA chain-through, 400/429
+  // failures, and a populated devices list.
+  http.post('http://localhost:4000/api/auth/new-device/verify', () =>
+    HttpResponse.json({
+      access_token: 'nd-verified-access',
+      refresh_token: 'nd-verified-refresh',
+      token_type: 'bearer',
+    })
+  ),
+  http.post('http://localhost:4000/api/auth/new-device/resend', () =>
+    HttpResponse.json({
+      status: 'new_device_verification_required',
+      pending_token: 'pend-2',
+      masked_email: 'a***@example.com',
+    })
+  ),
+  http.post(
+    'http://localhost:4000/api/auth/new-device/revoke',
+    () => new HttpResponse(null, { status: 204 })
+  ),
+  http.get('http://localhost:4000/api/auth/devices', () =>
+    HttpResponse.json([])
+  ),
+  http.delete(
+    'http://localhost:4000/api/auth/devices/:uid',
+    () => new HttpResponse(null, { status: 204 })
+  ),
 ];
