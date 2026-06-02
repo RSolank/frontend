@@ -61,9 +61,9 @@ function mainLinkClass({ isActive }: { isActive: boolean }): string {
     'inline-flex items-center px-3 py-2 text-sm font-medium no-underline transition-colors',
     'border-b-2 -mb-px',
     isActive
-      ? 'border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300'
-      : 'border-transparent text-slate-600 hover:text-indigo-700 hover:border-indigo-200 dark:text-slate-300 dark:hover:text-indigo-300 dark:hover:border-indigo-900/50',
-    'focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none rounded-sm',
+      ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
+      : 'border-transparent text-slate-600 hover:text-accent-700 hover:border-accent-200 dark:text-slate-300 dark:hover:text-accent-300 dark:hover:border-accent-900/50',
+    'focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none rounded-sm',
   ].join(' ');
 }
 
@@ -71,8 +71,8 @@ function drawerLinkClass({ isActive }: { isActive: boolean }): string {
   return [
     'flex min-h-[44px] items-center px-4 py-2 text-sm font-medium no-underline transition-colors',
     isActive
-      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300'
-      : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300',
+      ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300'
+      : 'text-slate-700 hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300',
   ].join(' ');
 }
 
@@ -106,7 +106,7 @@ export function TopNav({ onLogout }: TopNavProps) {
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open navigation"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:hidden dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:hidden dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
           >
             <Menu aria-hidden="true" size={22} />
           </button>
@@ -118,7 +118,7 @@ export function TopNav({ onLogout }: TopNavProps) {
             to="/dashboard"
             aria-label="Dashboard"
             title="Dashboard"
-            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
           >
             <Home aria-hidden="true" size={20} />
           </Link>
@@ -134,7 +134,7 @@ export function TopNav({ onLogout }: TopNavProps) {
         <Link
           to="/"
           aria-label={brandName}
-          className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-indigo-700 no-underline transition-colors hover:text-indigo-800 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-indigo-300 dark:hover:text-indigo-200`}
+          className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-accent-700 no-underline transition-colors hover:text-accent-800 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-accent-300 dark:hover:text-accent-200`}
         >
           <Wallet aria-hidden="true" size={22} />
           <span className="hidden text-base font-semibold tracking-tight sm:inline">
@@ -188,7 +188,7 @@ export function TopNav({ onLogout }: TopNavProps) {
               to="/help"
               aria-label="Help"
               title="Help"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
             >
               <HelpCircle aria-hidden="true" size={20} />
             </Link>
@@ -202,7 +202,7 @@ export function TopNav({ onLogout }: TopNavProps) {
                   <button
                     type="button"
                     aria-label="Settings"
-                    className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+                    className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
                   >
                     <Settings aria-hidden="true" size={20} />
                     <ChevronDown aria-hidden="true" size={14} />
@@ -218,7 +218,7 @@ export function TopNav({ onLogout }: TopNavProps) {
                       <DropdownMenu.Item key={link.to} asChild>
                         <Link
                           to={link.to}
-                          className="block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
+                          className="block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
                         >
                           {link.label}
                         </Link>
@@ -304,7 +304,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             to="/"
             onClick={onClose}
             aria-label={brandName}
-            className="inline-flex items-center gap-2 text-indigo-700 no-underline dark:text-indigo-300"
+            className="inline-flex items-center gap-2 text-accent-700 no-underline dark:text-accent-300"
           >
             <Wallet aria-hidden="true" size={20} />
             <span className="text-base font-semibold">{brandName}</span>
@@ -344,7 +344,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           */}
           <Link
             to="/account/accessibility"
-            className="flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
           >
             <span>Accessibility</span>
             <ChevronRight aria-hidden="true" size={14} />
@@ -381,7 +381,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
               onClose();
               void onLogout();
             }}
-            className="flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
           >
             <LogOut aria-hidden="true" size={16} className="mr-2" />
             Sign Out
@@ -441,7 +441,7 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
           type="button"
           aria-label="Account menu"
           title={email}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-indigo-300 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-accent-300 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
         >
           <ProfileImage
             profileImageUrl={user.profile_image_url ?? null}
@@ -467,7 +467,7 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
           <DropdownMenu.Item asChild>
             <Link
               to="/account/profile"
-              className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
+              className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
             >
               <UserRound aria-hidden="true" size={14} />
               Account
@@ -478,7 +478,7 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
               <Link
                 to="/admin"
                 data-testid="topnav-admin-link"
-                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
+                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
               >
                 <Settings aria-hidden="true" size={14} />
                 Admin tools
@@ -489,7 +489,7 @@ function UserDropdown({ user, onLogout }: UserDropdownProps) {
             <button
               type="button"
               onClick={() => void onLogout()}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
             >
               <LogOut aria-hidden="true" size={14} />
               Sign Out

@@ -136,7 +136,7 @@ function TrendSvg({ rows, money }: TrendSvgProps) {
               height={Math.max(barHeight, 2)}
               rx={3}
               ry={3}
-              className="fill-indigo-500 dark:fill-indigo-400"
+              className="fill-accent-500 dark:fill-accent-400"
               tabIndex={0}
             />
             <text

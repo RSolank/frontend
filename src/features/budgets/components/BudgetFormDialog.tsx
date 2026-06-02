@@ -393,7 +393,7 @@ export function BudgetFormDialog({
               disabled={form.saving || form.removing}
               aria-label="Remove budget"
               title="Remove budget"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
               data-testid="budget-form-remove"
             >
               <Trash2 aria-hidden size={16} />
@@ -667,7 +667,7 @@ function StepButton({ icon, onClick, label }: StepButtonProps) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors hover:border-accent-300 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-accent-700 dark:hover:text-accent-300"
       data-testid={`budget-slider-step-${icon}`}
     >
       <Icon aria-hidden size={16} />
@@ -698,13 +698,13 @@ function SliderWithBubble({
   return (
     <div className="relative pt-9">
       <div
-        className="money pointer-events-none absolute top-0 -translate-x-1/2 rounded-md bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white shadow-md dark:bg-indigo-500"
+        className="money pointer-events-none absolute top-0 -translate-x-1/2 rounded-md bg-accent-600 px-2 py-0.5 text-xs font-semibold text-white shadow-md dark:bg-accent-500"
         style={{ left: `${bubblePercent}%` }}
         data-testid="budget-slider-bubble"
       >
         {renderBubble(value)}
         <span
-          className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-indigo-600 dark:bg-indigo-500"
+          className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-accent-600 dark:bg-accent-500"
           aria-hidden
         />
       </div>
@@ -715,7 +715,7 @@ function SliderWithBubble({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full cursor-pointer accent-indigo-600 dark:accent-indigo-400"
+        className="w-full cursor-pointer accent-accent-600 dark:accent-accent-400"
         aria-label="Monthly limit"
         data-testid="budget-slider"
       />

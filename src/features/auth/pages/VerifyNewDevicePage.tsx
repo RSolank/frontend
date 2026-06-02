@@ -114,7 +114,7 @@ export function VerifyNewDevicePage() {
       <form onSubmit={handleSubmit} className="grid gap-3">
         <div>
           <label htmlFor="verify-device-otp" className="form-label">
-            Code <span className="text-rose-600">*</span>
+            Code <span className="text-danger-600">*</span>
           </label>
           <input
             id="verify-device-otp"
@@ -136,7 +136,7 @@ export function VerifyNewDevicePage() {
         )}
         {resendStatus && (
           <div
-            className="text-sm font-medium text-emerald-600 dark:text-emerald-400"
+            className="text-sm font-medium text-success-600 dark:text-success-400"
             role="status"
           >
             {resendStatus}
@@ -155,7 +155,7 @@ export function VerifyNewDevicePage() {
             type="button"
             onClick={handleResend}
             disabled={resending || submitting}
-            className="text-sm text-indigo-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 dark:text-indigo-300"
+            className="text-sm text-accent-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 dark:text-accent-300"
             data-testid="verify-device-resend"
           >
             {resending ? 'Sending…' : 'Resend code'}

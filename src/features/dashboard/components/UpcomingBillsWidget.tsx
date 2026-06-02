@@ -48,13 +48,13 @@ export function UpcomingBillsWidget() {
           id="upcoming-heading"
           className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100"
         >
-          <CalendarClock size={14} aria-hidden className="text-indigo-500" />
+          <CalendarClock size={14} aria-hidden className="text-accent-500" />
           Upcoming bills · 7d
         </h3>
         <button
           type="button"
           onClick={() => navigate('/recurring')}
-          className="text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="text-xs font-medium text-accent-600 transition-colors hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-400 dark:hover:text-accent-300"
         >
           Manage
         </button>
@@ -159,8 +159,8 @@ function UpcomingRow({
       <span
         className={`money shrink-0 text-sm font-medium ${
           bill.debit_credit === 'debit'
-            ? 'text-rose-600 dark:text-rose-400'
-            : 'text-emerald-600 dark:text-emerald-400'
+            ? 'text-danger-600 dark:text-danger-400'
+            : 'text-success-600 dark:text-success-400'
         }`}
       >
         {bill.debit_credit === 'debit' ? '-' : '+'}

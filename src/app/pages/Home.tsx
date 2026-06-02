@@ -27,17 +27,17 @@ export function HomePage() {
   // canonical path back to the app.
   return (
     <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-sky-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/40" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-sky-50 via-white to-accent-50 dark:from-slate-950 dark:via-slate-950 dark:to-accent-950/40" />
 
       <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr,1fr] lg:items-center">
         <div>
-          <div className="mb-3 inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold tracking-wider text-teal-700 uppercase dark:bg-teal-950/40 dark:text-teal-300">
+          <div className="mb-3 inline-flex items-center rounded-full bg-accent-50 px-3 py-1 text-xs font-semibold tracking-wider text-accent-700 uppercase dark:bg-accent-950/40 dark:text-accent-300">
             Smart budgeting for future you
           </div>
 
           <h1 className="mb-3 text-4xl leading-tight font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
             See every dollar with{' '}
-            <span className="text-teal-700 dark:text-teal-400">clarity</span>.
+            <span className="text-accent-700 dark:text-accent-400">clarity</span>.
           </h1>
 
           <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
@@ -50,7 +50,7 @@ export function HomePage() {
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+                className="inline-flex items-center justify-center rounded-full bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
               >
                 Go to dashboard
               </Link>
@@ -59,14 +59,14 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => setAuthMode('login')}
-                  className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+                  className="inline-flex items-center justify-center rounded-full bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
                 >
                   Sign in
                 </button>
                 <button
                   type="button"
                   onClick={() => setAuthMode('register')}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
                 >
                   Register
                 </button>
@@ -83,7 +83,7 @@ export function HomePage() {
         <div className="relative p-5">
           <div
             aria-hidden="true"
-            className="absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 via-emerald-200/20 to-cyan-300/30 blur-2xl"
+            className="absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 via-success-200/20 to-cyan-300/30 blur-2xl"
           />
           <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between">
@@ -94,11 +94,11 @@ export function HomePage() {
                 <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   ₹82,450
                 </div>
-                <div className="mt-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                <div className="mt-0.5 text-xs text-success-600 dark:text-success-400">
                   +12.4% vs last month
                 </div>
               </div>
-              <div className="rounded-full bg-emerald-100/70 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <div className="rounded-full bg-success-100/70 px-3 py-1 text-xs font-semibold text-success-800 dark:bg-success-950/40 dark:text-success-300">
                 On track
               </div>
             </div>

@@ -91,7 +91,7 @@ function NoTokenContent() {
       </p>
       <Link
         to="/"
-        className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        className="mt-4 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
       >
         Back to home
       </Link>
@@ -102,7 +102,7 @@ function NoTokenContent() {
 function Success() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+      <h1 className="text-xl font-semibold text-success-700 dark:text-success-300">
         Device revoked
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
@@ -111,7 +111,7 @@ function Success() {
         sign-in, also{' '}
         <Link
           to="/login"
-          className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
         >
           change your password
         </Link>{' '}
@@ -124,7 +124,7 @@ function Success() {
 function Invalid() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-rose-700 dark:text-rose-300">
+      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
         Link expired or invalid
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
@@ -134,7 +134,7 @@ function Invalid() {
         and manage your devices under{' '}
         <Link
           to="/account/security"
-          className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
         >
           Account → Security
         </Link>
@@ -147,7 +147,7 @@ function Invalid() {
 function ErrorPanel({ message }: { message: string }) {
   return (
     <>
-      <h1 className="text-xl font-semibold text-rose-700 dark:text-rose-300">
+      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
         Something went wrong
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">

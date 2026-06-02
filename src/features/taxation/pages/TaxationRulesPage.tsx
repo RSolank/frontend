@@ -35,7 +35,7 @@ interface RuleCardProps {
 // Add/Edit are the only surfaces that render form fields.
 function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
   const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-indigo-500'
+    ? 'ring-2 ring-inset ring-accent-500'
     : 'ring-0';
 
   return (
@@ -52,7 +52,7 @@ function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
           onClick={() => onEdit(rule)}
           aria-label={`View / edit ${rule.txn_type} rule`}
           title="View / edit"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <MoreHorizontal aria-hidden size={16} />
         </button>

@@ -44,7 +44,7 @@ function initialsFor(
 // pre-Batch-5 TopNav avatar so the visual stays familiar. The
 // deterministic-per-user palette idea is on hold until the bundle
 // budget has headroom (CONTRIBUTING.md §3 ratchet).
-const MONOGRAM_BG = 'bg-indigo-600';
+const MONOGRAM_BG = 'bg-accent-600';
 
 // Builds the `<img src>` URL for a backend-served profile image.
 // Exported so tests + non-component callers can compose it.

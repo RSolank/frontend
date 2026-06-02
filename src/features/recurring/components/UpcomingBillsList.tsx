@@ -98,8 +98,8 @@ function UpcomingRow({
       <span
         className={`money shrink-0 font-medium ${
           bill.debit_credit === 'debit'
-            ? 'text-rose-600 dark:text-rose-400'
-            : 'text-emerald-600 dark:text-emerald-400'
+            ? 'text-danger-600 dark:text-danger-400'
+            : 'text-success-600 dark:text-success-400'
         }`}
       >
         {bill.debit_credit === 'debit' ? '-' : '+'}

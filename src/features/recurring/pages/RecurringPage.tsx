@@ -80,7 +80,7 @@ export function RecurringPage() {
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid="recurring-add"
         >
           <Plus size={16} aria-hidden />
@@ -216,9 +216,9 @@ function TabButton({
       className={[
         'border-b-2 -mb-px px-4 py-2 text-sm font-medium transition-colors',
         active
-          ? 'border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300'
-          : 'border-transparent text-slate-600 hover:text-indigo-700 dark:text-slate-300 dark:hover:text-indigo-300',
-        'focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none rounded-sm',
+          ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
+          : 'border-transparent text-slate-600 hover:text-accent-700 dark:text-slate-300 dark:hover:text-accent-300',
+        'focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none rounded-sm',
       ].join(' ')}
     >
       {label}

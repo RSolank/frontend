@@ -49,7 +49,7 @@ export function StatementUploadDock() {
   return (
     <DockShell>
       <div className="flex items-center gap-2">
-        <FileText size={16} aria-hidden className="text-indigo-500" />
+        <FileText size={16} aria-hidden className="text-accent-500" />
         <span className="max-w-[12rem] truncate text-sm font-medium text-slate-900 dark:text-slate-100">
           {job.file_name ?? 'Statement upload'}
         </span>
@@ -72,7 +72,7 @@ export function StatementUploadDock() {
             )
           }
           data-testid="statement-upload-dock-suggest-account"
-          className="text-left text-xs font-semibold text-amber-700 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none dark:text-amber-300"
+          className="text-left text-xs font-semibold text-warning-700 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:outline-none dark:text-warning-300"
         >
           Register this account →
         </button>
@@ -109,7 +109,7 @@ function DockBody({
 }) {
   if (status === 'COMPLETE')
     return (
-      <p className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+      <p className="flex items-center gap-1.5 text-xs text-success-700 dark:text-success-300">
         <CheckCircle2 size={14} aria-hidden />
         Inserted {txnsInserted ?? 0} transactions.
       </p>
@@ -118,14 +118,14 @@ function DockBody({
     return (
       <p
         data-testid="statement-upload-dock-failed"
-        className="text-xs text-rose-700 dark:text-rose-300"
+        className="text-xs text-danger-700 dark:text-danger-300"
       >
         Upload failed{errorDetail ? `: ${errorDetail}` : '.'}
       </p>
     );
   return (
     <p className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-      <Loader2 size={12} className="animate-spin text-indigo-500" aria-hidden />
+      <Loader2 size={12} className="animate-spin text-accent-500" aria-hidden />
       {bodyCopy(status)}
     </p>
   );
@@ -152,7 +152,7 @@ function DockActions({
       <button
         type="button"
         onClick={onView}
-        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300"
+        className="text-xs font-medium text-accent-600 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-400 dark:hover:text-accent-300"
         data-testid="statement-upload-dock-open"
       >
         View
@@ -162,7 +162,7 @@ function DockActions({
         onClick={onDismiss}
         title={isTerminalStatus(status) ? 'Clear' : 'Hide'}
         aria-label={isTerminalStatus(status) ? 'Clear' : 'Hide'}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         data-testid="statement-upload-dock-dismiss"
       >
         <X size={14} />

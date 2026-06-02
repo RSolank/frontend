@@ -175,7 +175,7 @@ export function TaxTrackerPage() {
           <nav className="text-sm text-slate-500 dark:text-slate-400">
             <Link
               to="/dashboard"
-              className="text-indigo-600 hover:underline dark:text-indigo-300"
+              className="text-accent-600 hover:underline dark:text-accent-300"
             >
               Dashboard
             </Link>
@@ -294,7 +294,7 @@ function BillRow({
   onMarkUnpaid,
 }: BillRowProps) {
   const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-indigo-500'
+    ? 'ring-2 ring-inset ring-accent-500'
     : 'ring-0';
   const paid = bill.amount_paid ?? 0;
   const total = bill.amount ?? 0;
@@ -322,7 +322,7 @@ function BillRow({
         {showProgress && (
           <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
-              className="h-full bg-emerald-500 dark:bg-emerald-400"
+              className="h-full bg-success-500 dark:bg-success-400"
               style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
             />
           </div>
@@ -332,7 +332,7 @@ function BillRow({
         <button
           type="button"
           onClick={() => onView(bill.bill_id)}
-          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300"
+          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-accent-300 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-accent-700 dark:hover:text-accent-300"
         >
           View
         </button>
@@ -350,7 +350,7 @@ function BillRow({
           <button
             type="button"
             onClick={() => onMarkUnpaid(bill.bill_id)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-rose-300 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-rose-800 dark:hover:text-rose-300"
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-danger-300 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-danger-800 dark:hover:text-danger-300"
             data-testid={`bill-mark-unpaid-${bill.bill_id}`}
           >
             Reopen

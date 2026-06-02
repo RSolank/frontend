@@ -55,9 +55,9 @@ function dayCellClass(
   inMonth: boolean
 ): string {
   if (isSelected)
-    return 'bg-indigo-600 font-semibold text-white hover:bg-indigo-700';
+    return 'bg-accent-600 font-semibold text-white hover:bg-accent-700';
   if (isToday)
-    return 'bg-indigo-50 font-semibold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-950/60';
+    return 'bg-accent-50 font-semibold text-accent-700 hover:bg-accent-100 dark:bg-accent-950/40 dark:text-accent-200 dark:hover:bg-accent-950/60';
   if (inMonth)
     return 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800';
   return 'text-slate-400 hover:bg-slate-50 dark:text-slate-600 dark:hover:bg-slate-800/50';
@@ -142,7 +142,7 @@ function DateCalendarPopup({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, -1))}
           aria-label="Previous month"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronLeft aria-hidden size={16} />
         </button>
@@ -176,7 +176,7 @@ function DateCalendarPopup({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, 1))}
           aria-label="Next month"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronRight aria-hidden size={16} />
         </button>
@@ -203,7 +203,7 @@ function DateCalendarPopup({
               onClick={() => onPick(cell.iso)}
               aria-label={cell.iso}
               aria-pressed={isSelected}
-              className={`flex h-9 items-center justify-center rounded-md text-sm tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${dayCellClass(
+              className={`flex h-9 items-center justify-center rounded-md text-sm tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${dayCellClass(
                 isSelected,
                 isToday,
                 cell.inMonth
@@ -306,7 +306,7 @@ export function DateField({
           aria-expanded={open}
           tabIndex={-1}
           disabled={disabled}
-          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <CalendarIcon aria-hidden size={16} />
         </button>

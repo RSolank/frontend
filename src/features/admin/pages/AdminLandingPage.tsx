@@ -26,8 +26,8 @@ export function AdminLandingPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="rounded-xl border border-rose-300 bg-rose-50/40 p-6 dark:border-rose-900/60 dark:bg-rose-950/20">
-          <h1 className="text-lg font-semibold text-rose-700 dark:text-rose-300">
+        <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
+          <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
             Not available
           </h1>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -36,7 +36,7 @@ export function AdminLandingPage() {
           </p>
           <Link
             to="/dashboard"
-            className="mt-3 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
           >
             Back to dashboard
           </Link>

@@ -289,7 +289,7 @@ export function TagFormDialog({
             disabled={f.saving}
             aria-label="Remove tag"
             title="Remove tag"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
             data-testid="tag-form-remove"
           >
             <Trash2 aria-hidden size={16} />
@@ -518,14 +518,14 @@ function AliasEditor({
           aliases.map((a) => (
             <span
               key={a}
-              className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+              className="inline-flex items-center gap-1 rounded-full border border-accent-200 bg-accent-50 px-2.5 py-1 text-xs font-semibold text-accent-700 dark:border-accent-900/50 dark:bg-accent-950/40 dark:text-accent-300"
             >
               {a}
               <button
                 type="button"
                 onClick={() => onRemove(a)}
                 aria-label={`Remove alias ${a}`}
-                className="ml-0.5 text-base leading-none font-bold text-indigo-500 dark:text-indigo-400"
+                className="ml-0.5 text-base leading-none font-bold text-accent-500 dark:text-accent-400"
               >
                 ×
               </button>

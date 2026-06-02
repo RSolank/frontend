@@ -61,7 +61,7 @@ export function ZoomSlider() {
           onPointerCancel={() => setActive(false)}
           onFocus={() => setActive(true)}
           onBlur={() => setActive(false)}
-          className="block h-1.5 w-full appearance-none rounded-full bg-slate-200 accent-indigo-600 dark:bg-slate-700"
+          className="block h-1.5 w-full appearance-none rounded-full bg-slate-200 accent-accent-600 dark:bg-slate-700"
         />
         {active && (
           <span

@@ -127,7 +127,7 @@ export function AccountProfilePage() {
         <form onSubmit={handleSubmit} className="grid gap-3">
           <div>
             <label htmlFor="account-first-name" className="form-label">
-              First name <span className="text-rose-600">*</span>
+              First name <span className="text-danger-600">*</span>
             </label>
             <input
               id="account-first-name"
@@ -142,7 +142,7 @@ export function AccountProfilePage() {
           </div>
           <div>
             <label htmlFor="account-last-name" className="form-label">
-              Last name <span className="text-rose-600">*</span>
+              Last name <span className="text-danger-600">*</span>
             </label>
             <input
               id="account-last-name"
@@ -210,7 +210,7 @@ export function AccountProfilePage() {
               Dial code defaults to your country (set under{' '}
               <a
                 href="/account/preferences"
-                className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
               >
                 Preferences
               </a>
@@ -223,7 +223,7 @@ export function AccountProfilePage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-sm font-medium text-success-600 dark:text-success-400">
                 Saved
               </span>
             )}

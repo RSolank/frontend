@@ -60,7 +60,7 @@ export function DashboardCard({
         <footer className="mt-4 text-right">
           <Link
             to={footerHref}
-            className="text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-300"
+            className="text-sm font-semibold text-accent-600 hover:underline dark:text-accent-300"
           >
             {footerLabel} →
           </Link>
@@ -101,7 +101,7 @@ export function DashboardCardEmpty({
       {ctaHref && ctaLabel ? (
         <Link
           to={ctaHref}
-          className="mt-2 inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400"
+          className="mt-2 inline-flex items-center justify-center rounded-md bg-accent-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:bg-accent-500 dark:hover:bg-accent-400"
         >
           {ctaLabel}
         </Link>

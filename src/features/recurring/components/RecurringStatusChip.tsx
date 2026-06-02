@@ -22,13 +22,13 @@ const SPEC: Record<RecurringStatus, ChipSpec> = {
   review: {
     label: 'Needs attention',
     classes:
-      'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900/50',
+      'bg-warning-50 text-warning-800 border-warning-200 dark:bg-warning-950/40 dark:text-warning-200 dark:border-warning-900/50',
     title: 'Recent occurrences drifted — review and acknowledge.',
   },
   locked: {
     label: 'Confirmed',
     classes:
-      'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-900/50',
+      'bg-success-50 text-success-800 border-success-200 dark:bg-success-950/40 dark:text-success-200 dark:border-success-900/50',
     title: 'Confirmed — forecasts run on every cycle.',
   },
 };

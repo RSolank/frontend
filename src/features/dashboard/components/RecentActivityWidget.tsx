@@ -165,8 +165,8 @@ function iconForKind(kind: string) {
 }
 
 function toneForPriority(p: 1 | 2 | 3): string {
-  if (p === 1) return 'text-rose-500 dark:text-rose-400';
-  if (p === 2) return 'text-amber-500 dark:text-amber-400';
+  if (p === 1) return 'text-danger-500 dark:text-danger-400';
+  if (p === 2) return 'text-warning-500 dark:text-warning-400';
   return 'text-slate-400 dark:text-slate-500';
 }
 

@@ -127,7 +127,7 @@ export function SessionList() {
               <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
                 <span>{deviceLabel(session.device_data)}</span>
                 {session.is_current && (
-                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <span className="inline-flex items-center rounded-full bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700 dark:bg-success-950/40 dark:text-success-300">
                     This device
                   </span>
                 )}
@@ -140,7 +140,7 @@ export function SessionList() {
             <button
               type="button"
               onClick={() => setPending({ session })}
-              className="self-start rounded-md border border-rose-300 px-3 py-1 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40 sm:self-auto"
+              className="self-start rounded-md border border-danger-300 px-3 py-1 text-sm font-medium text-danger-700 transition-colors hover:bg-danger-50 dark:border-danger-800 dark:text-danger-300 dark:hover:bg-danger-950/40 sm:self-auto"
               data-testid={`revoke-session-${session.session_id}`}
             >
               Revoke
@@ -154,7 +154,7 @@ export function SessionList() {
           className={
             status.startsWith('Failed')
               ? 'form-error mt-3'
-              : 'mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400'
+              : 'mt-3 text-sm font-medium text-success-600 dark:text-success-400'
           }
         >
           {status}

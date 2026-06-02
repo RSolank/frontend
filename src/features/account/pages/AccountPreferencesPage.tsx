@@ -172,7 +172,7 @@ export function AccountPreferencesPage() {
           </div>
           <div>
             <label htmlFor="prefs-timezone" className="form-label">
-              Timezone <span className="text-rose-600">*</span>
+              Timezone <span className="text-danger-600">*</span>
             </label>
             <TimezoneSelect
               id="prefs-timezone"
@@ -200,7 +200,7 @@ export function AccountPreferencesPage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-sm font-medium text-success-600 dark:text-success-400">
                 Saved
               </span>
             )}
@@ -218,7 +218,7 @@ export function AccountPreferencesPage() {
           after login also live under{' '}
           <a
             href="/account/accessibility"
-            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
           >
             Accessibility
           </a>

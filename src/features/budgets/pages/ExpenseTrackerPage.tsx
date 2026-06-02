@@ -79,7 +79,7 @@ export function ExpenseTrackerPage() {
         <nav className="text-sm text-slate-500 dark:text-slate-400">
           <Link
             to="/dashboard"
-            className="text-indigo-600 hover:underline dark:text-indigo-300"
+            className="text-accent-600 hover:underline dark:text-accent-300"
           >
             Dashboard
           </Link>

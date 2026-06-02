@@ -76,7 +76,7 @@ export function TagSelector({
               <button
                 type="button"
                 onMouseDown={onRequestAddTag}
-                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
               >
                 <span aria-hidden="true">＋</span>
                 Add new tag
@@ -110,14 +110,14 @@ export function TagSelector({
           return (
             <span
               key={tid}
-              className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+              className="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2.5 py-0.5 text-sm font-medium text-accent-700 dark:bg-accent-950/40 dark:text-accent-300"
             >
               {tag?.tag_name ?? `Tag ${tid}`}
               <button
                 type="button"
                 aria-label={`Remove ${tag?.tag_name ?? tid}`}
                 onClick={() => onRemove(tid)}
-                className="text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-200"
+                className="text-accent-500 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-200"
               >
                 ×
               </button>

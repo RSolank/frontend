@@ -380,7 +380,7 @@ export function TransactionsPage() {
               onClick={() => setConfirmDeleteId(editingTxn.txn_id)}
               aria-label="Remove transaction"
               title="Remove transaction"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
               data-testid="transaction-form-remove"
             >
               <Trash2 aria-hidden size={16} />
@@ -552,7 +552,7 @@ function TransactionsToolbar({
             <SlidersHorizontal aria-hidden size={14} />
             Filters
             {sidebarActiveCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white dark:bg-indigo-500">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-600 px-1.5 text-[10px] font-bold text-white dark:bg-accent-500">
                 {sidebarActiveCount}
               </span>
             )}

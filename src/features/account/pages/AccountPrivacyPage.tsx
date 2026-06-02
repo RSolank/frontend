@@ -14,7 +14,7 @@ export function AccountPrivacyPage() {
           The privacy mask under{' '}
           <a
             href="/account/accessibility"
-            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
           >
             Accessibility
           </a>{' '}

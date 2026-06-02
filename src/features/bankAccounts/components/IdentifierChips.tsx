@@ -46,7 +46,7 @@ export function IdentifierChips({ identifiers, onRemove, busy = false }: Props) 
           key={'uid' in identifier ? `live-${identifier.uid}` : `pending-${index}`}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-50 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-            <span className="rounded-sm bg-indigo-100 px-1 py-0.5 font-mono text-[10px] uppercase tracking-wide text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+            <span className="rounded-sm bg-accent-100 px-1 py-0.5 font-mono text-[10px] uppercase tracking-wide text-accent-700 dark:bg-accent-950/60 dark:text-accent-300">
               {identifier.identifier_type}
             </span>
             <span className="font-mono text-slate-800 dark:text-slate-200">
@@ -57,7 +57,7 @@ export function IdentifierChips({ identifiers, onRemove, busy = false }: Props) 
               onClick={() => onRemove(identifier, index)}
               disabled={busy}
               aria-label={`Remove ${identifier.identifier}`}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-rose-100 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-300"
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-danger-100 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-danger-950/50 dark:hover:text-danger-300"
             >
               <X size={10} />
             </button>

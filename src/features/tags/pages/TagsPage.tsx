@@ -88,7 +88,7 @@ function TagRowLabel({
       aria-label={expandToggleLabel(hasChildren, isExpanded)}
       aria-expanded={hasChildren ? isExpanded : undefined}
       disabled={!hasChildren}
-      className={`flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-sm text-left transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+      className={`flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-sm text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${
         hasChildren ? 'cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40' : 'cursor-default'
       } disabled:opacity-100`}
       style={{ paddingLeft: `${level * 1.5}rem` }}
@@ -165,7 +165,7 @@ function TagRowActions({
               ? 'View — system tags allow alias edits only'
               : 'View / edit'
           }
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <MoreHorizontal aria-hidden size={16} />
         </button>
@@ -205,7 +205,7 @@ function TagRow({
       : 'bg-slate-50 dark:bg-slate-900/40';
   const highlightClass =
     highlightTagId === tag.tag_id
-      ? 'bg-indigo-50/60 ring-2 ring-indigo-500 ring-inset dark:bg-indigo-950/30'
+      ? 'bg-accent-50/60 ring-2 ring-accent-500 ring-inset dark:bg-accent-950/30'
       : '';
 
   // Toggle the expansion when the row content area is clicked. The

@@ -41,30 +41,30 @@ const BY_STATUS: Record<BillStatus, BillStatusDescriptor> = {
   BILLED: {
     label: 'Billed',
     pillTone:
-      'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200',
+      'bg-accent-100 text-accent-800 dark:bg-accent-950/40 dark:text-accent-200',
     icon: Timer,
-    iconTone: 'text-indigo-500 dark:text-indigo-300',
+    iconTone: 'text-accent-500 dark:text-accent-300',
   },
   PAID: {
     label: 'Paid',
     pillTone:
-      'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200',
+      'bg-success-100 text-success-700 dark:bg-success-950/50 dark:text-success-200',
     icon: CheckCircle2,
-    iconTone: 'text-emerald-500 dark:text-emerald-300',
+    iconTone: 'text-success-500 dark:text-success-300',
   },
   OVERDUE: {
     label: 'Overdue',
     pillTone:
-      'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
+      'bg-warning-100 text-warning-800 dark:bg-warning-950/40 dark:text-warning-200',
     icon: AlertTriangle,
-    iconTone: 'text-amber-500 dark:text-amber-300',
+    iconTone: 'text-warning-500 dark:text-warning-300',
   },
   EXPIRED: {
     label: 'Expired',
     pillTone:
-      'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200',
+      'bg-danger-100 text-danger-700 dark:bg-danger-950/50 dark:text-danger-200',
     icon: FileX,
-    iconTone: 'text-rose-500 dark:text-rose-300',
+    iconTone: 'text-danger-500 dark:text-danger-300',
   },
 };
 

@@ -42,10 +42,28 @@ and re-skin it later.
   body regular, supporting text muted. Limit to ~3 sizes per screen.
   Use a system font stack or one well-chosen webfont (Inter / Geist /
   system-ui), set globally — no per-component font surprises.
-- **Color discipline.** A restrained neutral palette + one accent + a
-  small set of semantic colors (success, warning, error, info). Defined
-  once in Tailwind's `@theme` block, referenced everywhere; no ad-hoc
-  hex values inside components.
+- **Color discipline.** A restrained neutral palette + one brand
+  accent + three semantic state colors. Locked in Platform FE Batch
+  17 via a single `@theme inline` block at the top of
+  [`src/index.css`](../src/index.css):
+  - **`accent-*`** is the brand accent. It is the ONLY token that
+    flips per theme: **teal** in light mode, **indigo** in dark
+    mode. Every brand surface (CTAs, links, focus rings, active-tab
+    indicators, hover affordances) reads from `accent-*` — never
+    from `indigo-*` or `teal-*` directly. The flip lives in the
+    `:root` / `html.dark` blocks; consumers stay theme-agnostic.
+  - **`success-*` / `warning-*` / `danger-*`** are the semantic
+    state tokens. They DO NOT flip per theme — the same family
+    resolves in both modes (emerald / amber / rose). The per-shade
+    selection handles light vs dark contrast at each call site
+    (e.g. `text-success-600 dark:text-success-400`).
+  - Decorative one-offs (the landing-page gradient end, mock
+    category-tint dots) MAY use raw Tailwind colors — they're not
+    brand surfaces. Treat anything that conveys "this is
+    interactive / on-brand" as brand and tokenize it.
+  - No ad-hoc hex values inside components. The CSS-variable
+    indirection is what makes the theme flip work at runtime; a
+    raw `#xxxxxx` literal can't follow `.dark`.
 - **Corners and surfaces.** Small-to-medium rounded corners
   (`rounded-md` / `rounded-lg`); subtle shadows (`shadow-sm` /
   `shadow-md`) for elevated surfaces (cards, modals, dropdowns). No
@@ -445,10 +463,10 @@ crowding the Cancel / Save footer.
 
 - **Render only in edit mode.** Add-mode (no `editing*` prop) hides
   the Remove button — there's nothing to remove yet.
-- **Icon-only, sized 32×32.** Matches the close X chrome. Rose tint
-  (`text-rose-600 dark:text-rose-400` with `hover:bg-rose-50 /
-  dark:hover:bg-rose-950/40`) differentiates from the close X
-  without dominating the header.
+- **Icon-only, sized 32×32.** Matches the close X chrome. Danger
+  tint (`text-danger-600 dark:text-danger-400` with
+  `hover:bg-danger-50 / dark:hover:bg-danger-950/40`) differentiates
+  from the close X without dominating the header.
 - **`title` + `aria-label` carry the text label** (e.g. "Remove
   beneficiary") — keyboard / screen-reader friendly; tooltip
   surfaces on hover.
@@ -505,9 +523,11 @@ eye lands on the changed row instead of scanning the table.
 
 - Highlight kicks in on **both create AND edit** success, not just
   edit. Symmetric UX: every save → glow.
-- Visual: **indigo ring** that fades after ~1500 ms. Use
-  `ring-2 ring-indigo-500 ring-inset` (or equivalent), conditional
-  on `highlightId === row.id`.
+- Visual: **accent ring** that fades after ~1500 ms. Use
+  `ring-2 ring-accent-500 ring-inset` (or equivalent), conditional
+  on `highlightId === row.id`. The accent token flips per theme
+  (teal in light, indigo in dark) — the highlight automatically
+  follows.
 - **Best-effort, no scrolling.** If the user has filtered or
   sorted the row out of view, the highlight still fires but the
   user may not see it. Don't auto-scroll — surprise scrolling is

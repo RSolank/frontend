@@ -101,7 +101,7 @@ function NoTokenContent() {
       </p>
       <Link
         to="/"
-        className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        className="mt-4 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
       >
         Back to home
       </Link>
@@ -112,7 +112,7 @@ function NoTokenContent() {
 function Success() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+      <h1 className="text-xl font-semibold text-success-700 dark:text-success-300">
         Account reactivated
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
@@ -120,7 +120,7 @@ function Success() {
       </p>
       <Link
         to="/login"
-        className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        className="mt-4 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
       >
         Go to sign-in
       </Link>
@@ -131,7 +131,7 @@ function Success() {
 function Expired() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-rose-700 dark:text-rose-300">
+      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
         Link expired or invalid
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
@@ -146,7 +146,7 @@ function Expired() {
 function Purged() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-rose-700 dark:text-rose-300">
+      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
         Account already removed
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
@@ -156,7 +156,7 @@ function Purged() {
       </p>
       <Link
         to="/register"
-        className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        className="mt-4 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
       >
         Register
       </Link>
@@ -167,7 +167,7 @@ function Purged() {
 function ErrorPanel({ message }: { message: string }) {
   return (
     <>
-      <h1 className="text-xl font-semibold text-rose-700 dark:text-rose-300">
+      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
         Something went wrong
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">

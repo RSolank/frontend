@@ -168,7 +168,7 @@ export function RecurringFormDialog({
             onClick={onRequestRemove}
             title="Remove template"
             aria-label="Remove template"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
           >
             <Trash2 size={16} />
           </button>
@@ -187,7 +187,7 @@ export function RecurringFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saveLabel(saving, isEditing)}
           </button>
@@ -272,7 +272,7 @@ export function RecurringFormDialog({
         {error && (
           <p
             role="alert"
-            className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+            className="rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-950/40 dark:text-danger-300"
           >
             {error}
           </p>

@@ -23,9 +23,9 @@ export function FocusRingToggle() {
         aria-checked={alwaysVisible}
         aria-label="Always show focus"
         onClick={toggle}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-900 ${
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-900 ${
           alwaysVisible
-            ? 'bg-indigo-600 dark:bg-indigo-500'
+            ? 'bg-accent-600 dark:bg-accent-500'
             : 'bg-slate-300 dark:bg-slate-600'
         }`}
       >

@@ -37,12 +37,12 @@ export function RecurringTemplateRow({
   const beneficiary = beneficiaryById.get(template.beneficiary_id);
   const directionIcon =
     template.debit_credit === 'debit' ? (
-      <ArrowUpRight size={14} className="text-rose-500" aria-hidden />
+      <ArrowUpRight size={14} className="text-danger-500" aria-hidden />
     ) : (
-      <ArrowDownLeft size={14} className="text-emerald-500" aria-hidden />
+      <ArrowDownLeft size={14} className="text-success-500" aria-hidden />
     );
 
-  const highlightClass = highlighted ? 'ring-2 ring-indigo-500 ring-inset' : '';
+  const highlightClass = highlighted ? 'ring-2 ring-accent-500 ring-inset' : '';
 
   return (
     <li
@@ -103,7 +103,7 @@ export function RecurringTemplateRow({
           <button
             type="button"
             onClick={onConfirm}
-            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            className="inline-flex items-center gap-1 rounded-md bg-success-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-success-700 focus-visible:ring-2 focus-visible:ring-success-500 focus-visible:outline-none"
             data-testid={`recurring-confirm-${template.uid}`}
           >
             <CheckCircle2 size={14} aria-hidden />
@@ -113,7 +113,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid={`recurring-edit-${template.uid}`}
         >
           <Pencil size={14} aria-hidden />
@@ -122,7 +122,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onDismiss}
-          className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40"
+          className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
           data-testid={`recurring-dismiss-${template.uid}`}
         >
           <X size={14} aria-hidden />

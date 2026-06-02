@@ -118,7 +118,7 @@ export function AccountSecurityPage() {
         <form onSubmit={handlePasswordSubmit} className="grid gap-3">
           <div>
             <label htmlFor="security-current-password" className="form-label">
-              Current password <span className="text-rose-600">*</span>
+              Current password <span className="text-danger-600">*</span>
             </label>
             <input
               id="security-current-password"
@@ -138,7 +138,7 @@ export function AccountSecurityPage() {
           </div>
           <div>
             <label htmlFor="security-new-password" className="form-label">
-              New password <span className="text-rose-600">*</span>
+              New password <span className="text-danger-600">*</span>
             </label>
             <input
               id="security-new-password"
@@ -168,7 +168,7 @@ export function AccountSecurityPage() {
             <div
               className={
                 passwordStatus.includes('successfully')
-                  ? 'text-sm font-medium text-emerald-600 dark:text-emerald-400'
+                  ? 'text-sm font-medium text-success-600 dark:text-success-400'
                   : 'form-error'
               }
             >
@@ -252,7 +252,7 @@ export function AccountSecurityPage() {
             <div
               className={
                 recoveryStatus.includes('successfully')
-                  ? 'text-sm font-medium text-emerald-600 dark:text-emerald-400'
+                  ? 'text-sm font-medium text-success-600 dark:text-success-400'
                   : 'form-error'
               }
             >

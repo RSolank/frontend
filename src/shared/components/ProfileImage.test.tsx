@@ -57,6 +57,6 @@ describe('ProfileImage', () => {
       />
     );
     const monogram = screen.getByTestId('profile-image-monogram');
-    expect(monogram.classList.contains('bg-indigo-600')).toBe(true);
+    expect(monogram.classList.contains('bg-accent-600')).toBe(true);
   });
 });

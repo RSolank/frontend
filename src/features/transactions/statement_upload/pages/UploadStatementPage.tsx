@@ -129,7 +129,7 @@ export function UploadStatementPage() {
         </h1>
         <Link
           to="/transactions"
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="text-sm font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
         >
           ← Back to Transactions
         </Link>
@@ -239,7 +239,7 @@ function UploadCard({
               type="file"
               accept=".csv,.pdf"
               onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-              className="mt-2 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-slate-300 dark:file:bg-indigo-950/40 dark:file:text-indigo-300 dark:hover:file:bg-indigo-950/60"
+              className="mt-2 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-accent-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-accent-700 hover:file:bg-accent-100 dark:text-slate-300 dark:file:bg-accent-950/40 dark:file:text-accent-300 dark:hover:file:bg-accent-950/60"
               disabled={uploading}
               data-testid="statement-file-input"
             />
@@ -338,20 +338,20 @@ function MatchedParserCard({
   return (
     <div
       data-testid="statement-parser-match-card"
-      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm dark:border-indigo-900/50 dark:bg-indigo-950/40"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent-200 bg-accent-50 px-4 py-3 text-sm dark:border-accent-900/50 dark:bg-accent-950/40"
     >
       <div className="flex flex-col">
-        <span className="font-semibold text-indigo-900 dark:text-indigo-200">
+        <span className="font-semibold text-accent-900 dark:text-accent-200">
           Parser: {parser.label}
         </span>
-        <span className="font-mono text-xs text-indigo-700/80 dark:text-indigo-300/80">
+        <span className="font-mono text-xs text-accent-700/80 dark:text-accent-300/80">
           {parser.key}
         </span>
       </div>
       <button
         type="button"
         onClick={onChangeParser}
-        className="text-xs font-semibold text-indigo-700 transition-colors hover:text-indigo-900 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-indigo-300 dark:hover:text-indigo-100"
+        className="text-xs font-semibold text-accent-700 transition-colors hover:text-accent-900 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-300 dark:hover:text-accent-100"
         data-testid="statement-parser-change"
       >
         Change parser
@@ -371,7 +371,7 @@ function ErrorPanel({
     <div
       role="alert"
       data-testid="statement-upload-error"
-      className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"
+      className="mt-4 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200"
     >
       <p>{error.message}</p>
       {error.parserDetail && (
@@ -379,7 +379,7 @@ function ErrorPanel({
           type="button"
           onClick={onOpenPicker}
           data-testid="statement-upload-pick-parser"
-          className="mt-2 inline-flex items-center justify-center rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none"
+          className="mt-2 inline-flex items-center justify-center rounded-md bg-danger-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none"
         >
           Pick parser
         </button>
@@ -407,7 +407,7 @@ function JobStatusPanel({
     return (
       <PanelShell>
         <p
-          className="text-sm text-rose-700 dark:text-rose-300"
+          className="text-sm text-danger-700 dark:text-danger-300"
           data-testid="statement-job-error"
         >
           Couldn&apos;t fetch the job status. Try again in a moment.
@@ -469,7 +469,7 @@ function PanelHeader({
   return (
     <header className="mb-3 flex items-start justify-between gap-2">
       <div className="flex items-center gap-2">
-        <FileText size={18} aria-hidden className="text-indigo-500" />
+        <FileText size={18} aria-hidden className="text-accent-500" />
         <div>
           <h2 className="font-semibold text-slate-900 dark:text-slate-100">
             {fileName ?? 'Uploading…'}
@@ -497,7 +497,7 @@ const STATUS_LABEL: Record<JobStatus, string> = {
 function ProgressBody({ status }: { status: JobStatus }) {
   return (
     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-      <Loader2 size={16} className="animate-spin text-indigo-500" aria-hidden />
+      <Loader2 size={16} className="animate-spin text-accent-500" aria-hidden />
       <span>{progressCopy(status)}</span>
     </div>
   );
@@ -524,7 +524,7 @@ function TerminalBody({
       <>
         <div
           data-testid="statement-job-complete"
-          className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200"
+          className="flex items-start gap-2 rounded-md border border-success-200 bg-success-50 p-3 text-sm text-success-800 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-200"
         >
           <CheckCircle2 size={18} aria-hidden className="mt-0.5" />
           <div>
@@ -535,7 +535,7 @@ function TerminalBody({
               {job.txns_inserted}.
             </p>
             {job.parser_used && (
-              <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-300/80">
+              <p className="mt-1 text-xs text-success-700/90 dark:text-success-300/80">
                 Parser: <span className="font-mono">{job.parser_used}</span>
                 {job.source_type ? ` · ${job.source_type}` : ''}
               </p>
@@ -564,7 +564,7 @@ function TerminalBody({
     <>
       <div
         data-testid="statement-job-failed"
-        className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"
+        className="flex items-start gap-2 rounded-md border border-danger-200 bg-danger-50 p-3 text-sm text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200"
       >
         <AlertTriangle size={18} aria-hidden className="mt-0.5" />
         <div>
@@ -598,7 +598,7 @@ function RegisterAccountNotice({
     <div
       data-testid="statement-job-suggest-register-account"
       role="status"
-      className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+      className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200"
     >
       <span>
         {identifier
@@ -608,7 +608,7 @@ function RegisterAccountNotice({
       <Link
         to={target}
         data-testid="statement-job-register-account-cta"
-        className="font-semibold text-amber-900 underline-offset-2 hover:underline dark:text-amber-100"
+        className="font-semibold text-warning-900 underline-offset-2 hover:underline dark:text-warning-100"
       >
         Register this account →
       </Link>

@@ -53,9 +53,9 @@ export function ThemeOptions({ onSelect }: ThemeOptionsProps = {}) {
               aria-label={`${label} theme`}
               aria-pressed={active}
               title={label}
-              className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-800 ${
+              className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-800 ${
                 active
-                  ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-300'
+                  ? 'bg-white text-accent-700 shadow-sm dark:bg-slate-700 dark:text-accent-300'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100'
               }`}
             >

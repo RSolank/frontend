@@ -30,15 +30,15 @@ interface WeekPickerCalendarProps {
 // reads cleanly and stays off sonarjs/no-nested-conditional.
 function weekRowClass(isSelected: boolean, billable: boolean): string {
   if (isSelected)
-    return 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40';
+    return 'border-accent-500 bg-accent-50 dark:border-accent-400 dark:bg-accent-950/40';
   if (billable)
-    return 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30';
+    return 'border-slate-200 bg-white hover:border-accent-300 hover:bg-accent-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-accent-700 dark:hover:bg-accent-950/30';
   return 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-500';
 }
 
 // Day-number colour: today accent, in-month default, out-of-month muted.
 function weekDayClass(isToday: boolean, inMonth: boolean): string {
-  if (isToday) return 'font-bold text-indigo-600 dark:text-indigo-300';
+  if (isToday) return 'font-bold text-accent-600 dark:text-accent-300';
   if (inMonth) return 'text-slate-700 dark:text-slate-200';
   return 'text-slate-400 dark:text-slate-600';
 }
@@ -77,7 +77,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, -1))}
           aria-label="Previous month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronLeft aria-hidden size={18} />
         </button>
@@ -88,7 +88,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, 1))}
           aria-label="Next month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronRight aria-hidden size={18} />
         </button>
@@ -127,10 +127,10 @@ export function WeekPickerCalendar({
               aria-pressed={isSelected}
               aria-label={`Week of ${formatBillDate(row.start, timezone)} to ${formatBillDate(row.end, timezone)}`}
               data-testid={`week-row-${row.start}`}
-              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${weekRowClass(
+              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${weekRowClass(
                 isSelected,
                 billable
-              )} ${containsToday && !isSelected ? 'ring-1 ring-indigo-300/60 dark:ring-indigo-700/60' : ''}`}
+              )} ${containsToday && !isSelected ? 'ring-1 ring-accent-300/60 dark:ring-accent-700/60' : ''}`}
             >
               {/* Row prefix — the Monday ISO date (short form) so the
                   user has a stable label for the row independent of
@@ -138,7 +138,7 @@ export function WeekPickerCalendar({
               <span
                 className={`text-left font-semibold tabular-nums ${
                   isSelected
-                    ? 'text-indigo-700 dark:text-indigo-200'
+                    ? 'text-accent-700 dark:text-accent-200'
                     : 'text-slate-500 dark:text-slate-400'
                 }`}
               >

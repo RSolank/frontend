@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component<
         role="alert"
         className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 p-8 text-center dark:bg-slate-950"
       >
-        <h1 className="text-2xl font-semibold text-rose-600 dark:text-rose-400">
+        <h1 className="text-2xl font-semibold text-danger-600 dark:text-danger-400">
           Something went wrong.
         </h1>
         <p className="max-w-md text-sm text-slate-600 dark:text-slate-400">
@@ -48,7 +48,7 @@ export class ErrorBoundary extends React.Component<
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+          className="rounded-full bg-accent-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
         >
           Refresh page
         </button>

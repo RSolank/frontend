@@ -102,13 +102,13 @@ export function DaySidePanel({
                   {transactions.length}{' '}
                   {transactions.length === 1 ? 'transaction' : 'transactions'}
                   {' · '}
-                  <span className="money font-medium text-rose-600 dark:text-rose-400">
+                  <span className="money font-medium text-danger-600 dark:text-danger-400">
                     -{formatMoney(debitTotal, currencyCode, currencySymbol)}
                   </span>
                   {creditTotal > 0 && (
                     <>
                       {' · '}
-                      <span className="money font-medium text-emerald-600 dark:text-emerald-400">
+                      <span className="money font-medium text-success-600 dark:text-success-400">
                         +{formatMoney(creditTotal, currencyCode, currencySymbol)}
                       </span>
                     </>
@@ -125,7 +125,7 @@ export function DaySidePanel({
               <button
                 type="button"
                 aria-label="Close"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X aria-hidden size={18} />
               </button>
@@ -152,7 +152,7 @@ export function DaySidePanel({
                           {t.beneficiary_id ? (
                             <Link
                               to={`/beneficiaries/${t.beneficiary_id}`}
-                              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
                             >
                               {t.beneficiary_name || t.beneficiary || '—'}
                             </Link>
@@ -189,8 +189,8 @@ export function DaySidePanel({
                         <span
                           className={`money text-sm font-bold ${
                             t.debit_credit === 'debit'
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : 'text-emerald-600 dark:text-emerald-400'
+                              ? 'text-danger-600 dark:text-danger-400'
+                              : 'text-success-600 dark:text-success-400'
                           }`}
                         >
                           {t.debit_credit === 'debit' ? '-' : '+'}
@@ -203,7 +203,7 @@ export function DaySidePanel({
                         <button
                           type="button"
                           onClick={() => onEdit(t.txn_id)}
-                          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          className="text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
                         >
                           Edit
                         </button>

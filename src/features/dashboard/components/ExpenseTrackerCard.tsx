@@ -122,7 +122,7 @@ export function ExpenseTrackerCard() {
 
   const titleChip = breachCount > 0 ? (
     <span
-      className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-200"
+      className="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-700 dark:bg-danger-950/60 dark:text-danger-200"
       data-testid="dashboard-expense-breach-chip"
     >
       {breachCount} over budget
@@ -224,7 +224,7 @@ function TotalRollup({ category, money }: TotalRollupProps) {
       ) : (
         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
           No total limit configured —{' '}
-          <span className="font-medium text-indigo-600 dark:text-indigo-300">
+          <span className="font-medium text-accent-600 dark:text-accent-300">
             set one
           </span>{' '}
           to track monthly headroom.
@@ -298,13 +298,13 @@ const STATUS_STYLE: Record<
   { bar: string; text: string; label: string }
 > = {
   safe: {
-    bar: 'bg-emerald-500 dark:bg-emerald-400',
-    text: 'text-emerald-700 dark:text-emerald-300',
+    bar: 'bg-success-500 dark:bg-success-400',
+    text: 'text-success-700 dark:text-success-300',
     label: 'On track',
   },
   watch: {
-    bar: 'bg-amber-500 dark:bg-amber-400',
-    text: 'text-amber-700 dark:text-amber-300',
+    bar: 'bg-warning-500 dark:bg-warning-400',
+    text: 'text-warning-700 dark:text-warning-300',
     label: 'Watch',
   },
   near: {
@@ -313,8 +313,8 @@ const STATUS_STYLE: Record<
     label: 'Near limit',
   },
   over: {
-    bar: 'bg-rose-500 dark:bg-rose-400',
-    text: 'text-rose-700 dark:text-rose-300',
+    bar: 'bg-danger-500 dark:bg-danger-400',
+    text: 'text-danger-700 dark:text-danger-300',
     label: 'Over budget',
   },
   unset: {

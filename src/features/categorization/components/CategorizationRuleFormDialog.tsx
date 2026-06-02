@@ -473,7 +473,7 @@ export function CategorizationRuleFormDialog({
               onClick={onRequestDelete}
               aria-label="Delete rule"
               title="Delete rule"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
             >
               <Trash2 aria-hidden size={16} />
             </button>
@@ -644,7 +644,7 @@ function BeneficiaryPicker({
           <button
             type="button"
             onMouseDown={onAddNew}
-            className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+            className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
           >
             <span aria-hidden="true">＋</span>
             Add new beneficiary
@@ -661,7 +661,7 @@ function BeneficiaryPicker({
                 aria-selected={selectedId === b.uid}
                 tabIndex={0}
                 onMouseDown={() => onSelect(b.uid, b.name)}
-                className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
+                className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-accent-50 dark:text-slate-200 dark:hover:bg-accent-950/40"
               >
                 {b.name}
                 {b.aliases?.length > 0 && (
@@ -741,7 +741,7 @@ function TagPicker({
               <button
                 type="button"
                 onMouseDown={onAddNew}
-                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
               >
                 <span aria-hidden="true">＋</span>
                 Add new tag
@@ -756,7 +756,7 @@ function TagPicker({
                     key={t.tag_id}
                     type="button"
                     onMouseDown={() => onPickTag(String(t.tag_id))}
-                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 dark:text-slate-200 dark:hover:bg-indigo-950/40"
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-accent-50 dark:text-slate-200 dark:hover:bg-accent-950/40"
                   >
                     {formatTagAssignment(t.tag_id, tags)}
                   </button>
@@ -776,20 +776,20 @@ function TagPicker({
             const chipBase =
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border';
             const chipColor = isPrimary
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50'
+              ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-950/40 dark:text-success-300 dark:border-success-900/50'
               : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
             return (
               <span key={tid} className={`${chipBase} ${chipColor}`}>
                 {formatTagAssignment(tid, tags)}
                 {isPrimary ? (
-                  <span className="rounded-sm bg-emerald-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
+                  <span className="rounded-sm bg-success-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
                     Primary
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => onPromoteTag(tid)}
-                    className="rounded-sm bg-indigo-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-indigo-700"
+                    className="rounded-sm bg-accent-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-accent-700"
                   >
                     Set Primary
                   </button>

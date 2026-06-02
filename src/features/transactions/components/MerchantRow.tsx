@@ -41,7 +41,7 @@ export function MerchantRow({
       <div className="min-w-0 flex-1">
         <Link
           to={`/beneficiaries/${beneficiaryId}`}
-          className="truncate text-sm font-medium text-indigo-700 hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200"
+          className="truncate text-sm font-medium text-accent-700 hover:text-accent-800 dark:text-accent-300 dark:hover:text-accent-200"
         >
           {beneficiaryName}
         </Link>
@@ -62,7 +62,7 @@ export function MerchantRow({
         <button
           type="button"
           onClick={() => onDetails(beneficiaryId)}
-          className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="text-xs font-semibold text-accent-600 transition-colors hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
         >
           Details
         </button>

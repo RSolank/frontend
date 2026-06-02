@@ -228,7 +228,7 @@ export function GenerateBillsDialog({
               name="generate-mode"
               checked={mode === 'week'}
               onChange={() => setMode('week')}
-              className="h-4 w-4 accent-indigo-600 dark:accent-indigo-400"
+              className="h-4 w-4 accent-accent-600 dark:accent-accent-400"
             />
             <span className="font-medium">Week picker</span>
           </label>
@@ -238,7 +238,7 @@ export function GenerateBillsDialog({
               name="generate-mode"
               checked={mode === 'range'}
               onChange={() => setMode('range')}
-              className="h-4 w-4 accent-indigo-600 dark:accent-indigo-400"
+              className="h-4 w-4 accent-accent-600 dark:accent-accent-400"
             />
             <span className="font-medium">Date range</span>
           </label>
@@ -284,7 +284,7 @@ export function GenerateBillsDialog({
         {resolvedPreview && (
           <div
             data-testid="generate-resolved-preview"
-            className="rounded-md border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm text-indigo-900 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-200"
+            className="rounded-md border border-accent-200 bg-accent-50/60 px-3 py-2 text-sm text-accent-900 dark:border-accent-900/50 dark:bg-accent-950/30 dark:text-accent-200"
           >
             <span className="font-medium">
               Resolves to ISO week
@@ -299,7 +299,7 @@ export function GenerateBillsDialog({
               {formatBillDate(resolvedPreview.period_end, timezone)}
             </span>
             {mode === 'range' && (
-              <p className="mt-0.5 text-xs text-indigo-700/80 dark:text-indigo-300/80">
+              <p className="mt-0.5 text-xs text-accent-700/80 dark:text-accent-300/80">
                 Endpoints are snapped to ISO Mon → Sun boundaries so the
                 request covers whole weeks only.
               </p>

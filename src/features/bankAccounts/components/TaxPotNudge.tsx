@@ -24,7 +24,7 @@ export function TaxPotNudge() {
     <section
       role="status"
       data-testid="tax-pot-nudge-banner"
-      className="mb-4 flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+      className="mb-4 flex items-start justify-between gap-3 rounded-md border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200"
     >
       <div className="flex items-start gap-2">
         <Info size={18} aria-hidden className="mt-0.5" />
@@ -42,7 +42,7 @@ export function TaxPotNudge() {
         onClick={dismiss}
         aria-label="Dismiss nudge"
         title="Dismiss"
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-amber-700 transition-colors hover:bg-amber-100 hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none dark:text-amber-300 dark:hover:bg-amber-950/60 dark:hover:text-amber-100"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-warning-700 transition-colors hover:bg-warning-100 hover:text-warning-900 focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:outline-none dark:text-warning-300 dark:hover:bg-warning-950/60 dark:hover:text-warning-100"
         data-testid="tax-pot-nudge-dismiss"
       >
         <X size={14} />

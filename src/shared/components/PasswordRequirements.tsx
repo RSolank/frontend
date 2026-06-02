@@ -15,7 +15,7 @@ function Requirement({ met, text }: RequirementRowProps) {
       className={
         'flex items-center gap-2 text-sm transition-colors ' +
         (met
-          ? 'text-emerald-600 dark:text-emerald-400'
+          ? 'text-success-600 dark:text-success-400'
           : 'text-slate-500 dark:text-slate-400')
       }
     >

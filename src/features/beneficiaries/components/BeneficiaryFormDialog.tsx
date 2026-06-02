@@ -192,7 +192,7 @@ export function BeneficiaryFormDialog({
             disabled={saving}
             aria-label="Remove beneficiary"
             title="Remove beneficiary"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
             data-testid="beneficiary-form-remove"
           >
             <Trash2 aria-hidden size={16} />
@@ -206,7 +206,7 @@ export function BeneficiaryFormDialog({
               type="button"
               onClick={onRequestMerge}
               disabled={saving}
-              className="mr-auto rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
+              className="mr-auto rounded-md border border-warning-300 bg-warning-50 px-4 py-2 text-sm font-semibold text-warning-800 transition-colors hover:bg-warning-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60"
             >
               Merge…
             </button>

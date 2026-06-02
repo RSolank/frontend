@@ -96,7 +96,7 @@ export function FilterSidebar({
               <button
                 type="button"
                 aria-label="Close filters"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X aria-hidden size={18} />
               </button>
@@ -205,7 +205,7 @@ export function FilterSidebar({
             <button
               type="button"
               onClick={onClearAll}
-              className="text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+              className="text-sm font-semibold text-danger-600 hover:text-danger-700 dark:text-danger-400 dark:hover:text-danger-300"
             >
               Clear all
             </button>

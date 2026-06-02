@@ -78,7 +78,7 @@ viewport — there is **no desktop sidebar**.
     chain converts that into `/login` automatically
   - no tokens → `/`
 - **Main feature links** (Group 2). Three inline `NavLink`s; the active
-  route gets an indigo bottom border per the indigo accent contract (see [`conventions.md`](conventions.md)).
+  route gets an accent bottom border per the accent-token contract (see [`conventions.md`](conventions.md)).
 - **ThemeToggle** (☼).
 - **About** link → `/`.
 - **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.
@@ -106,7 +106,7 @@ optional `confirmOnDirty` interception, and a responsive default
 
 `shared/components/ConfirmDialog.tsx` is the standard confirmation
 modal (replaces every `window.confirm()` across the retrofitted
-features). Intent is `'primary'` (indigo) or `'danger'` (rose).
+features). Intent is `'primary'` (accent) or `'danger'`.
 
 `shared/hooks/useModal.ts`:
 
@@ -145,7 +145,7 @@ Layout contract:
   content scrolls.
 - **Mobile / tablet (<lg)**: horizontal-scroll tab row pinned under
   the breadcrumb. Chips are ≥44 px tap targets (per CONTRIBUTING.md
-  §1 Platform target). Active tab gets the indigo accent
+  §1 Platform target). Active tab gets the accent
   underline.
 
 Routes consuming the shell are nested: the parent route's `element`
@@ -378,14 +378,31 @@ class-based custom variant
 ships dark utility classes alongside its light defaults — don't defer
 dark mode per [`conventions.md`](conventions.md).
 
-The accent color is **indigo** (Tailwind `indigo-500/600/700`). All
-new buttons / focus rings / brand chrome use the indigo family;
-semantic colors (success/warning/error) are emerald/amber/rose.
+**Semantic color tokens** (Platform FE Batch 17). Four named token
+families live in the `@theme inline` block at the top of
+[`src/index.css`](../src/index.css), each registered with the
+standard 50/100/200/.../950 shade ramp:
+
+- **`accent-*`** — brand accent. FLIPS per theme: **teal in light**,
+  **indigo in dark**. The flip lives entirely in `:root` /
+  `html.dark` CSS-variable overrides; consumers reference
+  `accent-*` and stay theme-agnostic.
+- **`success-*` / `warning-*` / `danger-*`** — semantic state.
+  DO NOT flip per theme (emerald / amber / rose in both modes); the
+  per-shade selection handles light vs dark contrast at each call
+  site (e.g. `text-success-600 dark:text-success-400`).
+
+The full contract — when to use which, what counts as a decorative
+one-off, the no-raw-hex rule — lives under
+"[Color discipline](conventions.md#visual-design-language)" in
+the conventions doc. Consumers should not reach for
+`indigo-* / teal-* / emerald-* / amber-* / rose-*` literals; the
+token names are the load-bearing surface.
 
 ## Error boundaries
 
 - **Global** `<ErrorBoundary>` at the top of `<Providers>` — catches
-  anything not caught downstream. Renders an indigo-accented,
+  anything not caught downstream. Renders an accent-tinted,
   dark-aware fallback with a refresh button; the underlying error
   message is shown in dev only.
 - **Per-feature `errorElement`** comes with each feature batch's

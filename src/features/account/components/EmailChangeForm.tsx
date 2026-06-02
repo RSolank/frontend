@@ -327,7 +327,7 @@ function DoneStep({
 }) {
   return (
     <div className="grid gap-3" data-testid="email-change-done">
-      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+      <p className="text-sm font-medium text-success-700 dark:text-success-300">
         Email updated to <strong>{newEmail}</strong>.
       </p>
       <p className="text-xs text-slate-500 dark:text-slate-400">

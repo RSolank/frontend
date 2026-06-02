@@ -389,7 +389,7 @@ function AssignedTagChips({
           const tagLabel = formatTagAssignment(tid, tags);
           const isPrimary = idx === 0;
           const baseClass = isPrimary
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
+            ? 'border-success-200 bg-success-50 text-success-700 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-300'
             : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
           // "Set Primary" is always visible (when editable and the chip
           // isn't already primary). The previous hover-only reveal left
@@ -402,7 +402,7 @@ function AssignedTagChips({
             >
               {tagLabel}
               {isPrimary && (
-                <span className="ml-1 rounded bg-emerald-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
+                <span className="ml-1 rounded bg-success-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
                   Primary
                 </span>
               )}
@@ -410,7 +410,7 @@ function AssignedTagChips({
                 <button
                   type="button"
                   onClick={() => onSetPrimary(tid)}
-                  className="ml-1 rounded bg-indigo-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                  className="ml-1 rounded bg-accent-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none"
                 >
                   Set Primary
                 </button>
@@ -422,7 +422,7 @@ function AssignedTagChips({
                   aria-label={`Remove tag ${tagLabel}`}
                   className={`ml-1 text-base leading-none font-bold ${
                     isPrimary
-                      ? 'text-emerald-700 dark:text-emerald-300'
+                      ? 'text-success-700 dark:text-success-300'
                       : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >

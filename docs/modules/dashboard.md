@@ -187,7 +187,7 @@ cards.
 ## Dark mode
 
 - Every text/border/bg utility carries a `dark:` variant. Saturated
-  fills on progress-bar inners (`bg-indigo-500`, `bg-emerald-500`)
+  fills on progress-bar inners (`bg-accent-500`, `bg-success-500`)
   read well in both themes — mirrors the pattern in
   `BudgetCategoryCard` and `CurrentWeekTracker`.
 - Money values carry `class="money"` for privacy-mask compatibility

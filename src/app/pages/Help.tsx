@@ -39,7 +39,7 @@ export function HelpPage() {
             rel="noopener noreferrer"
             aria-label="View source on GitHub"
             title="View source on GitHub"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-900 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-white dark:hover:text-slate-900"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-900 hover:text-white focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-white dark:hover:text-slate-900"
           >
             <GitHubMark size={20} />
           </a>
@@ -52,7 +52,7 @@ export function HelpPage() {
           <li>
             <Link
               to="/account/accessibility"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Accessibility settings
             </Link>{' '}
@@ -61,7 +61,7 @@ export function HelpPage() {
           <li>
             <Link
               to="/account/preferences"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Account preferences
             </Link>{' '}
@@ -70,7 +70,7 @@ export function HelpPage() {
           <li>
             <Link
               to="/settings/categories"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Categories &amp; rules
             </Link>{' '}
@@ -92,7 +92,7 @@ export function HelpPage() {
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               github.com/RSolank/personal-budget-app
             </a>

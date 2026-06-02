@@ -80,7 +80,7 @@ export function BankAccountsPage() {
             setRegisterSeed('');
             setAdding(true);
           }}
-          className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+          className="inline-flex items-center gap-1 rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none"
           data-testid="bank-account-add"
         >
           <Plus size={16} aria-hidden />

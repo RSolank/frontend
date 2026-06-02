@@ -90,7 +90,7 @@ export function DataExportPanel() {
               aria-pressed={format === f}
               className={`px-3 py-1 text-sm font-medium first:rounded-l-md last:rounded-r-md ${
                 format === f
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-accent-600 text-white'
                   : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
               }`}
               data-testid={`export-format-${f}`}
@@ -113,7 +113,7 @@ export function DataExportPanel() {
             <button
               type="button"
               onClick={() => void downloadViaFetch(r.id, format, setStatus)}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
               data-testid={`export-${r.id}`}
             >
               Download

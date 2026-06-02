@@ -191,7 +191,7 @@ function BillDetailFooter({
         <button
           type="button"
           onClick={() => onMarkUnpaid(bill.bill_id)}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-rose-300 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-800 dark:hover:text-rose-300"
+          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-danger-300 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-danger-800 dark:hover:text-danger-300"
           data-testid="bill-modal-mark-unpaid"
         >
           Reopen
@@ -244,7 +244,7 @@ function BillHeaderStrip({
       {showProgress && (
         <div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
           <div
-            className="h-full bg-emerald-500 dark:bg-emerald-400"
+            className="h-full bg-success-500 dark:bg-success-400"
             style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
           />
         </div>
@@ -430,7 +430,7 @@ function ItemsTable({
                         onClick={() => onViewTransaction(it.txn_id as number)}
                         aria-label="View / edit transaction"
                         title="View / edit transaction"
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                       >
                         <MoreHorizontal aria-hidden size={16} />
                       </button>
@@ -462,17 +462,17 @@ function AdjustmentsTable({
 }) {
   return (
     <section data-testid="bill-adjustments">
-      <h4 className="mb-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
+      <h4 className="mb-2 text-sm font-semibold text-warning-700 dark:text-warning-300">
         Adjustments (from past bills)
       </h4>
       <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
         Edits to transactions from past finalized bills land here as
         corrections — the original bill isn&apos;t mutated.
       </p>
-      <div className="overflow-x-auto rounded-md border border-amber-200 dark:border-amber-900/40">
+      <div className="overflow-x-auto rounded-md border border-warning-200 dark:border-warning-900/40">
         <table className="min-w-[44rem] w-full text-sm">
-          <thead className="bg-amber-50 dark:bg-amber-950/30">
-            <tr className="text-left text-xs font-semibold text-amber-800 uppercase tracking-wide dark:text-amber-200">
+          <thead className="bg-warning-50 dark:bg-warning-950/30">
+            <tr className="text-left text-xs font-semibold text-warning-800 uppercase tracking-wide dark:text-warning-200">
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Source bill</th>
               <th className="px-3 py-2">Type</th>
@@ -480,7 +480,7 @@ function AdjustmentsTable({
               <th className="px-3 py-2 text-right">Penalty delta</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-amber-100 dark:divide-amber-900/40">
+          <tbody className="divide-y divide-warning-100 dark:divide-warning-900/40">
             {items.map((it, idx) => (
               <tr key={`adj-${it.txn_id ?? idx}-${it.adjustment_for_bill_id ?? 0}`}>
                 <td className="px-3 py-2 whitespace-nowrap text-slate-700 dark:text-slate-200">

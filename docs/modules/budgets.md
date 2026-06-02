@@ -164,7 +164,7 @@ Write endpoints consumed:
   styling from `src/index.css`'s `@layer components`. The
   modal body wraps in `text-slate-700 dark:text-slate-200` so any
   inherited label or helper text stays legible.
-- The Total Budget card uses `bg-indigo-50/60 dark:bg-indigo-950/30`
+- The Total Budget card uses `bg-accent-50/60 dark:bg-accent-950/30`
   for its emphasis variant, providing clear separation from the
   neutral category cards in both themes.
 - Native widgets (the month-picker dropdown, calendar pickers used

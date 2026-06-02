@@ -54,11 +54,11 @@ export function BudgetCategoryCard({
   const percent = hasLimit ? (current / limit) * 100 : 0;
 
   const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-indigo-500'
+    ? 'ring-2 ring-inset ring-accent-500'
     : 'ring-0';
 
   const cardBase = emphasis
-    ? 'bg-indigo-50/60 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-900/60'
+    ? 'bg-accent-50/60 border-accent-200 dark:bg-accent-950/30 dark:border-accent-900/60'
     : 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800';
 
   return (
@@ -143,7 +143,7 @@ function CardHeader({
           <h3
             className={`truncate font-semibold ${
               emphasis
-                ? 'text-lg text-indigo-800 dark:text-indigo-100'
+                ? 'text-lg text-accent-800 dark:text-accent-100'
                 : 'text-base text-slate-900 dark:text-slate-100'
             }`}
           >
@@ -156,7 +156,7 @@ function CardHeader({
             </span>
           )}
           {isOver && (
-            <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-200">
+            <span className="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-700 dark:bg-danger-950/60 dark:text-danger-200">
               Over budget
             </span>
           )}
@@ -169,7 +169,7 @@ function CardHeader({
         aria-label={`${hasLimit ? 'View / edit' : 'Set'} budget for ${category.tag_name}`}
         title={hasLimit ? 'View / edit budget' : 'Set budget'}
         data-testid={`budget-card-edit-${category.tag_id}`}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
       >
         <MoreHorizontal aria-hidden size={16} />
       </button>
@@ -210,7 +210,7 @@ interface LabelValueProps {
 // Value colour by tone — if/else (not a nested ternary) so it reads cleanly
 // and stays off sonarjs/no-nested-conditional.
 function labelValueToneClass(tone: 'default' | 'muted' | 'rose'): string {
-  if (tone === 'rose') return 'text-rose-700 dark:text-rose-300';
+  if (tone === 'rose') return 'text-danger-700 dark:text-danger-300';
   if (tone === 'muted') return 'text-slate-600 dark:text-slate-300';
   return 'text-slate-900 dark:text-slate-100';
 }
@@ -264,13 +264,13 @@ const STATUS_STYLE: Record<
   { bar: string; text: string; label: string }
 > = {
   safe: {
-    bar: 'bg-emerald-500 dark:bg-emerald-400',
-    text: 'text-emerald-700 dark:text-emerald-300',
+    bar: 'bg-success-500 dark:bg-success-400',
+    text: 'text-success-700 dark:text-success-300',
     label: 'On track',
   },
   watch: {
-    bar: 'bg-amber-500 dark:bg-amber-400',
-    text: 'text-amber-700 dark:text-amber-300',
+    bar: 'bg-warning-500 dark:bg-warning-400',
+    text: 'text-warning-700 dark:text-warning-300',
     label: 'Watch',
   },
   near: {
@@ -279,8 +279,8 @@ const STATUS_STYLE: Record<
     label: 'Near limit',
   },
   over: {
-    bar: 'bg-rose-500 dark:bg-rose-400',
-    text: 'text-rose-700 dark:text-rose-300',
+    bar: 'bg-danger-500 dark:bg-danger-400',
+    text: 'text-danger-700 dark:text-danger-300',
     label: 'Over budget',
   },
 };
@@ -329,7 +329,7 @@ function classifyAnomaly(
       band: 'above',
       label: 'Above typical max',
       className:
-        'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
+        'bg-danger-100 text-danger-700 dark:bg-danger-950/60 dark:text-danger-200',
       title: `Spent ${pct((current - max) / Math.max(max, 1))} above the highest month on record.`,
     };
   }
@@ -338,7 +338,7 @@ function classifyAnomaly(
       band: 'near',
       label: 'Near typical max',
       className:
-        'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200',
+        'bg-warning-100 text-warning-800 dark:bg-warning-950/60 dark:text-warning-200',
       title: `Spent ${pct((current - avg) / avg)} above the average. Watch the rest of the month.`,
     };
   }
@@ -347,7 +347,7 @@ function classifyAnomaly(
       band: 'below',
       label: 'Below typical',
       className:
-        'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+        'bg-success-100 text-success-700 dark:bg-success-950/60 dark:text-success-200',
       title: `Spent ${pct((avg - current) / avg)} under the average. Quiet month so far.`,
     };
   }

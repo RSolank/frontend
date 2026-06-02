@@ -13,9 +13,15 @@ import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
 
 import { App } from './App';
-import { HelpPage } from './pages/Help';
 import { HomePage } from './pages/Home';
 import { protectedRoutes } from './routeHelpers';
+
+// Help is a content-heavy doc-style page hit by a small minority of
+// sessions (TopNav link, not a primary surface) — lazy-load it to
+// keep first-paint under the 125 kB JS ceiling.
+const HelpPage = lazy(() =>
+  import('./pages/Help').then((m) => ({ default: m.HelpPage }))
+);
 
 // `/account/cancel-deletion` is unauthenticated by design — the user
 // IS logged out while the BE central lock is active, and the email

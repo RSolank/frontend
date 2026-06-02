@@ -245,7 +245,7 @@ export function BankAccountFormDialog({
             onClick={onRequestRemove}
             title="Remove account"
             aria-label="Remove account"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
           >
             <Trash2 size={16} />
           </button>
@@ -264,7 +264,7 @@ export function BankAccountFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="bank-account-save"
           >
             {saveLabel(saving, isEditing)}
@@ -371,7 +371,7 @@ function BankAccountFormBody({
       {error && (
         <p
           role="alert"
-          className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+          className="rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-950/40 dark:text-danger-300"
           data-testid="bank-account-form-error"
         >
           {error}
@@ -466,7 +466,7 @@ function IdentifiersFieldset({
           type="button"
           onClick={onAddIdentifier}
           disabled={identifierInput.trim().length === 0 || identifierBusy}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid="bank-account-identifier-add"
         >
           <Plus size={14} aria-hidden />

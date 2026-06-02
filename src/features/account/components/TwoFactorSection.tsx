@@ -174,7 +174,7 @@ export function TwoFactorSection() {
               type="button"
               onClick={() => void handleDisable()}
               disabled={submitting || disablePassword.length === 0}
-              className="inline-flex items-center justify-center rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="2fa-disable-confirm"
             >
               {submitting ? 'Disabling…' : 'Disable 2FA'}
@@ -258,7 +258,7 @@ function EnabledIdlePanel({
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="inline-block h-2 w-2 rounded-full bg-emerald-500"
+          className="inline-block h-2 w-2 rounded-full bg-success-500"
         />
         <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
           Two-factor authentication is enabled.
@@ -273,7 +273,7 @@ function EnabledIdlePanel({
         <button
           type="button"
           onClick={onDisable}
-          className="rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 dark:border-rose-900/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950/30"
+          className="rounded-md border border-danger-300 bg-white px-4 py-2 text-sm font-medium text-danger-700 transition-colors hover:bg-danger-50 dark:border-danger-900/60 dark:bg-slate-900 dark:text-danger-300 dark:hover:bg-danger-950/30"
           data-testid="2fa-disable-button"
         >
           Disable two-factor authentication
@@ -318,7 +318,7 @@ function EnrollingPanel({
           </div>
           <a
             href={data.provisioning_uri}
-            className="mt-1 inline-block text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+            className="mt-1 inline-block text-sm font-medium text-accent-600 underline underline-offset-2 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-200"
           >
             Open in authenticator app
           </a>
@@ -342,7 +342,7 @@ function EnrollingPanel({
       <form onSubmit={onSubmit} className="grid gap-3">
         <div>
           <label htmlFor="2fa-enroll-code" className="form-label">
-            First 6-digit code <span className="text-rose-600">*</span>
+            First 6-digit code <span className="text-danger-600">*</span>
           </label>
           <input
             id="2fa-enroll-code"
@@ -413,7 +413,7 @@ function BackupCodesPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+      <div className="rounded-md border border-success-300 bg-success-50 px-3 py-2 text-sm text-success-800 dark:border-success-900/60 dark:bg-success-950/30 dark:text-success-200">
         Two-factor authentication is now enabled.
       </div>
       <div>

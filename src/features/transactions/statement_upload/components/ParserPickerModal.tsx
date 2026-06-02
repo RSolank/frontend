@@ -54,7 +54,7 @@ export function ParserPickerModal({
             type="button"
             onClick={() => pick && onConfirm(pick)}
             disabled={pick === null}
-            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="parser-picker-confirm"
           >
             Use this parser
@@ -73,7 +73,7 @@ export function ParserPickerModal({
               className={[
                 'flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors',
                 pick === parser.key
-                  ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40'
+                  ? 'border-accent-500 bg-accent-50 dark:border-accent-400 dark:bg-accent-950/40'
                   : 'border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800',
               ].join(' ')}
             >

@@ -65,7 +65,7 @@ export function VerifyTwoFactorPage() {
       <form onSubmit={handleSubmit} className="grid gap-3">
         <div>
           <label htmlFor="verify-2fa-code" className="form-label">
-            Code <span className="text-rose-600">*</span>
+            Code <span className="text-danger-600">*</span>
           </label>
           <input
             id="verify-2fa-code"

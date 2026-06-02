@@ -130,7 +130,7 @@ export function ProfileImagePicker({
                 remove.mutate();
               }}
               disabled={busy}
-              className="self-start text-sm font-medium text-rose-700 hover:text-rose-800 disabled:opacity-60 dark:text-rose-300 dark:hover:text-rose-200"
+              className="self-start text-sm font-medium text-danger-700 hover:text-danger-800 disabled:opacity-60 dark:text-danger-300 dark:hover:text-danger-200"
               data-testid="profile-image-remove"
             >
               Remove
@@ -176,8 +176,8 @@ export function ProfileImagePicker({
                   data-testid={`profile-image-preset-${preset.id}`}
                   className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full ring-offset-2 transition-shadow disabled:opacity-60 ${
                     isActive
-                      ? 'ring-2 ring-indigo-500 ring-offset-white dark:ring-offset-slate-900'
-                      : 'ring-1 ring-slate-200 hover:ring-indigo-300 dark:ring-slate-700'
+                      ? 'ring-2 ring-accent-500 ring-offset-white dark:ring-offset-slate-900'
+                      : 'ring-1 ring-slate-200 hover:ring-accent-300 dark:ring-slate-700'
                   }`}
                 >
                   <img
@@ -199,7 +199,7 @@ export function ProfileImagePicker({
             status.includes('limit') ||
             status.includes('Try')
               ? 'form-error'
-              : 'text-sm font-medium text-emerald-600 dark:text-emerald-400'
+              : 'text-sm font-medium text-success-600 dark:text-success-400'
           }
           data-testid="profile-image-status"
         >
