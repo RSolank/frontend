@@ -75,12 +75,12 @@ entry sits last in `SETTINGS_SECTIONS`.
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/bank-accounts/` | BankAccountsPage list + BankAccountField picker + TaxPotNudge |
-| `POST /api/bank-accounts/` | Add modal (Create) |
-| `PATCH /api/bank-accounts/{uid}` | Edit modal (Save) |
-| `DELETE /api/bank-accounts/{uid}` | Edit modal (Trash → ConfirmDialog) |
-| `POST /api/bank-accounts/{uid}/identifiers` | IdentifiersFieldset add (edit mode) |
-| `DELETE /api/bank-accounts/{uid}/identifiers/{identifier_uid}` | IdentifiersFieldset × (edit mode) |
+| `GET /api/v1/bank-accounts/` | BankAccountsPage list + BankAccountField picker + TaxPotNudge |
+| `POST /api/v1/bank-accounts/` | Add modal (Create) |
+| `PATCH /api/v1/bank-accounts/{uid}` | Edit modal (Save) |
+| `DELETE /api/v1/bank-accounts/{uid}` | Edit modal (Trash → ConfirmDialog) |
+| `POST /api/v1/bank-accounts/{uid}/identifiers` | IdentifiersFieldset add (edit mode) |
+| `DELETE /api/v1/bank-accounts/{uid}/identifiers/{identifier_uid}` | IdentifiersFieldset × (edit mode) |
 
 ## Vocabularies
 

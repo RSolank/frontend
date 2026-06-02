@@ -10,7 +10,7 @@
 - Render `/settings/categories` inside the
   [Settings shell](settings.md) where users add, rename, retype,
   alias, or delete custom tags.
-- Own the `/api/tags` query surface that the categorization rules tab
+- Own the `/api/v1/tags` query surface that the categorization rules tab
   and the beneficiary form's category dropdown also consume.
 - Surface system-tag protections — the seeded `TOTAL`,
   `MISCELLANEOUS`, and `CONSUMPTION_TAX` rows are read-only; system
@@ -71,20 +71,20 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/tags` | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesTab` |
-| `POST /api/tags` | TagsPage create form |
-| `PATCH /api/tags/:id` | TagsPage update form |
-| `DELETE /api/tags/:id` | TagsPage delete action |
-| `GET /api/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, etc. for read-only row decisions |
+| `GET /api/v1/tags` | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesTab` |
+| `POST /api/v1/tags` | TagsPage create form |
+| `PATCH /api/v1/tags/:id` | TagsPage update form |
+| `DELETE /api/v1/tags/:id` | TagsPage delete action |
+| `GET /api/v1/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, etc. for read-only row decisions |
 
 ## Cross-feature seams
 
 - **`features/beneficiaries/components/BeneficiaryFormFields.tsx`**
   imports `fetchTags` + `TagNode` from
   `features/tags/api/queries.ts` to populate the merchant-category
-  dropdown. This is the canonical home of `/api/tags` so the
+  dropdown. This is the canonical home of `/api/v1/tags` so the
   beneficiary form is the consumer, not the owner.
-- **`/api/metadata/constants`** is also consumed by other features
+- **`/api/v1/metadata/constants`** is also consumed by other features
   (categorization, taxation). It physically lives under metadata on
   the backend but TagsPage exposes a dedicated `fetchTagConstants`
   helper so a tag-only page doesn't depend on the metadata feature.
@@ -95,7 +95,7 @@ Endpoints touched:
 |---|---|
 | `pages/TagsPage.test.tsx` | Tag list renders + alias chips, system-tag indicator surfaces, POST body shape on Create Tag |
 
-MSW handlers for `/api/tags` + `/api/metadata/constants` live in the
+MSW handlers for `/api/v1/tags` + `/api/v1/metadata/constants` live in the
 test file's `beforeEach` since the global handlers (in
 `src/test/handlers/`) don't yet expose a permissive tags default.
 

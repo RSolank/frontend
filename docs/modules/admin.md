@@ -8,13 +8,13 @@
 Operator-only entry point. Backed by BE Phase 1.11
 (`b8db9b5`, `auth.role-enum`) which adds `UserAuth.role` (`"user" |
 "admin"`, default `"user"`) + a reusable `require_role(Role.ADMIN)`
-dependency + the new `/api/admin/*` prefix. The only endpoint
-currently is the probe `GET /api/admin/ping` — concrete admin tools
+dependency + the new `/api/v1/admin/*` prefix. The only endpoint
+currently is the probe `GET /api/v1/admin/ping` — concrete admin tools
 (user list, ops metrics, cemetery audit) ship in later BE phases.
 
 ## Gate
 
-`role` isn't yet exposed on `/api/users/me`, so the FE gates on a
+`role` isn't yet exposed on `/api/v1/users/me`, so the FE gates on a
 successful ping rather than on a `/me` field. When the BE adds the
 field (coordinated drop with the admin-tools work) the gate switches
 to read from `/me` in a one-line edit.
@@ -61,5 +61,5 @@ without an error.
 | `shared/api/adminGate.test.tsx` | 200 → true, 403 → false, 401 → false, 5xx → false (fails closed). |
 | `pages/AdminLandingPage.test.tsx` | Admin scaffold renders when gate returns 200; "Not available" panel renders when gate returns 403. |
 
-MSW default for `/api/admin/ping` is 403 (the common path); admin
+MSW default for `/api/v1/admin/ping` is 403 (the common path); admin
 tests override with `server.use(...)` to return 200.

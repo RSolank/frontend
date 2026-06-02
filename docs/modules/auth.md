@@ -6,7 +6,7 @@
 
 ## Purpose
 
-- Authenticate users against `/api/auth/login` and `/api/auth/register`.
+- Authenticate users against `/api/v1/auth/login` and `/api/v1/auth/register`.
 - Drive the forgot-password recovery flow (security question and / or
   OTP, then `reset-password-final`).
 - Hydrate `useAuthStore` and `usePreferencesStore` at app boot so the
@@ -19,9 +19,9 @@
 |---|---|---|
 | `/login` | `pages/LoginPage.tsx` | Bears the recovery flow inline via `recovery/components/RecoveryFlow.tsx` |
 | `/register` | `pages/RegisterPage.tsx` | Includes timezone field + locale-driven country default |
-| `/verify/2fa` | `pages/VerifyTwoFactorPage.tsx` | BE Phase 2.7 — TOTP / backup-code entry. Reached via `navigate('/verify/2fa', { state: { pending_token } })` from `useAuth.login` when the BE returns `{status:"two_factor_required"}` and from the recovery flow on the same shape. Submits to `/api/auth/2fa/login-verify` to finalize the session. |
-| `/verify/new-device` | `pages/VerifyNewDevicePage.tsx` | BE Phase 2.3 — OTP entry for an unknown-device login. Reached via `navigate('/verify/new-device', { state: { pending_token, masked_email } })` from `useAuth.login`. Submission delegates to `useAuth.verifyNewDevice`, which chain-routes to `/verify/2fa` when the BE returns a 2FA challenge (device gate is step 1 for 2FA-enabled users) and otherwise persists tokens + navigates to the landing route. Resend button POSTs `/api/auth/new-device/resend` and swaps the in-state `pending_token` with the new one. |
-| `/account/revoke-device?token=…` | `features/account/pages/RevokeDevicePage.tsx` | BE Phase 2.3 — public landing for the one-click revoke link from the new-device intimation email. Auto-fires `POST /api/auth/new-device/revoke {token}` on mount; renders Success / Invalid / Error / no-token panels. Lives in `publicRoutes` (unauthenticated by design — the user is presumed locked out of the device they're revoking). |
+| `/verify/2fa` | `pages/VerifyTwoFactorPage.tsx` | BE Phase 2.7 — TOTP / backup-code entry. Reached via `navigate('/verify/2fa', { state: { pending_token } })` from `useAuth.login` when the BE returns `{status:"two_factor_required"}` and from the recovery flow on the same shape. Submits to `/api/v1/auth/2fa/login-verify` to finalize the session. |
+| `/verify/new-device` | `pages/VerifyNewDevicePage.tsx` | BE Phase 2.3 — OTP entry for an unknown-device login. Reached via `navigate('/verify/new-device', { state: { pending_token, masked_email } })` from `useAuth.login`. Submission delegates to `useAuth.verifyNewDevice`, which chain-routes to `/verify/2fa` when the BE returns a 2FA challenge (device gate is step 1 for 2FA-enabled users) and otherwise persists tokens + navigates to the landing route. Resend button POSTs `/api/v1/auth/new-device/resend` and swaps the in-state `pending_token` with the new one. |
+| `/account/revoke-device?token=…` | `features/account/pages/RevokeDevicePage.tsx` | BE Phase 2.3 — public landing for the one-click revoke link from the new-device intimation email. Auto-fires `POST /api/v1/auth/new-device/revoke {token}` on mount; renders Success / Invalid / Error / no-token panels. Lives in `publicRoutes` (unauthenticated by design — the user is presumed locked out of the device they're revoking). |
 
 Routes are exported from
 [`features/auth/auth.routes.tsx`](../../src/features/auth/auth.routes.tsx)
@@ -62,7 +62,7 @@ carries an `errorElement` that resolves to
   `authKeys.sessions()`).
 - `api/schemas.ts` — Zod schemas for login / register / recovery inputs.
   `registerFormSchema` shapes the RHF form state; `RegisterPayload`
-  shapes the wire body sent to `/api/auth/register` (`timezone` field
+  shapes the wire body sent to `/api/v1/auth/register` (`timezone` field
   included; see CONTRIBUTING.md §5 + the "Backend follow-ups deferred"
   section of `docs/archive/refactor-v1.0/summary.md`).
 - `api/queries.ts` — `useCurrentUserQuery`, `useUserPreferencesQuery`,
@@ -91,7 +91,7 @@ carries an `errorElement` that resolves to
 
 ## Polymorphic login response (BE Phase 2.3 + 2.7)
 
-`POST /api/auth/login` and `POST /api/auth/reset-password-final` can
+`POST /api/v1/auth/login` and `POST /api/v1/auth/reset-password-final` can
 now return three shapes — all as 200 OK responses, NOT errors:
 
 1. `TokenResponse` (`{access_token, refresh_token}`) — the happy path.
@@ -111,12 +111,12 @@ helpers in `api/mutations.ts` (`isTwoFactorChallenge`,
 | (no status) | landing-route preference | tokens persisted, prefs hydrated |
 
 `useAuth.loginVerify2fa(pending_token, code)` finishes the 2FA
-challenge with a POST to `/api/auth/2fa/login-verify` and applies
+challenge with a POST to `/api/v1/auth/2fa/login-verify` and applies
 the same post-login flow as a non-2FA login (persist + hydrate +
 navigate to the landing route).
 
 `useAuth.verifyNewDevice(pending_token, otp)` finishes the new-
-device challenge with a POST to `/api/auth/new-device/verify`.
+device challenge with a POST to `/api/v1/auth/new-device/verify`.
 Response is polymorphic — TokenResponse on the happy path, or a
 `{status:"two_factor_required", pending_token}` chain-through
 when the user has 2FA on (device gate was step 1). The chain-
@@ -174,7 +174,7 @@ SoT for currency, timezone, and the six other server-synced
 preference fields. This feature owns the hydration entry points:
 
 - **Login success** — `useAuth.login()` calls `hydratePreferences()`
-  → `GET /api/users/preferences` → writes every recognized field
+  → `GET /api/v1/users/preferences` → writes every recognized field
   into its store.
 - **Register success** — `useAuth.register()` calls
   `hydratePreferences()` so the BE-seeded defaults (derived from
@@ -195,7 +195,7 @@ Profile updates invalidate `userKeys.preferences()` and call
 
 - **Country default** uses `Intl.DisplayNames(['en'], {type: 'region'})`
   to resolve the browser's locale region (e.g. `en-IN` → `IN` → `India`)
-  and matches against `/api/metadata/countries`. Falls back to India
+  and matches against `/api/v1/metadata/countries`. Falls back to India
   when nothing matches.
 - **Timezone default** comes from the first entry of the selected
   country's `timezones` array on the metadata payload, or — when the
@@ -204,7 +204,7 @@ Profile updates invalidate `userKeys.preferences()` and call
 - **Timezone field UI** is driven by `<TimezoneSelect>` which reads
   the country list from `useCountriesQuery` and the full IANA list
   from `useTimezonesQuery` — both served by the backend's
-  `/api/metadata/*` endpoints after BE Phase 1.3.
+  `/api/v1/metadata/*` endpoints after BE Phase 1.3.
   `shared/utils/countryTimezones.ts` now holds only the pure helpers
   (`getTimezonesForCountryName(name, countries)`, offset formatting,
   browser-tz fallback); the npm `countries-and-timezones` package was

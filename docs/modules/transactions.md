@@ -124,20 +124,20 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/transactions` | TransactionsPage (with filter / sort / paging params) |
-| `GET /api/transactions/:id` | EditTransactionPage load |
-| `POST /api/transactions[?rule_id=…]` | AddTransactionPage |
-| `PATCH /api/transactions/:id[?rule_id=…]` | EditTransactionPage |
-| `DELETE /api/transactions/:id` | TransactionsPage row action menu |
-| `POST /api/statement-uploads` | UploadStatementPage submit (sends `parser_override` form field) |
-| `GET /api/statement-uploads/{job_id}` | UploadStatementPage + StatementUploadDock poll |
-| `GET /api/statement-uploads/parsers` | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
-| `POST /api/transactions/:id/manual-tags` | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow) |
-| `GET /api/categorization-rules` | EditTransactionPage tag-changed flow |
-| `POST /api/categorization-rules` | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
-| `PUT /api/categorization-rules/:uid` | EditTransactionPage update-existing-rule path |
-| `GET /api/tags` | All pages — flat tag list for chips + search dropdowns |
-| `GET /api/metadata/constants` | Add / Edit — Misc + Total tag IDs for the chip rules |
+| `GET /api/v1/transactions` | TransactionsPage (with filter / sort / paging params) |
+| `GET /api/v1/transactions/:id` | EditTransactionPage load |
+| `POST /api/v1/transactions[?rule_id=…]` | AddTransactionPage |
+| `PATCH /api/v1/transactions/:id[?rule_id=…]` | EditTransactionPage |
+| `DELETE /api/v1/transactions/:id` | TransactionsPage row action menu |
+| `POST /api/v1/statement-uploads` | UploadStatementPage submit (sends `parser_override` form field) |
+| `GET /api/v1/statement-uploads/{job_id}` | UploadStatementPage + StatementUploadDock poll |
+| `GET /api/v1/statement-uploads/parsers` | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
+| `POST /api/v1/transactions/:id/manual-tags` | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow) |
+| `GET /api/v1/categorization-rules` | EditTransactionPage tag-changed flow |
+| `POST /api/v1/categorization-rules` | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
+| `PUT /api/v1/categorization-rules/:uid` | EditTransactionPage update-existing-rule path |
+| `GET /api/v1/tags` | All pages — flat tag list for chips + search dropdowns |
+| `GET /api/v1/metadata/constants` | Add / Edit — Misc + Total tag IDs for the chip rules |
 
 ## Responsive
 
@@ -279,7 +279,7 @@ close, scroll lock. Footer carries `[Clear all] [Done]`.
   against today in the browser tz. No backend dependency. Hidden in
   Calendar view (calendar has its own ◀ ▶ month nav).
 - **Merchant search** (`components/MerchantSearchBar.tsx`) — typeahead
-  picker against `/api/beneficiaries`. Selecting a beneficiary sets
+  picker against `/api/v1/beneficiaries`. Selecting a beneficiary sets
   `?beneficiary=<id>`; server-side filter (`beneficiary_id`)
   scales across pages. The bar shows in all three views — yes,
   including Calendar, because a heat-map of one merchant's spending

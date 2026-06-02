@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useBrandingQuery } from '../../../shared/api/branding';
 import { Modal } from '../../../shared/components/Modal';
 import {
   disableTwoFactorRequest,
@@ -390,9 +391,12 @@ function BackupCodesPanel({
   codes: string[];
   onDone: () => void;
 }) {
+  // Brand identity is reactive: when the BE rebrands, the downloaded
+  // file header reflects the new product name on the next page load.
+  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
   function handleDownload() {
     const content = [
-      '# Personal Budget — two-factor backup codes',
+      `# ${brandName} — two-factor backup codes`,
       '# Each code is single-use. Store these somewhere safe.',
       '',
       ...codes,

@@ -65,4 +65,16 @@ export const metadataHandlers = [
       RELATIONSHIP_TYPES: ['friend', 'family'],
     })
   ),
+  // BE Phase 2.11 brand identity — default to the production "Aevum"
+  // record so the few surfaces that consume the query in tests render
+  // a stable name without per-test wiring.
+  http.get(`${API_BASE}/metadata/branding`, () =>
+    HttpResponse.json({
+      name: 'Aevum',
+      tagline: 'Future begins today',
+      description:
+        'Aevum turns the limits you set for yourself into a self-imposed consumption tax — overspend a category and the difference is billed back to you each week.',
+      logo_url: null,
+    })
+  ),
 ];

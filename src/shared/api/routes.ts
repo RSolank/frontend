@@ -8,11 +8,13 @@
 // features to a shared file and break the feature-isolation architecture
 // the refactor established.
 //
-// The `V` knob is the API version prefix. The backend currently serves at
-// `/api`; when `T-api-v1-prefix` (backend Group D, Phase 3.1) ships, the
-// flip to `/api/v1` is the single edit below — a follow-up commit on `main`,
-// explicitly out of scope for this batch (see task-frontend.md Batch 10).
-const V = '/api';
+// The `V` knob is the API version prefix. BE Phase 2.11
+// (T-api-v1-prefix) shipped the `/api/v1/*` parent prefix in
+// 2026-06-02; the old `/api/*` is NOT aliased so this const is the
+// only runtime surface that needs to change. The matching test-side
+// flip lives in `src/test/baseUrl.ts` (`API_BASE`). A future v2 is
+// the same one-line change.
+const V = '/api/v1';
 
 // Path-param helpers interpolate ids directly (numeric ids and opaque uids
 // need no encoding — matches the pre-Batch-10 call sites). String path
@@ -70,6 +72,9 @@ export const routes = {
     countries: () => `${V}/metadata/countries`,
     currencies: () => `${V}/metadata/currencies`,
     timezones: () => `${V}/metadata/timezones`,
+    // BE Phase 2.11 — product brand identity (name / tagline /
+    // description / logo_url). Public route, served unauthenticated.
+    branding: () => `${V}/metadata/branding`,
   },
 
   exports: {

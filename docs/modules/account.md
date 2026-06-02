@@ -29,7 +29,7 @@
 | `/account/preferences` | `pages/AccountPreferencesPage.tsx` | country / currency / timezone + defaults placeholder |
 | `/profile` | redirect → `/account/profile` | legacy alias |
 | `/account/cancel-deletion` | `pages/CancelDeletionPage.tsx` (UNAUTH) | landing for the deletion-cancel email link + apiClient `ACCOUNT_PENDING_DELETION` 403 interceptor |
-| `/account/revoke-device` | `pages/RevokeDevicePage.tsx` (UNAUTH) | landing for the new-device intimation email's "this wasn't me" CTA — auto-POSTs `/api/auth/new-device/revoke {token}` on mount (BE Phase 2.3) |
+| `/account/revoke-device` | `pages/RevokeDevicePage.tsx` (UNAUTH) | landing for the new-device intimation email's "this wasn't me" CTA — auto-POSTs `/api/v1/auth/new-device/revoke {token}` on mount (BE Phase 2.3) |
 
 ## Shell
 
@@ -50,7 +50,7 @@ Every page is auth-gated by the parent `<ProtectedRoute>` wrap.
 
 ### Profile
 
-Submits a partial PATCH to `/api/users/me` carrying only
+Submits a partial PATCH to `/api/v1/users/me` carrying only
 `first_name`, `last_name`, `dob`, `contact`. The dial-code default
 derives from the persisted `user.contact` prefix; users can override
 the dial code in the input (e.g. when their phone is from a different
@@ -59,7 +59,7 @@ country than residence).
 A "Profile picture" card at the top of the page hosts the
 [`<ProfileImagePicker>`](../../src/features/account/components/ProfileImagePicker.tsx)
 — preview + Upload + Remove + a 4/6-col grid of geometric presets
-backed by BE Phase 1.13's `/api/users/profile-image-presets`. Each
+backed by BE Phase 1.13's `/api/v1/users/profile-image-presets`. Each
 mutation invalidates `userKeys.me()` so the new `profile_image_url`
 propagates instantly to the TopNav avatar (which goes through the
 shared `<ProfileImage>` primitive in `shared/components/`).
@@ -67,15 +67,15 @@ shared `<ProfileImage>` primitive in `shared/components/`).
 A "Your account at a glance" stats card
 ([`<UserStatsCard>`](../../src/features/account/components/UserStatsCard.tsx))
 renders below the profile form. Reads BE Phase 1.15's
-`GET /api/users/me/stats` (member-since, last-active, txn count,
+`GET /api/v1/users/me/stats` (member-since, last-active, txn count,
 beneficiaries added, active recurring count); falls back to a
 friendly hidden state when the route 404s.
 
 ### Preferences
 
 After BE Phase 1.9 the page Save fans out two parallel PATCHes —
-`PATCH /api/users/me` carrying `{ country }` (identity slice) and
-`PATCH /api/users/preferences` carrying `{ currency, timezone }`
+`PATCH /api/v1/users/me` carrying `{ country }` (identity slice) and
+`PATCH /api/v1/users/preferences` carrying `{ currency, timezone }`
 (the preferences row's `currency` + `timezone` columns). On save,
 invalidates `userKeys.all` and runs `hydratePreferences()` so
 [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
@@ -102,8 +102,8 @@ hydrate path catches that on the next boot/refresh.
 
 ### Security
 
-Change password POSTs `/api/auth/change-password`. Security question
-POSTs `/api/auth/recovery` (one question per user, replaces the
+Change password POSTs `/api/v1/auth/change-password`. Security question
+POSTs `/api/v1/auth/recovery` (one question per user, replaces the
 previous choice).
 
 **Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7).
@@ -138,7 +138,7 @@ yet — both paths converge on the same form shape.
 
 **Trusted devices** — `<TrustedDeviceList>` (BE Phase 2.3,
 T-new-device-otp). Lists every device that has cleared the
-emailed-OTP gate (`GET /api/auth/devices`). Each row shows the
+emailed-OTP gate (`GET /api/v1/auth/devices`). Each row shows the
 parsed UA label, first / last seen timestamps, and a "This device"
 chip on the row whose `is_current === true`. Forgetting a device
 DELETEs it (cascades the active session if any) and forces re-
@@ -146,10 +146,10 @@ verification on the next sign-in from that device. Lives next to
 Active sessions on `/account/security`.
 
 **Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
-flow: step 1 POSTs `/api/auth/change-email-request {new_email,
+flow: step 1 POSTs `/api/v1/auth/change-email-request {new_email,
 password, code?}` and the BE emails an OTP to the new address +
 a security notice to the current address; step 2 POSTs the OTP to
-`/api/auth/change-email-confirm` for an atomic dual-column swap.
+`/api/v1/auth/change-email-confirm` for an atomic dual-column swap.
 The form omits `code` initially and reveals the 2FA-code field
 defensively on the first 401 (the FE doesn't yet have a /me
 `two_factor_enabled` signal — that lands with T-2fa-enroll FE
@@ -158,7 +158,7 @@ from step 1. On success, invalidates `userKeys.me()` and surfaces
 the "other devices were signed out" notice.
 
 **Active sessions** — `<SessionList>` reads the BE Phase 1.12
-`GET /api/auth/sessions` endpoint. Each row carries a UA-derived
+`GET /api/v1/auth/sessions` endpoint. Each row carries a UA-derived
 device label ("Chrome on macOS" / "Safari on iOS"), IP, last-active
 timestamp in the user's tz, a "This device" badge on the row backing
 the current request, and a Revoke button. ConfirmDialog gates the
@@ -176,14 +176,14 @@ Accessibility for in-app amount blurring.
 **Export data** — `<DataExportPanel>` lists the 8 BE-exposed
 resources (transactions, beneficiaries, tax-bills, tax-details,
 spend-by-tag, spend-by-merchant, bank-accounts, profile) backed by
-BE Phase 1.10's `GET /api/exports/{resource}?format=csv|json`. CSV
+BE Phase 1.10's `GET /api/v1/exports/{resource}?format=csv|json`. CSV
 streams with `Content-Disposition: attachment`; the FE fetches with
 the bearer header (anchor `download` can't carry headers), reads the
 response as a blob, and clicks an off-DOM link. CSV / JSON toggle is
 a pill control.
 
 **Danger zone** — `<DangerZone>` schedules the user's account for
-deletion via BE Phase 2.1's `POST /api/users/me/delete {password}`.
+deletion via BE Phase 2.1's `POST /api/v1/users/me/delete {password}`.
 Confirms via a password-modal, hard-logouts on success (drops tokens
 + navigates to `/` with a sessionStorage banner cue). 403 surfaces
 inline as "Incorrect password". The companion
@@ -254,31 +254,31 @@ through the relevant feature's `api/`:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/users/me` | Profile + Preferences hydrate; carries `profile_image_url` |
-| `PATCH /api/users/me` | Profile save (partial), Preferences save (partial: country only after Batch 2) |
-| `GET /api/users/me/stats` | Profile — UserStatsCard ("Your account at a glance") |
-| `GET /api/users/preferences` | Hydration of every preference store |
-| `PATCH /api/users/preferences` | Preferences save (currency, timezone slice) |
-| `GET /api/users/profile-image-presets` | Profile picture picker grid |
-| `PUT /api/users/me/profile-image/preset` | Profile picture preset selection |
-| `POST /api/users/me/profile-image` | Profile picture upload (multipart) |
-| `DELETE /api/users/me/profile-image` | Profile picture remove |
-| `POST /api/users/me/delete` | Danger zone scheduled deletion |
-| `POST /api/users/me/delete/cancel` | Cancel-deletion page (unauth) |
-| `POST /api/auth/change-password` | Security — change password |
-| `POST /api/auth/change-email-request` | Security — change email step 1 |
-| `POST /api/auth/change-email-confirm` | Security — change email step 2 |
-| `GET /api/auth/sessions` | Security — active sessions list |
-| `DELETE /api/auth/sessions/{id}` | Security — revoke session |
-| `GET /api/auth/devices` | Security — TrustedDeviceList |
-| `DELETE /api/auth/devices/{uid}` | Security — forget device |
-| `POST /api/auth/2fa/enroll` | Security — TwoFactorSection enrol step 1 |
-| `POST /api/auth/2fa/verify-enroll` | Security — TwoFactorSection enrol step 2 (returns backup codes) |
-| `POST /api/auth/2fa/disable` | Security — TwoFactorSection disable (password step-up) |
-| `POST /api/auth/new-device/revoke` | RevokeDevicePage (unauth) |
-| `GET /api/auth/recovery` | Security (current question) |
-| `POST /api/auth/recovery` | Security (set/replace question) |
-| `GET /api/exports/{resource}` | Privacy — data export |
+| `GET /api/v1/users/me` | Profile + Preferences hydrate; carries `profile_image_url` |
+| `PATCH /api/v1/users/me` | Profile save (partial), Preferences save (partial: country only after Batch 2) |
+| `GET /api/v1/users/me/stats` | Profile — UserStatsCard ("Your account at a glance") |
+| `GET /api/v1/users/preferences` | Hydration of every preference store |
+| `PATCH /api/v1/users/preferences` | Preferences save (currency, timezone slice) |
+| `GET /api/v1/users/profile-image-presets` | Profile picture picker grid |
+| `PUT /api/v1/users/me/profile-image/preset` | Profile picture preset selection |
+| `POST /api/v1/users/me/profile-image` | Profile picture upload (multipart) |
+| `DELETE /api/v1/users/me/profile-image` | Profile picture remove |
+| `POST /api/v1/users/me/delete` | Danger zone scheduled deletion |
+| `POST /api/v1/users/me/delete/cancel` | Cancel-deletion page (unauth) |
+| `POST /api/v1/auth/change-password` | Security — change password |
+| `POST /api/v1/auth/change-email-request` | Security — change email step 1 |
+| `POST /api/v1/auth/change-email-confirm` | Security — change email step 2 |
+| `GET /api/v1/auth/sessions` | Security — active sessions list |
+| `DELETE /api/v1/auth/sessions/{id}` | Security — revoke session |
+| `GET /api/v1/auth/devices` | Security — TrustedDeviceList |
+| `DELETE /api/v1/auth/devices/{uid}` | Security — forget device |
+| `POST /api/v1/auth/2fa/enroll` | Security — TwoFactorSection enrol step 1 |
+| `POST /api/v1/auth/2fa/verify-enroll` | Security — TwoFactorSection enrol step 2 (returns backup codes) |
+| `POST /api/v1/auth/2fa/disable` | Security — TwoFactorSection disable (password step-up) |
+| `POST /api/v1/auth/new-device/revoke` | RevokeDevicePage (unauth) |
+| `GET /api/v1/auth/recovery` | Security (current question) |
+| `POST /api/v1/auth/recovery` | Security (set/replace question) |
+| `GET /api/v1/exports/{resource}` | Privacy — data export |
 
 ## Tests
 
@@ -297,6 +297,6 @@ through the relevant feature's `api/`:
 | Helper override paths | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore` |
 | `pages/AccountPrivacyPage.test.tsx` | Privacy controls + Danger Zone cards present, modal opens, 403 (wrong password) surfaces inline |
 | `components/TwoFactorSection.test.tsx` | idle → enrolling → showing-backup-codes flow, Disable modal password step-up, /2fa/enroll error handling |
-| `components/TrustedDeviceList.test.tsx` | Lists `/api/auth/devices`, "This device" chip on `is_current`, forget-device DELETE removes row |
-| `components/UserStatsCard.test.tsx` | Renders the 5 stat tiles from `/api/users/me/stats`; hidden state when the endpoint 404s |
+| `components/TrustedDeviceList.test.tsx` | Lists `/api/v1/auth/devices`, "This device" chip on `is_current`, forget-device DELETE removes row |
+| `components/UserStatsCard.test.tsx` | Renders the 5 stat tiles from `/api/v1/users/me/stats`; hidden state when the endpoint 404s |
 | `pages/RevokeDevicePage.test.tsx` | Auto-POSTs on mount with valid token (204 → success copy); 400 → invalid-token copy; no-token landing explains the email link |

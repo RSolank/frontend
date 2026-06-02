@@ -15,6 +15,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
 import { useAdminGateQuery } from '../api/adminGate';
+import { useBrandingQuery } from '../api/branding';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
@@ -79,6 +80,9 @@ export function TopNav({ onLogout }: TopNavProps) {
   const user = useAuthStore((s) => s.user);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  // BE Phase 2.11 — single-source brand identity. Fallback baked
+  // into the query (placeholderData) so first paint never blanks.
+  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
 
   // Close the mobile drawer on any route change.
   useEffect(() => {
@@ -129,12 +133,12 @@ export function TopNav({ onLogout }: TopNavProps) {
         */}
         <Link
           to="/"
-          aria-label="Personal Budget"
+          aria-label={brandName}
           className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-indigo-700 no-underline transition-colors hover:text-indigo-800 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-indigo-300 dark:hover:text-indigo-200`}
         >
           <Wallet aria-hidden="true" size={22} />
           <span className="hidden text-base font-semibold tracking-tight sm:inline">
-            Personal Budget
+            {brandName}
           </span>
         </Link>
 
@@ -265,6 +269,7 @@ interface MobileDrawerProps {
 // scrolls. Routing semantics are still announced via aria-label on
 // the role="dialog" wrapper, so no semantic loss.
 function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
+  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
   // Escape closes the drawer — the keyboard equivalent of the scrim
   // click + the explicit Close button. Bound while the drawer is mounted.
   useEffect(() => {
@@ -298,11 +303,11 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           <Link
             to="/"
             onClick={onClose}
-            aria-label="Personal Budget"
+            aria-label={brandName}
             className="inline-flex items-center gap-2 text-indigo-700 no-underline dark:text-indigo-300"
           >
             <Wallet aria-hidden="true" size={20} />
-            <span className="text-base font-semibold">Personal Budget</span>
+            <span className="text-base font-semibold">{brandName}</span>
           </Link>
           <button
             type="button"

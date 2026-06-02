@@ -75,8 +75,8 @@ what's worth desktop space is worth mobile space too.
 |---|---|
 | `components/BreachAlertsWidget.tsx` | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert. |
 | `components/WeekSummaryWidget.tsx` | "This week" mini-summary — date range + spend + debit count + tax accrued. |
-| `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
-| `components/RecentActivityWidget.tsx` | Live list backed by BE Phase 2.4 (`77cffb3`) `GET /api/activity`. One row per worker / engine-originated event (bill generated, budget breached, statement import failed, …) with icon + summary + relative time. Fires `POST /api/activity/seen` with `signal=soft` once per `event_id` per session (BE dedupes per cycle) and with `signal=hard` on click; FE composes its own deep-link from `subject_type` + `subject_id`. Server-ordered by `value` (decay/escalation score) — never re-sort client-side. Empty by default for new accounts (friendly empty-state copy). |
+| `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/v1/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
+| `components/RecentActivityWidget.tsx` | Live list backed by BE Phase 2.4 (`77cffb3`) `GET /api/v1/activity`. One row per worker / engine-originated event (bill generated, budget breached, statement import failed, …) with icon + summary + relative time. Fires `POST /api/v1/activity/seen` with `signal=soft` once per `event_id` per session (BE dedupes per cycle) and with `signal=hard` on click; FE composes its own deep-link from `subject_type` + `subject_id`. Server-ordered by `value` (decay/escalation score) — never re-sort client-side. Empty by default for new accounts (friendly empty-state copy). |
 
 ### Shared chrome
 
@@ -115,16 +115,16 @@ feature does not define its own preferences.
 Two endpoints rooted in the dashboard module (because consumers
 span multiple feature pages):
 
-- `GET /api/activity` (+ `POST /api/activity/seen`) — BE Phase 2.4
+- `GET /api/v1/activity` (+ `POST /api/v1/activity/seen`) — BE Phase 2.4
   (`77cffb3`). Driven through `features/dashboard/api/{queries,
   mutations,schemas}.ts`.
-- `GET /api/expense-tracker` — BE Phase 1.7 (`3252ca4`,
+- `GET /api/v1/expense-tracker` — BE Phase 1.7 (`3252ca4`,
   T-aggregates-engine). Per-(tag, bucket) trend; consumed by both
   the dashboard (future widget) and the `/budgets`
   `<ExpenseTrendChart>` today.
 
-Every other card consumes the same `/api/transactions`,
-`/api/budget-limits/status`, and `/api/consumption-tax/…` endpoints
+Every other card consumes the same `/api/v1/transactions`,
+`/api/v1/budget-limits/status`, and `/api/v1/consumption-tax/…` endpoints
 the feature pages call. React Query dedupes the requests across
 cards.
 
@@ -166,7 +166,7 @@ cards.
 - **Tax Tracker** — when the backend endpoint 404s OR `data ==
   null`, renders the friendly "No tax accrual yet this week" empty
   with an Add transaction CTA. The
-  `GET /api/consumption-tax/tracker/current-week` endpoint shipped
+  `GET /api/v1/consumption-tax/tracker/current-week` endpoint shipped
   in BE Phase 2.6 (`e7c05aa`), so the populated path is live; the
   404-tolerant fallback stays for accounts with zero accrual.
 

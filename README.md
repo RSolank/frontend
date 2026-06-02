@@ -1,12 +1,15 @@
-# Personal Budget — Frontend
+# Aevum — Frontend
 
-React 18 + TypeScript SPA (Vite) for the self-imposed consumption-tax
-budgeting app. Track transactions, categorize them with hierarchical
-tags, set per-category budgets, and review the weekly tax bills the
-backend generates.
+React 18 + TypeScript SPA (Vite) for **Aevum**, the self-imposed
+consumption-tax budgeting app. Track transactions, categorize them
+with hierarchical tags, set per-category budgets, and review the
+weekly tax bills the backend generates. ("Personal Budget" was the
+working name before the BE Phase 2.11 rebrand; the npm package name
+`personal-budget-frontend` and the repo path are kept as-is for
+historical continuity.)
 
 The backend is a separate FastAPI service (sibling `backend/` submodule).
-This app talks to it over `/api/*`; `VITE_API_URL` overrides the base
+This app talks to it over `/api/v1/*`; `VITE_API_URL` overrides the base
 (default `http://localhost:4000`).
 
 ## Getting started
@@ -57,7 +60,7 @@ Key conventions:
 - **Server state** via TanStack Query; **client state** via Zustand
   (one store per domain). Every request goes through
   `shared/api/apiClient.ts`, and every URL through the central
-  `shared/api/routes.ts` registry — no inline `/api/...` strings.
+  `shared/api/routes.ts` registry — no inline `/api/v1/...` strings.
 - **User preferences** (currency / number format / date format /
   timezone / theme + 10 accessibility stores) drive presentation
   client-side via `Intl` + CSS; the backend stores the preference.

@@ -18,7 +18,7 @@
   discretionary / uncategorized). Each card carries a humanized
   percentage display (5%, 12.5%) and an inline editor that accepts
   `5%` / `0.05` / `5` (assumed %).
-- Own the `/api/taxation-rules` and `/api/consumption-tax/*` query /
+- Own the `/api/v1/taxation-rules` and `/api/v1/consumption-tax/*` query /
   cache key namespaces (`taxationKeys` in
   [`api/keys.ts`](../../src/features/taxation/api/keys.ts)).
 
@@ -37,7 +37,7 @@ and composed into the root router by `src/app/routes.tsx`
 ## Tax Tracker (current-week card)
 
 The current-week tracker card calls
-`GET /api/consumption-tax/tracker/current-week` for:
+`GET /api/v1/consumption-tax/tracker/current-week` for:
 
 - `running_tax` / `running_penalty` — sum of tax / penalty accrued for
   in-progress week's transactions.
@@ -77,7 +77,7 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   Add and Edit. Edit mode: txn_type rendered as a read-only label;
   Add mode with one missing type: type prefilled + read-only; Add
   mode with multiple missing types: `<select>` picker of the
-  available types. Save calls `PUT /api/taxation-rules/:txn_type`
+  available types. Save calls `PUT /api/v1/taxation-rules/:txn_type`
   (upsert — see backend handoff for why no POST is needed).
 - `components/GenerateBillsDialog.tsx` — modal-first generation
   surface. Week-picker or date-range mode; computes ISO Mon→Sun
@@ -116,10 +116,10 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
 
 | Hook | Purpose |
 |---|---|
-| `useTaxationRulesQuery` | `GET /api/taxation-rules/` → `{ rules[] }`. |
-| `useBillsQuery` | `GET /api/consumption-tax/bills` → `{ bills[] }`. |
-| `useBillQuery(billId)` | Lazy `GET /api/consumption-tax/bills/:id` — only fires when `billId != null`. |
-| `useTrackerCurrentWeekQuery` | `GET /api/consumption-tax/tracker/current-week` — swallows 404 / 501 (returns `null`) so the page renders the pending empty state instead of erroring. Refetches every 5 minutes. |
+| `useTaxationRulesQuery` | `GET /api/v1/taxation-rules/` → `{ rules[] }`. |
+| `useBillsQuery` | `GET /api/v1/consumption-tax/bills` → `{ bills[] }`. |
+| `useBillQuery(billId)` | Lazy `GET /api/v1/consumption-tax/bills/:id` — only fires when `billId != null`. |
+| `useTrackerCurrentWeekQuery` | `GET /api/v1/consumption-tax/tracker/current-week` — swallows 404 / 501 (returns `null`) so the page renders the pending empty state instead of erroring. Refetches every 5 minutes. |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/taxation/api/mutations.ts) —
@@ -132,21 +132,21 @@ was removed in Platform FE Batch 8 — BE Phase 2.6 deleted the
 
 Read endpoints consumed (under `/api`):
 
-- `GET /api/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
-- `GET /api/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
-- `GET /api/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
-- `GET /api/consumption-tax/tracker/current-week` → see Backend handoff (scaffold, may 404 today).
+- `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
+- `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
+- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
+- `GET /api/v1/consumption-tax/tracker/current-week` → see Backend handoff (scaffold, may 404 today).
 
 Write endpoints consumed:
 
-- `PUT /api/taxation-rules/:txn_type` — body `{ tax_rate, default_penalty_rate }`.
-- `POST /api/consumption-tax/bills/generate` — body `{ period_start, period_end }`.
-- `POST /api/consumption-tax/bills/:id/mark-paid` — body `{ payment_txn_id?, amount? }` (BE Phase 2.6, Decision 25).
-- `POST /api/consumption-tax/bills/:id/mark-unpaid` — no body. The undo path.
+- `PUT /api/v1/taxation-rules/:txn_type` — body `{ tax_rate, default_penalty_rate }`.
+- `POST /api/v1/consumption-tax/bills/generate` — body `{ period_start, period_end }`.
+- `POST /api/v1/consumption-tax/bills/:id/mark-paid` — body `{ payment_txn_id?, amount? }` (BE Phase 2.6, Decision 25).
+- `POST /api/v1/consumption-tax/bills/:id/mark-unpaid` — no body. The undo path.
 
 Preferences:
 
-- `auto_enabled` on `/api/users/preferences` — taxation auto-mode
+- `auto_enabled` on `/api/v1/users/preferences` — taxation auto-mode
   toggle (Decision 26). Wired via the existing preference-store
   pipeline; the toggle lives on
   [`/account/preferences`](account.md).

@@ -13,7 +13,7 @@
   categorization engine consults.
 - Surface the "Re-run categorization" action that re-tags existing
   transactions against the current rule set.
-- Own the `/api/categorization-rules` query / cache key namespace.
+- Own the `/api/v1/categorization-rules` query / cache key namespace.
 
 ## Pages
 
@@ -123,7 +123,7 @@ CTA pinned at the top. Click → opens
 whatever's in the search box.
 
 On success, the dialog closes, the page refetches
-`/api/beneficiaries`, and the rule form's beneficiary fields
+`/api/v1/beneficiaries`, and the rule form's beneficiary fields
 auto-select to the newly-created entry. The user's in-flight rule
 state (tags, notes, etc.) survives untouched.
 
@@ -167,14 +167,14 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/categorization-rules` | `useCategorizationRulesQuery` |
-| `POST /api/categorization-rules` | Page create form via `createCategorizationRule` (owned by beneficiaries) |
-| `PUT /api/categorization-rules/:uid` | Page update form (full body) via `updateCategorizationRuleRequest`; chip-level promote/remove via `updateCategorizationRuleTags` (owned by beneficiaries) |
-| `DELETE /api/categorization-rules/:uid` | Page delete + last-tag-removal flow via `deleteCategorizationRule` (owned by beneficiaries) |
-| `POST /api/categorization-rules/re-run` | `reRunCategorizationRequest` |
-| `GET /api/tags` | Page reference data (via `fetchTags` from `features/tags/api/queries`) |
-| `GET /api/beneficiaries` | Page reference data (via `fetchBeneficiaries` from `features/beneficiaries/api/queries`) |
-| `GET /api/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, `MISCELLANEOUS_TAG_ID` |
+| `GET /api/v1/categorization-rules` | `useCategorizationRulesQuery` |
+| `POST /api/v1/categorization-rules` | Page create form via `createCategorizationRule` (owned by beneficiaries) |
+| `PUT /api/v1/categorization-rules/:uid` | Page update form (full body) via `updateCategorizationRuleRequest`; chip-level promote/remove via `updateCategorizationRuleTags` (owned by beneficiaries) |
+| `DELETE /api/v1/categorization-rules/:uid` | Page delete + last-tag-removal flow via `deleteCategorizationRule` (owned by beneficiaries) |
+| `POST /api/v1/categorization-rules/re-run` | `reRunCategorizationRequest` |
+| `GET /api/v1/tags` | Page reference data (via `fetchTags` from `features/tags/api/queries`) |
+| `GET /api/v1/beneficiaries` | Page reference data (via `fetchBeneficiaries` from `features/beneficiaries/api/queries`) |
+| `GET /api/v1/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, `MISCELLANEOUS_TAG_ID` |
 
 ## Cross-feature seams
 
@@ -201,8 +201,8 @@ Endpoints touched:
 | `api/ruleUtils.test.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName` |
 | `api/grouping.test.ts` | `tagSetKey` (order/dedupe invariance), `chooseRepresentativePrimary` (unique winner, shared-parent fallback, no-shared-parent fallback to smallest id), `groupRules` (bucketing, group sort, within-group sort) |
 
-MSW handlers for `/api/categorization-rules`, `/api/tags`,
-`/api/beneficiaries`, `/api/metadata/constants` live in the test
+MSW handlers for `/api/v1/categorization-rules`, `/api/v1/tags`,
+`/api/v1/beneficiaries`, `/api/v1/metadata/constants` live in the test
 file's `beforeEach`; per-test overrides via `server.use(...)`.
 
 ## Follow-ups

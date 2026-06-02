@@ -15,7 +15,7 @@
 - Configure budget limits + per-budget penalty-rate overrides via a
   modal-first form (`<BudgetFormDialog />`). The same modal handles
   the global "Total Budget" surface — different tag id, same shape.
-- Own the `/api/budget-limits/*` query / cache key namespace
+- Own the `/api/v1/budget-limits/*` query / cache key namespace
   (`budgetKeys` in
   [`api/keys.ts`](../../src/features/budgets/api/keys.ts)).
 
@@ -55,7 +55,7 @@ wrapped by `protectedRoutes()`).
 - `components/BudgetFormDialog.tsx` — `<Modal size="md">` with two
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls
-  `POST /api/budget-limits/` (backend upsert by `tag_id + period`).
+  `POST /api/v1/budget-limits/` (backend upsert by `tag_id + period`).
   Cancel + Save in footer; confirmOnDirty on close.
 - `components/ExpenseTrendChart.tsx` — six-month
   `<svg>` bar chart of the Total tag's `net_expense`. Reads
@@ -68,8 +68,8 @@ wrapped by `protectedRoutes()`).
 
 | Hook | Purpose |
 |---|---|
-| `useBudgetStatusQuery(month)` | `GET /api/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`. |
-| `useBudgetLimitsQuery(period)` | `GET /api/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
+| `useBudgetStatusQuery(month)` | `GET /api/v1/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`. |
+| `useBudgetLimitsQuery(period)` | `GET /api/v1/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/budgets/api/mutations.ts) —
@@ -77,9 +77,9 @@ Mutations live in
 
 ## API
 
-Read endpoints consumed (under `/api/budget-limits`):
+Read endpoints consumed (under `/api/v1/budget-limits`):
 
-- `GET /api/budget-limits/status?month=YYYY-MM` → status response with
+- `GET /api/v1/budget-limits/status?month=YYYY-MM` → status response with
   `categories[]` (tag_id, tag_name, tag_type, `current_debit`,
   `current_credit`, `current_net_expense`, `avg_net_expense`,
   `min_net_expense`, `max_net_expense`, limit_amt, penalty_rate,
@@ -88,9 +88,9 @@ Read endpoints consumed (under `/api/budget-limits`):
   BE Phase 1.7 (`3252ca4`, T-aggregates-engine) renamed the spend
   family to `net_expense = total_debit − total_credit` (expense-
   positive — refunds net spend down).
-- `GET /api/budget-limits/?budget_period=monthly` → list of
+- `GET /api/v1/budget-limits/?budget_period=monthly` → list of
   configured limits (no spend aggregates).
-- `GET /api/expense-tracker?period_type=monthly&n=6&tag_id=<TOTAL>` →
+- `GET /api/v1/expense-tracker?period_type=monthly&n=6&tag_id=<TOTAL>` →
   per-bucket trend for the `<ExpenseTrendChart>` six-month chart.
   Query hook lives in
   [`features/dashboard/api/queries.ts`](../../src/features/dashboard/api/queries.ts)
@@ -99,11 +99,11 @@ Read endpoints consumed (under `/api/budget-limits`):
 
 Write endpoints consumed:
 
-- `POST /api/budget-limits/` — body `{ tag_id, budget_period: 'monthly',
+- `POST /api/v1/budget-limits/` — body `{ tag_id, budget_period: 'monthly',
   limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
   The legacy frontend POSTed without a trailing slash; the new code
   uses the canonical `POST /` shape exposed by the backend router.
-- `DELETE /api/budget-limits/{tag_id}` — 204 on success. Drives the
+- `DELETE /api/v1/budget-limits/{tag_id}` — 204 on success. Drives the
   Remove action on `BudgetFormDialog`.
 
 ## Filtering / display rules
@@ -134,7 +134,7 @@ Write endpoints consumed:
 - **Remove action** — `BudgetFormDialog` exposes a Remove button
   in edit mode (trash header per the DetailModal convention).
   Confirms via a nested `<ConfirmDialog />` then calls
-  `deleteBudgetLimitRequest(tag_id)` → `DELETE /api/budget-limits/{tag_id}`
+  `deleteBudgetLimitRequest(tag_id)` → `DELETE /api/v1/budget-limits/{tag_id}`
   (BE 204). The category card flips back to its "Set budget" empty
   state once the mutation resolves.
 

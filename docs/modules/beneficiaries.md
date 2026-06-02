@@ -10,9 +10,9 @@
   pages where users manage merchants and people.
 - Drive the alias-uniqueness probe + chip UI that feeds the
   auto-categorization engine.
-- Own the `/api/beneficiaries/*` query surface and the merge flow.
+- Own the `/api/v1/beneficiaries/*` query surface and the merge flow.
 - Sync merchant → category changes by writing through the
-  `/api/categorization-rules` endpoint so the beneficiary form can
+  `/api/v1/categorization-rules` endpoint so the beneficiary form can
   set / change / clear a merchant's primary tag in one save.
 
 ## Pages
@@ -30,7 +30,7 @@ and composed into the root router by `src/app/routes.tsx`
 ## Components
 
 - `components/AliasChipsInput.tsx` — debounced uniqueness check against
-  `/api/beneficiaries/check-alias`; surfaces "checking", "available",
+  `/api/v1/beneficiaries/check-alias`; surfaces "checking", "available",
   "taken", "duplicate" states; controlled `aliases[]` value.
 - `components/BeneficiaryFormFields.tsx` — shared by the create form
   on the list page and the edit form on the detail page. Owns the
@@ -71,17 +71,17 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/beneficiaries` | List page, detail page (merge picker), beneficiary mutations invalidate |
-| `GET /api/beneficiaries/:id` | Detail page load |
-| `POST /api/beneficiaries` | List page inline create |
-| `PATCH /api/beneficiaries/:id` | Detail page save |
-| `DELETE /api/beneficiaries/:id` | Detail page action menu |
-| `POST /api/beneficiaries/merge` | Detail page merge form |
-| `GET /api/beneficiaries/check-alias` | AliasChipsInput (debounced) |
-| `GET /api/beneficiaries/relationships` | Person form's Relationship dropdown |
-| `GET /api/categorization-rules` | Detail page save (warns on category change) + form field rule-tag sync |
-| `PUT /api/categorization-rules/:uid` | BeneficiaryFormFields set-primary / remove-rule-tag |
-| `DELETE /api/categorization-rules/:uid` | BeneficiaryFormFields remove-last-rule-tag |
+| `GET /api/v1/beneficiaries` | List page, detail page (merge picker), beneficiary mutations invalidate |
+| `GET /api/v1/beneficiaries/:id` | Detail page load |
+| `POST /api/v1/beneficiaries` | List page inline create |
+| `PATCH /api/v1/beneficiaries/:id` | Detail page save |
+| `DELETE /api/v1/beneficiaries/:id` | Detail page action menu |
+| `POST /api/v1/beneficiaries/merge` | Detail page merge form |
+| `GET /api/v1/beneficiaries/check-alias` | AliasChipsInput (debounced) |
+| `GET /api/v1/beneficiaries/relationships` | Person form's Relationship dropdown |
+| `GET /api/v1/categorization-rules` | Detail page save (warns on category change) + form field rule-tag sync |
+| `PUT /api/v1/categorization-rules/:uid` | BeneficiaryFormFields set-primary / remove-rule-tag |
+| `DELETE /api/v1/categorization-rules/:uid` | BeneficiaryFormFields remove-last-rule-tag |
 
 ## Responsive
 

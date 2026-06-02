@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -12,12 +13,22 @@ describe('App shell', () => {
     const router = createMemoryRouter(routes, {
       initialEntries: ['/'],
     });
+    // Branding-aware TopNav uses TanStack Query — the real app wraps
+    // a QueryClientProvider in providers.tsx; mirror it here.
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
-    render(<RouterProvider router={router} />);
+    render(
+      <QueryClientProvider client={client}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    );
 
-    // The Batch 6.5 TopNav brand link surfaces with the "Personal Budget"
-    // aria-label on every route — confirms the shell mounted.
-    const brands = await screen.findAllByLabelText(/personal budget/i);
+    // The Batch 6.5 TopNav brand link surfaces with the brand
+    // aria-label ("Aevum" post-Batch-16 rebrand) on every route —
+    // confirms the shell mounted.
+    const brands = await screen.findAllByLabelText(/aevum/i);
     expect(brands.length).toBeGreaterThan(0);
   });
 });

@@ -17,8 +17,9 @@ src/
 │
 ├── shared/                    # cross-feature primitives
 │   ├── api/apiClient.ts       # typed fetch + Bearer auth + 401 refresh + X-Device-Id header + Retry-After envelope + ACCOUNT_PENDING_DELETION interceptor + ApiError
-│   ├── api/adminGate.ts       # `useAdminGateQuery` — `/api/admin/ping` boolean probe (BE Phase 1.11) consumed by TopNav + AdminLandingPage
-│   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api'` knob
+│   ├── api/adminGate.ts       # `useAdminGateQuery` — `/api/v1/admin/ping` boolean probe (BE Phase 1.11) consumed by TopNav + AdminLandingPage
+│   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api/v1'` knob
+│   ├── api/branding.ts        # `useBrandingQuery` — Aevum brand identity (`/api/v1/metadata/branding`, BE Phase 2.11)
 │   ├── api/referenceData.ts   # countries / currencies queries (read-only system reference data)
 │   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …
 │   #                            (the Country/Currency/Timezone pickers + reference data were the old "metadata" feature; they live in shared as infra, not a feature)
@@ -234,16 +235,15 @@ graph.
   (Bearer token, refresh-on-401, `X-Device-Id` header), and every URL
   is built from the central
   [`src/shared/api/routes.ts`](../src/shared/api/routes.ts) registry
-  (`routes.<feature>.<action>(...)`) — no inline `/api/...` strings.
-  The `const V = '/api'` knob in `routes.ts` makes the eventual
-  `/api/v1` cutover a one-line change. The test surface mirrors the
-  same pattern: `src/test/baseUrl.ts` exports `API_BASE =
-  'http://localhost:4000/api'`, and every MSW handler + per-test
-  `server.use(...)` override consumes it as
-  `\`${API_BASE}/...\``. The v1 cutover is exactly two const flips
-  (`V` in `routes.ts` + `API_BASE` in `baseUrl.ts`) plus
-  `npm run gen:api` to refresh the generated paths shape in
-  `src/shared/types/api.ts`.
+  (`routes.<feature>.<action>(...)`) — no inline `/api/v1/...` strings.
+  The `const V = '/api/v1'` knob in `routes.ts` is the single
+  runtime flip point for API-version cutovers. The test surface
+  mirrors the same pattern: `src/test/baseUrl.ts` exports
+  `API_BASE = 'http://localhost:4000/api/v1'`, and every MSW
+  handler + per-test `server.use(...)` override consumes it as
+  `\`${API_BASE}/...\``. The next version cutover is the same
+  two-const flip plus `npm run gen:api` to refresh the generated
+  paths shape in `src/shared/types/api.ts`.
 - **`X-Device-Id`** is sent on every authenticated request (and on the
   unauthenticated `POST /auth/refresh`) — a stable UUID v4 minted once
   per browser install and persisted to `localStorage["pba.device_id"]`
@@ -284,7 +284,7 @@ graph.
   - [`usePreferencesStore`](../src/shared/state/preferences.store.ts) —
     currency + country + timezone slice of the `user_preferences`
     contract. Persisted to `localStorage["user-preferences"]`. Hydrated
-    from `GET /api/users/preferences` after login; the Account
+    from `GET /api/v1/users/preferences` after login; the Account
     Preferences page Save handler PATCHes `{ currency, timezone }` back
     to the same endpoint.
   - [`useAuthStore`](../src/shared/state/auth.store.ts) — authenticated
@@ -339,7 +339,7 @@ Wiring:
   `src/shared/state/` (see the bullet list above). Every store keeps
   its existing `localStorage`-persist cache so cold-boot has a
   reasonable value before the GET response arrives.
-- **Endpoint** — `GET / PATCH /api/users/preferences` is the only
+- **Endpoint** — `GET / PATCH /api/v1/users/preferences` is the only
   wire surface. The retired `x-user-currency` / `x-user-timezone`
   headers are no longer sent. PATCH accepts a partial body, so the
   subscriber pattern always sends a single field at a time.
@@ -416,4 +416,4 @@ semantic colors (success/warning/error) are emerald/amber/rose.
   a fast dev loop. See [`docs/testing.md`](testing.md).
 - All backend URLs are built through the central
   [`src/shared/api/routes.ts`](../src/shared/api/routes.ts) registry — no
-  inline `/api/...` strings in feature code.
+  inline `/api/v1/...` strings in feature code.

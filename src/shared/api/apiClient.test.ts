@@ -35,7 +35,7 @@ describe('apiFetch — X-Device-Id header', () => {
       })
     );
 
-    await apiFetch('/api/health/device-id');
+    await apiFetch('/api/v1/health/device-id');
     expect(captured?.get('x-device-id')).toBe('fixed-device-id-for-test');
   });
 
@@ -53,8 +53,8 @@ describe('apiFetch — X-Device-Id header', () => {
       })
     );
 
-    await apiFetch('/api/health/dev-1');
-    await apiFetch('/api/health/dev-2');
+    await apiFetch('/api/v1/health/dev-1');
+    await apiFetch('/api/v1/health/dev-2');
     expect(firstId).toBeTruthy();
     expect(firstId).toBe(secondId);
   });
@@ -82,7 +82,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
     let thrown: ApiError | undefined;
     try {
-      await apiFetch('/api/auth/login', { method: 'POST' });
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
     } catch (err) {
       thrown = err as ApiError;
     }
@@ -102,7 +102,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
     let thrown: ApiError | undefined;
     try {
-      await apiFetch('/api/auth/login', { method: 'POST' });
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
     } catch (err) {
       thrown = err as ApiError;
     }
@@ -119,7 +119,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
     let thrown: ApiError | undefined;
     try {
-      await apiFetch('/api/auth/login', { method: 'POST' });
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
     } catch (err) {
       thrown = err as ApiError;
     }
@@ -139,7 +139,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
     let thrown: ApiError | undefined;
     try {
-      await apiFetch('/api/auth/login', { method: 'POST' });
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
     } catch (err) {
       thrown = err as ApiError;
     }
@@ -161,7 +161,7 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
 
     let thrown: ApiError | undefined;
     try {
-      await apiFetch('/api/auth/login', { method: 'POST' });
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
     } catch (err) {
       thrown = err as ApiError;
     }

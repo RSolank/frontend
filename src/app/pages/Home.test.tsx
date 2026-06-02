@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { useAuth } from '../../features/auth/state/useAuth';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 import { HomePage } from './Home';
 
@@ -17,13 +17,7 @@ describe('HomePage', () => {
     // HomePage only reads `user`; cast the partial to the full hook shape.
     mockUseAuth.mockReturnValue({ user: null } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <HomePage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<HomePage />);
 
     expect(
       screen.getByText(/Smart budgeting for future you/i)
@@ -40,13 +34,7 @@ describe('HomePage', () => {
       user: { first_name: 'John' },
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <HomePage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<HomePage />);
 
     // Authed visitors no longer auto-redirect; the landing page stays
     // accessible and the CTAs collapse into one "Go to dashboard"

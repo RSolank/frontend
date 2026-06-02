@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/state/useAuth';
+import { useBrandingQuery } from '../../shared/api/branding';
 
 // Lazy-load the AuthModal so the (~30 KB) `countries-and-timezones`
 // bundle stays in the auth chunk rather than first-paint. Home is
@@ -19,6 +20,7 @@ const AuthModal = lazy(() =>
 export function HomePage() {
   const { user } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
+  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
 
   // No auto-redirect — authenticated visitors see the landing copy and
   // a single "Go to dashboard" CTA. The Home icon in TopNav is the
@@ -39,9 +41,9 @@ export function HomePage() {
           </h1>
 
           <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            Personal Budget keeps your spending, tags, and future tax in one
-            clean dashboard. Sign in to pick up where you left off, or create a
-            free account to get started in minutes.
+            {brandName} keeps your spending, tags, and future tax in one clean
+            dashboard. Sign in to pick up where you left off, or create a free
+            account to get started in minutes.
           </p>
 
           <div className="mb-3 flex flex-wrap gap-3">

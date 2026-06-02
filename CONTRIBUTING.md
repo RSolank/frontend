@@ -1,4 +1,4 @@
-# Personal Budget — Frontend Contributing Guide
+# Aevum — Frontend Contributing Guide
 
 > [!NOTE]
 > **Target spec.** This document is the _target_ shape for the frontend after
@@ -87,7 +87,7 @@ frontend/
 │   │   ├── dashboard/             # /dashboard cross-feature aggregator
 │   │   ├── account/               # account shell + preferences + security + privacy
 │   │   ├── settings/              # settings shell mounting tags / categorization / taxation / bank-accounts
-│   │   └── admin/                 # operator-only /admin/* surface (gated on /api/admin/ping)
+│   │   └── admin/                 # operator-only /admin/* surface (gated on /api/v1/admin/ping)
 │   │
 │   ├── shared/                    # cross-feature primitives
 │   │   ├── api/                   # apiClient.ts (typed fetch + auth + error normalisation)
@@ -326,7 +326,7 @@ cross-device preference. The legacy `x-user-currency` /
 `x-user-timezone` request-header middleware is retired — the FE no
 longer sends them.
 
-The wire shape is `GET / PATCH /api/users/preferences` returning a
+The wire shape is `GET / PATCH /api/v1/users/preferences` returning a
 flat object with these keys:
 
 | Key | Type | Store on frontend |
@@ -346,7 +346,7 @@ field at a time.
 
 **Hydrate / sync flow** (`features/users/api/preferences.ts`):
 
-- `hydratePreferences()` issues `GET /api/users/preferences` and
+- `hydratePreferences()` issues `GET /api/v1/users/preferences` and
   writes every recognized field into its store. Called at boot
   (`AuthInit`), post-login, and post-token-refresh / post-save.
   Each enum / bool field is value-set guarded — anything outside

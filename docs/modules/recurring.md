@@ -16,7 +16,7 @@
 - Expose user-authored CRUD as a secondary path (`+ Add manually`
   in the page header) for templates the engine hasn't detected yet.
 - Render the forecast — pending bill rows from
-  `GET /api/recurring/upcoming?days=N` — on the dashboard (`days=7`)
+  `GET /api/v1/recurring/upcoming?days=N` — on the dashboard (`days=7`)
   and on the `/recurring` Upcoming tab (`days=30`).
 
 The page is an **inference-engine surface**, NOT a user-template
@@ -66,9 +66,9 @@ soft-dismissed by DELETE, recoverable via PATCH `active: true`.
 
 | Hook | BE endpoint | Stale | Notes |
 |---|---|---|---|
-| `useRecurringTemplatesQuery()` | `GET /api/recurring/templates` | 60s | Returns every template owned by the user (active + inactive, all statuses). |
-| `useRecurringUpcomingQuery(days)` | `GET /api/recurring/upcoming?days=N` | 60s | BE clamps `days ≤ 90`. Pending bill rows in the window; `matched_txn_id` null until reconciliation. |
-| `useRecurringHistoryQuery(days)` | `GET /api/recurring/history?days=N` | 60s | BE clamps `days ≤ 30`. Settled bills with their reconciled txn id. Exported but not yet consumed in a surface. |
+| `useRecurringTemplatesQuery()` | `GET /api/v1/recurring/templates` | 60s | Returns every template owned by the user (active + inactive, all statuses). |
+| `useRecurringUpcomingQuery(days)` | `GET /api/v1/recurring/upcoming?days=N` | 60s | BE clamps `days ≤ 90`. Pending bill rows in the window; `matched_txn_id` null until reconciliation. |
+| `useRecurringHistoryQuery(days)` | `GET /api/v1/recurring/history?days=N` | 60s | BE clamps `days ≤ 30`. Settled bills with their reconciled txn id. Exported but not yet consumed in a surface. |
 
 Mutations are bare request functions (no `useMutation` wrappers in
 this batch); the page invalidates `recurringKeys.all` after every
@@ -76,9 +76,9 @@ write so templates + upcoming + history refresh together.
 
 | Function | BE endpoint | Notes |
 |---|---|---|
-| `createRecurringTemplateRequest(payload)` | `POST /api/recurring/templates` | User-authored template (born `locked`). |
-| `updateRecurringTemplateRequest(uid, patch)` | `PATCH /api/recurring/templates/{uid}` | Touching ANY field transfers `created_by` to the user; `status: 'locked'` is the Confirm action. |
-| `deleteRecurringTemplateRequest(uid)` | `DELETE /api/recurring/templates/{uid}` | Soft-deactivate. Bills cascade. |
+| `createRecurringTemplateRequest(payload)` | `POST /api/v1/recurring/templates` | User-authored template (born `locked`). |
+| `updateRecurringTemplateRequest(uid, patch)` | `PATCH /api/v1/recurring/templates/{uid}` | Touching ANY field transfers `created_by` to the user; `status: 'locked'` is the Confirm action. |
+| `deleteRecurringTemplateRequest(uid)` | `DELETE /api/v1/recurring/templates/{uid}` | Soft-deactivate. Bills cascade. |
 
 ## Wire DTOs
 

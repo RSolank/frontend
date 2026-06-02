@@ -53,7 +53,7 @@ describe('TopNav', () => {
       screen.queryByLabelText(/Accessibility settings/i)
     ).not.toBeInTheDocument();
     // Brand + theme cycler remain so the landing page isn't bare.
-    expect(screen.getByLabelText('Personal Budget')).toHaveAttribute('href', '/');
+    expect(screen.getByLabelText('Aevum')).toHaveAttribute('href', '/');
     expect(screen.getByRole('button', { name: /theme:/i })).toBeInTheDocument();
   });
 
@@ -66,7 +66,7 @@ describe('TopNav', () => {
     });
     renderNav();
     expect(screen.getByLabelText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByLabelText('Personal Budget')).toHaveAttribute('href', '/');
+    expect(screen.getByLabelText('Aevum')).toHaveAttribute('href', '/');
     expect(screen.getByText('Transactions')).toBeInTheDocument();
     expect(screen.getByText('Expense Tracker')).toBeInTheDocument();
     expect(screen.getByText('Tax Tracker')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('TopNav', () => {
 
     const drawer = screen.getByRole('dialog', { name: /navigation menu/i });
     // Brand header inside the drawer.
-    expect(within(drawer).getByLabelText('Personal Budget')).toHaveAttribute(
+    expect(within(drawer).getByLabelText('Aevum')).toHaveAttribute(
       'href',
       '/'
     );
@@ -169,12 +169,12 @@ describe('TopNav', () => {
   it('Brand always points at / whenever it is surfaced', () => {
     setUser({ user_id: 1, email_id: 'a@b.c' });
     const { unmount } = renderNav();
-    expect(screen.getByLabelText('Personal Budget')).toHaveAttribute('href', '/');
+    expect(screen.getByLabelText('Aevum')).toHaveAttribute('href', '/');
     unmount();
 
     setUser(null);
     renderNav('/');
-    expect(screen.getByLabelText('Personal Budget')).toHaveAttribute('href', '/');
+    expect(screen.getByLabelText('Aevum')).toHaveAttribute('href', '/');
   });
 
   it('Home icon points at /dashboard on desktop', () => {

@@ -292,7 +292,7 @@ the tracker handoff).
 ### Backend coordination
 
 `useTrackerCurrentWeekQuery` calls
-`/api/consumption-tax/tracker/current-week` — an endpoint the backend
+`/api/v1/consumption-tax/tracker/current-week` — an endpoint the backend
 hasn't shipped yet. The query swallows 404 / 501 so the page renders
 the pending empty state instead of an error. The contract is
 captured in `.scratch/task-handoff-fe-to-be.md` §1

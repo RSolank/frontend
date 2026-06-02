@@ -9,14 +9,14 @@
 > - pickers → [`src/shared/components/`](../../src/shared/components/)
 >   (`CountrySelect`, `CurrencySelect`, `TimezoneSelect`)
 >
-> The system-constants endpoint (`/api/metadata/constants`) stays a
+> The system-constants endpoint (`/api/v1/metadata/constants`) stays a
 > tag-local query (`features/tags/api/queries.ts`). The backend may
 > follow by reclassifying its `metadata` module as a core service. The
 > rest of this page is retained as historical reference.
 
 ## Purpose
 
-- Cache and expose the `/api/metadata/{countries,currencies,timezones,constants}`
+- Cache and expose the `/api/v1/metadata/{countries,currencies,timezones,constants}`
   surface through React Query so feature pages mount their dropdowns
   instantly after the first fetch.
 - Provide composable form controls (`CountrySelect`, `CurrencySelect`,
@@ -49,8 +49,16 @@ Consolidated into one file —
 |---|
 | `fetchCountries`, `fetchCurrencies`, `fetchTimezones`, `useCountriesQuery`, `useCurrenciesQuery`, `useTimezonesQuery`; types `CountryOption` + `CurrencyOption` + `TimezoneOption`. Cache keys (`referenceDataKeys`) are file-internal — no shared keys constant for downstream consumers. |
 
-The `/api/metadata/constants` endpoint is fetched separately by
+The `/api/v1/metadata/constants` endpoint is fetched separately by
 `features/tags/api/queries.ts` (`fetchTagConstants`).
+
+The `/api/v1/metadata/branding` endpoint (BE Phase 2.11 — Aevum
+brand identity) lives in its own
+[`shared/api/branding.ts`](../../src/shared/api/branding.ts):
+`fetchBranding`, `useBrandingQuery`, `BRAND_FALLBACK`, and a
+synchronous `getBrandName()` accessor for non-React callers. The
+hook returns a hardcoded `BRAND_FALLBACK` ("Aevum") via
+`placeholderData` so first paint never blanks the brand label.
 
 All three queries set `staleTime: 60 * 60 * 1000` (one hour) because
 metadata is reference data — it changes between deploys, not between
@@ -101,7 +109,7 @@ sample data; tests override via `server.use(...)` for edge cases.
 Both of the original refactor-era follow-ups for this feature have
 shipped:
 
-1. ~~`/api/metadata/countries` should return `timezones: List[str]`.~~
+1. ~~`/api/v1/metadata/countries` should return `timezones: List[str]`.~~
    Shipped in BE Phase 1.3 (`a89ebfc`); FE wired in Platform FE
    Batch 4. `TimezoneSelect` now reads `country.timezones` directly;
    `getTimezonesForCountryName` became a thin pure helper that takes
@@ -110,4 +118,4 @@ shipped:
 2. ~~Profile schema: persist `timezone`.~~ Shipped in BE Phase 1.9
    on the new `user_preferences` row; FE wired in Platform FE
    Batch 2 (`hydratePreferences()` + Account Preferences page Save
-   PATCHes `/api/users/preferences {currency, timezone}`).
+   PATCHes `/api/v1/users/preferences {currency, timezone}`).

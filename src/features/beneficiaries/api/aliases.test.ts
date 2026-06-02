@@ -11,10 +11,10 @@ describe('alias utilities', () => {
 
   it('buildAliasCheckUrl encodes alias and optional exclude uid', () => {
     expect(buildAliasCheckUrl('Jio')).toBe(
-      '/api/beneficiaries/check-alias?alias=Jio'
+      '/api/v1/beneficiaries/check-alias?alias=Jio'
     );
     expect(buildAliasCheckUrl('Jio', 5)).toBe(
-      '/api/beneficiaries/check-alias?alias=Jio&exclude_uid=5'
+      '/api/v1/beneficiaries/check-alias?alias=Jio&exclude_uid=5'
     );
   });
 });
