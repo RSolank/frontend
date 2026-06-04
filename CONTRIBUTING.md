@@ -87,7 +87,7 @@ frontend/
 │   │   ├── dashboard/             # /dashboard cross-feature aggregator
 │   │   ├── account/               # account shell + preferences + security + privacy
 │   │   ├── settings/              # settings shell mounting tags / categorization / taxation / bank-accounts
-│   │   └── admin/                 # operator-only /admin/* surface (gated on /api/v1/admin/ping)
+│   │   └── admin/                 # operator-only /admin/* surface (gated on /me.role; T-admin A1-E1 in Batch 18)
 │   │
 │   ├── shared/                    # cross-feature primitives
 │   │   ├── api/                   # apiClient.ts (typed fetch + auth + error normalisation)
@@ -529,4 +529,4 @@ revisits should update this section and the corresponding section in lockstep.
 | 8   | Routing            | `createBrowserRouter` + per-feature `RouteObject[]` + `protectedRoutes()` helper; per-route `lazy` for code-splitting                             | Migration to **TanStack Router** is a future adoption, not part of this refactor                                                                |
 | 9   | Auth state         | `useAuthStore` (Zustand + `persist`) replaces `AuthContext`; selector-based subscriptions                                                         | New stores added only when a concrete cross-page client-state need exists                                                                       |
 | 10  | Error boundaries   | Global ErrorBoundary at app shell + per-feature `errorElement` on each `RouteObject`                                                              | Watch **Statement Upload** and **Weekly Tax generation** for crash frequency; add finer sub-route boundaries inside those pages if errors recur |
-| 11  | Bundle budget      | ≤ 120 KB gzipped first-paint JS, ≤ 80 KB per per-feature lazy chunk, ≤ 15 KB CSS; `size-limit` CI gate wired in Batch 9                           | —                                                                                                                                               |
+| 11  | Bundle budget      | ≤ 125 KB gzipped first-paint JS, ≤ 80 KB per per-feature lazy chunk, ≤ 15 KB CSS; `size-limit` CI gate wired in Batch 9                           | —                                                                                                                                               |

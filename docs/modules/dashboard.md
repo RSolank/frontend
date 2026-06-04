@@ -59,12 +59,9 @@ applicable). See the per-card source for the exact copy.
 
 ### Secondary widgets (always visible, ordered by priority)
 
-Four smaller cards in `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`
+Three smaller cards in `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`
 that cluster cross-feature signals. They reuse the same query
-slices as the primary cards, so no extra network cost. (Grid
-flipped from `lg:grid-cols-3` to the current 2/4 split in Batch
-11 to fit the 4th tile — UpcomingBillsWidget — cleanly across
-breakpoints.)
+slices as the primary cards, so no extra network cost.
 
 Ordered by priority (left → right on desktop, top → bottom on
 mobile) so the most actionable signal lands first either way.
@@ -76,7 +73,13 @@ what's worth desktop space is worth mobile space too.
 | `components/BreachAlertsWidget.tsx` | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert. |
 | `components/WeekSummaryWidget.tsx` | "This week" mini-summary — date range + spend + debit count + tax accrued. |
 | `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/v1/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
-| `components/RecentActivityWidget.tsx` | Live list backed by BE Phase 2.4 (`77cffb3`) `GET /api/v1/activity`. One row per worker / engine-originated event (bill generated, budget breached, statement import failed, …) with icon + summary + relative time. Fires `POST /api/v1/activity/seen` with `signal=soft` once per `event_id` per session (BE dedupes per cycle) and with `signal=hard` on click; FE composes its own deep-link from `subject_type` + `subject_id`. Server-ordered by `value` (decay/escalation score) — never re-sort client-side. Empty by default for new accounts (friendly empty-state copy). |
+
+> **Activity feed moved to the TopNav bell in Batch 18.** The
+> previous `RecentActivityWidget` was removed; the secondary grid
+> flipped from `xl:grid-cols-4` back to `xl:grid-cols-3`. The bell
+> renders a lazy modal with Alerts + Notifications as two sections
+> in the same surface, capped at 10, preserving BE rank order. See
+> [activity.md](activity.md) for the full contract.
 
 ### Shared chrome
 
@@ -92,13 +95,15 @@ primary card:
 
 ## Hooks
 
-Dashboard owns the activity-feed + expense-trend hooks because the
-underlying endpoints are dashboard-shaped; every other query
-consumed by a card lives in the feature module it pulls data from.
+Dashboard owns the expense-trend hook because the underlying
+endpoint is dashboard-shaped; every other query consumed by a
+card lives in the feature module it pulls data from. (The
+activity-feed hooks moved out of dashboard in Batch 18 — they
+now live in `shared/api/activity*.ts` since the bell consumes
+them from cross-feature TopNav. See [activity.md](activity.md).)
 
 | Hook | Feature module |
 |---|---|
-| `useActivityFeedQuery` | `features/dashboard/api/queries.ts` (this module) |
 | `useExpenseTrendQuery` | `features/dashboard/api/queries.ts` (this module — also consumed by `/budgets`) |
 | `useTransactionsQuery` | `features/transactions/api/queries.ts` |
 | `useBudgetStatusQuery` | `features/budgets/api/queries.ts` |
@@ -112,16 +117,12 @@ feature does not define its own preferences.
 
 ## API
 
-Two endpoints rooted in the dashboard module (because consumers
+One endpoint rooted in the dashboard module (because consumers
 span multiple feature pages):
 
-- `GET /api/v1/activity` (+ `POST /api/v1/activity/seen`) — BE Phase 2.4
-  (`77cffb3`). Driven through `features/dashboard/api/{queries,
-  mutations,schemas}.ts`.
 - `GET /api/v1/expense-tracker` — BE Phase 1.7 (`3252ca4`,
   T-aggregates-engine). Per-(tag, bucket) trend; consumed by both
-  the dashboard (future widget) and the `/budgets`
-  `<ExpenseTrendChart>` today.
+  the dashboard and the `/budgets` `<ExpenseTrendChart>`.
 
 Every other card consumes the same `/api/v1/transactions`,
 `/api/v1/budget-limits/status`, and `/api/v1/consumption-tax/…` endpoints
@@ -177,11 +178,11 @@ cards.
   primary grid breathes on desktop.
 - Primary grid: `grid-cols-1 lg:grid-cols-3 items-stretch` so cards
   align in a row at `lg+`, stack on mobile.
-- Secondary grid: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` —
+- Secondary grid: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` —
   always visible. Priority order (BreachAlerts → WeekSummary →
-  UpcomingBills → RecentActivity) flows left-to-right on desktop
-  and top-to-bottom on mobile via
-  the same grid; mobile keeps every signal the desktop carries.
+  UpcomingBills) flows left-to-right on desktop and top-to-bottom
+  on mobile via the same grid; mobile keeps every signal the
+  desktop carries.
 - All interactive controls (CTAs, links) keep a ≥ 44 px tap target.
 
 ## Dark mode
@@ -213,7 +214,6 @@ overview.
 | `components/ExpenseTrackerCard.test.tsx` | Per-card rollup of Total Spent / Limit + top 3 categories + breach chip; week-by-category strip aggregation; empty + populated branches. |
 | `components/TaxTrackerCard.test.tsx` | Accrued + projected stat pair, top-3 contributors, 404-tolerant empty branch, populated state via the BE Phase 2.6 endpoint. |
 | `components/UpcomingBillsWidget.test.tsx` | 7-day forecast render, "more in /recurring" cap hint, empty + populated branches. |
-| `components/RecentActivityWidget.test.tsx` | Activity-feed render + `signal=soft` seen-mutation per session + `signal=hard` click-mutation. |
 
 ## Future polish (queued)
 
@@ -221,7 +221,7 @@ overview.
 - **Bill state surfacing** — once [[taxation.bill-state-machine]]
   FE wiring lands, the Tax Tracker card can surface ACCRUING /
   BILLED / OVERDUE counts in the title chip.
-- **Activity feed widget promotion** — once real event volume
-  shows up in `useActivityFeedQuery`, consider promoting the widget
-  out of the secondary cluster (or giving it more height) so a
-  busier feed reads better.
+- **Per-card activity enrichment** — deferred review session
+  filed in [.scratch/task-admin.md](../../.scratch/task-admin.md)
+  Follow-ups (per-card `?domain=` filtered activity feed reads,
+  decision on additional surfaces).

@@ -34,12 +34,19 @@ readers should be able to open the page on either side and map it
 - [`dashboard.md`](dashboard.md) — landing surface, cross-feature
   widgets.
 - [`account.md`](account.md) — `/account/*` shell (profile,
-  security, privacy, accessibility, preferences) — five sections,
-  shared sidebar.
+  security, privacy, accessibility, preferences, notifications) —
+  six sections, shared sidebar.
 - [`settings.md`](settings.md) — settings layout shell + breadcrumb
   + sidebar.
-- [`admin.md`](admin.md) — operator-only `/admin/*` surface and the
-  shared admin-gate hook.
+- [`admin.md`](admin.md) — operator-only `/admin/*` surface
+  (T-admin A1–E1: users list + detail, lock/unlock, force-logout,
+  cemetery audit, bill backfill, signal controls).
+- [`activity.md`](activity.md) — **shared-side cross-cutting
+  surface** (not a feature). TopNav bell + lazy modal, the
+  user-side `/account/notifications` tab, the admin user-detail
+  signal section, and the shared `<SignalSettingsEditor>`. Bell +
+  modal + editor + activity API all live in `shared/`. Page kept
+  here for cross-stack-reader parity with the BE's `backend/docs/modules/activity*`.
 
 ## Page outline
 

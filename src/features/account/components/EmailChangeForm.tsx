@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   changeEmailConfirmRequest,
   changeEmailRequestStart,
 } from '../../auth/api/mutations';
+import { useSecurityStatusQuery } from '../../auth/api/security';
 import { userKeys } from '../../users/api/keys';
-import { useCurrentUserQuery } from '../../users/api/queries';
 
 interface ApiErrorShape {
   detail?: string;
@@ -26,13 +26,12 @@ type Step =
 // thin three-step render.
 function useEmailChangeForm() {
   const queryClient = useQueryClient();
-  const { data: meData } = useCurrentUserQuery();
-  // BE Phase 2.7 — when the BE exposes `two_factor_enabled` on /me
-  // we render the code field unconditionally for 2FA users (cleaner
-  // than the 401-reveal fallback below). The field is typed
-  // optional, so until BE wires it `twoFactorOn` is just `false` and
-  // the 401-reveal path covers us.
-  const twoFactorOn = meData?.user.two_factor_enabled ?? false;
+  // Auth-owned account-protection snapshot — `GET /api/v1/auth/security`
+  // (BE `auth.security-status`). 2FA state stays on the auth domain;
+  // pre-deciding the step-up code field from this snapshot replaces the
+  // 401-reveal fallback that ran while BE-side 2FA-status was undeclared.
+  const { data: security } = useSecurityStatusQuery();
+  const twoFactorOn = security?.two_factor_enabled ?? false;
 
   const [step, setStep] = useState<Step>({ kind: 'idle' });
   const [newEmail, setNewEmail] = useState('');
@@ -41,6 +40,14 @@ function useEmailChangeForm() {
   const [codeRequired, setCodeRequired] = useState(twoFactorOn);
   const [otp, setOtp] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+
+  // `useState(twoFactorOn)` captures the value at first render — the
+  // security query is async, so without this sync the field would
+  // stay hidden until the 401-reveal kicked in. Once the snapshot
+  // lands and 2FA is on, reveal the code field upfront.
+  useEffect(() => {
+    if (twoFactorOn) setCodeRequired(true);
+  }, [twoFactorOn]);
 
   const requestStart = useMutation({
     mutationFn: () =>

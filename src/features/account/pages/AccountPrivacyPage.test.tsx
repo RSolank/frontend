@@ -18,10 +18,13 @@ describe('AccountPrivacyPage', () => {
     server.resetHandlers();
   });
 
-  it('renders the Danger Zone card + the Privacy controls card', () => {
+  it('renders the Privacy / Reset / Danger Zone cards in order', () => {
     renderWithProviders(<AccountPrivacyPage />);
     expect(
       screen.getByRole('heading', { name: 'Privacy controls' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Reset zone' })
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Danger zone' })
@@ -29,6 +32,7 @@ describe('AccountPrivacyPage', () => {
     expect(
       screen.getByRole('link', { name: 'Accessibility' })
     ).toHaveAttribute('href', '/account/accessibility');
+    expect(screen.getByTestId('reset-zone-trigger')).toBeInTheDocument();
     expect(screen.getByTestId('danger-zone-delete')).toBeInTheDocument();
   });
 

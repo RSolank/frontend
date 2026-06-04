@@ -1,6 +1,7 @@
 import { apiFetch } from '../../../shared/api/apiClient';
 import { routes } from '../../../shared/api/routes';
 
+import type { UserStatsResponse } from './queries';
 import type {
   ChangePasswordInput,
   PreferencesUpdatePayload,
@@ -102,5 +103,21 @@ export function cancelDeletionRequest(token: string): Promise<unknown> {
   return apiFetch<unknown>(routes.users.deleteCancel(), {
     method: 'POST',
     body: JSON.stringify({ token }),
+  });
+}
+
+// BE Phase 2.15 — clean restart: wipes every domain row the user
+// owns (transactions, beneficiaries, tags, budgets, recurring,
+// taxation, statement jobs, activity, bank accounts), re-seeds
+// registration defaults, and preserves identity, credentials,
+// preferences, and the current session. 403 wrong password. The
+// 200 body is the post-reset stats snapshot — caller seeds it into
+// the stats query so the Profile card flips to zeros instantly.
+export function resetMyDataRequest(
+  password: string
+): Promise<UserStatsResponse> {
+  return apiFetch<UserStatsResponse>(routes.users.dataReset(), {
+    method: 'POST',
+    body: JSON.stringify({ password }),
   });
 }

@@ -1,5 +1,6 @@
 import { DangerZone } from '../components/DangerZone';
 import { DataExportPanel } from '../components/DataExportPanel';
+import { ResetZone } from '../components/ResetZone';
 
 // Card-anchored layout (Batch 9 polish): breadcrumb reads
 // "Account › Privacy"; no in-content title.
@@ -28,6 +29,8 @@ export function AccountPrivacyPage() {
         </h2>
         <DataExportPanel />
       </div>
+
+      <ResetZone />
 
       <DangerZone />
     </div>

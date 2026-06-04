@@ -54,6 +54,17 @@ export const authHandlers = [
   http.get(`${API_BASE}/auth/sessions`, () =>
     HttpResponse.json({ sessions: [] })
   ),
+  // BE `auth.security-status` — account-protection snapshot. Default
+  // is the empty/fresh-account shape (no recovery, no 2FA, zero
+  // backup codes). Tests override via `server.use(...)` to flip the
+  // flags and exercise enabled / low-backup-codes UI states.
+  http.get(`${API_BASE}/auth/security`, () =>
+    HttpResponse.json({
+      has_recovery: false,
+      two_factor_enabled: false,
+      backup_codes_remaining: 0,
+    })
+  ),
   // BE Phase 2.8 email-change — happy path defaults. Tests override
   // via `server.use(...)` to exercise 401/409/429/etc.
   http.post(`${API_BASE}/auth/change-email-request`, () =>

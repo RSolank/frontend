@@ -33,6 +33,14 @@ was retired in the Batch 9 settings shell — see
 - `pages/TagsPage.tsx` — full standalone page with header, add /
   cancel CTA, expandable tag tree, and the create / update dialog.
   Tailwind-styled with dark-mode parity.
+- `components/TagFormDialog.tsx` — `<Modal size="md">` add/edit
+  dialog opened from `TagsPage` (`?add=true` / `?edit=<uid>`).
+  Owns the name + parent picker + tag-type radio + alias chips,
+  the inherited-context preview when a parent is set, and the
+  cycle-prevention guard on parent selection. Saves via
+  `POST /api/v1/tags` (create) or `PATCH /api/v1/tags/:uid` (edit);
+  Delete + "Delete tree" actions live in the dialog footer with
+  ConfirmDialog gates.
 
 ## Responsive
 
@@ -71,7 +79,7 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/v1/tags` | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesTab` |
+| `GET /api/v1/tags` | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesPage` |
 | `POST /api/v1/tags` | TagsPage create form |
 | `PATCH /api/v1/tags/:id` | TagsPage update form |
 | `DELETE /api/v1/tags/:id` | TagsPage delete action |

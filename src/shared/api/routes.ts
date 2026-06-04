@@ -54,6 +54,7 @@ export const routes = {
     newDeviceRevoke: () => `${V}/auth/new-device/revoke`,
     devices: () => `${V}/auth/devices`,
     deviceById: (uid: number | string) => `${V}/auth/devices/${uid}`,
+    security: () => `${V}/auth/security`,
   },
 
   users: {
@@ -65,6 +66,7 @@ export const routes = {
     profileImagePreset: () => `${V}/users/me/profile-image/preset`,
     delete: () => `${V}/users/me/delete`,
     deleteCancel: () => `${V}/users/me/delete/cancel`,
+    dataReset: () => `${V}/users/me/data-reset`,
   },
 
   metadata: {

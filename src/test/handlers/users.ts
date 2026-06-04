@@ -88,4 +88,17 @@ export const usersHandlers = [
   http.post(`${API_BASE}/users/me/delete/cancel`, () =>
     HttpResponse.json({ detail: 'Account reactivated.' })
   ),
+  // BE Phase 2.15 — data-reset returns the post-reset stats
+  // snapshot (all counts zero). Tests override to exercise the 403
+  // wrong-password branch.
+  http.post(`${API_BASE}/users/me/data-reset`, () =>
+    HttpResponse.json({
+      joined_at: '2026-01-15T08:30:00Z',
+      last_active_at: null,
+      total_transactions: 0,
+      total_budgets: 0,
+      total_beneficiaries: 0,
+      active_recurring: 0,
+    })
+  ),
 ];

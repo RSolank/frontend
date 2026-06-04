@@ -650,6 +650,21 @@ function BudgetFormBody({
           {error}
         </div>
       )}
+
+      {category.created_at ? (
+        <p
+          className="text-xs text-slate-500 dark:text-slate-400"
+          data-testid="budget-created-on"
+        >
+          Created on{' '}
+          {new Date(category.created_at).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
+          .
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -51,7 +51,9 @@ src/
 │                   #   dashboard, account, settings, admin —
 │                   #   each owns pages / components / state /
 │                   #   api / <feature>.routes.tsx
-└── shared/         # api (apiClient + routes registry), components,
+└── shared/         # api (apiClient + routes registry + activity*,
+                    #   branding, adminGate), components (TopNav bell
+                    #   + ActivityFeedModal + SignalSettingsEditor),
                     #   hooks, state (Zustand stores), utils
 ```
 
@@ -66,6 +68,13 @@ Key conventions:
   client-side via `Intl` + CSS; the backend stores the preference.
 - **DetailModal** convention for CRUD edit surfaces, ISO Mon–Sun weeks
   project-wide, and `SearchableSelect` for large data-driven dropdowns.
+- **Profile/auth domain split** — profile-domain reads come from
+  `/api/v1/users/me`; auth-domain state (2FA flag, recovery configured,
+  backup codes remaining, sessions, devices) reads from
+  `/api/v1/auth/*` (notably `/auth/security` for the protection
+  snapshot). Mirrors the backend's screaming-architecture split — see
+  [`docs/modules/auth.md`](docs/modules/auth.md) and
+  [`docs/modules/account.md`](docs/modules/account.md).
 
 Full detail:
 
@@ -75,6 +84,9 @@ Full detail:
   patterns to follow when building a feature (the playbook).
 - [`docs/architecture.md`](docs/architecture.md) — layout, routing, data
   fetching, state, toolchain gates, user-preferences contract.
-- [`docs/modules/`](docs/modules/) — one page per feature.
+- [`docs/modules/`](docs/modules/) — one page per feature; also
+  [`docs/modules/activity.md`](docs/modules/activity.md) for the
+  cross-cutting activity-feed surface (TopNav bell + lazy modal +
+  user/admin signal-settings) that lives in `shared/`.
 - [`docs/testing.md`](docs/testing.md) — Vitest + MSW + coverage.
 - [`docs/performance.md`](docs/performance.md) — bundle budgets.

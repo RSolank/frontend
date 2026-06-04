@@ -1,7 +1,7 @@
 # Account surface
 
-> The five-section user-management area at `/account/*` — profile,
-> security, privacy, accessibility, preferences. Lives at
+> The six-section user-management area at `/account/*` — profile,
+> security, privacy, accessibility, preferences, notifications. Lives at
 > [`src/features/account/`](../../src/features/account/).
 
 ## Purpose
@@ -27,6 +27,7 @@
 | `/account/privacy` | `pages/AccountPrivacyPage.tsx` | privacy mask pointer, data export, danger zone (delete account) |
 | `/account/accessibility` | `pages/AccountAccessibilityPage.tsx` | theme / zoom / reduce-motion / privacy-mask |
 | `/account/preferences` | `pages/AccountPreferencesPage.tsx` | country / currency / timezone + defaults placeholder |
+| `/account/notifications` | `pages/AccountNotificationsPage.tsx` | per-user signal disable for activity-feed kinds (BE Phase 2.14 + 2.16); renders the shared [`<SignalSettingsEditor viewerRole="user">`](activity.md) |
 | `/profile` | redirect → `/account/profile` | legacy alias |
 | `/account/cancel-deletion` | `pages/CancelDeletionPage.tsx` (UNAUTH) | landing for the deletion-cancel email link + apiClient `ACCOUNT_PENDING_DELETION` 403 interceptor |
 | `/account/revoke-device` | `pages/RevokeDevicePage.tsx` (UNAUTH) | landing for the new-device intimation email's "this wasn't me" CTA — auto-POSTs `/api/v1/auth/new-device/revoke {token}` on mount (BE Phase 2.3) |
@@ -36,7 +37,7 @@
 [`components/AccountLayout.tsx`](../../src/features/account/components/AccountLayout.tsx)
 wraps
 [`shared/components/SectionedPageLayout`](../../src/shared/components/SectionedPageLayout.tsx)
-with the five-section spec — same primitive that backs the
+with the six-section spec — same primitive that backs the
 [Settings shell](settings.md).
 
 ## Routes
@@ -106,21 +107,25 @@ Change password POSTs `/api/v1/auth/change-password`. Security question
 POSTs `/api/v1/auth/recovery` (one question per user, replaces the
 previous choice).
 
-**Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7).
-Three flow states managed by a `FlowState` discriminator:
+**Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7,
+auth-domain snapshot Phase 3.0 `fc22163`). Three flow states managed
+by a `FlowState` discriminator:
 
-1. **idle** — reads `meData.user.two_factor_enabled` to render
-   either the Enable CTA (off) or the Enabled-with-Disable card
-   (on). Treats absent `two_factor_enabled` as false (the BE
-   hasn't surfaced the flag on /me yet; the 409 from `/2fa/enroll`
-   is the authoritative signal).
+1. **idle** — reads `security.two_factor_enabled` from
+   [`useSecurityStatusQuery()`](../../src/features/auth/api/security.ts)
+   (BE `GET /api/v1/auth/security`) to render either the Enable CTA
+   (off) or the Enabled-with-Disable card (on). The same snapshot
+   carries `backup_codes_remaining`; the enabled-idle card surfaces
+   it as a "X backup codes remaining" line (warning tone when ≤3,
+   danger when 0 with copy nudging re-enroll). 2FA state lives on
+   the auth domain — never on `/me` — so the profile/auth split
+   stays clean across FE + BE.
 2. **enrolling** — `/2fa/enroll` returned a staged secret +
    provisioning URI. The panel shows the base32 secret prominently
    for manual authenticator entry and an `otpauth://` deep link
    that mobile authenticators register. (A proper QR render is
-   queued as polish — bundle headroom is at 0.73 kB so a QR
-   library would punch the §3 ceiling.) Submitting a 6-digit code
-   POSTs `/2fa/verify-enroll`.
+   queued as polish — adding a QR library now would punch the §3
+   ceiling.) Submitting a 6-digit code POSTs `/2fa/verify-enroll`.
 3. **showing-backup-codes** — verify-enroll returned 10 one-time
    backup codes. Panel renders them in a 2- / 3-column grid + a
    Download button (text-file blob). Code visibility is one-shot;
@@ -130,11 +135,19 @@ Disable lives behind a `<Modal size="sm">` that re-confirms with
 the password (BE step-up). The undo / regenerate of backup codes is
 intentionally out of scope (no BE endpoint).
 
-**Change email** is 2FA-aware via the same `meData.user.two_factor_enabled`
-read: when on, the code field renders unconditionally in step 1.
-The existing 401-reveal fallback (form starts without the code field,
-adds it on a 401) covers the case where /me doesn't surface the flag
-yet — both paths converge on the same form shape.
+**Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
+flow: step 1 POSTs `/api/v1/auth/change-email-request {new_email,
+password, code?}` and the BE emails an OTP to the new address +
+a security notice to the current address; step 2 POSTs the OTP to
+`/api/v1/auth/change-email-confirm` for an atomic dual-column swap.
+The form is 2FA-aware via the same `useSecurityStatusQuery()` read
+as `<TwoFactorSection>` — `codeRequired` initializes from
+`security?.two_factor_enabled` and a `useEffect` re-syncs once the
+snapshot resolves async (covers the first-render capture). The 401
+reveal path is kept as defense-in-depth. 409/429 on confirm are
+terminal per the spec → restart from step 1. On success,
+invalidates `userKeys.me()` and surfaces the "other devices were
+signed out" notice.
 
 **Trusted devices** — `<TrustedDeviceList>` (BE Phase 2.3,
 T-new-device-otp). Lists every device that has cleared the
@@ -144,18 +157,6 @@ chip on the row whose `is_current === true`. Forgetting a device
 DELETEs it (cascades the active session if any) and forces re-
 verification on the next sign-in from that device. Lives next to
 Active sessions on `/account/security`.
-
-**Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
-flow: step 1 POSTs `/api/v1/auth/change-email-request {new_email,
-password, code?}` and the BE emails an OTP to the new address +
-a security notice to the current address; step 2 POSTs the OTP to
-`/api/v1/auth/change-email-confirm` for an atomic dual-column swap.
-The form omits `code` initially and reveals the 2FA-code field
-defensively on the first 401 (the FE doesn't yet have a /me
-`two_factor_enabled` signal — that lands with T-2fa-enroll FE
-wiring). 409/429 on confirm are terminal per the spec → restart
-from step 1. On success, invalidates `userKeys.me()` and surfaces
-the "other devices were signed out" notice.
 
 **Active sessions** — `<SessionList>` reads the BE Phase 1.12
 `GET /api/v1/auth/sessions` endpoint. Each row carries a UA-derived
@@ -182,6 +183,22 @@ the bearer header (anchor `download` can't carry headers), reads the
 response as a blob, and clicks an off-DOM link. CSV / JSON toggle is
 a pill control.
 
+**Reset zone** — `<ResetZone>` (BE Phase 2.15, T-data-reset). Warning-
+tone card above the Danger Zone for a "clean restart" that keeps
+the account, login, and preferences but wipes every domain row the
+user owns (transactions, beneficiaries, tags, budgets, recurring
+templates, statement uploads, bills, activity, bank accounts).
+Password-confirm modal mirrors the delete flow with distinct copy
+("Wipe all your data and start fresh — your account stays"). POSTs
+`/api/v1/users/me/data-reset {password}` (BE step-up; 403 on wrong
+password). On success: `setQueryData(userKeys.stats(), resp)` flips
+the Profile stats card to zeros instantly using the BE-returned
+post-reset snapshot, then `invalidateQueries()` refetches every other
+domain query. Inline `<span role="status">` success message; modal
+closes; no redirect (current session is preserved). Distinct from
+Danger Zone — destructive-but-recoverable (account stays) vs total
+loss (account removed). Different tones, different cards.
+
 **Danger zone** — `<DangerZone>` schedules the user's account for
 deletion via BE Phase 2.1's `POST /api/v1/users/me/delete {password}`.
 Confirms via a password-modal, hard-logouts on success (drops tokens
@@ -192,6 +209,24 @@ inline as "Incorrect password". The companion
 link's `?token=` + the apiClient `ACCOUNT_PENDING_DELETION` 403
 interceptor that hard-logouts + redirects any other tab still in
 the grace window.
+
+### Notifications
+
+User-side per-kind toggle for activity-feed signals (BE Phase 2.14
+user routes + 2.16 admin persistence layer). `<AccountNotificationsPage>`
+fetches the catalog + the user's disabled-kinds set via
+[`useActivityCatalogQuery()`](../../src/shared/api/activityCatalog.ts)
++ [`useUserSignalSettingsQuery()`](../../src/shared/api/activityFeed.ts)
+and renders the shared stateless
+[`<SignalSettingsEditor viewerRole="user">`](../../src/shared/components/SignalSettingsEditor.tsx)
+— same editor that powers the operator-side admin user-detail
+section, viewer-role gated. Toggle PATCHes
+`/api/v1/activity/signal-settings {kind, enabled}` via an inline
+`useToggleUserSignalMutation` that writes the response straight into
+the query cache + invalidates the activity feed. System-disabled
+kinds (`system_enabled=false` in the catalog) render with a "System
+off" badge and the user-side toggle disabled. Full activity-surface
+contract documented in [activity.md](activity.md).
 
 ### Accessibility
 
@@ -265,6 +300,7 @@ through the relevant feature's `api/`:
 | `DELETE /api/v1/users/me/profile-image` | Profile picture remove |
 | `POST /api/v1/users/me/delete` | Danger zone scheduled deletion |
 | `POST /api/v1/users/me/delete/cancel` | Cancel-deletion page (unauth) |
+| `POST /api/v1/users/me/data-reset` | Reset zone — wipe domain data, keep the account |
 | `POST /api/v1/auth/change-password` | Security — change password |
 | `POST /api/v1/auth/change-email-request` | Security — change email step 1 |
 | `POST /api/v1/auth/change-email-confirm` | Security — change email step 2 |
@@ -275,16 +311,20 @@ through the relevant feature's `api/`:
 | `POST /api/v1/auth/2fa/enroll` | Security — TwoFactorSection enrol step 1 |
 | `POST /api/v1/auth/2fa/verify-enroll` | Security — TwoFactorSection enrol step 2 (returns backup codes) |
 | `POST /api/v1/auth/2fa/disable` | Security — TwoFactorSection disable (password step-up) |
+| `GET /api/v1/auth/security` | Security — `<TwoFactorSection>` + `<EmailChangeForm>` read `has_recovery` / `two_factor_enabled` / `backup_codes_remaining` |
 | `POST /api/v1/auth/new-device/revoke` | RevokeDevicePage (unauth) |
 | `GET /api/v1/auth/recovery` | Security (current question) |
 | `POST /api/v1/auth/recovery` | Security (set/replace question) |
+| `GET /api/v1/activity/catalog` | Notifications — kind catalog (shared editor) |
+| `GET /api/v1/activity/signal-settings` | Notifications — user's disabled-kinds set |
+| `PUT /api/v1/activity/signal-settings` | Notifications — toggle per-kind disable |
 | `GET /api/v1/exports/{resource}` | Privacy — data export |
 
 ## Tests
 
 | File | Covers |
 |---|---|
-| `account.routes.test.tsx` | `/account` index redirect, `/profile` legacy redirect, sidebar exposes all five sections at canonical hrefs |
+| `account.routes.test.tsx` | `/account` index redirect, `/profile` legacy redirect, sidebar exposes all six sections at canonical hrefs |
 | `pages/AccountProfilePage.test.tsx` | `/me` hydration, partial-PATCH shape (no preferences fields), phone validation |
 | `pages/AccountPreferencesPage.test.tsx` | `/me` hydration, partial-PATCH shape (no profile fields), `usePreferencesStore` re-hydration post-save, Defaults placeholder visibility |
 | `pages/AccountSecurityPage.test.tsx` | Password Update gated on validity, security-question hydrate, Active-sessions card mounted |
@@ -295,8 +335,10 @@ through the relevant feature's `api/`:
 | `pages/AccountAccessibilityPage.test.tsx` | All ten controls (7 Display & motion + 3 Data formatting) render |
 | Store smoke tests | `shared/state/{contrast,linkUnderline,focusRing,dateFormat,numberFormat,landingRoute}.store.test.ts` — toggle / setter + `apply*` class mirror where applicable |
 | Helper override paths | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore` |
-| `pages/AccountPrivacyPage.test.tsx` | Privacy controls + Danger Zone cards present, modal opens, 403 (wrong password) surfaces inline |
-| `components/TwoFactorSection.test.tsx` | idle → enrolling → showing-backup-codes flow, Disable modal password step-up, /2fa/enroll error handling |
+| `pages/AccountPrivacyPage.test.tsx` | Privacy / Reset / Danger Zone cards all present, modal opens, 403 (wrong password) surfaces inline |
+| `components/ResetZone.test.tsx` | Renders the warning-tone Reset zone card, password modal opens + submits, happy-path body assertion + status message, 403 inline "Incorrect password" + modal stays open |
+| `components/TwoFactorSection.test.tsx` | idle → enrolling → showing-backup-codes flow, enabled card shows `backup_codes_remaining` badge, Disable modal password step-up, /2fa/enroll error handling |
+| `pages/AccountNotificationsPage.test.tsx` | Catalog + disabled-list render, toggle PUTs `{kind, enabled}`, "System off" badge + disabled toggle on `system_enabled=false` |
 | `components/TrustedDeviceList.test.tsx` | Lists `/api/v1/auth/devices`, "This device" chip on `is_current`, forget-device DELETE removes row |
 | `components/UserStatsCard.test.tsx` | Renders the 5 stat tiles from `/api/v1/users/me/stats`; hidden state when the endpoint 404s |
 | `pages/RevokeDevicePage.test.tsx` | Auto-POSTs on mount with valid token (204 → success copy); 400 → invalid-token copy; no-token landing explains the email link |

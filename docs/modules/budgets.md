@@ -56,7 +56,9 @@ wrapped by `protectedRoutes()`).
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls
   `POST /api/v1/budget-limits/` (backend upsert by `tag_id + period`).
-  Cancel + Save in footer; confirmOnDirty on close.
+  Cancel + Save in footer; confirmOnDirty on close. When the tag has
+  a configured limit, a muted "Created on …" footer renders below
+  the form fields from the BE Phase 3.0 `BudgetStatusRow.created_at`.
 - `components/ExpenseTrendChart.tsx` — six-month
   `<svg>` bar chart of the Total tag's `net_expense`. Reads
   `useExpenseTrendQuery('monthly', 6, TOTAL_TAG_ID)` from the
@@ -83,8 +85,11 @@ Read endpoints consumed (under `/api/v1/budget-limits`):
   `categories[]` (tag_id, tag_name, tag_type, `current_debit`,
   `current_credit`, `current_net_expense`, `avg_net_expense`,
   `min_net_expense`, `max_net_expense`, limit_amt, penalty_rate,
-  default_penalty_rate), `total_budget` (same shape, tag_id =
-  `TOTAL_TAG_ID`), `currency`, `month`, `available_months[]`.
+  default_penalty_rate, `created_at`), `total_budget` (same shape,
+  tag_id = `TOTAL_TAG_ID`), `currency`, `month`, `available_months[]`.
+  `created_at` (BE Phase 3.0, `fc22163`) is populated when the tag
+  has a configured `BudgetLimit`; null for tags with only tracker
+  stats. Powers the "Created on …" footer on `<BudgetFormDialog>`.
   BE Phase 1.7 (`3252ca4`, T-aggregates-engine) renamed the spend
   family to `net_expense = total_debit − total_credit` (expense-
   positive — refunds net spend down).

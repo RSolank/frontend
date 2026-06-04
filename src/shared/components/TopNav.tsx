@@ -1,4 +1,3 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronDown,
   ChevronRight,
@@ -14,7 +13,6 @@ import {
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
-import { useAdminGateQuery } from '../api/adminGate';
 import { useBrandingQuery } from '../api/branding';
 import { useAuthStore } from '../state/auth.store';
 
@@ -28,6 +26,19 @@ import { ThemeToggle } from './ThemeToggle';
 // only matter when the drawer is open, which is rare per session
 // (the drawer is mobile-only). Frees ~1.5 kB gz from first-paint.
 const AccessibilityPanel = lazy(() => import('./AccessibilityPanel'));
+
+// The Radix DropdownMenu surface (Settings + Account menus) is
+// deferred — `@radix-ui/react-dropdown-menu` + `@radix-ui/react-popper`
+// + `@floating-ui/*` + `react-remove-scroll` aggregate to ~28 kB gz
+// and nothing on first paint needs them. Stub buttons cover the
+// click target until the chunk lands; on first click the lazy
+// module mounts with `defaultOpen` so the menu opens immediately.
+const SettingsDropdownLazy = lazy(() =>
+  import('./TopNavMenus').then((m) => ({ default: m.SettingsDropdown }))
+);
+const UserDropdownLazy = lazy(() =>
+  import('./TopNavMenus').then((m) => ({ default: m.UserDropdown }))
+);
 
 interface TopNavProps {
   onLogout: () => void | Promise<void>;
@@ -206,42 +217,14 @@ export function TopNav({ onLogout }: TopNavProps) {
 
           {user && (
             <>
-              {/* Settings dropdown — desktop only */}
-              <DropdownMenu.Root modal={false}>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Settings"
-                    className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
-                  >
-                    <Settings aria-hidden="true" size={20} />
-                    <ChevronDown aria-hidden="true" size={14} />
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align="end"
-                    sideOffset={6}
-                    className="z-50 min-w-[12rem] rounded-md border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    {SETTINGS_LINKS.map((link) => (
-                      <DropdownMenu.Item key={link.to} asChild>
-                        <Link
-                          to={link.to}
-                          className="block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
-                        >
-                          {link.label}
-                        </Link>
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
+              {/* Settings dropdown — desktop only. Lazy-loaded Radix
+                  surface; stub button covers the click target. */}
+              <SettingsMenuLazy />
 
               {/* User dropdown — both viewports. Mirrors Profile + Sign
                   Out into a 1-tap-from-the-avatar surface even though
                   the same actions are also in the mobile drawer. */}
-              <UserDropdown user={user} onLogout={onLogout} />
+              <UserMenuLazy user={user} onLogout={onLogout} />
             </>
           )}
         </div>
@@ -427,7 +410,35 @@ function DrawerSection({ label, links }: DrawerSectionProps) {
   );
 }
 
-interface UserDropdownProps {
+// Stub-then-hydrate wrappers around the lazy Radix menus. The stub
+// button is a 1:1 visual match for Radix's trigger so layout doesn't
+// shift when the chunk lands; on first click we set `opened=true`
+// which mounts the lazy chunk with `defaultOpen={true}` so the click
+// is honored without a second tap.
+
+function SettingsMenuLazy() {
+  const [opened, setOpened] = useState(false);
+  if (!opened) {
+    return (
+      <button
+        type="button"
+        aria-label="Settings"
+        onClick={() => setOpened(true)}
+        className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+      >
+        <Settings aria-hidden="true" size={20} />
+        <ChevronDown aria-hidden="true" size={14} />
+      </button>
+    );
+  }
+  return (
+    <Suspense fallback={null}>
+      <SettingsDropdownLazy links={SETTINGS_LINKS} defaultOpen />
+    </Suspense>
+  );
+}
+
+interface UserMenuLazyProps {
   user: {
     email_id: string;
     first_name?: string;
@@ -437,76 +448,31 @@ interface UserDropdownProps {
   onLogout: () => void | Promise<void>;
 }
 
-function UserDropdown({ user, onLogout }: UserDropdownProps) {
+function UserMenuLazy({ user, onLogout }: UserMenuLazyProps) {
+  const [opened, setOpened] = useState(false);
   const email = user.email_id;
-  // Admin entry — gated on the `role` field surfaced by `/me`
-  // (BE T-admin A1, FE Platform Batch 18). `useAdminGateQuery` is
-  // a sync read on `useAuthStore.user.role`; no network round-trip.
-  const { data: isAdmin = false } = useAdminGateQuery();
-
+  if (!opened) {
+    return (
+      <button
+        type="button"
+        aria-label="Account menu"
+        title={email}
+        onClick={() => setOpened(true)}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-accent-300 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+      >
+        <ProfileImage
+          profileImageUrl={user.profile_image_url ?? null}
+          email={email}
+          firstName={user.first_name ?? null}
+          lastName={user.last_name ?? null}
+          sizeClassName="h-11 w-11"
+        />
+      </button>
+    );
+  }
   return (
-    <DropdownMenu.Root modal={false}>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          aria-label="Account menu"
-          title={email}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-accent-300 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
-        >
-          <ProfileImage
-            profileImageUrl={user.profile_image_url ?? null}
-            email={email}
-            firstName={user.first_name ?? null}
-            lastName={user.last_name ?? null}
-            sizeClassName="h-11 w-11"
-          />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-[14rem] rounded-md border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
-        >
-          <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            Signed in as
-            <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-              {email}
-            </div>
-          </div>
-          <DropdownMenu.Item asChild>
-            <Link
-              to="/account/profile"
-              className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
-            >
-              <UserRound aria-hidden="true" size={14} />
-              Account
-            </Link>
-          </DropdownMenu.Item>
-          {isAdmin && (
-            <DropdownMenu.Item asChild>
-              <Link
-                to="/admin"
-                data-testid="topnav-admin-link"
-                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
-              >
-                <Settings aria-hidden="true" size={14} />
-                Admin tools
-              </Link>
-            </DropdownMenu.Item>
-          )}
-          <DropdownMenu.Item asChild>
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
-            >
-              <LogOut aria-hidden="true" size={14} />
-              Sign Out
-            </button>
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <Suspense fallback={null}>
+      <UserDropdownLazy user={user} onLogout={onLogout} defaultOpen />
+    </Suspense>
   );
 }

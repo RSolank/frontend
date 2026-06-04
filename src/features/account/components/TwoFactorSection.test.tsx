@@ -8,15 +8,16 @@ import { server } from '../../../test/server';
 
 import { TwoFactorSection } from './TwoFactorSection';
 
-function installMe(twoFactorEnabled: boolean) {
+function installSecurity(
+  twoFactorEnabled: boolean,
+  backupCodesRemaining = twoFactorEnabled ? 10 : 0
+) {
   server.use(
-    http.get(`${API_BASE}/users/me`, () =>
+    http.get(`${API_BASE}/auth/security`, () =>
       HttpResponse.json({
-        user: {
-          user_id: 1,
-          email_id: 'a@b',
-          two_factor_enabled: twoFactorEnabled,
-        },
+        has_recovery: false,
+        two_factor_enabled: twoFactorEnabled,
+        backup_codes_remaining: backupCodesRemaining,
       })
     )
   );
@@ -28,7 +29,7 @@ describe('<TwoFactorSection>', () => {
   });
 
   it('renders the disabled-idle CTA when 2FA is off', async () => {
-    installMe(false);
+    installSecurity(false);
     renderWithProviders(<TwoFactorSection />);
     expect(
       await screen.findByTestId('2fa-enable-button')
@@ -39,7 +40,7 @@ describe('<TwoFactorSection>', () => {
   });
 
   it('walks the enrollment flow: enroll → verify-enroll → backup codes', async () => {
-    installMe(false);
+    installSecurity(false);
     renderWithProviders(<TwoFactorSection />);
 
     fireEvent.click(await screen.findByTestId('2fa-enable-button'));
@@ -68,7 +69,7 @@ describe('<TwoFactorSection>', () => {
   });
 
   it('renders the enabled-idle Disable CTA when 2FA is on', async () => {
-    installMe(true);
+    installSecurity(true);
     renderWithProviders(<TwoFactorSection />);
     expect(
       await screen.findByTestId('2fa-disable-button')
@@ -78,8 +79,16 @@ describe('<TwoFactorSection>', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('disable flow POSTs the password and refreshes /me', async () => {
-    installMe(true);
+  it('renders the backup-codes-remaining badge under the enabled state', async () => {
+    installSecurity(true, 7);
+    renderWithProviders(<TwoFactorSection />);
+    expect(
+      await screen.findByTestId('2fa-backup-codes-remaining')
+    ).toHaveTextContent('7 backup codes remaining.');
+  });
+
+  it('disable flow POSTs the password and refetches the security snapshot', async () => {
+    installSecurity(true);
     let seenBody: { password?: string } | null = null;
     server.use(
       http.post(

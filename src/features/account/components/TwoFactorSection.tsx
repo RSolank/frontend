@@ -2,13 +2,13 @@ import { useState } from 'react';
 
 import { useBrandingQuery } from '../../../shared/api/branding';
 import { Modal } from '../../../shared/components/Modal';
+import { useSecurityStatusQuery } from '../../auth/api/security';
 import {
   disableTwoFactorRequest,
   enrollTwoFactorRequest,
   verifyEnrollTwoFactorRequest,
   type TwoFactorEnrollResponse,
 } from '../../auth/api/twoFactor';
-import { useCurrentUserQuery } from '../../users/api/queries';
 
 // BE Phase 2.7 (T-2fa-enroll). Two-factor authentication surface on
 // `/account/security`.
@@ -45,13 +45,15 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export function TwoFactorSection() {
-  const { data: meData, refetch: refetchMe } = useCurrentUserQuery();
-  // BE Phase 2.7 added `two_factor_enabled` to `UserAuth` but the
-  // current `/me` payload doesn't carry it yet (out-of-scope follow-
-  // up). Treat absence as `false` so the FE renders the Enable CTA
-  // by default; a 409 from `/2fa/enroll` is the authoritative signal
-  // and the catch path handles it.
-  const enabled = meData?.user.two_factor_enabled ?? false;
+  // Auth-owned account-protection snapshot — `GET /api/v1/auth/security`
+  // (BE `auth.security-status`). `UserAuth` security state lives on the
+  // auth route, not `/me`, so the profile/auth domain split stays clean
+  // across FE + BE. The Enable CTA reads `two_factor_enabled` straight
+  // from this snapshot; `backup_codes_remaining` powers the running
+  // count surfaced after enrollment.
+  const { data: security, refetch: refetchSecurity } = useSecurityStatusQuery();
+  const enabled = security?.two_factor_enabled ?? false;
+  const backupCodesRemaining = security?.backup_codes_remaining ?? 0;
 
   const [flow, setFlow] = useState<FlowState>({ kind: 'idle' });
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function TwoFactorSection() {
       const res = await verifyEnrollTwoFactorRequest(code.trim());
       setCode('');
       setFlow({ kind: 'showing-backup-codes', codes: res.backup_codes });
-      await refetchMe();
+      await refetchSecurity();
     } catch (err) {
       setError(errorMessage(err, 'Invalid code — try again'));
     } finally {
@@ -96,7 +98,7 @@ export function TwoFactorSection() {
       await disableTwoFactorRequest(disablePassword);
       setDisablePassword('');
       setConfirmDisable(false);
-      await refetchMe();
+      await refetchSecurity();
     } catch (err) {
       setError(errorMessage(err, 'Failed to disable 2FA'));
     } finally {
@@ -133,6 +135,7 @@ export function TwoFactorSection() {
       {enabled ? (
         <EnabledIdlePanel
           onDisable={() => setConfirmDisable(true)}
+          backupCodesRemaining={backupCodesRemaining}
           error={error}
         />
       ) : (
@@ -246,13 +249,31 @@ function DisabledIdlePanel({
   );
 }
 
+function backupClassFor(exhausted: boolean, low: boolean): string {
+  if (exhausted) return 'text-sm font-medium text-danger-700 dark:text-danger-300';
+  if (low) return 'text-sm font-medium text-warning-700 dark:text-warning-300';
+  return 'text-sm text-slate-500 dark:text-slate-400';
+}
+
 function EnabledIdlePanel({
   onDisable,
+  backupCodesRemaining,
   error,
 }: {
   onDisable: () => void;
+  backupCodesRemaining: number;
   error: string | null;
 }) {
+  // BE issues 10 codes on enroll + delete-on-use; surface the running
+  // count + warn (warning tone) when ≤ 3 remain so the user knows to
+  // re-enroll or regenerate before getting locked out.
+  const low = backupCodesRemaining > 0 && backupCodesRemaining <= 3;
+  const exhausted = backupCodesRemaining === 0;
+  const backupClass = backupClassFor(exhausted, low);
+  const noun = backupCodesRemaining === 1 ? 'code' : 'codes';
+  const backupCopy = exhausted
+    ? 'No backup codes remaining — disable and re-enable 2FA to issue a fresh batch.'
+    : `${backupCodesRemaining} backup ${noun} remaining.`;
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -268,6 +289,12 @@ function EnabledIdlePanel({
         You&rsquo;ll be asked for a 6-digit code from your authenticator
         every time you sign in. Use a backup code if you lose access
         to your authenticator.
+      </p>
+      <p
+        className={backupClass}
+        data-testid="2fa-backup-codes-remaining"
+      >
+        {backupCopy}
       </p>
       <div>
         <button

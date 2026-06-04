@@ -34,8 +34,8 @@ None — metadata is a supporting feature, not a routed surface.
 
 | Component | Purpose |
 |---|---|
-| `CountrySelect.tsx` | `<select>` over the countries list. Options render as `(${country_code}) ${name}` (e.g. `(+91) India`) so the dial-code prefix that drives the phone input is visible at a glance; falls back to just `${name}` when the metadata row lacks a dial code. `onChange(value, country)` exposes the full `CountryOption` so callers sync dial code / currency / timezone in one render. Renders the "Rather not say" sentinel by default; opt-out with `allowPreferNotSay={false}`. Reads from `useCountriesQuery()`, or accepts a pre-loaded `countries={...}` array for pages that already fetched the data. Exports `formatCountryOption(c)` for callers that need the label outside the dropdown. |
-| `CurrencySelect.tsx` | `<select>` over the currencies list. Options render as `${label} (${symbol})` (e.g. `INR - Indian Rupee (₹)`) — the backend `label` already carries the `CODE - Name` shape; the trailing symbol makes the choice unambiguous for users who don't recognise every ISO code. Falls back to just `${label}` when the metadata row's `symbol` is `null`. Exports `formatCurrencyOption(c)` for callers that need the label outside the dropdown. |
+| `CountrySelect.tsx` | Searchable typeahead picker (built on `SearchableSelect`) over the countries list. Options render as `(${country_code}) ${name}` (e.g. `(+91) India`) so the dial-code prefix that drives the phone input is visible at a glance; falls back to just `${name}` when the metadata row lacks a dial code. `onChange(value, country)` exposes the full `CountryOption` so callers sync dial code / currency / timezone in one render. Renders the "Rather not say" sentinel by default; opt-out with `allowPreferNotSay={false}`. Reads from `useCountriesQuery()`, or accepts a pre-loaded `countries={...}` array for pages that already fetched the data. Exports `formatCountryOption(c)` for callers that need the label outside the dropdown. |
+| `CurrencySelect.tsx` | Searchable typeahead picker (built on `SearchableSelect`) over the currencies list. Options render as `${label} (${symbol})` (e.g. `INR - Indian Rupee (₹)`) — the backend `label` already carries the `CODE - Name` shape; the trailing symbol makes the choice unambiguous for users who don't recognise every ISO code. Falls back to just `${label}` when the metadata row's `symbol` is `null`. Exports `formatCurrencyOption(c)` for callers that need the label outside the dropdown. |
 | `TimezoneSelect.tsx` | Three-mode timezone picker. Country known + single tz → read-only display with "Use a different timezone" override. Country known + multiple tzs → country-scoped dropdown sourced from the `CountryOption.timezones` array. Unknown country / explicit override → full IANA list from `useTimezonesQuery()` defaulted to `getBrowserTimezone()`. After BE Phase 1.3 the data comes entirely from the backend — no npm `countries-and-timezones` dependency. |
 
 All three use the shared `.form-input` class from `src/index.css`.
@@ -78,7 +78,9 @@ page navigations.
 ## State
 
 No Zustand stores. Cached data lives in the TanStack Query cache
-keyed by `metadataKeys`; staleness is the only cache control.
+keyed by the file-internal `referenceDataKeys` factory in
+[`shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts);
+staleness is the only cache control.
 
 ## Tests
 

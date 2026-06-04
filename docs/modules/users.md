@@ -42,10 +42,11 @@ and the cross-feature `formatMoney` / `formatDate` helpers read them
 
 | File | Exports |
 |---|---|
-| `keys.ts` | `userKeys` — `all`, `me()`, `preferences()` |
+| `keys.ts` | `userKeys` — `all`, `me()`, `preferences()`, `stats()`, `profileImagePresets()` |
 | `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` + `PreferencesUpdatePayload` (every field optional — pages PATCH partial payloads) |
 | `queries.ts` | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `fetchProfileImagePresets`, `fetchUserStats`, `useCurrentUserQuery`, `useUserPreferencesQuery`, `useProfileImagePresetsQuery`, `useUserStatsQuery` |
-| `mutations.ts` | `updateProfileRequest`, `updatePreferencesRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest`, `setProfileImagePresetRequest`, `uploadProfileImageRequest`, `removeProfileImageRequest`, `deleteAccountRequest`, `cancelDeletionRequest` |
+| `mutations.ts` | `updateProfileRequest`, `updatePreferencesRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest`, `setProfileImagePresetRequest`, `uploadProfileImageRequest`, `removeProfileImageRequest`, `deleteAccountRequest`, `cancelDeletionRequest`, `resetMyDataRequest` |
+| `preferences.ts` | `hydratePreferences`, `applyHydratedPreferences`, `subscribeToPreferenceStores` — boot-time + post-save hydration into the Zustand preference stores; one global subscriber PATCHes back on user-driven setters |
 
 Endpoints touched:
 
@@ -62,6 +63,7 @@ Endpoints touched:
 | `DELETE /api/v1/users/me/profile-image` | `ProfileImagePicker` remove |
 | `POST /api/v1/users/me/delete` | `DangerZone` schedule deletion |
 | `POST /api/v1/users/me/delete/cancel` | `CancelDeletionPage` (unauth) |
+| `POST /api/v1/users/me/data-reset` | `ResetZone` — wipe domain data, keep the account (BE Phase 2.15) |
 | `GET /api/v1/auth/recovery` | `AccountSecurityPage` |
 | `POST /api/v1/auth/recovery` | `AccountSecurityPage` |
 | `POST /api/v1/auth/change-password` | `AccountSecurityPage` |

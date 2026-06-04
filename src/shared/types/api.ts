@@ -84,6 +84,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Security Status
+         * @description Account-protection snapshot for Settings → Security (auth-domain read).
+         *
+         *     A 1:1 wrapper over ``auth_services.get_security_state`` — the auth-owned
+         *     triple ``(has_recovery, two_factor_enabled, backup_codes_remaining)``. This
+         *     is the single FE read for those signals; ``UserAuth`` state stays on auth
+         *     routes and never rides the users-module ``/me`` profile payload.
+         */
+        get: operations["get_security_status_api_v1_auth_security_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/sessions": {
         parameters: {
             query?: never;
@@ -2749,6 +2774,8 @@ export interface components {
             uid?: number | null;
             /** Default Penalty Rate */
             default_penalty_rate?: number | null;
+            /** Created At */
+            created_at?: string | null;
         };
         /**
          * Cadence
@@ -3511,6 +3538,23 @@ export interface components {
             /** Reset Token */
             reset_token: string;
         };
+        /**
+         * SecurityStatusResponse
+         * @description Auth-owned account-protection snapshot for ``GET /api/v1/auth/security``.
+         *
+         *     Keeps ``UserAuth``-owned security state on an auth-domain route (the rest of
+         *     the Security tab reads ``/auth/{recovery,sessions,devices}``); it never rides
+         *     the users-module ``/me`` profile DTO. Status only — the TOTP secret and the
+         *     backup-code values never leave ``UserAuth``.
+         */
+        SecurityStatusResponse: {
+            /** Has Recovery */
+            has_recovery: boolean;
+            /** Two Factor Enabled */
+            two_factor_enabled: boolean;
+            /** Backup Codes Remaining */
+            backup_codes_remaining: number;
+        };
         /** SeenRef */
         SeenRef: {
             /** Kind */
@@ -4152,6 +4196,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_security_status_api_v1_auth_security_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityStatusResponse"];
                 };
             };
         };

@@ -84,7 +84,13 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   boundaries in the user's tz (per the project-wide week
   convention — see [`docs/conventions.md`](../conventions.md#week-convention));
   blocks generation for periods ending at-or-after
-  `precedingWeekStart`.
+  `precedingWeekStart`. Week-picker mode mounts `<WeekPickerCalendar>`.
+- `components/WeekPickerCalendar.tsx` — calendar grid backing the
+  week-picker mode in `<GenerateBillsDialog>`. Renders Mon→Sun weeks
+  in the user's tz with prev/next-month chevrons; hovering or
+  focusing a date highlights its whole week; selection snaps to the
+  Mon→Sun range. Disables weeks ending at-or-after the
+  precedingWeekStart (which can't yet be billed).
 - `components/CurrentWeekTracker.tsx` — running-tax card with status
   stats, a week-progress bar, and a top-5 per-tag breakdown. Falls
   back to a "pending" empty state when the endpoint 404s.

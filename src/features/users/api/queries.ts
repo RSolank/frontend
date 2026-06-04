@@ -12,13 +12,12 @@ import { userKeys } from './keys';
 // Phase 1.13 single nullable field that carries `null` (initials),
 // `/media/presets/<id>.webp`, or `/media/profile-images/<user>/<uuid>.webp`.
 //
-// `two_factor_enabled` (BE Phase 2.7) — column exists on `UserAuth`
-// but isn't yet returned by `/me`. Typed as optional so the FE can
-// consume it once the BE wires it (one-line BE change, no FE change).
-// Until then, the TwoFactorSection treats absent as `false` and the
-// EmailChangeForm reveals its code field on a 401 (existing fallback).
-// `role` (BE T-admin A1, `2c47fa9`) surfaces the authorization role on
-// the owner's profile payload so the FE admin gate reads it straight
+// 2FA state is intentionally NOT here — `UserAuth`-owned account
+// protection lives on its own auth-domain route
+// (`GET /api/v1/auth/security`, see `features/auth/api/security.ts`).
+// Mixing it into `/me` would cross the profile/auth domain split.
+// `role` (BE T-admin A1, `2c47fa9`) is a profile-domain authorization
+// attribute and surfaces here so the FE admin gate reads it straight
 // off the boot-time /me response instead of probing /admin/ping. The
 // field is required server-side; older fixtures still ship without it
 // for back-compat (treated as 'user' on consumer reads).
@@ -31,7 +30,6 @@ export interface UserProfile {
   contact?: string | null;
   country?: string | null;
   profile_image_url?: string | null;
-  two_factor_enabled?: boolean;
   role?: 'user' | 'admin' | string;
   [key: string]: unknown;
 }

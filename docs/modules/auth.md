@@ -59,7 +59,7 @@ carries an `errorElement` that resolves to
 ## API
 
 - `api/keys.ts` — react-query keys (`authKeys.all`, `authKeys.constants()`,
-  `authKeys.sessions()`).
+  `authKeys.sessions()`, `authKeys.devices()`, `authKeys.security()`).
 - `api/schemas.ts` — Zod schemas for login / register / recovery inputs.
   `registerFormSchema` shapes the RHF form state; `RegisterPayload`
   shapes the wire body sent to `/api/v1/auth/register` (`timezone` field
@@ -88,6 +88,15 @@ carries an `errorElement` that resolves to
   `revokeKnownDeviceRequest`). `VerifyNewDeviceResponse` is the
   tighter `TokenResponse | TwoFactorRequiredChallenge` union since
   a successful verify never returns another new-device challenge.
+- `api/security.ts` — BE Phase 3.0 (`fc22163`, `auth.security-status`)
+  account-protection snapshot. `SecurityStatus` shape (`has_recovery`,
+  `two_factor_enabled`, `backup_codes_remaining`) + `fetchSecurityStatus`
+  + `useSecurityStatusQuery` (30s `staleTime`). Consumed by Account →
+  Security's `<TwoFactorSection>` (drives the Enable/Disable card +
+  the backup-codes-remaining badge) and `<EmailChangeForm>` (pre-
+  decides whether to render the step-up code field). Keeps the auth-
+  owned `two_factor_enabled` flag off the `/me` profile DTO so the
+  profile/auth domain split stays clean across FE + BE.
 
 ## Polymorphic login response (BE Phase 2.3 + 2.7)
 
@@ -227,6 +236,9 @@ Profile updates invalidate `userKeys.preferences()` and call
 - `features/auth/recovery/components/RecoveryFlow.test.tsx` — recovery
   step machine (email → choice → question / OTP → reset), 2FA chain-
   through on successful reset.
+- `features/auth/api/twoFactor.test.ts` — TOTP request/response shape +
+  discriminator narrowing helpers (`isTwoFactorChallenge`,
+  `isNewDeviceChallenge`).
 - `shared/components/TimezoneSelect.test.tsx` — single /
   multi / unknown branches + override expansion.
 - `shared/components/ProtectedRoute.test.tsx` — unchanged behaviour

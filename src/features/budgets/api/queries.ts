@@ -29,6 +29,10 @@ export interface BudgetCategory {
   limit_amt: number | null;
   penalty_rate: number | null;
   default_penalty_rate: number | null;
+  // BE `budgets.created-at` — populated when the tag has a configured
+  // BudgetLimit; null when the tag only carries tracker stats. Powers
+  // the "Created on …" footer in BudgetFormDialog.
+  created_at?: string | null;
 }
 
 export interface BudgetStatusResponse {

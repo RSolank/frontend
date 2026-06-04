@@ -5,12 +5,6 @@ import { useTaxModeStore } from '../state/taxMode.store';
 // `subscribeToPreferenceStores()` subscriber in
 // `features/users/api/preferences.ts` PATCHes the change back to
 // `/api/users/preferences.auto_enabled` (fire-and-forget).
-//
-// Copy keeps the user-facing language plain (Auto-finalize weekly
-// bills) and gestures at the consequence of turning it off
-// (bills stay "Accruing", finalize manually). Stacking-defense
-// auto-disable surfaces via the activity feed once the
-// `tax_mode_auto_disabled` kind is wired BE-side.
 export function TaxModeToggle() {
   const enabled = useTaxModeStore((s) => s.enabled);
   const toggle = useTaxModeStore((s) => s.toggle);

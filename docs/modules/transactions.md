@@ -48,6 +48,12 @@ and composed into the root router by `src/app/routes.tsx`
   when a real tag is added, re-add misc when the last tag is removed)
   live in the parent's `onAdd` / `onRemove` so both forms apply the
   same rule from a single place.
+- `components/CalendarView.tsx`, `components/FilterSidebar.tsx`,
+  `components/MerchantSearchBar.tsx`, `components/MonthDropdown.tsx`,
+  `components/TransactionRow.tsx`, `components/MerchantRow.tsx`,
+  `components/DaySidePanel.tsx` — pieces of the URL-state-driven view
+  system on `TransactionsPage` (list / merchants / calendar). Detailed
+  shapes + URL contract under § View system below.
 - `statement_upload/components/StatementUploadDock.tsx` — fixed
   bottom-right widget mounted from the app shell when the
   `useStatementUploadJobStore` reports an active job id. Polls

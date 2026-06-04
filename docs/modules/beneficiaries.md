@@ -6,8 +6,10 @@
 
 ## Purpose
 
-- Render the `/beneficiaries` list and `/beneficiaries/:id` detail
-  pages where users manage merchants and people.
+- Render the `/beneficiaries` list page where users manage
+  merchants and people. `/beneficiaries/:id` is a legacy alias
+  that redirects to `/beneficiaries?edit=<id>`; the list-page
+  edit modal owns the full view + edit + merge surface.
 - Drive the alias-uniqueness probe + chip UI that feeds the
   auto-categorization engine.
 - Own the `/api/v1/beneficiaries/*` query surface and the merge flow.
@@ -33,9 +35,9 @@ and composed into the root router by `src/app/routes.tsx`
   `/api/v1/beneficiaries/check-alias`; surfaces "checking", "available",
   "taken", "duplicate" states; controlled `aliases[]` value.
 - `components/BeneficiaryFormFields.tsx` — shared by the create form
-  on the list page and the edit form on the detail page. Owns the
-  category + assigned-tags editor (uses `fetchTags` from the tags
-  feature) and the merchant↔person type switch.
+  on the list page and the list-page edit modal. Owns the category +
+  assigned-tags editor (uses `fetchTags` from the tags feature) and
+  the merchant↔person type switch.
 - `components/MergeBeneficiariesForm.tsx` — source / target picker
   with swap + mismatched-type warning, mounted inside
   `MergeBeneficiariesDialog` from the list-page edit modal. Source
@@ -71,15 +73,15 @@ Endpoints touched:
 
 | Method + path | Used by |
 |---|---|
-| `GET /api/v1/beneficiaries` | List page, detail page (merge picker), beneficiary mutations invalidate |
-| `GET /api/v1/beneficiaries/:id` | Detail page load |
+| `GET /api/v1/beneficiaries` | List page, edit modal (merge picker), beneficiary mutations invalidate |
+| `GET /api/v1/beneficiaries/:id` | Edit modal load |
 | `POST /api/v1/beneficiaries` | List page inline create |
-| `PATCH /api/v1/beneficiaries/:id` | Detail page save |
-| `DELETE /api/v1/beneficiaries/:id` | Detail page action menu |
-| `POST /api/v1/beneficiaries/merge` | Detail page merge form |
+| `PATCH /api/v1/beneficiaries/:id` | Edit modal save |
+| `DELETE /api/v1/beneficiaries/:id` | Edit modal action menu |
+| `POST /api/v1/beneficiaries/merge` | Edit modal merge form |
 | `GET /api/v1/beneficiaries/check-alias` | AliasChipsInput (debounced) |
 | `GET /api/v1/beneficiaries/relationships` | Person form's Relationship dropdown |
-| `GET /api/v1/categorization-rules` | Detail page save (warns on category change) + form field rule-tag sync |
+| `GET /api/v1/categorization-rules` | Edit modal save (warns on category change) + form field rule-tag sync |
 | `PUT /api/v1/categorization-rules/:uid` | BeneficiaryFormFields set-primary / remove-rule-tag |
 | `DELETE /api/v1/categorization-rules/:uid` | BeneficiaryFormFields remove-last-rule-tag |
 
@@ -135,9 +137,11 @@ can promote a shared `beneficiaries.ts` handler if convergence emerges.
   `useUrlValueModal('edit').openWith(uid)`; `?edit=<uid>` is shareable.
 - **Delete** — opens `<ConfirmDialog intent="danger" />` instead of
   `window.confirm()`.
-- **Details** — row "Details" link still routes to
-  `/beneficiaries/:id` (preserved for deep-links + the full
-  merge / type-switch workflow, which lives on the detail page).
+- **Merge / type-switch** — accessible from the edit modal's action
+  area; opens `<MergeBeneficiariesDialog>` over the edit modal.
+- **Legacy `/beneficiaries/:id` URL** — `DetailRedirect` translates
+  it to `/beneficiaries?edit=<id>` so old share-links land on the
+  edit modal opened to the same record.
 
 `components/BeneficiaryFormDialog.tsx` is the unified create/edit
 dialog.
