@@ -84,11 +84,83 @@ export const routes = {
 
   admin: {
     ping: () => `${V}/admin/ping`,
+    // BE T-admin A2 (`2f21ff7`) — paginated, searchable user inventory.
+    // All query params are optional; the server clamps `limit` silently
+    // to [1, 100], so the FE may send any value.
+    users: (params?: {
+      q?: string;
+      limit?: number;
+      cursor?: string;
+      include_deleted?: boolean;
+    }) => {
+      const sp = new URLSearchParams();
+      if (params?.q) sp.set('q', params.q);
+      if (params?.limit !== undefined) sp.set('limit', String(params.limit));
+      if (params?.cursor) sp.set('cursor', params.cursor);
+      if (params?.include_deleted) sp.set('include_deleted', 'true');
+      const qs = sp.toString();
+      return qs ? `${V}/admin/users?${qs}` : `${V}/admin/users`;
+    },
+    // BE T-admin A3 (`4b6004e`) — single-user detail (identity + locale,
+    // recent sessions/devices/activity, /me/stats, cemetery_status).
+    // 404 for non-existent / SYSTEM / hard-purged; 200 with
+    // cemetery_status populated for soft-deleted users in the grace
+    // window.
+    userDetail: (userId: number) => `${V}/admin/users/${userId}`,
+    // BE T-admin B1 (`a13669e`) — admin lock/unlock (recovery-proof
+    // disable via UserAuth.disabled_at; distinct from the OTP-
+    // recoverable locked_until). 404 for missing/SYSTEM; 409 if the
+    // account is already in the target state.
+    userLock: (userId: number) => `${V}/admin/users/${userId}/lock`,
+    userUnlock: (userId: number) => `${V}/admin/users/${userId}/unlock`,
+    // BE T-admin B2 — force-logout: locks every active session,
+    // idempotent (0 when no active sessions); does NOT lock the
+    // account itself (pair with /lock for a full eject).
+    userSessions: (userId: number) =>
+      `${V}/admin/users/${userId}/sessions`,
+    // BE T-admin E1 (Phase 2.16) — admin operator layer over the
+    // activity per-user signal-settings + the system catalog.
+    // GET/PUT user-signal-settings = toggle a kind for a target
+    // user; PUT signal-catalog/{kind} = system-wide tunables
+    // (priority / rank_order / system_enabled).
+    userSignalSettings: (userId: number) =>
+      `${V}/admin/users/${userId}/signal-settings`,
+    signalCatalogKind: (kind: string) =>
+      `${V}/admin/signal-catalog/${encodeURIComponent(kind)}`,
+    // BE T-admin C1 (`d76f6a5`) — cemetery audit. Paginated list +
+    // detail with a truncated replica peek.
+    cemetery: (params?: {
+      q?: string;
+      from?: string;
+      to?: string;
+      limit?: number;
+      cursor?: string;
+    }) => {
+      const sp = new URLSearchParams();
+      if (params?.q) sp.set('q', params.q);
+      if (params?.from) sp.set('from', params.from);
+      if (params?.to) sp.set('to', params.to);
+      if (params?.limit !== undefined) sp.set('limit', String(params.limit));
+      if (params?.cursor) sp.set('cursor', params.cursor);
+      const qs = sp.toString();
+      return qs ? `${V}/admin/cemetery?${qs}` : `${V}/admin/cemetery`;
+    },
+    cemeteryDetail: (deletedUserId: number) =>
+      `${V}/admin/cemetery/${deletedUserId}`,
   },
 
   activity: {
     feed: () => `${V}/activity`,
     seen: () => `${V}/activity/seen`,
+    // BE Phase 2.14 — registry-backed kind catalog. Used by the FE
+    // bell/modal (to label items + split alerts vs notifications by
+    // event_class) and by the Notifications-settings surface.
+    catalog: () => `${V}/activity/catalog`,
+    // BE Phase 2.14 (persist fix shipped in 2.16) — the user toggles
+    // which kinds they want to receive. GET returns
+    // `{disabled: string[]}`; PUT body `{kind, enabled}` returns the
+    // updated `{disabled}` list.
+    signalSettings: () => `${V}/activity/signal-settings`,
   },
 
   beneficiaries: {
@@ -198,6 +270,10 @@ export const routes = {
     billById: (billId: number | string) =>
       `${V}/consumption-tax/bills/${billId}`,
     billGenerate: () => `${V}/consumption-tax/bills/generate`,
+    // BE Phase 2.6 (T-taxation `e7c05aa`) — admin/ops backfill on
+    // behalf of any user, bypassing the auto-mode guard. T-admin D1
+    // wraps this in a UI at `/admin/ops/bill-backfill`.
+    adminBillGenerate: () => `${V}/consumption-tax/admin/bills/generate`,
     // BE Phase 2.6 — `mark-paid` + `mark-unpaid` replace the removed
     // `pay` endpoint (Decision 25 — user-attestation, never creates a
     // transaction). The engine reconciles existing txn data.

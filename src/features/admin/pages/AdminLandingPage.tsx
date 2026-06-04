@@ -2,16 +2,18 @@ import { Link } from 'react-router-dom';
 
 import { useAdminGateQuery } from '../../../shared/api/adminGate';
 
-// Admin portal landing — currently a scaffold. BE Phase 1.11 ships
-// the access gate (`GET /api/admin/ping`) + the `Role` enum, but no
-// concrete admin endpoints yet (the user-list / ops tools land in a
-// later BE phase). When those endpoints ship, this page becomes the
-// dashboard linking out to per-tool sub-routes.
+// Admin portal landing — currently a scaffold. BE Phase 1.11 shipped
+// the `Role` enum + `require_role(ADMIN)` guard; T-admin A1
+// (`2c47fa9`, FE Platform Batch 18) surfaced `role` on `/me` so the
+// gate is now a sync store read instead of an `/admin/ping` probe.
+// Concrete admin endpoints (user list, ops tools, cemetery audit)
+// land across T-admin Phases A2-D1; this page becomes the dashboard
+// linking out to per-tool sub-routes once they ship.
 //
 // Routing: mounted at `/admin/*` inside ProtectedRoute. The gate
-// query also runs here as a second-line defence — direct URL access
-// by a non-admin (who somehow guessed `/admin`) gets the "not
-// available" panel instead of a router-level 404 redirect.
+// also runs here as a second-line defence — direct URL access by a
+// non-admin (who somehow guessed `/admin`) gets the "not available"
+// panel instead of a router-level 404 redirect.
 export function AdminLandingPage() {
   const { data: isAdmin, isLoading } = useAdminGateQuery();
 
@@ -65,22 +67,62 @@ export function AdminLandingPage() {
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           You reached this page because{' '}
           <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-800">
-            GET /api/admin/ping
+            /me
           </code>{' '}
-          returned 200 for your account. Non-admin callers get 403
-          and never see this surface — the user-dropdown link is
-          also gated on the same probe.
+          reported{' '}
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-800">
+            role: &quot;admin&quot;
+          </code>{' '}
+          for your account. Non-admin callers see the &ldquo;Not
+          available&rdquo; panel instead — the user-dropdown link is
+          gated on the same flag.
         </p>
       </div>
 
-      <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-6 dark:border-slate-700 dark:bg-slate-900/40">
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
         <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          Coming soon
+          Available tools
         </h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
-          <li>User list + role assignment</li>
-          <li>Operational metrics + worker queue inspection</li>
-          <li>Cemetery / soft-delete audit trail</li>
+        <ul className="mt-2 space-y-2 text-sm">
+          <li>
+            <Link
+              to="/admin/users"
+              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            >
+              User list + search
+            </Link>
+            <span className="text-slate-500 dark:text-slate-400">
+              {' '}
+              — paginated inventory of every non-SYSTEM account.
+              Click a user to view sessions/devices/activity and
+              lock or force-logout the account.
+            </span>
+          </li>
+          <li>
+            <Link
+              to="/admin/cemetery"
+              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            >
+              Cemetery audit
+            </Link>
+            <span className="text-slate-500 dark:text-slate-400">
+              {' '}
+              — post-purge tombstones with retained replica counts.
+            </span>
+          </li>
+          <li>
+            <Link
+              to="/admin/ops/bill-backfill"
+              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            >
+              Bill backfill
+            </Link>
+            <span className="text-slate-500 dark:text-slate-400">
+              {' '}
+              — generate consumption-tax bills for a user over an
+              arbitrary date range (bypasses the auto-mode guard).
+            </span>
+          </li>
         </ul>
       </div>
     </div>

@@ -28,4 +28,11 @@ export const taxationHandlers = [
       });
     }
   ),
+  // BE Phase 2.6 admin/ops backfill (T-admin D1 wraps this).
+  // Default returns one bill id so the FE log block lights up; tests
+  // that exercise empty / multi-bill responses override.
+  http.post(
+    `${API_BASE}/consumption-tax/admin/bills/generate`,
+    () => HttpResponse.json({ bill_ids: [9001] })
+  ),
 ];

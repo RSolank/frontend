@@ -1,51 +1,41 @@
-import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../state/auth.store';
 
-import { apiFetch, type ApiError } from './apiClient';
-import { routes } from './routes';
-
-// Admin-portal access gate. BE Phase 1.11 (`b8db9b5`) ships
-// `GET /api/admin/ping` returning 200 when the caller has the ADMIN
-// role and 403 otherwise. `role` isn't yet exposed on `/me`, so the
-// FE gates on a successful ping; when the BE adds the field we'll
-// switch the gate to read from there in a one-line edit.
+// Admin-portal access gate. BE T-admin A1 (`2c47fa9`, FE Platform
+// Batch 18) surfaces `role` on the `/me` payload that boots into
+// `useAuthStore` via `AuthInit` → `refreshAuthUser`. The gate is a
+// synchronous read on that store — no network call, no react-query
+// cache, no `/admin/ping` probe. Login/logout cycles already remount
+// the tree and reset the store, so role state stays in sync naturally.
 //
 // Lives in `shared/` because the TopNav user dropdown — a
 // cross-feature surface — needs to read it, and the dependency rule
-// blocks `shared/` from importing `features/`. The query itself is
-// boolean-resolved (never throws) so consumers can use it as a flag.
+// blocks `shared/` from importing `features/`. The hook keeps the
+// react-query-shaped return (`{data: boolean, isLoading: boolean}`)
+// so existing call sites (TopNav, AdminLandingPage) don't change.
+//
+// The BE `GET /api/v1/admin/ping` endpoint stays as a no-cost
+// liveness/auth probe for ops smoke checks, but no longer drives the
+// FE gate.
 
-interface PingResponse {
-  status?: string;
-  user_id?: number;
+interface AdminGateResult {
+  data: boolean;
+  isLoading: boolean;
 }
 
-export async function checkAdminGate(): Promise<boolean> {
-  try {
-    await apiFetch<PingResponse>(routes.admin.ping());
-    return true;
-  } catch (err) {
-    const e = err as ApiError;
-    // 403 / 401 / network all map to "not admin"; failing closed is
-    // the right default for a privilege probe.
-    return e.status === 200;
+export function useAdminGateQuery(enabled = true): AdminGateResult {
+  const role = useAuthStore((s) => s.user?.role);
+  const loading = useAuthStore((s) => s.loading);
+
+  if (!enabled) {
+    return { data: false, isLoading: false };
   }
-}
 
-const adminGateKeys = {
-  all: ['admin'] as const,
-  gate: () => [...adminGateKeys.all, 'gate'] as const,
-} as const;
-
-// `enabled` is `false` for unauthenticated visitors so we don't burn
-// a request that would 401. The caller flips it on once
-// `useAuthStore.user` is populated.
-export function useAdminGateQuery(enabled = true) {
-  return useQuery({
-    queryKey: adminGateKeys.gate(),
-    queryFn: checkAdminGate,
-    enabled,
-    // Role rarely changes; cache aggressively. Login/logout cycles
-    // remount the tree and re-fire the query naturally.
-    staleTime: 30 * 60 * 1000,
-  });
+  return {
+    data: role === 'admin',
+    // Boot-time hydration runs `refreshAuthUser` then flips
+    // `loading` to false. While loading, callers see `isLoading=true`
+    // and gate the admin surface accordingly (matches the prior
+    // react-query semantics).
+    isLoading: loading,
+  };
 }

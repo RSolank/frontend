@@ -13,6 +13,12 @@ export interface AuthUser {
   email_id: string;
   first_name?: string;
   last_name?: string;
+  // BE T-admin A1 (`2c47fa9`) — authorization role surfaced on /me so
+  // the FE admin gate reads it sync from the store instead of probing
+  // /admin/ping. Optional only for back-compat with older fixtures;
+  // current BE always populates it ('user' default, 'admin' for the
+  // SYSTEM bootstrap + env-bootstrap-promoted accounts).
+  role?: 'user' | 'admin' | string;
   [key: string]: unknown;
 }
 

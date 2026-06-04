@@ -4,35 +4,7 @@ import { apiFetch } from '../../../shared/api/apiClient';
 import { routes } from '../../../shared/api/routes';
 
 import { dashboardKeys } from './keys';
-import type {
-  ActivityFeedResponse,
-  ExpenseTrendResponse,
-  TrendPeriod,
-} from './schemas';
-
-// BE Phase 2.4 — `GET /api/activity?limit=N`. The widget caps at 10
-// per the spec; clamp 1..50 server-side. Empty for brand-new users
-// — the widget renders a friendly empty state.
-export function fetchActivityFeed(
-  limit: number
-): Promise<ActivityFeedResponse> {
-  const sp = new URLSearchParams({ limit: String(limit) });
-  return apiFetch<ActivityFeedResponse>(
-    `${routes.activity.feed()}?${sp.toString()}`
-  );
-}
-
-export function useActivityFeedQuery(limit = 10, enabled = true) {
-  return useQuery({
-    queryKey: dashboardKeys.activity(limit),
-    queryFn: () => fetchActivityFeed(limit),
-    enabled,
-    // The feed itself updates on user events; a 30s staleTime keeps the
-    // dashboard quiet while still surfacing fresh worker-originated
-    // events on the next focus/refetch.
-    staleTime: 30_000,
-  });
-}
+import type { ExpenseTrendResponse, TrendPeriod } from './schemas';
 
 // BE Phase 1.7 — `GET /api/expense-tracker?period_type=…&n=…&tag_id=…`.
 // Per-(tag, bucket) spend trend over the last `n` buckets. Stored grains

@@ -361,13 +361,17 @@ describe('DashboardPage', () => {
       expect(widget).toHaveTextContent('$15.00'); // tax accrued
     });
 
-    it('Activity widget renders the BE Phase 2.4 feed (empty by default)', async () => {
+    it('Dashboard no longer renders an inline Activity widget — moved to TopNav bell in Batch 18', async () => {
       renderWithProviders(<DashboardPage />);
-      const widget = await screen.findByTestId('dashboard-activity');
-      // Default MSW handler returns an empty feed; the friendly empty
-      // state copy mentions the kinds of events that will land here.
+      // The widget previously rendered alongside BreachAlerts /
+      // WeekSummary / UpcomingBills. Batch 18 relocated the feed to
+      // the TopNav bell + lazy modal so it's visible app-wide, not
+      // just on the dashboard. Pinning that the dashboard surface
+      // does not bring the widget back.
       await waitFor(() =>
-        expect(widget).toHaveTextContent(/nothing to see yet/i)
+        expect(
+          screen.queryByTestId('dashboard-activity')
+        ).not.toBeInTheDocument()
       );
     });
 

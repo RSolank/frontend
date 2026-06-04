@@ -15,12 +15,16 @@ export const usersHandlers = [
         email_id: 'fixture@example.test',
         first_name: 'Fixture',
         last_name: 'User',
+        // BE T-admin A1 (`2c47fa9`) — `role` is required on
+        // `UserPrivateResponse`. Default fixture is 'user'; admin
+        // tests override via `server.use(...)`.
+        role: 'user',
       },
     })
   ),
   http.patch(`${API_BASE}/users/me`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json({ user: { user_id: 1, ...body } });
+    return HttpResponse.json({ user: { user_id: 1, role: 'user', ...body } });
   }),
   http.get(`${API_BASE}/users/preferences`, () =>
     HttpResponse.json({

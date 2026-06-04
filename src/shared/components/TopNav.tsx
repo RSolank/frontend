@@ -19,6 +19,7 @@ import { useBrandingQuery } from '../api/branding';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
+import { ActivityBell } from './ActivityBell';
 import { ProfileImage } from './ProfileImage';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -176,6 +177,15 @@ export function TopNav({ onLogout }: TopNavProps) {
               <AccessibilityPopover />
             </div>
           )}
+
+          {/*
+            Activity bell — desktop only. Click opens a lazy-loaded
+            modal with the BE-ranked feed split into Alerts then
+            Notifications by event_class. Badge counts current feed
+            items capped at "5+". See ActivityBell.tsx for the
+            soft/hard-ack discipline.
+          */}
+          {user && <ActivityBell enabled={Boolean(user)} />}
 
           {/*
             Help / docs entry-point. Desktop-only — mobile users reach
@@ -429,9 +439,9 @@ interface UserDropdownProps {
 
 function UserDropdown({ user, onLogout }: UserDropdownProps) {
   const email = user.email_id;
-  // Gate on `GET /api/admin/ping` — link renders only for admins.
-  // BE Phase 1.11 lays the groundwork; FE wires it as the admin
-  // portal entry point until `role` lands on `/me`.
+  // Admin entry — gated on the `role` field surfaced by `/me`
+  // (BE T-admin A1, FE Platform Batch 18). `useAdminGateQuery` is
+  // a sync read on `useAuthStore.user.role`; no network round-trip.
   const { data: isAdmin = false } = useAdminGateQuery();
 
   return (

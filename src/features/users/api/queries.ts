@@ -17,6 +17,11 @@ import { userKeys } from './keys';
 // consume it once the BE wires it (one-line BE change, no FE change).
 // Until then, the TwoFactorSection treats absent as `false` and the
 // EmailChangeForm reveals its code field on a 401 (existing fallback).
+// `role` (BE T-admin A1, `2c47fa9`) surfaces the authorization role on
+// the owner's profile payload so the FE admin gate reads it straight
+// off the boot-time /me response instead of probing /admin/ping. The
+// field is required server-side; older fixtures still ship without it
+// for back-compat (treated as 'user' on consumer reads).
 export interface UserProfile {
   user_id: number;
   email_id: string;
@@ -27,6 +32,7 @@ export interface UserProfile {
   country?: string | null;
   profile_image_url?: string | null;
   two_factor_enabled?: boolean;
+  role?: 'user' | 'admin' | string;
   [key: string]: unknown;
 }
 
