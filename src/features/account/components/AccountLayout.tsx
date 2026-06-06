@@ -12,6 +12,7 @@ export const ACCOUNT_SECTIONS: SectionSpec[] = [
   { path: '/account/privacy', label: 'Privacy' },
   { path: '/account/accessibility', label: 'Accessibility' },
   { path: '/account/preferences', label: 'Preferences' },
+  { path: '/account/notifications', label: 'Notifications' },
 ];
 
 export function AccountLayout() {

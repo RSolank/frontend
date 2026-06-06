@@ -34,9 +34,7 @@ describe('CountrySelect', () => {
       <CountrySelect value="" onChange={onChange} countries={COUNTRIES} />
     );
     fireEvent.focus(screen.getByRole('combobox'));
-    fireEvent.mouseDown(
-      screen.getByRole('option', { name: '(+91) India' })
-    );
+    fireEvent.mouseDown(screen.getByRole('option', { name: '(+91) India' }));
     expect(onChange).toHaveBeenCalledWith(
       'India',
       expect.objectContaining({ name: 'India', timezone: 'Asia/Kolkata' })
@@ -49,9 +47,7 @@ describe('CountrySelect', () => {
       <CountrySelect value="" onChange={onChange} countries={COUNTRIES} />
     );
     fireEvent.focus(screen.getByRole('combobox'));
-    fireEvent.mouseDown(
-      screen.getByRole('option', { name: 'Rather not say' })
-    );
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Rather not say' }));
     expect(onChange).toHaveBeenCalledWith(COUNTRY_PREFER_NOT_SAY, null);
   });
 
@@ -74,7 +70,7 @@ describe('CountrySelect', () => {
         name: 'India',
         country_code: '+91',
         default_currency: 'INR',
-        timezone: 'Asia/Kolkata',
+        timezones: ['Asia/Kolkata'],
       })
     ).toBe('(+91) India');
     expect(formatCountryOption({ name: 'Mystery' })).toBe('Mystery');

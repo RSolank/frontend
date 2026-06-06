@@ -1,4 +1,3 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronDown,
   ChevronRight,
@@ -11,18 +10,35 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
+import { resolveBrandLogoUrl, useBrandingQuery } from '../api/branding';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
-import { ContrastToggle } from './ContrastToggle';
-import { MotionToggle } from './MotionToggle';
-import { PrivacyToggle } from './PrivacyToggle';
-import { ThemeOptions } from './ThemeOptions';
+import { ActivityBell } from './ActivityBell';
+import { ProfileImage } from './ProfileImage';
 import { ThemeToggle } from './ThemeToggle';
-import { ZoomSlider } from './ZoomSlider';
+
+// The 5 inline accessibility toggles inside the mobile drawer are
+// deferred via the same lazy chunk the desktop popover uses — they
+// only matter when the drawer is open, which is rare per session
+// (the drawer is mobile-only). Frees ~1.5 kB gz from first-paint.
+const AccessibilityPanel = lazy(() => import('./AccessibilityPanel'));
+
+// The Radix DropdownMenu surface (Settings + Account menus) is
+// deferred — `@radix-ui/react-dropdown-menu` + `@radix-ui/react-popper`
+// + `@floating-ui/*` + `react-remove-scroll` aggregate to ~28 kB gz
+// and nothing on first paint needs them. Stub buttons cover the
+// click target until the chunk lands; on first click the lazy
+// module mounts with `defaultOpen` so the menu opens immediately.
+const SettingsDropdownLazy = lazy(() =>
+  import('./TopNavMenus').then((m) => ({ default: m.SettingsDropdown }))
+);
+const UserDropdownLazy = lazy(() =>
+  import('./TopNavMenus').then((m) => ({ default: m.UserDropdown }))
+);
 
 interface TopNavProps {
   onLogout: () => void | Promise<void>;
@@ -38,25 +54,56 @@ const MAIN_LINKS: NavLinkSpec[] = [
   { to: '/transactions', label: 'Transactions' },
   { to: '/budgets', label: 'Expense Tracker' },
   { to: '/consumption-tax', label: 'Tax Tracker' },
+  { to: '/recurring', label: 'Recurring' },
   { to: '/beneficiaries', label: 'Beneficiaries' },
 ];
 
 // Settings — Radix DropdownMenu on ≥lg, SETTINGS section in the drawer.
-// All three live under the /settings/* shell as of Batch 9; legacy
+// All four live under the /settings/* shell as of Batch 9; legacy
 // /categories and /categorization-rules redirect to their /settings/*
-// counterparts (see features/settings/settings.routes.tsx).
+// counterparts (see features/settings/settings.routes.tsx). Bank
+// Accounts was added 2026-06-05 when the live route turned out to be
+// unreachable from the TopNav.
 const SETTINGS_LINKS: NavLinkSpec[] = [
   { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/categorization-rules', label: 'Categorization Rules' },
   { to: '/settings/taxation-rules', label: 'Taxation Rules' },
+  { to: '/settings/bank-accounts', label: 'Bank Accounts' },
 ];
 
-function initialsFor(email: string, firstName?: string, lastName?: string) {
-  if (firstName && lastName) {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+// Brand mark — renders the BE-served logo `<img>` when `logoSrc` is
+// set; falls back to the Wallet lucide icon (the legacy visual mark)
+// otherwise. `onError` swaps back to the icon if the image fails to
+// load — so a 404 or transient network glitch doesn't blank the
+// brand spot. The image is cached by the browser (same `/media/...`
+// host as profile images); no app-side caching needed.
+function BrandMark({
+  logoSrc,
+  brandName,
+  size,
+}: {
+  logoSrc: string | null;
+  brandName: string;
+  size: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!logoSrc || failed) {
+    return <Wallet aria-hidden="true" size={size} />;
   }
-  if (firstName) return firstName.slice(0, 2).toUpperCase();
-  return (email[0] ?? '?').toUpperCase();
+  return (
+    // jsx-a11y/no-noninteractive-element-interactions: onError isn't
+    // user interaction — it's the standard load-failure callback.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+    <img
+      src={logoSrc}
+      alt={brandName}
+      width={size}
+      height={size}
+      onError={() => setFailed(true)}
+      className="shrink-0 object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
 }
 
 function mainLinkClass({ isActive }: { isActive: boolean }): string {
@@ -64,9 +111,9 @@ function mainLinkClass({ isActive }: { isActive: boolean }): string {
     'inline-flex items-center px-3 py-2 text-sm font-medium no-underline transition-colors',
     'border-b-2 -mb-px',
     isActive
-      ? 'border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300'
-      : 'border-transparent text-slate-600 hover:text-indigo-700 hover:border-indigo-200 dark:text-slate-300 dark:hover:text-indigo-300 dark:hover:border-indigo-900/50',
-    'focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none rounded-sm',
+      ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
+      : 'border-transparent text-slate-600 hover:text-accent-700 hover:border-accent-200 dark:text-slate-300 dark:hover:text-accent-300 dark:hover:border-accent-900/50',
+    'focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none rounded-sm',
   ].join(' ');
 }
 
@@ -74,8 +121,8 @@ function drawerLinkClass({ isActive }: { isActive: boolean }): string {
   return [
     'flex min-h-[44px] items-center px-4 py-2 text-sm font-medium no-underline transition-colors',
     isActive
-      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300'
-      : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300',
+      ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300'
+      : 'text-slate-700 hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300',
   ].join(' ');
 }
 
@@ -83,6 +130,13 @@ export function TopNav({ onLogout }: TopNavProps) {
   const user = useAuthStore((s) => s.user);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  // BE Phase 2.11 — single-source brand identity. No hardcoded
+  // fallback; `useBrandingQuery` returns the localStorage-cached
+  // brand on repeat visits and a neutral empty placeholder on the
+  // first-ever visit. See `shared/api/branding.ts`.
+  const brand = useBrandingQuery().data;
+  const brandName = brand?.name ?? '';
+  const brandLogoSrc = resolveBrandLogoUrl(brand?.logo_url);
 
   // Close the mobile drawer on any route change.
   useEffect(() => {
@@ -91,166 +145,146 @@ export function TopNav({ onLogout }: TopNavProps) {
 
   return (
     <>
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="flex h-16 w-full items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
-        {/*
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="flex h-16 w-full items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
+          {/*
           Mobile (<lg) top-bar contract:
           [☰] ............................ [👤▾]
           Brand / Home icon / Theme toggle / Settings dropdown all live
           inside the drawer per the 2026-05-26 follow-up plan.
         */}
 
-        {/* Hamburger — visible on <lg, auth-only */}
-        {user && (
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:hidden dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
-          >
-            <Menu aria-hidden="true" size={22} />
-          </button>
-        )}
+          {/* Hamburger — visible on <lg, auth-only */}
+          {user && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation"
+              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden dark:text-slate-300"
+            >
+              <Menu aria-hidden="true" size={22} />
+            </button>
+          )}
 
-        {/* Desktop-only Home icon — → /dashboard. */}
-        {user && (
-          <Link
-            to="/dashboard"
-            aria-label="Dashboard"
-            title="Dashboard"
-            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
-          >
-            <Home aria-hidden="true" size={20} />
-          </Link>
-        )}
+          {/* Desktop-only Home icon — → /dashboard. */}
+          {user && (
+            <Link
+              to="/dashboard"
+              aria-label="Dashboard"
+              title="Dashboard"
+              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+            >
+              <Home aria-hidden="true" size={20} />
+            </Link>
+          )}
 
-        {/*
+          {/*
           Brand — → /. Visibility:
             - Always on ≥lg.
             - On <lg, only when UNauthenticated (otherwise the drawer
               header carries the brand; authed mobile top bar is just
               hamburger + user per the 2026-05-26 spec).
         */}
-        <Link
-          to="/"
-          aria-label="Personal Budget"
-          className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-indigo-700 no-underline transition-colors hover:text-indigo-800 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-indigo-300 dark:hover:text-indigo-200`}
-        >
-          <Wallet aria-hidden="true" size={22} />
-          <span className="hidden text-base font-semibold tracking-tight sm:inline">
-            Personal Budget
-          </span>
-        </Link>
-
-        {/* Desktop main-feature links */}
-        {user && (
-          <nav
-            aria-label="Main"
-            className="ml-6 hidden items-center gap-1 lg:flex"
+          <Link
+            to="/"
+            aria-label={brandName}
+            className={`${user ? 'hidden' : 'inline-flex'} text-accent-700 hover:text-accent-800 focus-visible:ring-accent-500 dark:text-accent-300 dark:hover:text-accent-200 items-center gap-2 rounded-md px-1 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex`}
           >
-            {MAIN_LINKS.map((link) => (
-              <NavLink key={link.to} to={link.to} className={mainLinkClass}>
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
+            <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={22} />
+            <span className="hidden text-base font-semibold tracking-tight sm:inline">
+              {brandName}
+            </span>
+          </Link>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          {/*
+          {/* Desktop main-feature links */}
+          {user && (
+            <nav
+              aria-label="Main"
+              className="ml-6 hidden items-center gap-1 lg:flex"
+            >
+              {MAIN_LINKS.map((link) => (
+                <NavLink key={link.to} to={link.to} className={mainLinkClass}>
+                  {link.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            {/*
             UNauthenticated users on every viewport get just the
             ThemeToggle cycler — there's no drawer / popover to anchor
             against, and the landing page should still let visitors
             switch theme.
           */}
-          {!user && <ThemeToggle />}
+            {!user && <ThemeToggle />}
 
-          {/*
+            {/*
             Authenticated, desktop-only: a single AccessibilityPopover
             that consolidates theme / text-size / reduced-motion /
             privacy. Mobile users get the same four controls inline in
             the drawer under the "Accessibility" section.
           */}
-          {user && (
-            <div className="hidden lg:inline-flex">
-              <AccessibilityPopover />
-            </div>
-          )}
+            {user && (
+              <div className="hidden lg:inline-flex">
+                <AccessibilityPopover />
+              </div>
+            )}
 
-          {/*
+            {/*
+            Activity bell — desktop only. Click opens a lazy-loaded
+            modal with the BE-ranked feed split into Alerts then
+            Notifications by event_class. Badge counts current feed
+            items capped at "5+". See ActivityBell.tsx for the
+            soft/hard-ack discipline.
+          */}
+            {user && <ActivityBell enabled={Boolean(user)} />}
+
+            {/*
             Help / docs entry-point. Desktop-only — mobile users reach
             the same page via the drawer's footer (placeholder; future
             iteration). Repoint the `to` when a real docs surface
             ships.
           */}
-          {user && (
-            <Link
-              to="/help"
-              aria-label="Help"
-              title="Help"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
-            >
-              <HelpCircle aria-hidden="true" size={20} />
-            </Link>
-          )}
+            {user && (
+              <Link
+                to="/help"
+                aria-label="Help"
+                title="Help"
+                className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+              >
+                <HelpCircle aria-hidden="true" size={20} />
+              </Link>
+            )}
 
-          {user && (
-            <>
-              {/* Settings dropdown — desktop only */}
-              <DropdownMenu.Root modal={false}>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Settings"
-                    className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
-                  >
-                    <Settings aria-hidden="true" size={20} />
-                    <ChevronDown aria-hidden="true" size={14} />
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align="end"
-                    sideOffset={6}
-                    className="z-50 min-w-[12rem] rounded-md border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    {SETTINGS_LINKS.map((link) => (
-                      <DropdownMenu.Item key={link.to} asChild>
-                        <Link
-                          to={link.to}
-                          className="block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
-                        >
-                          {link.label}
-                        </Link>
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
+            {user && (
+              <>
+                {/* Settings dropdown — desktop only. Lazy-loaded Radix
+                  surface; stub button covers the click target. */}
+                <SettingsMenuLazy />
 
-              {/* User dropdown — both viewports. Mirrors Profile + Sign
+                {/* User dropdown — both viewports. Mirrors Profile + Sign
                   Out into a 1-tap-from-the-avatar surface even though
                   the same actions are also in the mobile drawer. */}
-              <UserDropdown user={user} onLogout={onLogout} />
-            </>
-          )}
+                <UserMenuLazy user={user} onLogout={onLogout} />
+              </>
+            )}
+          </div>
         </div>
-      </div>
-
-    </header>
-    {/*
+      </header>
+      {/*
       Drawer is a sibling of <header>, not a child. The header carries
       `backdrop-blur-sm` which creates a containing block for any
       position:fixed descendant — putting the drawer inside the header
       would anchor `fixed inset-0` to the 4rem-tall header instead of
       the viewport, hiding everything below the brand on scroll.
     */}
-    {drawerOpen && user && (
-      <MobileDrawer
-        onClose={() => setDrawerOpen(false)}
-        onLogout={onLogout}
-      />
-    )}
+      {drawerOpen && user && (
+        <MobileDrawer
+          onClose={() => setDrawerOpen(false)}
+          onLogout={onLogout}
+        />
+      )}
     </>
   );
 }
@@ -269,6 +303,9 @@ interface MobileDrawerProps {
 // scrolls. Routing semantics are still announced via aria-label on
 // the role="dialog" wrapper, so no semantic loss.
 function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
+  const brand = useBrandingQuery().data;
+  const brandName = brand?.name ?? '';
+  const brandLogoSrc = resolveBrandLogoUrl(brand?.logo_url);
   // Escape closes the drawer — the keyboard equivalent of the scrim
   // click + the explicit Close button. Bound while the drawer is mounted.
   useEffect(() => {
@@ -302,11 +339,11 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           <Link
             to="/"
             onClick={onClose}
-            aria-label="Personal Budget"
-            className="inline-flex items-center gap-2 text-indigo-700 no-underline dark:text-indigo-300"
+            aria-label={brandName}
+            className="text-accent-700 dark:text-accent-300 inline-flex items-center gap-2 no-underline"
           >
-            <Wallet aria-hidden="true" size={20} />
-            <span className="text-base font-semibold">Personal Budget</span>
+            <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={20} />
+            <span className="text-base font-semibold">{brandName}</span>
           </Link>
           <button
             type="button"
@@ -343,16 +380,20 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           */}
           <Link
             to="/account/accessibility"
-            className="flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400"
           >
             <span>Accessibility</span>
             <ChevronRight aria-hidden="true" size={14} />
           </Link>
-          <ThemeOptions />
-          <ZoomSlider />
-          <MotionToggle />
-          <PrivacyToggle />
-          <ContrastToggle />
+          <Suspense
+            fallback={
+              <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+                Loading toggles…
+              </div>
+            }
+          >
+            <AccessibilityPanel showMoreLink={false} />
+          </Suspense>
 
           <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
@@ -363,10 +404,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             <UserRound aria-hidden="true" size={16} className="mr-2" />
             Account
           </Link>
-          <Link
-            to="/help"
-            className={drawerLinkClass({ isActive: false })}
-          >
+          <Link to="/help" className={drawerLinkClass({ isActive: false })}>
             <HelpCircle aria-hidden="true" size={16} className="mr-2" />
             Help
           </Link>
@@ -376,7 +414,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
               onClose();
               void onLogout();
             }}
-            className="flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-200 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+            className="hover:bg-accent-50 hover:text-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors dark:text-slate-200"
           >
             <LogOut aria-hidden="true" size={16} className="mr-2" />
             Sign Out
@@ -412,60 +450,69 @@ function DrawerSection({ label, links }: DrawerSectionProps) {
   );
 }
 
-interface UserDropdownProps {
-  user: { email_id: string; first_name?: string; last_name?: string };
+// Stub-then-hydrate wrappers around the lazy Radix menus. The stub
+// button is a 1:1 visual match for Radix's trigger so layout doesn't
+// shift when the chunk lands; on first click we set `opened=true`
+// which mounts the lazy chunk with `defaultOpen={true}` so the click
+// is honored without a second tap.
+
+function SettingsMenuLazy() {
+  const [opened, setOpened] = useState(false);
+  if (!opened) {
+    return (
+      <button
+        type="button"
+        aria-label="Settings"
+        onClick={() => setOpened(true)}
+        className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+      >
+        <Settings aria-hidden="true" size={20} />
+        <ChevronDown aria-hidden="true" size={14} />
+      </button>
+    );
+  }
+  return (
+    <Suspense fallback={null}>
+      <SettingsDropdownLazy links={SETTINGS_LINKS} defaultOpen />
+    </Suspense>
+  );
+}
+
+interface UserMenuLazyProps {
+  user: {
+    email_id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string | null;
+  };
   onLogout: () => void | Promise<void>;
 }
 
-function UserDropdown({ user, onLogout }: UserDropdownProps) {
+function UserMenuLazy({ user, onLogout }: UserMenuLazyProps) {
+  const [opened, setOpened] = useState(false);
   const email = user.email_id;
-  const initials = initialsFor(email, user.first_name, user.last_name);
-
+  if (!opened) {
+    return (
+      <button
+        type="button"
+        aria-label="Account menu"
+        title={email}
+        onClick={() => setOpened(true)}
+        className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+      >
+        <ProfileImage
+          profileImageUrl={user.profile_image_url ?? null}
+          email={email}
+          firstName={user.first_name ?? null}
+          lastName={user.last_name ?? null}
+          sizeClassName="h-11 w-11"
+        />
+      </button>
+    );
+  }
   return (
-    <DropdownMenu.Root modal={false}>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          aria-label="Account menu"
-          title={email}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:ring-offset-slate-950"
-        >
-          {initials}
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-[14rem] rounded-md border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
-        >
-          <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            Signed in as
-            <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-              {email}
-            </div>
-          </div>
-          <DropdownMenu.Item asChild>
-            <Link
-              to="/account/profile"
-              className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
-            >
-              <UserRound aria-hidden="true" size={14} />
-              Account
-            </Link>
-          </DropdownMenu.Item>
-          <DropdownMenu.Item asChild>
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-700 dark:text-slate-200 dark:data-[highlighted]:bg-indigo-950/40 dark:data-[highlighted]:text-indigo-300"
-            >
-              <LogOut aria-hidden="true" size={14} />
-              Sign Out
-            </button>
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <Suspense fallback={null}>
+      <UserDropdownLazy user={user} onLogout={onLogout} defaultOpen />
+    </Suspense>
   );
 }

@@ -110,7 +110,7 @@ export function amountSign(n: number): '+' | '-' | '' {
 // Tailwind colour class for a signed amount: emerald (+), rose (−),
 // slate (0). Pairs with amountSign for signed-total displays.
 export function amountColorClass(n: number): string {
-  if (n > 0) return 'text-emerald-600 dark:text-emerald-400';
-  if (n < 0) return 'text-rose-600 dark:text-rose-400';
+  if (n > 0) return 'text-success-600 dark:text-success-400';
+  if (n < 0) return 'text-danger-600 dark:text-danger-400';
   return 'text-slate-700 dark:text-slate-200';
 }

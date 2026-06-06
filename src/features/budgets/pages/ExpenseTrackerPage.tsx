@@ -5,32 +5,15 @@ import { Link } from 'react-router-dom';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
-import { useAuthStore } from '../../../shared/state/auth.store';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { budgetKeys } from '../api/keys';
-import {
-  useBudgetStatusQuery,
-  type BudgetCategory,
-} from '../api/queries';
+import { useBudgetStatusQuery, type BudgetCategory } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
-
-// Total tag is a system-only tag (`tag_type = "total"`) — its row is
-// never surfaced in user-visible tag pickers. The backend's
-// `_load_total_budget_row` currently selects spend aggregates + the
-// limit only, omitting `tag_id`/`tag_name`/`tag_type` (a backend gap
-// — `_load_category_rows` does select them). Until that's fixed the
-// frontend stitches identity from `useAuthStore.constants.TOTAL_TAG_ID`
-// as a FALLBACK; when the backend response carries identity columns,
-// the fallback values are simply not used. Once the backend SELECT
-// is widened per `.scratch/task-handoff-fe-to-be.md §2`
-// this constant + the stitch in `totalBudget` can be deleted.
-const TOTAL_TAG_NAME_FALLBACK = 'Total Budget';
-const TOTAL_TAG_TYPE_FALLBACK = 'total';
+import { ExpenseTrendChart } from '../components/ExpenseTrendChart';
 
 export function ExpenseTrackerPage() {
   const queryClient = useQueryClient();
-  const constants = useAuthStore((s) => s.constants);
   const [activeMonth, setActiveMonth] = useState<string | null>(null);
   const { data, isLoading, error } = useBudgetStatusQuery(activeMonth);
 
@@ -45,28 +28,15 @@ export function ExpenseTrackerPage() {
     const cats = data?.categories ?? [];
     return cats.filter(
       (c) =>
-        (c.current_expense ?? 0) > 0 ||
+        (c.current_net_expense ?? 0) > 0 ||
         (c.limit_amt != null && c.limit_amt > 0)
     );
   }, [data]);
 
-  // Total Budget row identity — prefer backend-supplied fields,
-  // otherwise stitch from constants. See
-  // `.scratch/task-handoff-fe-to-be.md §2`
-  // for the backend follow-up; once landed this memo collapses to
-  // `data?.total_budget ?? null`.
-  const totalBudget: BudgetCategory | null = useMemo(() => {
-    const raw = data?.total_budget;
-    if (!raw) return null;
-    const tagId = (raw.tag_id as number | undefined) ?? constants?.TOTAL_TAG_ID;
-    if (tagId == null) return null;
-    return {
-      ...raw,
-      tag_id: tagId,
-      tag_name: raw.tag_name ?? TOTAL_TAG_NAME_FALLBACK,
-      tag_type: raw.tag_type ?? TOTAL_TAG_TYPE_FALLBACK,
-    };
-  }, [data, constants]);
+  const totalBudget: BudgetCategory | null = useMemo(
+    () => data?.total_budget ?? null,
+    [data]
+  );
 
   // Look up the active edit target by tag_id across (total + categories).
   // Total is editable too — same modal, same POST.
@@ -94,7 +64,7 @@ export function ExpenseTrackerPage() {
   const availableMonths = data?.available_months ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       {/*
        * Page header — title + description only. No competing controls
        * so the heading + paragraph stay readable on narrow viewports
@@ -106,7 +76,7 @@ export function ExpenseTrackerPage() {
         <nav className="text-sm text-slate-500 dark:text-slate-400">
           <Link
             to="/dashboard"
-            className="text-indigo-600 hover:underline dark:text-indigo-300"
+            className="text-accent-600 dark:text-accent-300 hover:underline"
           >
             Dashboard
           </Link>
@@ -119,9 +89,9 @@ export function ExpenseTrackerPage() {
           Expense Tracker
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Monitor monthly spending against per-category budgets. Breaches
-          stack a penalty on top of the base tax rate — see Taxation Rules
-          for the defaults, or override per-budget below.
+          Monitor monthly spending against per-category budgets. Breaches stack
+          a penalty on top of the base tax rate — see Taxation Rules for the
+          defaults, or override per-budget below.
         </p>
       </header>
 
@@ -180,6 +150,8 @@ export function ExpenseTrackerPage() {
             />
           )}
 
+          <ExpenseTrendChart />
+
           <section
             aria-labelledby="categories-heading"
             className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -199,7 +171,10 @@ export function ExpenseTrackerPage() {
             {visibleCategories.length === 0 ? (
               <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 No categorized spending found for{' '}
-                {displayMonth ? formatYearMonth(displayMonth, 'long') : 'this month'}.
+                {displayMonth
+                  ? formatYearMonth(displayMonth, 'long')
+                  : 'this month'}
+                .
               </div>
             ) : (
               <div
@@ -278,15 +253,15 @@ function RollingStatsStrip({ category, money }: RollingStatsStripProps) {
     >
       <Stat
         label="Average monthly spend"
-        value={money(category.avg_expense)}
+        value={money(category.avg_net_expense)}
       />
       <Stat
         label="Lowest monthly spend"
-        value={money(category.min_expense)}
+        value={money(category.min_net_expense)}
       />
       <Stat
         label="Highest monthly spend"
-        value={money(category.max_expense)}
+        value={money(category.max_net_expense)}
       />
     </dl>
   );
@@ -298,7 +273,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {label}
       </dt>
-      <dd className="text-base font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+      <dd className="money text-base font-semibold text-slate-900 tabular-nums dark:text-slate-100">
         {value}
       </dd>
     </div>

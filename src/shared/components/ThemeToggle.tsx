@@ -25,7 +25,7 @@ export function ThemeToggle() {
       onClick={cycle}
       aria-label={LABEL_BY_MODE[mode]}
       title={LABEL_BY_MODE[mode]}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
+      className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-slate-400 dark:focus-visible:ring-offset-slate-950"
     >
       <Icon aria-hidden="true" size={20} />
     </button>

@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { useAuth } from '../../features/auth/state/useAuth';
+import { renderWithProviders } from '../../test/renderWithProviders';
 
 import { HomePage } from './Home';
 
@@ -13,23 +13,23 @@ vi.mock('../../features/auth/state/useAuth', () => ({
 const mockUseAuth = vi.mocked(useAuth);
 
 describe('HomePage', () => {
-  it('renders the unauthenticated CTAs when no user', () => {
+  it('renders the unauthenticated CTAs when no user', async () => {
     // HomePage only reads `user`; cast the partial to the full hook shape.
     mockUseAuth.mockReturnValue({ user: null } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <HomePage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<HomePage />);
 
+    // Eyebrow text is the BE-supplied brand tagline (MSW default
+    // returns "Future begins today" per src/test/handlers/metadata.ts).
+    // `findBy` waits for the branding query to resolve since there's
+    // no hardcoded synchronous fallback.
+    expect(await screen.findByText(/Future begins today/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Smart budgeting for future you/i)
+      screen.getByRole('button', { name: /Sign in/i })
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Register/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Register/i })
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /Go to dashboard/i })
     ).not.toBeInTheDocument();
@@ -40,13 +40,7 @@ describe('HomePage', () => {
       user: { first_name: 'John' },
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <HomePage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<HomePage />);
 
     // Authed visitors no longer auto-redirect; the landing page stays
     // accessible and the CTAs collapse into one "Go to dashboard"

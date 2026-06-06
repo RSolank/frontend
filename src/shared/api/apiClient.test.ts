@@ -1,100 +1,174 @@
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { API_BASE } from '../../test/baseUrl';
 import { server } from '../../test/server';
-import { usePreferencesStore } from '../state/preferences.store';
+import { _resetDeviceIdCacheForTests } from '../utils/deviceId';
 
-import { apiFetch } from './apiClient';
+import { apiFetch, type ApiError } from './apiClient';
 
-// Contract test for CONTRIBUTING.md §5: every apiFetch call lands the
-// two preference headers from usePreferencesStore on the wire. Captures
-// the inbound request via an MSW one-shot handler.
-describe('apiFetch — user-preferences headers (CONTRIBUTING.md §5)', () => {
+// Pinned contract tests for apiClient — Platform FE Batch 3.
+//
+// 1. Every request carries the `X-Device-Id` header (auth.devices).
+// 2. A `Retry-After` header on 429 / 403 surfaces as
+//    `err.retryAfterSeconds` on the thrown `ApiError` (auth.rate-limit
+//    + auth.devices device-block). Any other status leaves it absent.
+describe('apiFetch — X-Device-Id header', () => {
   beforeEach(() => {
-    usePreferencesStore.getState().reset();
     localStorage.clear();
+    _resetDeviceIdCacheForTests();
   });
 
   afterEach(() => {
     server.resetHandlers();
   });
 
-  async function captureHeaders(path: string): Promise<Headers> {
-    let captured: Headers | undefined;
-    server.use(
-      http.get(`http://localhost:4000${path}`, ({ request }) => {
-        captured = request.headers;
-        return HttpResponse.json({ ok: true });
-      })
-    );
-    await apiFetch(path);
-    if (!captured) throw new Error('MSW handler never fired');
-    return captured;
-  }
-
-  it('sends default USD / UTC when the store is unhydrated', async () => {
-    const h = await captureHeaders('/api/health/prefs-default');
-    expect(h.get('x-user-currency')).toBe('USD');
-    expect(h.get('x-user-timezone')).toBe('UTC');
-  });
-
-  it('reflects non-default store values on every request', async () => {
-    usePreferencesStore.getState().setPreferences({
-      currency: 'INR',
-      country: 'IN',
-      timezone: 'Asia/Kolkata',
-    });
-
-    const h = await captureHeaders('/api/health/prefs-custom');
-    expect(h.get('x-user-currency')).toBe('INR');
-    expect(h.get('x-user-timezone')).toBe('Asia/Kolkata');
-  });
-
-  it('sanitizes a poisoned currency value rather than throwing on fetch', async () => {
-    // Regression test for the 2026-05-25 incident: a legacy backend
-    // row had `currency = "₹"` (U+20B9). `usePreferencesStore` happily
-    // stored it; on the next page boot `apiFetch` then threw "Cannot
-    // convert value in record<ByteString>" because the value falls
-    // outside the 0x00–0xFF header range. `preferenceHeaders()` now
-    // sanitizes at the wire so a poisoned store can't take login down.
-    usePreferencesStore.setState({
-      currency: '₹',
-      country: 'India',
-      timezone: 'Asia/Kolkata',
-    });
-
-    const h = await captureHeaders('/api/health/prefs-poison');
-    expect(h.get('x-user-currency')).toBe('USD');
-    expect(h.get('x-user-timezone')).toBe('Asia/Kolkata');
-  });
-
-  it('does not let caller-provided headers override the prefs headers', async () => {
-    usePreferencesStore.getState().setPreferences({
-      currency: 'EUR',
-      country: 'DE',
-      timezone: 'Europe/Berlin',
-    });
+  it('sends X-Device-Id on every request, using the persisted pba.device_id', async () => {
+    localStorage.setItem('pba.device_id', 'fixed-device-id-for-test');
+    _resetDeviceIdCacheForTests();
 
     let captured: Headers | undefined;
     server.use(
-      http.get('http://localhost:4000/api/health/prefs-override', ({ request }) => {
+      http.get(`${API_BASE}/health/device-id`, ({ request }) => {
         captured = request.headers;
         return HttpResponse.json({ ok: true });
       })
     );
 
-    await apiFetch('/api/health/prefs-override', {
-      headers: {
-        // Caller tries to forge — prefs spread sits BEFORE the options.headers
-        // spread, so a malicious / mistaken caller could *override* the prefs.
-        // This test pins the current behaviour so a future spread-order swap
-        // doesn't go un-noticed: caller wins. If we ever want strict
-        // enforcement, flip the spread order in apiClient.ts and update.
-        'x-user-currency': 'XXX',
-      },
-    });
-    expect(captured?.get('x-user-currency')).toBe('XXX');
-    // Timezone wasn't forged — still comes from the store.
-    expect(captured?.get('x-user-timezone')).toBe('Europe/Berlin');
+    await apiFetch('/api/v1/health/device-id');
+    expect(captured?.get('x-device-id')).toBe('fixed-device-id-for-test');
+  });
+
+  it('uses the same device id across two successive requests', async () => {
+    let firstId: string | null = null;
+    let secondId: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/health/dev-1`, ({ request }) => {
+        firstId = request.headers.get('x-device-id');
+        return HttpResponse.json({ ok: true });
+      }),
+      http.get(`${API_BASE}/health/dev-2`, ({ request }) => {
+        secondId = request.headers.get('x-device-id');
+        return HttpResponse.json({ ok: true });
+      })
+    );
+
+    await apiFetch('/api/v1/health/dev-1');
+    await apiFetch('/api/v1/health/dev-2');
+    expect(firstId).toBeTruthy();
+    expect(firstId).toBe(secondId);
+  });
+});
+
+describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    _resetDeviceIdCacheForTests();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  it('attaches retryAfterSeconds to a 429 ApiError when Retry-After is a delta-seconds integer', async () => {
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: 'Too many attempts' },
+          { status: 429, headers: { 'Retry-After': '90' } }
+        )
+      )
+    );
+
+    let thrown: ApiError | undefined;
+    try {
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
+    } catch (err) {
+      thrown = err as ApiError;
+    }
+    expect(thrown?.status).toBe(429);
+    expect(thrown?.retryAfterSeconds).toBe(90);
+  });
+
+  it('attaches retryAfterSeconds to a 403 ApiError when Retry-After is set (device-block path)', async () => {
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: 'Device blocked' },
+          { status: 403, headers: { 'Retry-After': '600' } }
+        )
+      )
+    );
+
+    let thrown: ApiError | undefined;
+    try {
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
+    } catch (err) {
+      thrown = err as ApiError;
+    }
+    expect(thrown?.status).toBe(403);
+    expect(thrown?.retryAfterSeconds).toBe(600);
+  });
+
+  it('does NOT attach retryAfterSeconds on a 403 without a Retry-After header', async () => {
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json({ detail: 'Forbidden' }, { status: 403 })
+      )
+    );
+
+    let thrown: ApiError | undefined;
+    try {
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
+    } catch (err) {
+      thrown = err as ApiError;
+    }
+    expect(thrown?.status).toBe(403);
+    expect(thrown?.retryAfterSeconds).toBeUndefined();
+  });
+
+  it('does NOT attach retryAfterSeconds on a 400 (only 429 + 403 carry it)', async () => {
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: 'Bad request' },
+          { status: 400, headers: { 'Retry-After': '120' } }
+        )
+      )
+    );
+
+    let thrown: ApiError | undefined;
+    try {
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
+    } catch (err) {
+      thrown = err as ApiError;
+    }
+    expect(thrown?.status).toBe(400);
+    expect(thrown?.retryAfterSeconds).toBeUndefined();
+  });
+
+  it('parses an HTTP-date Retry-After into seconds-from-now', async () => {
+    const targetMs = Date.now() + 45_000;
+    const httpDate = new Date(targetMs).toUTCString();
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: 'Too many attempts' },
+          { status: 429, headers: { 'Retry-After': httpDate } }
+        )
+      )
+    );
+
+    let thrown: ApiError | undefined;
+    try {
+      await apiFetch('/api/v1/auth/login', { method: 'POST' });
+    } catch (err) {
+      thrown = err as ApiError;
+    }
+    expect(thrown?.status).toBe(429);
+    // Allow a small skew for test execution time — value lands in
+    // the 30-60s band that bracket 45s.
+    expect(thrown?.retryAfterSeconds).toBeGreaterThanOrEqual(30);
+    expect(thrown?.retryAfterSeconds).toBeLessThanOrEqual(60);
   });
 });

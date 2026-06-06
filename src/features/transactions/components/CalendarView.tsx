@@ -32,10 +32,10 @@ import type { TransactionDTO } from '../api/schemas';
 
 const HEAT_BG: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800',
-  1: 'bg-indigo-50/60 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50',
-  2: 'bg-indigo-100/80 hover:bg-indigo-200 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60',
-  3: 'bg-indigo-200/80 hover:bg-indigo-300 dark:bg-indigo-900/60 dark:hover:bg-indigo-900/80',
-  4: 'bg-indigo-300/80 hover:bg-indigo-400 dark:bg-indigo-800/80 dark:hover:bg-indigo-800',
+  1: 'bg-accent-50/60 hover:bg-accent-100 dark:bg-accent-950/30 dark:hover:bg-accent-950/50',
+  2: 'bg-accent-100/80 hover:bg-accent-200 dark:bg-accent-950/50 dark:hover:bg-accent-900/60',
+  3: 'bg-accent-200/80 hover:bg-accent-300 dark:bg-accent-900/60 dark:hover:bg-accent-900/80',
+  4: 'bg-accent-300/80 hover:bg-accent-400 dark:bg-accent-800/80 dark:hover:bg-accent-800',
 };
 
 // ISO 8601 Mon → Sun matches the project-wide week convention
@@ -136,14 +136,14 @@ function CellAmount({
 }) {
   if (debit > 0) {
     return (
-      <span className="money mt-auto text-sm font-bold text-rose-600 dark:text-rose-400">
+      <span className="money text-danger-600 dark:text-danger-400 mt-auto text-sm font-bold">
         -{formatMoney(debit, currencyCode, currencySymbol)}
       </span>
     );
   }
   if (credit > 0) {
     return (
-      <span className="money mt-auto text-sm font-bold text-emerald-600 dark:text-emerald-400">
+      <span className="money text-success-600 dark:text-success-400 mt-auto text-sm font-bold">
         +{formatMoney(credit, currencyCode, currencySymbol)}
       </span>
     );
@@ -207,23 +207,27 @@ function CalendarCellButton({
       onClick={onClick}
       onFocus={onFocus}
       tabIndex={tabIndex}
-      aria-label={cellAriaLabel(cell, debit, credit, currencyCode, currencySymbol)}
+      aria-label={cellAriaLabel(
+        cell,
+        debit,
+        credit,
+        currencyCode,
+        currencySymbol
+      )}
       aria-current={cell.isToday ? 'date' : undefined}
-      className={`group flex min-h-[5.5rem] flex-col items-stretch gap-1 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
+      className={`group focus-visible:ring-accent-500 flex min-h-[5.5rem] flex-col items-stretch gap-1 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none ${
         HEAT_BG[heat]
       } ${
         cell.isToday
-          ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
+          ? 'ring-accent-500 dark:ring-accent-400 ring-2'
           : 'ring-1 ring-slate-200 dark:ring-slate-800'
-      } ${
-        dim ? 'opacity-50' : ''
-      } ${className ?? ''}`}
+      } ${dim ? 'opacity-50' : ''} ${className ?? ''}`}
     >
       <span className="flex items-center justify-between text-xs font-semibold">
         <span
           className={
             cell.isToday
-              ? 'text-indigo-700 dark:text-indigo-300'
+              ? 'text-accent-700 dark:text-accent-300'
               : 'text-slate-600 dark:text-slate-300'
           }
         >
@@ -232,7 +236,7 @@ function CalendarCellButton({
         {credit > 0 && (
           <span
             title="Credit on this day"
-            className="inline-flex items-center text-emerald-600 dark:text-emerald-400"
+            className="text-success-600 dark:text-success-400 inline-flex items-center"
             aria-hidden="true"
           >
             <TrendingUp size={12} />

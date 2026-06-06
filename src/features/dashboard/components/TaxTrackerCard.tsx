@@ -100,7 +100,7 @@ export function TaxTrackerCard() {
     >
       {data.is_estimate && (
         <p
-          className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+          className="border-warning-300 bg-warning-50 text-warning-800 dark:border-warning-700/60 dark:bg-warning-950/40 dark:text-warning-200 mb-3 rounded-md border px-2 py-1 text-xs"
           data-testid="dashboard-tax-estimate-banner"
         >
           Backend is returning approximate data while the live ledger backfills.
@@ -146,7 +146,7 @@ interface StatProps {
 // (slate-900). if/else (not a nested ternary) so it stays off
 // sonarjs/no-nested-conditional.
 function statValueClass(accent?: boolean, muted?: boolean): string {
-  if (accent) return 'text-indigo-700 dark:text-indigo-200';
+  if (accent) return 'text-accent-700 dark:text-accent-200';
   if (muted) return 'text-slate-600 dark:text-slate-300';
   return 'text-slate-900 dark:text-slate-100';
 }
@@ -156,7 +156,7 @@ function Stat({ label, value, accent, muted, testId }: StatProps) {
     <div
       className={`rounded-md px-3 py-2 ${
         accent
-          ? 'bg-indigo-50 dark:bg-indigo-950/40'
+          ? 'bg-accent-50 dark:bg-accent-950/40'
           : 'bg-slate-50 dark:bg-slate-800/60'
       }`}
       data-testid={testId}
@@ -171,7 +171,7 @@ function Stat({ label, value, accent, muted, testId }: StatProps) {
         {label}
       </div>
       <div
-        className={`mt-0.5 text-base font-semibold tabular-nums money ${statValueClass(
+        className={`money mt-0.5 text-base font-semibold tabular-nums ${statValueClass(
           accent,
           muted
         )}`}
@@ -192,7 +192,7 @@ function WeekProgress({ fraction }: { fraction: number }) {
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className="h-full bg-indigo-500 transition-[width] duration-300"
+          className="bg-accent-500 h-full transition-[width] duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -235,7 +235,7 @@ function TopContributors({
                 {p.txn_type}
               </span>
             </div>
-            <span className="tabular-nums text-sm text-slate-900 money dark:text-slate-100">
+            <span className="money text-sm text-slate-900 tabular-nums dark:text-slate-100">
               {money(p.tax_amount + p.penalty)}
             </span>
           </li>

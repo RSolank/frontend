@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -15,10 +16,10 @@ const statusResponse = {
       tag_id: 11,
       tag_name: 'Groceries',
       tag_type: 'essential',
-      current_expense: 300,
-      avg_expense: 250,
-      min_expense: 200,
-      max_expense: 400,
+      current_net_expense: 300,
+      avg_net_expense: 250,
+      min_net_expense: 200,
+      max_net_expense: 400,
       limit_amt: 350,
       penalty_rate: 0.05,
       default_penalty_rate: 0.05,
@@ -27,10 +28,10 @@ const statusResponse = {
       tag_id: 12,
       tag_name: 'Dining',
       tag_type: 'discretionary',
-      current_expense: 220,
-      avg_expense: 150,
-      min_expense: 100,
-      max_expense: 220,
+      current_net_expense: 220,
+      avg_net_expense: 150,
+      min_net_expense: 100,
+      max_net_expense: 220,
       // Over-budget case (220 > 200).
       limit_amt: 200,
       penalty_rate: 0.1,
@@ -40,10 +41,10 @@ const statusResponse = {
       tag_id: 13,
       tag_name: 'Hobbies',
       tag_type: 'discretionary',
-      current_expense: 50,
-      avg_expense: 60,
-      min_expense: 20,
-      max_expense: 90,
+      current_net_expense: 50,
+      avg_net_expense: 60,
+      min_net_expense: 20,
+      max_net_expense: 90,
       // No limit configured yet — should still render and show "Set
       // budget" affordance.
       limit_amt: null,
@@ -54,10 +55,10 @@ const statusResponse = {
       tag_id: 14,
       tag_name: 'Idle',
       tag_type: 'discretionary',
-      current_expense: 0,
-      avg_expense: 0,
-      min_expense: 0,
-      max_expense: 0,
+      current_net_expense: 0,
+      avg_net_expense: 0,
+      min_net_expense: 0,
+      max_net_expense: 0,
       limit_amt: null,
       penalty_rate: null,
       default_penalty_rate: 0.05,
@@ -67,10 +68,10 @@ const statusResponse = {
     tag_id: 1,
     tag_name: 'Total Budget',
     tag_type: 'total',
-    current_expense: 570,
-    avg_expense: 460,
-    min_expense: 320,
-    max_expense: 710,
+    current_net_expense: 570,
+    avg_net_expense: 460,
+    min_net_expense: 320,
+    max_net_expense: 710,
     limit_amt: 1000,
     penalty_rate: 0.05,
     default_penalty_rate: 0.05,
@@ -82,10 +83,10 @@ const statusResponse = {
 
 function installHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json(statusResponse)
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -125,7 +126,9 @@ describe('ExpenseTrackerPage', () => {
     // card — it scopes every card on the page.
     const monthSelect = screen.getByTestId('expense-tracker-month-select');
     expect(monthSelect).toBeInTheDocument();
-    expect(within(total).queryByTestId('expense-tracker-month-select')).toBeNull();
+    expect(
+      within(total).queryByTestId('expense-tracker-month-select')
+    ).toBeNull();
 
     // Category cards render (idle filtered out, over-budget status on
     // Dining via the gradient progress bar, Set vs Edit affordance per
@@ -143,18 +146,42 @@ describe('ExpenseTrackerPage', () => {
 
   it('progress bar uses gradient thresholds — safe / watch / near / over', async () => {
     server.use(
-      http.get('http://localhost:4000/api/budget-limits/status', () =>
+      http.get(`${API_BASE}/budget-limits/status`, () =>
         HttpResponse.json({
           ...statusResponse,
           categories: [
             // safe — 50/200 = 25%
-            { ...statusResponse.categories[0]!, tag_id: 101, tag_name: 'Safe Cat', current_expense: 50, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 101,
+              tag_name: 'Safe Cat',
+              current_net_expense: 50,
+              limit_amt: 200,
+            },
             // watch — 140/200 = 70%
-            { ...statusResponse.categories[0]!, tag_id: 102, tag_name: 'Watch Cat', current_expense: 140, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 102,
+              tag_name: 'Watch Cat',
+              current_net_expense: 140,
+              limit_amt: 200,
+            },
             // near — 180/200 = 90%
-            { ...statusResponse.categories[0]!, tag_id: 103, tag_name: 'Near Cat', current_expense: 180, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 103,
+              tag_name: 'Near Cat',
+              current_net_expense: 180,
+              limit_amt: 200,
+            },
             // over — 250/200 = 125%
-            { ...statusResponse.categories[0]!, tag_id: 104, tag_name: 'Over Cat', current_expense: 250, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 104,
+              tag_name: 'Over Cat',
+              current_net_expense: 250,
+              limit_amt: 200,
+            },
           ],
         })
       )
@@ -254,9 +281,9 @@ describe('ExpenseTrackerPage', () => {
     ).not.toBeInTheDocument();
 
     // Bubble surfaces the formatted money value.
-    expect(within(dialog).getByTestId('budget-slider-bubble')).toHaveTextContent(
-      '$350.00'
-    );
+    expect(
+      within(dialog).getByTestId('budget-slider-bubble')
+    ).toHaveTextContent('$350.00');
   });
 
   it('Set-budget for a category with no existing limit defaults the slider to the rolling average', async () => {
@@ -372,33 +399,28 @@ describe('ExpenseTrackerPage', () => {
     let postBody: unknown = null;
     let getCount = 0;
     server.use(
-      http.post(
-        'http://localhost:4000/api/budget-limits/',
-        async ({ request }) => {
-          postBody = await request.json();
-          return HttpResponse.json({
-            budget: {
-              uid: 99,
-              tag_id: 11,
-              tag_name: 'Groceries',
-              budget_period: 'monthly',
-              limit_amt: 425,
-              penalty_rate: 0.075,
-              created_by: 1,
-              created_at: '2026-02-15T12:00:00Z',
-            },
-          });
-        }
-      ),
-      http.get('http://localhost:4000/api/budget-limits/status', () => {
+      http.post(`${API_BASE}/budget-limits/`, async ({ request }) => {
+        postBody = await request.json();
+        return HttpResponse.json({
+          budget: {
+            uid: 99,
+            tag_id: 11,
+            tag_name: 'Groceries',
+            budget_period: 'monthly',
+            limit_amt: 425,
+            penalty_rate: 0.075,
+            created_by: 1,
+            created_at: '2026-02-15T12:00:00Z',
+          },
+        });
+      }),
+      http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
           ...statusResponse,
           categories: statusResponse.categories.map((c) =>
-            c.tag_id === 11
-              ? { ...c, limit_amt: 425, penalty_rate: 0.075 }
-              : c
+            c.tag_id === 11 ? { ...c, limit_amt: 425, penalty_rate: 0.075 } : c
           ),
         });
       })
@@ -445,42 +467,6 @@ describe('ExpenseTrackerPage', () => {
     });
   });
 
-  it('Remove button surfaces a "backend pending" notice when DELETE 404s (scaffold path)', async () => {
-    let deleteHit = false;
-    server.use(
-      http.delete(
-        'http://localhost:4000/api/budget-limits/:tagId',
-        () => {
-          deleteHit = true;
-          return new HttpResponse(null, { status: 404 });
-        }
-      )
-    );
-
-    renderWithProviders(<ExpenseTrackerPage />);
-    await waitFor(() =>
-      expect(screen.getByTestId('budget-card-11')).toBeInTheDocument()
-    );
-
-    fireEvent.click(screen.getByTestId('budget-card-edit-11'));
-    const dialog = await screen.findByRole('dialog');
-
-    fireEvent.click(within(dialog).getByTestId('budget-form-remove'));
-
-    // ConfirmDialog opens. Click Remove to fire the request.
-    const confirm = await screen.findByRole('dialog', {
-      name: /Remove this budget/,
-    });
-    fireEvent.click(within(confirm).getByRole('button', { name: /Remove/ }));
-
-    await waitFor(() => expect(deleteHit).toBe(true));
-    await waitFor(() => {
-      expect(
-        within(dialog).getByRole('alert')
-      ).toHaveTextContent(/backend endpoint that hasn['’]t shipped yet/);
-    });
-  });
-
   it('Remove button on a budget without an existing limit is hidden (no Remove for fresh budgets)', async () => {
     renderWithProviders(<ExpenseTrackerPage />);
     await waitFor(() =>
@@ -499,22 +485,17 @@ describe('ExpenseTrackerPage', () => {
     let deletedTagId: string | null = null;
     let getCount = 0;
     server.use(
-      http.delete(
-        'http://localhost:4000/api/budget-limits/:tagId',
-        ({ params }) => {
-          deletedTagId = String(params.tagId);
-          return new HttpResponse(null, { status: 204 });
-        }
-      ),
-      http.get('http://localhost:4000/api/budget-limits/status', () => {
+      http.delete(`${API_BASE}/budget-limits/:tagId`, ({ params }) => {
+        deletedTagId = String(params.tagId);
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
           ...statusResponse,
           categories: statusResponse.categories.map((c) =>
-            c.tag_id === 11
-              ? { ...c, limit_amt: null, penalty_rate: null }
-              : c
+            c.tag_id === 11 ? { ...c, limit_amt: null, penalty_rate: null } : c
           ),
         });
       })
@@ -553,18 +534,15 @@ describe('ExpenseTrackerPage', () => {
   it('Month picker switches the active month query', async () => {
     let secondGetMonth: string | null = null;
     server.use(
-      http.get(
-        'http://localhost:4000/api/budget-limits/status',
-        ({ request }) => {
-          const url = new URL(request.url);
-          const monthParam = url.searchParams.get('month');
-          if (monthParam) secondGetMonth = monthParam;
-          return HttpResponse.json({
-            ...statusResponse,
-            month: monthParam ?? '2026-02',
-          });
-        }
-      )
+      http.get(`${API_BASE}/budget-limits/status`, ({ request }) => {
+        const url = new URL(request.url);
+        const monthParam = url.searchParams.get('month');
+        if (monthParam) secondGetMonth = monthParam;
+        return HttpResponse.json({
+          ...statusResponse,
+          month: monthParam ?? '2026-02',
+        });
+      })
     );
 
     renderWithProviders(<ExpenseTrackerPage />);
@@ -619,7 +597,7 @@ describe('ExpenseTrackerPage', () => {
 
     it('renders "above" band when current > max and "below" when current ≤ 0.75 * avg', async () => {
       server.use(
-        http.get('http://localhost:4000/api/budget-limits/status', () =>
+        http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
             ...statusResponse,
             categories: [
@@ -627,20 +605,20 @@ describe('ExpenseTrackerPage', () => {
                 ...statusResponse.categories[0]!,
                 tag_id: 201,
                 tag_name: 'Above Max',
-                current_expense: 500,
-                avg_expense: 200,
-                min_expense: 150,
-                max_expense: 400,
+                current_net_expense: 500,
+                avg_net_expense: 200,
+                min_net_expense: 150,
+                max_net_expense: 400,
                 limit_amt: 1000,
               },
               {
                 ...statusResponse.categories[0]!,
                 tag_id: 202,
                 tag_name: 'Quiet Month',
-                current_expense: 60,
-                avg_expense: 200,
-                min_expense: 150,
-                max_expense: 400,
+                current_net_expense: 60,
+                avg_net_expense: 200,
+                min_net_expense: 150,
+                max_net_expense: 400,
                 limit_amt: 1000,
               },
             ],
@@ -667,7 +645,7 @@ describe('ExpenseTrackerPage', () => {
 
     it('hides the badge when there is no historical baseline yet (avg = 0)', async () => {
       server.use(
-        http.get('http://localhost:4000/api/budget-limits/status', () =>
+        http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
             ...statusResponse,
             categories: [
@@ -675,10 +653,10 @@ describe('ExpenseTrackerPage', () => {
                 ...statusResponse.categories[0]!,
                 tag_id: 301,
                 tag_name: 'Fresh',
-                current_expense: 100,
-                avg_expense: 0,
-                min_expense: 0,
-                max_expense: 0,
+                current_net_expense: 100,
+                avg_net_expense: 0,
+                min_net_expense: 0,
+                max_net_expense: 0,
                 limit_amt: 500,
               },
             ],

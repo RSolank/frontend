@@ -13,6 +13,12 @@ export interface AuthUser {
   email_id: string;
   first_name?: string;
   last_name?: string;
+  // BE T-admin A1 (`2c47fa9`) — authorization role surfaced on /me so
+  // the FE admin gate reads it sync from the store instead of probing
+  // /admin/ping. Optional only for back-compat with older fixtures;
+  // current BE always populates it ('user' default, 'admin' for the
+  // SYSTEM bootstrap + env-bootstrap-promoted accounts).
+  role?: 'user' | 'admin' | string;
   [key: string]: unknown;
 }
 
@@ -32,10 +38,17 @@ export interface AuthState {
   constants: SystemConstants | null;
   loading: boolean;
   error: string | null;
+  // Seconds until the next auth attempt is accepted. Populated by
+  // `useAuth.login` / `register` / `recovery` when the backend
+  // returns a `Retry-After` header on a 429 (auth.rate-limit) or
+  // 403 (auth.devices device-block). Forms render the live
+  // countdown via `useRetryCountdown(retryAfterSeconds)`.
+  retryAfterSeconds: number | null;
   setUser: (user: AuthUser | null) => void;
   setConstants: (constants: SystemConstants | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setRetryAfterSeconds: (seconds: number | null) => void;
   reset: () => void;
 }
 
@@ -44,6 +57,7 @@ const initial = {
   constants: null as SystemConstants | null,
   loading: true,
   error: null as string | null,
+  retryAfterSeconds: null as number | null,
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -52,5 +66,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   setConstants: (constants) => set({ constants }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+  setRetryAfterSeconds: (retryAfterSeconds) => set({ retryAfterSeconds }),
   reset: () => set({ ...initial, loading: false }),
 }));

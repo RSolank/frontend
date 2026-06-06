@@ -61,12 +61,12 @@ export function ZoomSlider() {
           onPointerCancel={() => setActive(false)}
           onFocus={() => setActive(true)}
           onBlur={() => setActive(false)}
-          className="block h-1.5 w-full appearance-none rounded-full bg-slate-200 accent-indigo-600 dark:bg-slate-700"
+          className="accent-accent-600 block h-1.5 w-full appearance-none rounded-full bg-slate-200 dark:bg-slate-700"
         />
         {active && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-md dark:bg-slate-700"
+            className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums shadow-md dark:bg-slate-700"
             style={{ left: `${valuePct}%` }}
           >
             {pct}%

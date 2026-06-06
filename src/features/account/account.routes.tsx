@@ -31,6 +31,11 @@ const AccountPreferencesPage = lazy(() =>
     default: m.AccountPreferencesPage,
   }))
 );
+const AccountNotificationsPage = lazy(() =>
+  import('./pages/AccountNotificationsPage').then((m) => ({
+    default: m.AccountNotificationsPage,
+  }))
+);
 
 // Wrapped in <ProtectedRoute> by app/routes.tsx via protectedRoutes().
 // Children inherit protection through the parent's gated <Outlet />.
@@ -49,6 +54,7 @@ export const accountRoutes: RouteObject[] = [
       { path: 'privacy', element: <AccountPrivacyPage /> },
       { path: 'accessibility', element: <AccountAccessibilityPage /> },
       { path: 'preferences', element: <AccountPreferencesPage /> },
+      { path: 'notifications', element: <AccountNotificationsPage /> },
     ],
   },
   { path: '/profile', element: <Navigate to="/account/profile" replace /> },

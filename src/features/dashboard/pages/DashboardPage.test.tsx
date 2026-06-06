@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
@@ -25,10 +26,10 @@ const populatedBudgetStatus = {
       tag_id: 11,
       tag_name: 'Groceries',
       tag_type: 'essential',
-      current_expense: 400,
-      avg_expense: 380,
-      min_expense: 200,
-      max_expense: 500,
+      current_net_expense: 400,
+      avg_net_expense: 380,
+      min_net_expense: 200,
+      max_net_expense: 500,
       limit_amt: 600,
       penalty_rate: 0.05,
       default_penalty_rate: 0.05,
@@ -37,10 +38,10 @@ const populatedBudgetStatus = {
       tag_id: 12,
       tag_name: 'Dining',
       tag_type: 'discretionary',
-      current_expense: 250,
-      avg_expense: 150,
-      min_expense: 100,
-      max_expense: 250,
+      current_net_expense: 250,
+      avg_net_expense: 150,
+      min_net_expense: 100,
+      max_net_expense: 250,
       limit_amt: 200, // over-budget (250 > 200)
       penalty_rate: 0.1,
       default_penalty_rate: 0.05,
@@ -49,10 +50,10 @@ const populatedBudgetStatus = {
       tag_id: 13,
       tag_name: 'Hobbies',
       tag_type: 'discretionary',
-      current_expense: 50,
-      avg_expense: 60,
-      min_expense: 20,
-      max_expense: 90,
+      current_net_expense: 50,
+      avg_net_expense: 60,
+      min_net_expense: 20,
+      max_net_expense: 90,
       limit_amt: null,
       penalty_rate: null,
       default_penalty_rate: 0.05,
@@ -61,10 +62,10 @@ const populatedBudgetStatus = {
       tag_id: 14,
       tag_name: 'Idle',
       tag_type: 'discretionary',
-      current_expense: 0,
-      avg_expense: 0,
-      min_expense: 0,
-      max_expense: 0,
+      current_net_expense: 0,
+      avg_net_expense: 0,
+      min_net_expense: 0,
+      max_net_expense: 0,
       limit_amt: null,
       penalty_rate: null,
       default_penalty_rate: 0.05,
@@ -74,10 +75,10 @@ const populatedBudgetStatus = {
     tag_id: 1,
     tag_name: 'Total Budget',
     tag_type: 'total',
-    current_expense: 700,
-    avg_expense: 600,
-    min_expense: 400,
-    max_expense: 800,
+    current_net_expense: 700,
+    avg_net_expense: 600,
+    min_net_expense: 400,
+    max_net_expense: 800,
     limit_amt: 1500,
     penalty_rate: 0.05,
     default_penalty_rate: 0.05,
@@ -92,7 +93,8 @@ const populatedBudgetStatus = {
 // hand-typing dates that might fall outside the rolling boundary.
 function dayInWeek(offset: number): string {
   const [y, m, d] = WEEK_START.split('-').map(Number);
-  const noonUtc = Date.UTC(y as number, (m as number) - 1, d as number, 12) +
+  const noonUtc =
+    Date.UTC(y as number, (m as number) - 1, d as number, 12) +
     offset * 86_400_000;
   return new Date(noonUtc).toISOString();
 }
@@ -161,17 +163,29 @@ const populatedTracker = {
   projected_tax: 30,
   projected_penalty: 6,
   per_tag: [
-    { tag_id: 12, tag_name: 'Dining', txn_type: 'discretionary', tax_amount: 7, penalty: 2.5 },
-    { tag_id: 11, tag_name: 'Groceries', txn_type: 'essential', tax_amount: 5.5, penalty: 0 },
+    {
+      tag_id: 12,
+      tag_name: 'Dining',
+      txn_type: 'discretionary',
+      tax_amount: 7,
+      penalty: 2.5,
+    },
+    {
+      tag_id: 11,
+      tag_name: 'Groceries',
+      txn_type: 'essential',
+      tax_amount: 5.5,
+      penalty: 0,
+    },
   ],
 };
 
 function installPopulatedHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json(populatedBudgetStatus)
     ),
-    http.get('http://localhost:4000/api/transactions', ({ request }) => {
+    http.get(`${API_BASE}/transactions`, ({ request }) => {
       const url = new URL(request.url);
       // Recent list (limit=5, no debit_credit filter) returns the full
       // populated list; week-aggregate query (debit_credit=debit) gets
@@ -186,11 +200,52 @@ function installPopulatedHandlers() {
       }
       return HttpResponse.json(populatedTransactions);
     }),
-    http.get(
-      'http://localhost:4000/api/consumption-tax/tracker/current-week',
-      () => HttpResponse.json(populatedTracker)
+    // `useTrackerCurrentWeekQuery` now derives the running-tax view
+    // from the ACCRUING bill (see `features/taxation/api/queries.ts`).
+    // Seed one bill with totals + items matching `populatedTracker`.
+    http.get(`${API_BASE}/consumption-tax/bills`, () =>
+      HttpResponse.json({
+        bills: [
+          {
+            bill_id: 7777,
+            period_start: WEEK_START,
+            period_end: WEEK_END,
+            status: 'ACCRUING',
+            amount: 15,
+            amount_paid: 0,
+          },
+        ],
+      })
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/consumption-tax/bills/7777`, () =>
+      HttpResponse.json({
+        bill_id: 7777,
+        period_start: WEEK_START,
+        period_end: WEEK_END,
+        status: 'ACCRUING',
+        amount: 15,
+        amount_paid: 0,
+        totals: {
+          tax_total: populatedTracker.running_tax,
+          penalty_total: populatedTracker.running_penalty,
+        },
+        items: populatedTracker.per_tag.map((p, idx) => ({
+          txn_id: 9000 + idx,
+          date: WEEK_START,
+          beneficiary: p.tag_name,
+          txn_type: p.txn_type,
+          amount: p.tax_amount * 10,
+          debit_credit: 'debit',
+          tax_amount: p.tax_amount,
+          penalty: p.penalty,
+          tag_id: p.tag_id,
+          tag_name: p.tag_name,
+          penalty_tag_id: p.tag_id,
+          penalty_tag_name: p.tag_name,
+        })),
+      })
+    ),
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -200,7 +255,7 @@ function installPopulatedHandlers() {
 
 function installEmptyHandlers() {
   server.use(
-    http.get('http://localhost:4000/api/budget-limits/status', () =>
+    http.get(`${API_BASE}/budget-limits/status`, () =>
       HttpResponse.json({
         categories: [],
         total_budget: null,
@@ -209,14 +264,15 @@ function installEmptyHandlers() {
         available_months: ['2026-02'],
       })
     ),
-    http.get('http://localhost:4000/api/transactions', () =>
+    http.get(`${API_BASE}/transactions`, () =>
       HttpResponse.json({ transactions: [], returned_count: 0 })
     ),
-    http.get(
-      'http://localhost:4000/api/consumption-tax/tracker/current-week',
-      () => new HttpResponse(null, { status: 404 })
+    // Empty-state shape: no ACCRUING bill → tracker renders the
+    // "No tax accrued for this week yet." card.
+    http.get(`${API_BASE}/consumption-tax/bills`, () =>
+      HttpResponse.json({ bills: [] })
     ),
-    http.get('http://localhost:4000/api/metadata/currencies', () =>
+    http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
@@ -330,10 +386,16 @@ describe('DashboardPage', () => {
           within(card).getByTestId('dashboard-tax-accrued')
         ).toHaveTextContent('$15.00')
       );
-      // Projected = projected_tax + projected_penalty = 30 + 6 = 36.
-      expect(
-        within(card).getByTestId('dashboard-tax-projected')
-      ).toHaveTextContent('$36.00');
+      // Projected is now derived FE-side from `running_total /
+      // fractionOfWeekElapsed` (the BE never shipped a `projected_*`
+      // value; the `tracker/current-week` route never landed — see
+      // `useTrackerCurrentWeekQuery` in
+      // `features/taxation/api/queries.ts`). So the exact $-amount
+      // floats with wall-clock day-of-week. Assert the slot rendered
+      // with *some* dollar value rather than pinning a specific one.
+      const projectedText =
+        within(card).getByTestId('dashboard-tax-projected').textContent ?? '';
+      expect(projectedText).toMatch(/\$\d+\.\d{2}/);
       // Top contributors list renders the two per_tag rows.
       const list = within(card).getByTestId('dashboard-tax-contributors');
       expect(within(list).getByText('Dining')).toBeInTheDocument();
@@ -343,7 +405,9 @@ describe('DashboardPage', () => {
     it('Secondary breach alerts widget renders only when there are breaches', async () => {
       renderWithProviders(<DashboardPage />);
       await waitFor(() =>
-        expect(screen.getByTestId('dashboard-breach-alerts')).toBeInTheDocument()
+        expect(
+          screen.getByTestId('dashboard-breach-alerts')
+        ).toBeInTheDocument()
       );
       const alerts = screen.getByTestId('dashboard-breach-alerts');
       // Dining is +$50 over its $200 limit.
@@ -357,14 +421,25 @@ describe('DashboardPage', () => {
       const widget = await screen.findByTestId('dashboard-week-summary');
       await waitFor(() => expect(widget).toHaveTextContent('$148.00'));
       expect(widget).toHaveTextContent('4'); // debit count
-      expect(widget).toHaveTextContent('$15.00'); // tax accrued
+      // Tax accrued comes from the FE-derived tracker (bills →
+      // bill detail), which resolves on a separate tick from the
+      // txn-driven `$148.00` above. Wait for the second query
+      // before asserting.
+      await waitFor(() => expect(widget).toHaveTextContent('$15.00'));
     });
 
-    it('Activity placeholder is always rendered (BE endpoint pending)', async () => {
+    it('Dashboard no longer renders an inline Activity widget — moved to TopNav bell in Batch 18', async () => {
       renderWithProviders(<DashboardPage />);
-      expect(
-        await screen.findByTestId('dashboard-activity-placeholder')
-      ).toBeInTheDocument();
+      // The widget previously rendered alongside BreachAlerts /
+      // WeekSummary / UpcomingBills. Batch 18 relocated the feed to
+      // the TopNav bell + lazy modal so it's visible app-wide, not
+      // just on the dashboard. Pinning that the dashboard surface
+      // does not bring the widget back.
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('dashboard-activity')
+        ).not.toBeInTheDocument()
+      );
     });
 
     // Batch 9.5 — week-by-category strip aggregates the already-loaded
@@ -375,7 +450,7 @@ describe('DashboardPage', () => {
     // (Uncategorized) → Dining.
     it('Week-by-category strip aggregates weekly debits by primary tag', async () => {
       server.use(
-        http.get('http://localhost:4000/api/tags', () =>
+        http.get(`${API_BASE}/tags`, () =>
           HttpResponse.json({
             tags: [
               {

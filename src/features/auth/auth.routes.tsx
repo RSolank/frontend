@@ -13,6 +13,19 @@ const LoginPage = lazy(() =>
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
 );
+// BE Phase 2.7 (2FA) + 2.3 (new-device) — pending-token challenge
+// landing pages. Same lazy-chunk treatment as the rest of the auth
+// surface; both are reached via `navigate` from `useAuth.login`.
+const VerifyTwoFactorPage = lazy(() =>
+  import('./pages/VerifyTwoFactorPage').then((m) => ({
+    default: m.VerifyTwoFactorPage,
+  }))
+);
+const VerifyNewDevicePage = lazy(() =>
+  import('./pages/VerifyNewDevicePage').then((m) => ({
+    default: m.VerifyNewDevicePage,
+  }))
+);
 
 // Per-feature route module — composed by src/app/routes.tsx. Each route
 // carries its own `errorElement` so a thrown render error (e.g. inside
@@ -27,6 +40,16 @@ export const authRoutes: RouteObject[] = [
   {
     path: '/register',
     element: <RegisterPage />,
+    errorElement: <AuthErrorFallback />,
+  },
+  {
+    path: '/verify/2fa',
+    element: <VerifyTwoFactorPage />,
+    errorElement: <AuthErrorFallback />,
+  },
+  {
+    path: '/verify/new-device',
+    element: <VerifyNewDevicePage />,
     errorElement: <AuthErrorFallback />,
   },
 ];

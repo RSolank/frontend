@@ -54,14 +54,14 @@ export function TransactionRow({
   const amountSign = txn.debit_credit === 'debit' ? '-' : '+';
   const amountColor =
     txn.debit_credit === 'debit'
-      ? 'text-rose-600 dark:text-rose-400'
-      : 'text-emerald-600 dark:text-emerald-400';
+      ? 'text-danger-600 dark:text-danger-400'
+      : 'text-success-600 dark:text-success-400';
 
   return (
     <li
       className={`group flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60 ${
         highlighted
-          ? 'bg-indigo-50/60 ring-2 ring-indigo-500 ring-inset dark:bg-indigo-950/30'
+          ? 'bg-accent-50/60 ring-accent-500 dark:bg-accent-950/30 ring-2 ring-inset'
           : ''
       }`}
     >
@@ -78,7 +78,7 @@ export function TransactionRow({
           {txn.beneficiary_id ? (
             <Link
               to={`/beneficiaries/${txn.beneficiary_id}`}
-              className="text-indigo-700 hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200"
+              className="text-accent-700 hover:text-accent-800 dark:text-accent-300 dark:hover:text-accent-200"
               onClick={(e) => e.stopPropagation()}
             >
               {txn.beneficiary_name || txn.beneficiary || '—'}
@@ -115,7 +115,7 @@ export function TransactionRow({
           onClick={() => onOpen(txn.txn_id)}
           aria-label="View / edit transaction"
           title="View / edit"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <MoreHorizontal aria-hidden size={16} />
         </button>

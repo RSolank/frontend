@@ -1,9 +1,9 @@
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { BreachAlertsWidget } from '../components/BreachAlertsWidget';
 import { ExpenseTrackerCard } from '../components/ExpenseTrackerCard';
-import { RecentActivityWidget } from '../components/RecentActivityWidget';
 import { TaxTrackerCard } from '../components/TaxTrackerCard';
 import { TransactionsCard } from '../components/TransactionsCard';
+import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
 import { WeekSummaryWidget } from '../components/WeekSummaryWidget';
 
 // /dashboard surface — the authenticated home. Three primary cards
@@ -38,8 +38,8 @@ export function DashboardPage() {
           Welcome back{firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Your week at a glance — transactions, budget headroom, and the
-          running tax accrual.
+          Your week at a glance — transactions, budget headroom, and the running
+          tax accrual.
         </p>
       </header>
 
@@ -63,16 +63,21 @@ export function DashboardPage() {
        * Secondary widgets — always visible across viewports.
        * Ordered by priority (left → right on desktop, top → bottom
        * on mobile) so the most actionable signal lands first either
-       * way: breaches → week stats → activity feed.
+       * way: breaches → week stats → upcoming bills.
+       *
+       * The activity feed used to live here as a 4th widget; Batch 18
+       * moved it to the TopNav bell so the feed surfaces app-wide
+       * (not just on /dashboard) and the dashboard chunk doesn't
+       * carry the always-on poll.
        */}
       <section
         aria-label="Secondary widgets"
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3"
+        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
         data-testid="dashboard-secondary-grid"
       >
         <BreachAlertsWidget />
         <WeekSummaryWidget />
-        <RecentActivityWidget />
+        <UpcomingBillsWidget />
       </section>
     </div>
   );

@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -9,9 +10,10 @@ import { AddTransactionPage } from './AddTransactionPage';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>(
-    'react-router-dom'
-  );
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -50,13 +52,9 @@ const mockConstants = {
 beforeEach(() => {
   mockNavigate.mockReset();
   server.use(
-    http.get('http://localhost:4000/api/tags', () =>
-      HttpResponse.json(mockTags)
-    ),
-    http.get('http://localhost:4000/api/beneficiaries', () =>
-      HttpResponse.json([])
-    ),
-    http.get('http://localhost:4000/api/metadata/constants', () =>
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json(mockTags)),
+    http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json([])),
+    http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(mockConstants)
     )
   );
@@ -78,7 +76,7 @@ describe('AddTransactionPage', () => {
   it('submits the form successfully and navigates', async () => {
     let body: unknown = null;
     server.use(
-      http.post('http://localhost:4000/api/transactions', async ({ request }) => {
+      http.post(`${API_BASE}/transactions`, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ transaction: { txn_id: 1, amount: 50.5 } });
       })
@@ -115,7 +113,7 @@ describe('AddTransactionPage', () => {
 
   it('shows an error when the create call fails', async () => {
     server.use(
-      http.post('http://localhost:4000/api/transactions', () =>
+      http.post(`${API_BASE}/transactions`, () =>
         HttpResponse.json({ detail: 'Server error' }, { status: 500 })
       )
     );

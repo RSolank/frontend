@@ -82,8 +82,7 @@ export function chooseRepresentativePrimary(
     return t?.parent ?? null;
   });
   const allShareParent =
-    parents.every((p) => p != null) &&
-    parents.every((p) => p === parents[0]);
+    parents.every((p) => p != null) && parents.every((p) => p === parents[0]);
   if (allShareParent && parents[0] != null) {
     return { tagId: parents[0], isParentFallback: true };
   }

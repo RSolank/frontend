@@ -8,4 +8,6 @@ export const userKeys = {
   me: () => [...userKeys.all, 'me'] as const,
   preferences: () => [...userKeys.all, 'preferences'] as const,
   stats: () => [...userKeys.all, 'stats'] as const,
+  profileImagePresets: () =>
+    [...userKeys.all, 'profile-image-presets'] as const,
 } as const;

@@ -75,12 +75,11 @@ export function AccountAccessibilityPage() {
           <strong className="font-semibold text-slate-900 dark:text-slate-100">
             Tip:
           </strong>{' '}
-          Theme, text size, motion, and privacy mask are also reachable
-          from the top-bar Accessibility menu on desktop and the
-          navigation drawer&rsquo;s Accessibility section on mobile, so
-          you can toggle them without leaving your current page. All
-          settings on this page persist to this browser only and do not
-          follow you across devices.
+          Theme, text size, motion, and privacy mask are also reachable from the
+          top-bar Accessibility menu on desktop and the navigation
+          drawer&rsquo;s Accessibility section on mobile, so you can toggle them
+          without leaving your current page. All settings on this page persist
+          to this browser only and do not follow you across devices.
         </p>
       </div>
     </div>

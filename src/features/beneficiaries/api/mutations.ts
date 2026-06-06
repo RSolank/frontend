@@ -26,7 +26,9 @@ export function updateBeneficiaryRequest(
 export function deleteBeneficiaryRequest(
   uid: number | string
 ): Promise<unknown> {
-  return apiFetch<unknown>(routes.beneficiaries.byId(uid), { method: 'DELETE' });
+  return apiFetch<unknown>(routes.beneficiaries.byId(uid), {
+    method: 'DELETE',
+  });
 }
 
 export function mergeBeneficiariesRequest(

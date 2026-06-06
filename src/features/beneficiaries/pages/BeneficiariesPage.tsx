@@ -9,10 +9,7 @@ import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { formatAliasesDisplay } from '../api/aliases';
 import { beneficiaryKeys } from '../api/keys';
 import { deleteBeneficiaryRequest } from '../api/mutations';
-import {
-  type Beneficiary,
-  useBeneficiariesQuery,
-} from '../api/queries';
+import { type Beneficiary, useBeneficiariesQuery } from '../api/queries';
 import { BeneficiaryFormDialog } from '../components/BeneficiaryFormDialog';
 import { MergeBeneficiariesDialog } from '../components/MergeBeneficiariesDialog';
 
@@ -32,7 +29,11 @@ type TypeFilter = 'all' | 'merchant' | 'person';
 //   ?merge=true      → MergeBeneficiariesDialog
 export function BeneficiariesPage() {
   const queryClient = useQueryClient();
-  const { data: beneficiaries = [], isLoading, error } = useBeneficiariesQuery();
+  const {
+    data: beneficiaries = [],
+    isLoading,
+    error,
+  } = useBeneficiariesQuery();
 
   const addModal = useModal({ urlKey: 'add' });
   const editModal = useUrlValueModal('edit');
@@ -135,7 +136,7 @@ export function BeneficiariesPage() {
           </h1>
           <Link
             to="/dashboard"
-            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
+            className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
           >
             ← Back to Dashboard
           </Link>
@@ -144,7 +145,7 @@ export function BeneficiariesPage() {
           <button
             type="button"
             onClick={mergeModal.open}
-            className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/60"
+            className="border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Merge
           </button>
@@ -293,7 +294,7 @@ function BeneficiaryTable({
         key={b.uid}
         className={`border-t border-slate-100 transition-colors dark:border-slate-800 ${
           highlightUid === b.uid
-            ? 'bg-indigo-50/60 ring-2 ring-indigo-500 ring-inset dark:bg-indigo-950/30'
+            ? 'bg-accent-50/60 ring-accent-500 dark:bg-accent-950/30 ring-2 ring-inset'
             : ''
         }`}
       >
@@ -301,7 +302,7 @@ function BeneficiaryTable({
           <button
             type="button"
             onClick={() => onOpen(b.uid)}
-            className="text-left text-indigo-600 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-indigo-400 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950"
+            className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
           >
             {b.name}
           </button>
@@ -318,7 +319,7 @@ function BeneficiaryTable({
             onClick={() => onOpen(b.uid)}
             aria-label={`View / edit beneficiary ${b.name}`}
             title="View / edit"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <MoreHorizontal aria-hidden size={16} />
           </button>
@@ -349,16 +350,16 @@ function BeneficiaryTable({
 // since-deleted beneficiary). Dismissing clears the URL param.
 function BeneficiaryNotFoundBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <div className="mt-4 flex flex-wrap items-start justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+    <div className="border-warning-300 bg-warning-50 text-warning-900 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200 mt-4 flex flex-wrap items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm">
       <div>
         <strong className="font-semibold">Beneficiary not found.</strong> The
-        link you followed points at a beneficiary that no longer exists (or
-        that you don&rsquo;t have access to).
+        link you followed points at a beneficiary that no longer exists (or that
+        you don&rsquo;t have access to).
       </div>
       <button
         type="button"
         onClick={onDismiss}
-        className="shrink-0 rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-slate-900 dark:text-amber-300 dark:hover:bg-amber-950/60"
+        className="border-warning-400 text-warning-800 hover:bg-warning-100 dark:border-warning-700 dark:text-warning-300 dark:hover:bg-warning-950/60 shrink-0 rounded-md border bg-white px-3 py-1 text-xs font-semibold transition-colors dark:bg-slate-900"
       >
         Dismiss
       </button>

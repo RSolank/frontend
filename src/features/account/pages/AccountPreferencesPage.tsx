@@ -1,19 +1,29 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useCountriesQuery, type CountryOption } from '../../../shared/api/referenceData';
+import {
+  useCountriesQuery,
+  type CountryOption,
+} from '../../../shared/api/referenceData';
 import {
   CountrySelect,
   COUNTRY_PREFER_NOT_SAY,
 } from '../../../shared/components/CountrySelect';
 import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
+import { TaxModeToggle } from '../../../shared/components/TaxModeToggle';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
 import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
 import { userKeys } from '../../users/api/keys';
-import { updateProfileRequest } from '../../users/api/mutations';
+import {
+  updatePreferencesRequest,
+  updateProfileRequest,
+} from '../../users/api/mutations';
 import { hydratePreferences } from '../../users/api/preferences';
-import { useCurrentUserQuery } from '../../users/api/queries';
+import {
+  useCurrentUserQuery,
+  useUserPreferencesQuery,
+} from '../../users/api/queries';
 
 interface FormState {
   country: string;
@@ -31,8 +41,11 @@ interface ApiErrorShape {
 export function AccountPreferencesPage() {
   const queryClient = useQueryClient();
   const { data: countries = [] } = useCountriesQuery();
-  const { data: meData, isLoading } = useCurrentUserQuery();
+  const { data: meData, isLoading: meLoading } = useCurrentUserQuery();
+  const { data: prefsData, isLoading: prefsLoading } =
+    useUserPreferencesQuery();
   const user = meData?.user;
+  const isLoading = meLoading || prefsLoading;
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [hydrated, setHydrated] = useState(false);
@@ -40,14 +53,17 @@ export function AccountPreferencesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || hydrated) return;
+    // Wait for both /me (country) AND /preferences (currency, timezone)
+    // before hydrating the form — otherwise the first paint flickers
+    // through a half-empty state.
+    if (!user || !prefsData || hydrated) return;
     setForm({
       country: user.country ?? '',
-      currency: user.currency ?? '',
-      timezone: user.timezone ?? getBrowserTimezone(),
+      currency: prefsData.currency ?? '',
+      timezone: prefsData.timezone ?? getBrowserTimezone(),
     });
     setHydrated(true);
-  }, [user, hydrated]);
+  }, [user, prefsData, hydrated]);
 
   const currentCountry: CountryOption | null = useMemo(() => {
     if (!form.country || form.country === COUNTRY_PREFER_NOT_SAY) return null;
@@ -90,19 +106,27 @@ export function AccountPreferencesPage() {
       return;
     }
 
-    const payload = {
+    const profilePayload = {
       country:
         !form.country || form.country === COUNTRY_PREFER_NOT_SAY
           ? null
           : form.country,
+    };
+    const preferencesPayload = {
       currency: form.currency || null,
       timezone: form.timezone,
     };
 
     try {
-      await updateProfileRequest(payload);
-      // Refresh /me + preferences store so headers + every component
-      // reading formatMoney / formatDate see the new values immediately.
+      // /me holds identity (country lives here); /preferences is the SoT
+      // for currency + timezone after BE Phase 1.9. PATCH both slices in
+      // parallel; either alone is a no-op the BE handles idempotently.
+      await Promise.all([
+        updateProfileRequest(profilePayload),
+        updatePreferencesRequest(preferencesPayload),
+      ]);
+      // Refresh /me + preferences store so every component reading
+      // formatMoney / formatDate sees the new values immediately.
       await queryClient.invalidateQueries({ queryKey: userKeys.all });
       await hydratePreferences();
       setSaved(true);
@@ -152,12 +176,12 @@ export function AccountPreferencesPage() {
           </div>
           <div>
             <label htmlFor="prefs-timezone" className="form-label">
-              Timezone <span className="text-rose-600">*</span>
+              Timezone <span className="text-danger-600">*</span>
             </label>
             <TimezoneSelect
               id="prefs-timezone"
               countryName={currentCountry?.name ?? null}
-              countryDefaultTimezone={currentCountry?.timezone ?? null}
+              countryDefaultTimezone={currentCountry?.timezones?.[0] ?? null}
               value={form.timezone}
               onChange={(tz) => {
                 setForm((f) => ({ ...f, timezone: tz }));
@@ -168,10 +192,9 @@ export function AccountPreferencesPage() {
               alwaysFullList
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Pick any IANA timezone — independent of your country.
-              Defaults to the country&rsquo;s primary zone but
-              won&rsquo;t change automatically when you switch
-              country.
+              Pick any IANA timezone — independent of your country. Defaults to
+              the country&rsquo;s primary zone but won&rsquo;t change
+              automatically when you switch country.
             </p>
           </div>
           {error && <div className="form-error">{error}</div>}
@@ -180,7 +203,7 @@ export function AccountPreferencesPage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-success-600 dark:text-success-400 text-sm font-medium">
                 Saved
               </span>
             )}
@@ -194,17 +217,24 @@ export function AccountPreferencesPage() {
         </div>
         <DefaultTxnKindSelect />
         <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          Date format, number format, and the default landing route
-          after login also live under{' '}
+          Date format, number format, and the default landing route after login
+          also live under{' '}
           <a
             href="/account/accessibility"
-            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
           >
             Accessibility
           </a>
-          . All defaults persist to this browser only — cross-device
-          sync is queued as a backend follow-up.
+          . All defaults persist to this browser only — cross-device sync is
+          queued as a backend follow-up.
         </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <div className="border-b border-slate-100 px-4 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:text-slate-400">
+          Taxation
+        </div>
+        <TaxModeToggle />
       </div>
     </div>
   );

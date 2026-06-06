@@ -30,18 +30,35 @@ export const profileFormSchema = z.object({
 export type ProfileFormInput = z.infer<typeof profileFormSchema>;
 
 // Server-shape PATCH payload for /api/users/me. Every field is optional
-// because the Account surface (Batch 9) ships split pages that each
-// PATCH only their own slice — Profile sends name/dob/contact,
-// Preferences sends country/currency/timezone. The backend's PATCH
-// handler accepts a partial body.
+// because the Account surface ships split pages that each PATCH only
+// their own slice — Profile sends name/dob/contact, Preferences sends
+// country (currency + timezone moved to `/api/users/preferences` after
+// BE Phase 1.9). The backend's PATCH handler accepts a partial body.
 export interface ProfileUpdatePayload {
   first_name?: string;
   last_name?: string;
   dob?: string | null;
   contact?: string | null;
   country?: string | null;
+}
+
+// Server-shape PATCH payload for /api/users/preferences. After BE
+// Phase 1.9 this is the SoT for every cross-device user preference;
+// the row is partial-update friendly so a slice send is fine —
+// `subscribeToPreferenceStores()` always PATCHes a single field at a
+// time when a store changes.
+export interface PreferencesUpdatePayload {
   currency?: string | null;
   timezone?: string;
+  date_format?: string;
+  number_format?: string;
+  landing_route?: string;
+  default_txn_kind?: string;
+  underline_links?: boolean;
+  focus_ring_always?: boolean;
+  // BE Phase 2.6 — taxation auto-mode toggle. See PreferencesResponse
+  // in queries.ts for the semantics.
+  auto_enabled?: boolean;
 }
 
 export const changePasswordSchema = z.object({

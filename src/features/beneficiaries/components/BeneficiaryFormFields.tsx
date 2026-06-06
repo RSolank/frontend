@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { fetchTags, type TagNode } from '../../tags/api/queries';
 import {
   deleteCategorizationRule,
@@ -23,7 +24,10 @@ interface FlatTag {
   parent: number | null;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({
       tag_id: n.tag_id,
@@ -58,7 +62,10 @@ interface BeneficiaryFormFieldsProps {
   readOnly?: boolean;
   excludeUid?: number | null;
   onAliasValidityChange?: (invalid: boolean) => void;
-  onTypeChange?: (next: 'merchant' | 'person', form: BeneficiaryFormInput) => void;
+  onTypeChange?: (
+    next: 'merchant' | 'person',
+    form: BeneficiaryFormInput
+  ) => void;
 }
 
 // Internal helper so callers can pass either a setter function or a
@@ -223,9 +230,7 @@ export function BeneficiaryFormFields({
 
       <AliasChipsInput
         aliases={form.aliases}
-        onChange={(aliases) =>
-          applyUpdate(setForm, (f) => ({ ...f, aliases }))
-        }
+        onChange={(aliases) => applyUpdate(setForm, (f) => ({ ...f, aliases }))}
         readOnly={readOnly}
         excludeUid={excludeUid}
         onValidityChange={(invalid) => onAliasValidityChange?.(invalid)}
@@ -295,22 +300,32 @@ function MerchantFields({
         <label htmlFor="beneficiary-category" className="form-label">
           Category
         </label>
-        <select
-          id="beneficiary-category"
-          value={category}
-          onChange={(e) => onCategoryChange(e.target.value)}
-          disabled={disabled}
-          className="form-input"
-        >
-          <option value="">-- None --</option>
-          {tags
-            .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
-            .map((t) => (
-              <option key={t.tag_id} value={t.tag_id}>
-                {formatTagAssignment(t.tag_id, tags)}
-              </option>
-            ))}
-        </select>
+        {disabled ? (
+          <input
+            id="beneficiary-category"
+            value={
+              category
+                ? formatTagAssignment(Number(category), tags)
+                : '— None —'
+            }
+            readOnly
+            className="form-input cursor-not-allowed bg-slate-50 dark:bg-slate-900"
+          />
+        ) : (
+          <SearchableSelect
+            id="beneficiary-category"
+            ariaLabel="Category"
+            placeholder="— None —"
+            value={category}
+            onChange={onCategoryChange}
+            options={tags
+              .filter((t) => !SYSTEM_ONLY_TAG_IDS.includes(t.tag_id))
+              .map((t) => ({
+                value: String(t.tag_id),
+                label: formatTagAssignment(t.tag_id, tags),
+              }))}
+          />
+        )}
       </div>
 
       {ruleTags.length > 0 && (
@@ -378,7 +393,7 @@ function AssignedTagChips({
           const tagLabel = formatTagAssignment(tid, tags);
           const isPrimary = idx === 0;
           const baseClass = isPrimary
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
+            ? 'border-success-200 bg-success-50 text-success-700 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-300'
             : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
           // "Set Primary" is always visible (when editable and the chip
           // isn't already primary). The previous hover-only reveal left
@@ -391,7 +406,7 @@ function AssignedTagChips({
             >
               {tagLabel}
               {isPrimary && (
-                <span className="ml-1 rounded bg-emerald-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
+                <span className="bg-success-600 ml-1 rounded px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
                   Primary
                 </span>
               )}
@@ -399,7 +414,7 @@ function AssignedTagChips({
                 <button
                   type="button"
                   onClick={() => onSetPrimary(tid)}
-                  className="ml-1 rounded bg-indigo-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                  className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 ml-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold text-white focus-visible:ring-2 focus-visible:outline-none"
                 >
                   Set Primary
                 </button>
@@ -411,7 +426,7 @@ function AssignedTagChips({
                   aria-label={`Remove tag ${tagLabel}`}
                   className={`ml-1 text-base leading-none font-bold ${
                     isPrimary
-                      ? 'text-emerald-700 dark:text-emerald-300'
+                      ? 'text-success-700 dark:text-success-300'
                       : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >

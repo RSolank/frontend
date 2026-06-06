@@ -53,12 +53,12 @@ export function BeneficiarySearch({
         className="form-input"
       />
       {focused && (
-        <div className="absolute left-0 right-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
+        <div className="absolute right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
           {onRequestAddBeneficiary && (
             <button
               type="button"
               onMouseDown={onRequestAddBeneficiary}
-              className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-indigo-50/40 px-3 py-2 text-left text-sm font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-slate-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+              className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
             >
               <span aria-hidden="true">＋</span>
               Add new beneficiary
@@ -76,7 +76,7 @@ export function BeneficiarySearch({
                 onMouseDown={() => onChange(b.name, b.uid)}
                 className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800 ${
                   b.uid === beneficiaryId
-                    ? 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200'
+                    ? 'bg-accent-50 text-accent-800 dark:bg-accent-950/40 dark:text-accent-200'
                     : 'text-slate-700 dark:text-slate-200'
                 }`}
               >

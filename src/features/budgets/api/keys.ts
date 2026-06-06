@@ -6,6 +6,5 @@ export const budgetKeys = {
   all: ['budgets'] as const,
   status: (month: string | null) =>
     [...budgetKeys.all, 'status', month ?? 'current'] as const,
-  list: (period: string) =>
-    [...budgetKeys.all, 'list', period] as const,
+  list: (period: string) => [...budgetKeys.all, 'list', period] as const,
 } as const;

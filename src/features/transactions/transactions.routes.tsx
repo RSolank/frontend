@@ -6,7 +6,9 @@ import { Navigate, useParams, type RouteObject } from 'react-router-dom';
 // existing deep-links (password-reset emails, copy-paste URLs) keep
 // working. The actual UI lives in modals on the list page (Batch 6.5).
 const TransactionsPage = lazy(() =>
-  import('./pages/TransactionsPage').then((m) => ({ default: m.TransactionsPage }))
+  import('./pages/TransactionsPage').then((m) => ({
+    default: m.TransactionsPage,
+  }))
 );
 const UploadStatementPage = lazy(() =>
   import('./statement_upload/pages/UploadStatementPage').then((m) => ({

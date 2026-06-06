@@ -5,6 +5,7 @@ import { DateField } from '../../../shared/components/DateField';
 import { userKeys } from '../../users/api/keys';
 import { updateProfileRequest } from '../../users/api/mutations';
 import { useCurrentUserQuery } from '../../users/api/queries';
+import { ProfileImagePicker } from '../components/ProfileImagePicker';
 import { UserStatsCard } from '../components/UserStatsCard';
 
 interface FormState {
@@ -112,10 +113,21 @@ export function AccountProfilePage() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Profile picture
+        </h2>
+        <ProfileImagePicker
+          profileImageUrl={user.profile_image_url ?? null}
+          email={user.email_id}
+          firstName={user.first_name ?? null}
+          lastName={user.last_name ?? null}
+        />
+      </div>
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
         <form onSubmit={handleSubmit} className="grid gap-3">
           <div>
             <label htmlFor="account-first-name" className="form-label">
-              First name <span className="text-rose-600">*</span>
+              First name <span className="text-danger-600">*</span>
             </label>
             <input
               id="account-first-name"
@@ -130,7 +142,7 @@ export function AccountProfilePage() {
           </div>
           <div>
             <label htmlFor="account-last-name" className="form-label">
-              Last name <span className="text-rose-600">*</span>
+              Last name <span className="text-danger-600">*</span>
             </label>
             <input
               id="account-last-name"
@@ -198,7 +210,7 @@ export function AccountProfilePage() {
               Dial code defaults to your country (set under{' '}
               <a
                 href="/account/preferences"
-                className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
               >
                 Preferences
               </a>
@@ -211,7 +223,7 @@ export function AccountProfilePage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-success-600 dark:text-success-400 text-sm font-medium">
                 Saved
               </span>
             )}

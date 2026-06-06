@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -28,18 +29,16 @@ const mockBeneficiaries = [
 
 beforeEach(() => {
   server.use(
-    http.get('http://localhost:4000/api/beneficiaries', () =>
+    http.get(`${API_BASE}/beneficiaries`, () =>
       HttpResponse.json(mockBeneficiaries)
     ),
-    http.get('http://localhost:4000/api/beneficiaries/relationships', () =>
+    http.get(`${API_BASE}/beneficiaries/relationships`, () =>
       HttpResponse.json(['friend', 'family'])
     ),
-    http.get('http://localhost:4000/api/categorization-rules', () =>
+    http.get(`${API_BASE}/categorization-rules`, () =>
       HttpResponse.json({ rules: [] })
     ),
-    http.get('http://localhost:4000/api/tags', () =>
-      HttpResponse.json({ tags: [] })
-    )
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json({ tags: [] }))
   );
 });
 
@@ -81,27 +80,21 @@ describe('BeneficiariesPage', () => {
   it('creates merchant with alias chips after uniqueness check', async () => {
     const postSpy = vi.fn();
     server.use(
-      http.get(
-        'http://localhost:4000/api/beneficiaries/check-alias',
-        ({ request }) => {
-          const url = new URL(request.url);
-          const alias = url.searchParams.get('alias') ?? '';
-          return HttpResponse.json({ alias, unique: alias === 'EKART' });
-        }
-      ),
-      http.post(
-        'http://localhost:4000/api/beneficiaries',
-        async ({ request }) => {
-          const body = (await request.json()) as Record<string, unknown>;
-          postSpy(body);
-          return HttpResponse.json({
-            uid: 99,
-            name: 'New Store',
-            aliases: ['EKART'],
-            beneficiary_type: 'merchant',
-          });
-        }
-      )
+      http.get(`${API_BASE}/beneficiaries/check-alias`, ({ request }) => {
+        const url = new URL(request.url);
+        const alias = url.searchParams.get('alias') ?? '';
+        return HttpResponse.json({ alias, unique: alias === 'EKART' });
+      }),
+      http.post(`${API_BASE}/beneficiaries`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        postSpy(body);
+        return HttpResponse.json({
+          uid: 99,
+          name: 'New Store',
+          aliases: ['EKART'],
+          beneficiary_type: 'merchant',
+        });
+      })
     );
 
     renderWithProviders(<BeneficiariesPage />);

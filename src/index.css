@@ -9,6 +9,146 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
+ * Semantic color tokens — see docs/conventions.md "Visual design language".
+ *
+ * - `accent-*` is the brand accent. It FLIPS per theme: teal in light
+ *   mode, indigo in dark mode. Every brand surface (CTAs, links, focus
+ *   rings, active-tab indicators) uses `accent-*` — never `indigo-*` or
+ *   `teal-*` directly.
+ * - `success-*` / `warning-*` / `danger-*` are the semantic state
+ *   tokens. They DO NOT flip per theme — the same family resolves in
+ *   both modes (emerald / amber / rose), and the per-shade selection
+ *   handles light vs dark contrast at each call site
+ *   (e.g. `text-success-600 dark:text-success-400`).
+ *
+ * The `@theme inline` block registers the tokens with Tailwind so
+ * utility classes (`bg-accent-500`, `text-success-600`, etc.) generate.
+ * `inline` keeps the `var()` references in the output CSS so the
+ * `:root` / `html.dark` overrides below take effect at runtime.
+ *
+ * Source palette: Tailwind's stock teal / indigo / emerald / amber /
+ * rose ramps, hex values copied verbatim from Tailwind 4.x defaults.
+ */
+@theme inline {
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+  --color-accent-950: var(--accent-950);
+
+  --color-success-50: var(--success-50);
+  --color-success-100: var(--success-100);
+  --color-success-200: var(--success-200);
+  --color-success-300: var(--success-300);
+  --color-success-400: var(--success-400);
+  --color-success-500: var(--success-500);
+  --color-success-600: var(--success-600);
+  --color-success-700: var(--success-700);
+  --color-success-800: var(--success-800);
+  --color-success-900: var(--success-900);
+  --color-success-950: var(--success-950);
+
+  --color-warning-50: var(--warning-50);
+  --color-warning-100: var(--warning-100);
+  --color-warning-200: var(--warning-200);
+  --color-warning-300: var(--warning-300);
+  --color-warning-400: var(--warning-400);
+  --color-warning-500: var(--warning-500);
+  --color-warning-600: var(--warning-600);
+  --color-warning-700: var(--warning-700);
+  --color-warning-800: var(--warning-800);
+  --color-warning-900: var(--warning-900);
+  --color-warning-950: var(--warning-950);
+
+  --color-danger-50: var(--danger-50);
+  --color-danger-100: var(--danger-100);
+  --color-danger-200: var(--danger-200);
+  --color-danger-300: var(--danger-300);
+  --color-danger-400: var(--danger-400);
+  --color-danger-500: var(--danger-500);
+  --color-danger-600: var(--danger-600);
+  --color-danger-700: var(--danger-700);
+  --color-danger-800: var(--danger-800);
+  --color-danger-900: var(--danger-900);
+  --color-danger-950: var(--danger-950);
+}
+
+:root {
+  /* Light-mode accent: teal */
+  --accent-50: #f0fdfa;
+  --accent-100: #ccfbf1;
+  --accent-200: #99f6e4;
+  --accent-300: #5eead4;
+  --accent-400: #2dd4bf;
+  --accent-500: #14b8a6;
+  --accent-600: #0d9488;
+  --accent-700: #0f766e;
+  --accent-800: #115e59;
+  --accent-900: #134e4a;
+  --accent-950: #042f2e;
+
+  /* Success: emerald (same in both themes) */
+  --success-50: #ecfdf5;
+  --success-100: #d1fae5;
+  --success-200: #a7f3d0;
+  --success-300: #6ee7b7;
+  --success-400: #34d399;
+  --success-500: #10b981;
+  --success-600: #059669;
+  --success-700: #047857;
+  --success-800: #065f46;
+  --success-900: #064e3b;
+  --success-950: #022c22;
+
+  /* Warning: amber (same in both themes) */
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-300: #fcd34d;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+  --warning-900: #78350f;
+  --warning-950: #451a03;
+
+  /* Danger: rose (same in both themes) */
+  --danger-50: #fff1f2;
+  --danger-100: #ffe4e6;
+  --danger-200: #fecdd3;
+  --danger-300: #fda4af;
+  --danger-400: #fb7185;
+  --danger-500: #f43f5e;
+  --danger-600: #e11d48;
+  --danger-700: #be123c;
+  --danger-800: #9f1239;
+  --danger-900: #881337;
+  --danger-950: #4c0519;
+}
+
+html.dark {
+  /* Dark-mode accent: indigo */
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-200: #c7d2fe;
+  --accent-300: #a5b4fc;
+  --accent-400: #818cf8;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --accent-800: #3730a3;
+  --accent-900: #312e81;
+  --accent-950: #1e1b4b;
+}
+
+/*
  * Tailwind v4's preflight removed the default `cursor: pointer` on
  * `<button>` elements (and on the role="button" pattern). Restore it
  * project-wide so every interactive button signals affordance on hover
@@ -110,9 +250,10 @@
    * Accessibility — high-contrast override
    * (shared/state/contrast.store.ts). Boosts secondary text from
    * slate-500/400 to slate-700/200, low-contrast borders from
-   * slate-200/800 to slate-400/700, and indigo accents from 600/400
-   * to 700/300. Mostly affects dark mode where the default sits
-   * closest to the WCAG AA floor.
+   * slate-200/800 to slate-400/700, and accent text from 600/400
+   * to 800/200. Mostly affects dark mode where the default sits
+   * closest to the WCAG AA floor. The accent shades flip per theme
+   * (teal in light, indigo in dark — see the token block above).
    */
   html.high-contrast .text-slate-500,
   html.high-contrast .text-slate-400 {
@@ -128,12 +269,12 @@
   html.dark.high-contrast .border-slate-800 {
     border-color: rgb(71 85 105); /* slate-600 */
   }
-  html.high-contrast .text-indigo-600 {
-    color: rgb(55 48 163); /* indigo-800 */
+  html.high-contrast .text-accent-600 {
+    color: var(--accent-800);
   }
-  html.dark.high-contrast .text-indigo-400,
-  html.dark.high-contrast .text-indigo-300 {
-    color: rgb(199 210 254); /* indigo-200 */
+  html.dark.high-contrast .text-accent-400,
+  html.dark.high-contrast .text-accent-300 {
+    color: var(--accent-200);
   }
 
   /*
@@ -162,7 +303,7 @@
    * via Tailwind utilities.
    */
   html.focus-always *:focus {
-    outline: 2px solid rgb(99 102 241); /* indigo-500 */
+    outline: 2px solid var(--accent-500);
     outline-offset: 2px;
   }
 }
@@ -188,42 +329,43 @@
   .form-input {
     @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors;
     @apply placeholder:text-slate-400;
-    @apply focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500;
+    @apply focus:border-accent-500 focus-visible:ring-accent-500 focus:outline-none focus-visible:ring-2;
     @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
     @apply read-only:bg-slate-100 read-only:text-slate-700;
     @apply dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
-    @apply dark:focus:border-indigo-400 dark:focus-visible:ring-indigo-400;
+    @apply dark:focus:border-accent-400 dark:focus-visible:ring-accent-400;
     @apply dark:disabled:bg-slate-800 dark:disabled:text-slate-400;
     @apply dark:read-only:bg-slate-800 dark:read-only:text-slate-300;
   }
 
   .form-error {
-    @apply text-sm text-rose-600 dark:text-rose-400;
+    @apply text-danger-600 dark:text-danger-400 text-sm;
   }
 
   /*
-   * Button primitives. `.btn-primary` is the indigo CTA used by every
+   * Button primitives. `.btn-primary` is the accent CTA used by every
    * form's main action; `.btn-link` is the tertiary text-link variant
    * used by "Forgot password?" / "Resend code" / "Back to login".
    * Both ship with the same focus ring + disabled treatment so the
-   * design language reads consistently across auth screens.
+   * design language reads consistently across auth screens. The
+   * accent token flips per theme (teal in light, indigo in dark).
    */
   .btn-primary {
-    @apply inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
-    @apply hover:bg-indigo-700;
-    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
-    @apply disabled:cursor-not-allowed disabled:bg-indigo-400 disabled:shadow-none;
-    @apply dark:bg-indigo-500 dark:hover:bg-indigo-400;
-    @apply dark:disabled:bg-indigo-900 dark:disabled:text-indigo-300;
+    @apply bg-accent-600 inline-flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
+    @apply hover:bg-accent-700;
+    @apply focus-visible:ring-accent-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:bg-accent-400 disabled:cursor-not-allowed disabled:shadow-none;
+    @apply dark:bg-accent-500 dark:hover:bg-accent-400;
+    @apply dark:disabled:bg-accent-900 dark:disabled:text-accent-300;
     @apply dark:focus-visible:ring-offset-slate-950;
   }
 
   .btn-link {
-    @apply inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium text-indigo-600 transition-colors;
-    @apply hover:bg-indigo-50 hover:text-indigo-700;
-    @apply focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none;
-    @apply disabled:cursor-not-allowed disabled:text-indigo-300;
-    @apply dark:text-indigo-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300;
+    @apply text-accent-600 inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors;
+    @apply hover:bg-accent-50 hover:text-accent-700;
+    @apply focus-visible:ring-accent-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:text-accent-300 disabled:cursor-not-allowed;
+    @apply dark:text-accent-400 dark:hover:bg-accent-950/40 dark:hover:text-accent-300;
     @apply dark:focus-visible:ring-offset-slate-950;
   }
 }

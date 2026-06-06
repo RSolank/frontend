@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/auth/register": {
+    "/api/v1/auth/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -17,14 +17,14 @@ export interface paths {
          * Register
          * @description Register a new user (profile + credentials + session) in one transaction.
          */
-        post: operations["register_api_auth_register_post"];
+        post: operations["register_api_v1_auth_register_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/login": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -37,14 +37,14 @@ export interface paths {
          * Login
          * @description Authenticate a user and open a session.
          */
-        post: operations["login_api_auth_login_post"];
+        post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/refresh": {
+    "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,14 +57,14 @@ export interface paths {
          * Refresh
          * @description Rotate tokens using the refresh token from the ``X-Refresh-Token`` header.
          */
-        post: operations["refresh_api_auth_refresh_post"];
+        post: operations["refresh_api_v1_auth_refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/logout": {
+    "/api/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -77,14 +77,83 @@ export interface paths {
          * Logout
          * @description Revoke the current session.
          */
-        post: operations["logout_api_auth_logout_post"];
+        post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/change-password": {
+    "/api/v1/auth/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Security Status
+         * @description Account-protection snapshot for Settings → Security (auth-domain read).
+         *
+         *     A 1:1 wrapper over ``auth_services.get_security_state`` — the auth-owned
+         *     triple ``(has_recovery, two_factor_enabled, backup_codes_remaining)``. This
+         *     is the single FE read for those signals; ``UserAuth`` state stays on auth
+         *     routes and never rides the users-module ``/me`` profile payload.
+         */
+        get: operations["get_security_status_api_v1_auth_security_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sessions
+         * @description List the caller's active sessions (Settings → Security).
+         *
+         *     ``is_current`` flags the session this request's token belongs to.
+         */
+        get: operations["list_sessions_api_v1_auth_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Session
+         * @description Revoke one of the caller's own sessions (404 if not theirs/missing).
+         *
+         *     Revoking the current session is allowed — it logs this device out.
+         */
+        delete: operations["delete_session_api_v1_auth_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -96,15 +165,170 @@ export interface paths {
         /**
          * Change Password
          * @description Update the password for the logged-in user.
+         *
+         *     On success the user's *other* sessions are signed out (this device stays
+         *     logged in) and a "your password was changed" intimation is emailed.
          */
-        post: operations["change_password_api_auth_change_password_post"];
+        post: operations["change_password_api_v1_auth_change_password_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/recovery": {
+    "/api/v1/auth/change-email-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Email Request
+         * @description Start an email change: re-authenticate, stage the request, and email an
+         *     OTP to the **new** address plus a security intimation to the **source**.
+         *
+         *     Re-auth is password + (a TOTP/backup ``code`` when 2FA is enabled). The OTP
+         *     proves control of the new address; the source intimation guarantees the
+         *     legitimate owner always learns a change was set in motion.
+         */
+        post: operations["change_email_request_api_v1_auth_change_email_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-email-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Email Confirm
+         * @description Confirm an email change with the emailed OTP: swap both identity columns,
+         *     sign out other sessions, and intimate the source address of the outcome.
+         */
+        post: operations["change_email_confirm_api_v1_auth_change_email_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/new-device/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify New Device
+         * @description Complete a new-device login: validate the pending token + emailed OTP,
+         *     open the session, and send an intimation email with a one-click revoke link.
+         */
+        post: operations["verify_new_device_api_v1_auth_new_device_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/new-device/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend New Device Otp
+         * @description Re-issue a fresh code for an in-flight new-device challenge.
+         */
+        post: operations["resend_new_device_otp_api_v1_auth_new_device_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/new-device/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke New Device
+         * @description One-click revoke from the intimation email (unauthenticated, signed token).
+         *
+         *     Idempotent: an already-revoked device still returns 204.
+         */
+        post: operations["revoke_new_device_api_v1_auth_new_device_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Devices
+         * @description List the caller's trusted devices (Settings → Security).
+         */
+        get: operations["list_devices_api_v1_auth_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Device
+         * @description Forget one of the caller's trusted devices (404 if not theirs).
+         *
+         *     Cascades the device's active session — that device must re-verify by OTP on
+         *     its next login.
+         */
+        delete: operations["revoke_device_api_v1_auth_devices__uid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/recovery": {
         parameters: {
             query?: never;
             header?: never;
@@ -115,20 +339,20 @@ export interface paths {
          * Get Recovery Config
          * @description Return the logged-in user's security question.
          */
-        get: operations["get_recovery_config_api_auth_recovery_get"];
+        get: operations["get_recovery_config_api_v1_auth_recovery_get"];
         put?: never;
         /**
          * Update Recovery Config
          * @description Set or update the logged-in user's security question and answer.
          */
-        post: operations["update_recovery_config_api_auth_recovery_post"];
+        post: operations["update_recovery_config_api_v1_auth_recovery_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/recovery-question": {
+    "/api/v1/auth/recovery-question": {
         parameters: {
             query?: never;
             header?: never;
@@ -141,14 +365,14 @@ export interface paths {
          * Lookup Recovery Question
          * @description Look up the security question configured for an email.
          */
-        post: operations["lookup_recovery_question_api_auth_recovery_question_post"];
+        post: operations["lookup_recovery_question_api_v1_auth_recovery_question_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/verify-answer": {
+    "/api/v1/auth/verify-answer": {
         parameters: {
             query?: never;
             header?: never;
@@ -161,14 +385,14 @@ export interface paths {
          * Verify Recovery Answer
          * @description Verify a security answer and return a password-reset token.
          */
-        post: operations["verify_recovery_answer_api_auth_verify_answer_post"];
+        post: operations["verify_recovery_answer_api_v1_auth_verify_answer_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/forgot-password": {
+    "/api/v1/auth/forgot-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -180,15 +404,19 @@ export interface paths {
         /**
          * Forgot Password
          * @description Trigger an OTP for password recovery. Always reports success.
+         *
+         *     The OTP email is queued (best-effort ``BackgroundTask``) only when the
+         *     address resolves to an account — an unknown email is silently a no-op, so the
+         *     200 response never reveals whether the address is registered.
          */
-        post: operations["forgot_password_api_auth_forgot_password_post"];
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/verify-otp": {
+    "/api/v1/auth/verify-otp": {
         parameters: {
             query?: never;
             header?: never;
@@ -201,14 +429,14 @@ export interface paths {
          * Verify Otp
          * @description Verify an OTP and return a password-reset token.
          */
-        post: operations["verify_otp_api_auth_verify_otp_post"];
+        post: operations["verify_otp_api_v1_auth_verify_otp_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/reset-password-final": {
+    "/api/v1/auth/reset-password-final": {
         parameters: {
             query?: never;
             header?: never;
@@ -221,14 +449,98 @@ export interface paths {
          * Reset Password Final
          * @description Reset the password with a valid reset token and open a fresh session.
          */
-        post: operations["reset_password_final_api_auth_reset_password_final_post"];
+        post: operations["reset_password_final_api_v1_auth_reset_password_final_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/users/me": {
+    "/api/v1/auth/2fa/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enroll 2Fa
+         * @description Begin TOTP enrollment: stage a secret and return it + the provisioning URI
+         *     (the FE renders the QR). 2FA stays off until the first code is confirmed.
+         */
+        post: operations["enroll_2fa_api_v1_auth_2fa_enroll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/verify-enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Enroll 2Fa
+         * @description Confirm the first TOTP code → enable 2FA and return the one-time backup
+         *     codes (shown exactly once).
+         */
+        post: operations["verify_enroll_2fa_api_v1_auth_2fa_verify_enroll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable 2Fa
+         * @description Disable 2FA, re-confirming intent with the account password.
+         */
+        post: operations["disable_2fa_api_v1_auth_2fa_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/login-verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login Verify 2Fa
+         * @description Complete a 2FA-gated login with a TOTP (or backup) code and open the
+         *     session. Reached after login / new-device verify / recovery reset returned a
+         *     ``two_factor_required`` challenge.
+         */
+        post: operations["login_verify_2fa_api_v1_auth_2fa_login_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,7 +551,7 @@ export interface paths {
          * Get Me
          * @description Return the current user's profile (PII fields excluded).
          */
-        get: operations["get_me_api_users_me_get"];
+        get: operations["get_me_api_v1_users_me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -249,10 +561,10 @@ export interface paths {
          * Update Me
          * @description Apply a partial update to the current user's profile.
          */
-        patch: operations["update_me_api_users_me_patch"];
+        patch: operations["update_me_api_v1_users_me_patch"];
         trace?: never;
     };
-    "/api/users/preferences": {
+    "/api/v1/users/me/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -260,13 +572,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Preferences
-         * @description Return stored preferences the frontend reads post-login/refresh.
-         *
-         *     ``currency``/``country`` are persisted on the profile; ``timezone`` is the
-         *     active request preference resolved by ``UserPreferencesMiddleware``.
+         * Get My Stats
+         * @description Return the current user's profile-card stats (metadata + counts).
          */
-        get: operations["get_preferences_api_users_preferences_get"];
+        get: operations["get_my_stats_api_v1_users_me_stats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -275,7 +584,187 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/metadata/countries": {
+    "/api/v1/users/profile-image-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Profile Image Presets
+         * @description List the built-in profile-image presets (id + servable URL).
+         *
+         *     Not user-specific, but auth-gated like the rest of ``/api/v1/users``. Kept in
+         *     this module (rather than ``metadata``) so the whole profile-image feature
+         *     stays self-contained — feature code must not import another feature's
+         *     internals.
+         */
+        get: operations["list_profile_image_presets_api_v1_users_profile_image_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/profile-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Profile Image
+         * @description Upload a profile picture.
+         *
+         *     The bytes are decoded, resized, stripped of metadata, and re-encoded to
+         *     WEBP before storage (the decode itself is the validation). Replaces any
+         *     existing image and deletes the previous upload's file.
+         */
+        post: operations["upload_profile_image_api_v1_users_me_profile_image_post"];
+        /**
+         * Delete Profile Image
+         * @description Remove the profile picture (back to the initials-monogram default).
+         *
+         *     Idempotent — clearing an already-empty image is a no-op.
+         */
+        delete: operations["delete_profile_image_api_v1_users_me_profile_image_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/profile-image/preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Select Profile Image Preset
+         * @description Select a built-in preset as the profile picture (no upload).
+         */
+        put: operations["select_profile_image_preset_api_v1_users_me_profile_image_preset_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Account Deletion
+         * @description Schedule the current account for deletion (two-phase soft delete).
+         *
+         *     Re-verifies the password (step-up auth), sets the soft-delete marker,
+         *     invalidates every session (the caller is signed out everywhere), and emails
+         *     a signed cancel link. A weekly worker hard-deletes the account after the
+         *     grace window; the link reverses it any time before then.
+         */
+        post: operations["request_account_deletion_api_v1_users_me_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/delete/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Account Deletion
+         * @description Cancel a scheduled deletion via the signed link from the confirmation
+         *     email. Deliberately **unauthenticated** — the account is logged out while
+         *     pending deletion, so the signed token is the sole proof of intent.
+         *
+         *     Idempotent on an already-active account; ``410`` once the account has been
+         *     permanently purged, ``400`` for a bad/expired link.
+         */
+        post: operations["cancel_account_deletion_api_v1_users_me_delete_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/data-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset My Data
+         * @description Wipe all of the caller's domain data and restore the registration
+         *     defaults — a *clean restart* that keeps the account, credentials,
+         *     preferences, and the current session intact. Password step-up (destructive).
+         *
+         *     Returns the post-reset profile-card stats (all counts back to a fresh
+         *     account) as the confirmation payload.
+         */
+        post: operations["reset_my_data_api_v1_users_me_data_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Preferences
+         * @description Return the user's full preferences row (Preferences-tier settings + the
+         *     two accessibility flags). The frontend dissects this across its preference
+         *     / accessibility stores. ``country`` is Profile-tier — read it from ``/me``.
+         */
+        get: operations["get_preferences_api_v1_users_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Preferences
+         * @description Apply a partial update to the user's preferences (any subset of fields).
+         *
+         *     The backend is source of truth — settings persist across devices and
+         *     reinstalls. Validated values only; unknown enum / currency / timezone
+         *     values are rejected with 422.
+         */
+        patch: operations["update_preferences_api_v1_users_preferences_patch"];
+        trace?: never;
+    };
+    "/api/v1/metadata/countries": {
         parameters: {
             query?: never;
             header?: never;
@@ -286,7 +775,7 @@ export interface paths {
          * Get Countries
          * @description List countries with phone code, default currency and timezone.
          */
-        get: operations["get_countries_api_metadata_countries_get"];
+        get: operations["get_countries_api_v1_metadata_countries_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -295,7 +784,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/metadata/currencies": {
+    "/api/v1/metadata/currencies": {
         parameters: {
             query?: never;
             header?: never;
@@ -306,7 +795,7 @@ export interface paths {
          * Get Currencies
          * @description List currencies for dropdowns.
          */
-        get: operations["get_currencies_api_metadata_currencies_get"];
+        get: operations["get_currencies_api_v1_metadata_currencies_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -315,7 +804,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/metadata/constants": {
+    "/api/v1/metadata/timezones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Timezones
+         * @description Full IANA timezone list with advisory standard/DST UTC offsets.
+         */
+        get: operations["get_timezones_api_v1_metadata_timezones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/metadata/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Branding
+         * @description Return product brand identity (name/tagline/description/logo) for the FE.
+         */
+        get: operations["get_branding_api_v1_metadata_branding_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/metadata/constants": {
         parameters: {
             query?: never;
             header?: never;
@@ -326,7 +855,7 @@ export interface paths {
          * Get Constants
          * @description Return system reference constants for frontend synchronization.
          */
-        get: operations["get_constants_api_metadata_constants_get"];
+        get: operations["get_constants_api_v1_metadata_constants_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -335,7 +864,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/tags/": {
+    "/api/v1/tags/": {
         parameters: {
             query?: never;
             header?: never;
@@ -346,20 +875,20 @@ export interface paths {
          * List Tags
          * @description Return the tag tree visible to the caller (system + user-owned).
          */
-        get: operations["list_tags_api_tags__get"];
+        get: operations["list_tags_api_v1_tags__get"];
         put?: never;
         /**
          * Create Tag
          * @description Create a user-scoped tag.
          */
-        post: operations["create_tag_api_tags__post"];
+        post: operations["create_tag_api_v1_tags__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/tags/{tag_id}": {
+    "/api/v1/tags/{tag_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -373,17 +902,17 @@ export interface paths {
          * Delete Tag
          * @description Delete a user-owned tag. System tags are read-only.
          */
-        delete: operations["delete_tag_api_tags__tag_id__delete"];
+        delete: operations["delete_tag_api_v1_tags__tag_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Tag
          * @description Update a tag. System tag name/type are read-only; aliases stay editable.
          */
-        patch: operations["update_tag_api_tags__tag_id__patch"];
+        patch: operations["update_tag_api_v1_tags__tag_id__patch"];
         trace?: never;
     };
-    "/api/transactions/": {
+    "/api/v1/transactions/": {
         parameters: {
             query?: never;
             header?: never;
@@ -392,22 +921,30 @@ export interface paths {
         };
         /**
          * List Transactions
-         * @description List transactions with optional grouping, sorting, and filtering.
+         * @description List transactions, or aggregate them by tag / merchant for one bucket.
+         *
+         *     With ``group_by`` set, returns a :class:`GroupedTransactionsResponse` read
+         *     join-free from the materialized aggregate read-model (T-aggregates-engine):
+         *     ``month=YYYY-MM`` selects a monthly bucket, ``period=week&date=YYYY-MM-DD`` a
+         *     weekly one (default: current month). ``total_count`` / ``net_expense``
+         *     (= total_debit − total_credit) replace the old ``frequency`` /
+         *     ``total_amount``; ``tag_type`` is included on tag groups. Without
+         *     ``group_by`` it returns the flat transaction list as before.
          */
-        get: operations["list_transactions_api_transactions__get"];
+        get: operations["list_transactions_api_v1_transactions__get"];
         put?: never;
         /**
          * Create Transaction
          * @description Create a manual transaction.
          */
-        post: operations["create_transaction_api_transactions__post"];
+        post: operations["create_transaction_api_v1_transactions__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/transactions/{txn_id}": {
+    "/api/v1/transactions/{txn_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -418,24 +955,49 @@ export interface paths {
          * Get Transaction
          * @description Get a single transaction.
          */
-        get: operations["get_transaction_api_transactions__txn_id__get"];
+        get: operations["get_transaction_api_v1_transactions__txn_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Transaction
          * @description Delete a manual transaction; statement-imported rows are non-deletable.
          */
-        delete: operations["delete_transaction_api_transactions__txn_id__delete"];
+        delete: operations["delete_transaction_api_v1_transactions__txn_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Transaction
          * @description Patch a transaction; statement-imported rows can only update notes/tags.
          */
-        patch: operations["update_transaction_api_transactions__txn_id__patch"];
+        patch: operations["update_transaction_api_v1_transactions__txn_id__patch"];
         trace?: never;
     };
-    "/api/transactions/upload-statement": {
+    "/api/v1/statement-uploads/parsers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Parsers
+         * @description The parser catalogue the frontend's picker uses.
+         *
+         *     Same shape as the 422 ``available_parsers`` envelope; polled once at boot
+         *     (``staleTime: Infinity``) so the picker is populated proactively, not only
+         *     after a low-confidence 422. Declared **before** ``/{job_id}`` so the literal
+         *     path isn't captured by the int job-id route.
+         */
+        get: operations["list_parsers_api_v1_statement_uploads_parsers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/statement-uploads": {
         parameters: {
             query?: never;
             header?: never;
@@ -446,76 +1008,45 @@ export interface paths {
         put?: never;
         /**
          * Upload Statement
-         * @description Upload file, parse, and stage rows as ``statement_pending``.
+         * @description Accept a statement upload, queue background processing, return 202.
+         *
+         *     The file is hashed (409 on an exact re-upload) and a parser auto-detected
+         *     (422 + ``available_parsers`` on low confidence) synchronously; the heavy
+         *     parse/categorize/commit runs in a FastAPI ``BackgroundTask``.
+         *
+         *     ``parser_override`` (optional form field) is a registry class key the user
+         *     picked — when present, detection is skipped and that parser is used (an
+         *     unknown key → 422 + ``available_parsers``). The pipeline still falls back to
+         *     detection if the picked parser can't parse the file.
          */
-        post: operations["upload_statement_api_transactions_upload_statement_post"];
+        post: operations["upload_statement_api_v1_statement_uploads_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/transactions/upload-statement/{upload_id}/map-beneficiaries": {
+    "/api/v1/statement-uploads/{job_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Map Beneficiaries
-         * @description Resolve beneficiary text to ids on every pending row of the upload.
+         * Get Upload Job
+         * @description Poll an upload job's progress / result.
          */
-        post: operations["map_beneficiaries_api_transactions_upload_statement__upload_id__map_beneficiaries_post"];
+        get: operations["get_upload_job_api_v1_statement_uploads__job_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/transactions/upload-statement/{upload_id}/categorize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Categorize Statement
-         * @description Run the categorization engine over the staged pending rows.
-         */
-        post: operations["categorize_statement_api_transactions_upload_statement__upload_id__categorize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/transactions/upload-statement/{upload_id}/finalize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Finalize Upload
-         * @description Finalize an upload (``commit`` / ``rollback`` / ``set_misc``).
-         */
-        post: operations["finalize_upload_api_transactions_upload_statement__upload_id__finalize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/transactions/{txn_id}/manual-tags": {
+    "/api/v1/transactions/{txn_id}/manual-tags": {
         parameters: {
             query?: never;
             header?: never;
@@ -526,16 +1057,16 @@ export interface paths {
         put?: never;
         /**
          * Manual Categorize Txn
-         * @description Manually tag a pending/problematic statement transaction.
+         * @description Manually (re)tag a statement-imported transaction.
          */
-        post: operations["manual_categorize_txn_api_transactions__txn_id__manual_tags_post"];
+        post: operations["manual_categorize_txn_api_v1_transactions__txn_id__manual_tags_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/beneficiaries/": {
+    "/api/v1/beneficiaries/": {
         parameters: {
             query?: never;
             header?: never;
@@ -546,20 +1077,20 @@ export interface paths {
          * List Beneficiaries
          * @description List the user's visible beneficiaries (own + system-owned).
          */
-        get: operations["list_beneficiaries_api_beneficiaries__get"];
+        get: operations["list_beneficiaries_api_v1_beneficiaries__get"];
         put?: never;
         /**
          * Create Beneficiary
          * @description Create a new beneficiary (with merchant or person detail).
          */
-        post: operations["create_beneficiary_api_beneficiaries__post"];
+        post: operations["create_beneficiary_api_v1_beneficiaries__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/beneficiaries/check-alias": {
+    "/api/v1/beneficiaries/check-alias": {
         parameters: {
             query?: never;
             header?: never;
@@ -570,7 +1101,7 @@ export interface paths {
          * Check Alias
          * @description Check whether an alias (or beneficiary name) is globally unique.
          */
-        get: operations["check_alias_api_beneficiaries_check_alias_get"];
+        get: operations["check_alias_api_v1_beneficiaries_check_alias_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -579,7 +1110,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/beneficiaries/merge": {
+    "/api/v1/beneficiaries/merge": {
         parameters: {
             query?: never;
             header?: never;
@@ -592,14 +1123,14 @@ export interface paths {
          * Merge Beneficiaries Route
          * @description Merge ``source_uid`` into ``target_uid``.
          */
-        post: operations["merge_beneficiaries_route_api_beneficiaries_merge_post"];
+        post: operations["merge_beneficiaries_route_api_v1_beneficiaries_merge_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/beneficiaries/relationships": {
+    "/api/v1/beneficiaries/relationships": {
         parameters: {
             query?: never;
             header?: never;
@@ -610,7 +1141,7 @@ export interface paths {
          * List Relationships
          * @description List the standard relationship types for a ``Person`` beneficiary.
          */
-        get: operations["list_relationships_api_beneficiaries_relationships_get"];
+        get: operations["list_relationships_api_v1_beneficiaries_relationships_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -619,7 +1150,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/beneficiaries/{uid}": {
+    "/api/v1/beneficiaries/{uid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -630,24 +1161,116 @@ export interface paths {
          * Get Beneficiary
          * @description Get a single beneficiary by uid.
          */
-        get: operations["get_beneficiary_api_beneficiaries__uid__get"];
+        get: operations["get_beneficiary_api_v1_beneficiaries__uid__get"];
         put?: never;
         post?: never;
         /**
          * Delete Beneficiary
          * @description Delete a beneficiary (merchant/person rows cascade).
          */
-        delete: operations["delete_beneficiary_api_beneficiaries__uid__delete"];
+        delete: operations["delete_beneficiary_api_v1_beneficiaries__uid__delete"];
         options?: never;
         head?: never;
         /**
          * Update Beneficiary
          * @description Update a beneficiary; may switch merchant/person specialisation.
          */
-        patch: operations["update_beneficiary_api_beneficiaries__uid__patch"];
+        patch: operations["update_beneficiary_api_v1_beneficiaries__uid__patch"];
         trace?: never;
     };
-    "/api/categorization-rules/": {
+    "/api/v1/bank-accounts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Bank Accounts
+         * @description List the user's bank accounts.
+         */
+        get: operations["list_bank_accounts_api_v1_bank_accounts__get"];
+        put?: never;
+        /**
+         * Create Bank Account
+         * @description Create a bank account (optionally with inline identifiers).
+         */
+        post: operations["create_bank_account_api_v1_bank_accounts__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-accounts/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bank Account
+         * @description Get one of the user's bank accounts.
+         */
+        get: operations["get_bank_account_api_v1_bank_accounts__uid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Bank Account
+         * @description Delete a bank account (identifiers cascade).
+         */
+        delete: operations["delete_bank_account_api_v1_bank_accounts__uid__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Bank Account
+         * @description Update a bank account; promoting the committee flag demotes the prior one.
+         */
+        patch: operations["update_bank_account_api_v1_bank_accounts__uid__patch"];
+        trace?: never;
+    };
+    "/api/v1/bank-accounts/{uid}/identifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Identifier
+         * @description Attach an identifier (UPI handle, …) to the user's bank account.
+         */
+        post: operations["add_identifier_api_v1_bank_accounts__uid__identifiers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-accounts/{uid}/identifiers/{identifier_uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Identifier
+         * @description Remove an identifier from the user's bank account.
+         */
+        delete: operations["delete_identifier_api_v1_bank_accounts__uid__identifiers__identifier_uid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/categorization-rules/": {
         parameters: {
             query?: never;
             header?: never;
@@ -656,22 +1279,22 @@ export interface paths {
         };
         /**
          * List Categorization Rules
-         * @description List every categorization rule (system-owned first, then user-owned).
+         * @description List the current user's categorization rules (Decision 39: per-user).
          */
-        get: operations["list_categorization_rules_api_categorization_rules__get"];
+        get: operations["list_categorization_rules_api_v1_categorization_rules__get"];
         put?: never;
         /**
          * Create Categorization Rule
          * @description Create a categorization rule (one per beneficiary).
          */
-        post: operations["create_categorization_rule_api_categorization_rules__post"];
+        post: operations["create_categorization_rule_api_v1_categorization_rules__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/categorization-rules/{uid}": {
+    "/api/v1/categorization-rules/{uid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -683,19 +1306,19 @@ export interface paths {
          * Update Categorization Rule
          * @description Patch a categorization rule. System rules accept notes/name updates.
          */
-        put: operations["update_categorization_rule_api_categorization_rules__uid__put"];
+        put: operations["update_categorization_rule_api_v1_categorization_rules__uid__put"];
         post?: never;
         /**
          * Delete Categorization Rule
-         * @description Delete a user-owned categorization rule. System rules are read-only.
+         * @description Delete a user-owned categorization rule.
          */
-        delete: operations["delete_categorization_rule_api_categorization_rules__uid__delete"];
+        delete: operations["delete_categorization_rule_api_v1_categorization_rules__uid__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/categorization-rules/re-run": {
+    "/api/v1/categorization-rules/re-run": {
         parameters: {
             query?: never;
             header?: never;
@@ -708,14 +1331,14 @@ export interface paths {
          * Re Run Rules
          * @description Re-run every categorization rule across the user's statement transactions.
          */
-        post: operations["re_run_rules_api_categorization_rules_re_run_post"];
+        post: operations["re_run_rules_api_v1_categorization_rules_re_run_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/taxation-rules/": {
+    "/api/v1/taxation-rules/": {
         parameters: {
             query?: never;
             header?: never;
@@ -726,7 +1349,7 @@ export interface paths {
          * List Taxation Rules
          * @description List effective taxation rules for the current user.
          */
-        get: operations["list_taxation_rules_api_taxation_rules__get"];
+        get: operations["list_taxation_rules_api_v1_taxation_rules__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -735,7 +1358,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/taxation-rules/{txn_type}": {
+    "/api/v1/taxation-rules/{txn_type}": {
         parameters: {
             query?: never;
             header?: never;
@@ -747,7 +1370,7 @@ export interface paths {
          * Upsert Taxation Rule
          * @description Create or update the user's taxation rule for a txn_type.
          */
-        put: operations["upsert_taxation_rule_api_taxation_rules__txn_type__put"];
+        put: operations["upsert_taxation_rule_api_v1_taxation_rules__txn_type__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -755,24 +1378,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/consumption-tax/bills/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate Bills */
-        post: operations["generate_bills_api_consumption_tax_bills_generate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/consumption-tax/bills": {
+    "/api/v1/consumption-tax/bills": {
         parameters: {
             query?: never;
             header?: never;
@@ -780,7 +1386,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Bills */
-        get: operations["list_bills_api_consumption_tax_bills_get"];
+        get: operations["list_bills_api_v1_consumption_tax_bills_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -789,7 +1395,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/consumption-tax/bills/{bill_id}": {
+    "/api/v1/consumption-tax/bills/{bill_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -797,7 +1403,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get Bill */
-        get: operations["get_bill_api_consumption_tax_bills__bill_id__get"];
+        get: operations["get_bill_api_v1_consumption_tax_bills__bill_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -806,7 +1412,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/consumption-tax/bills/{bill_id}/pay": {
+    "/api/v1/consumption-tax/bills/{bill_id}/mark-paid": {
         parameters: {
             query?: never;
             header?: never;
@@ -815,15 +1421,78 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pay Bill */
-        post: operations["pay_bill_api_consumption_tax_bills__bill_id__pay_post"];
+        /**
+         * Mark Bill Paid
+         * @description Manually settle a bill — link a payment txn or override. Never creates a
+         *     transaction (the engine only reconciles existing txn data).
+         */
+        post: operations["mark_bill_paid_api_v1_consumption_tax_bills__bill_id__mark_paid_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/budget-limits/": {
+    "/api/v1/consumption-tax/bills/{bill_id}/mark-unpaid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Bill Unpaid */
+        post: operations["mark_bill_unpaid_api_v1_consumption_tax_bills__bill_id__mark_unpaid_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/consumption-tax/bills/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Bills
+         * @description Manually generate bills for a completed range. Manual-mode users only —
+         *     auto-mode users' bills are owned by the weekly worker (409).
+         */
+        post: operations["generate_bills_api_v1_consumption_tax_bills_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/consumption-tax/admin/bills/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Generate Bills
+         * @description Generate bills on behalf of any user (ops/backfill). Bypasses the
+         *     auto-mode guard, so it works for auto-enabled users too.
+         */
+        post: operations["admin_generate_bills_api_v1_consumption_tax_admin_bills_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-limits/": {
         parameters: {
             query?: never;
             header?: never;
@@ -834,20 +1503,20 @@ export interface paths {
          * List Budget Limits
          * @description List the user's budget limits (monthly only in MVP).
          */
-        get: operations["list_budget_limits_api_budget_limits__get"];
+        get: operations["list_budget_limits_api_v1_budget_limits__get"];
         put?: never;
         /**
          * Upsert Budget Limit
          * @description Create or update a monthly budget limit for one tag.
          */
-        post: operations["upsert_budget_limit_api_budget_limits__post"];
+        post: operations["upsert_budget_limit_api_v1_budget_limits__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/budget-limits/status": {
+    "/api/v1/budget-limits/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -858,8 +1527,443 @@ export interface paths {
          * Get Budget Status
          * @description Detailed merged budget/tracker/limits report for the active month.
          */
-        get: operations["get_budget_status_api_budget_limits_status_get"];
+        get: operations["get_budget_status_api_v1_budget_limits_status_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-limits/{tag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Budget Limit
+         * @description Remove a monthly budget limit for one tag (204 on success).
+         */
+        delete: operations["delete_budget_limit_api_v1_budget_limits__tag_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-tracker/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Expense Trend
+         * @description Per-(tag, bucket) spend trend over the last ``n`` buckets of ``period_type``.
+         */
+        get: operations["get_expense_trend_api_v1_expense_tracker__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Templates
+         * @description List the user's recurring templates (worker-detected + user-declared).
+         */
+        get: operations["list_templates_api_v1_recurring_templates_get"];
+        put?: never;
+        /**
+         * Create Template
+         * @description Declare a recurring template by hand (authoritative — born locked).
+         */
+        post: operations["create_template_api_v1_recurring_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring/templates/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Template
+         * @description Delete a template (its bills cascade).
+         */
+        delete: operations["delete_template_api_v1_recurring_templates__uid__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Template
+         * @description Edit a template (transfers ownership to the user).
+         */
+        patch: operations["update_template_api_v1_recurring_templates__uid__patch"];
+        trace?: never;
+    };
+    "/api/v1/recurring/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Upcoming
+         * @description Forward-looking pending bills due within ``days`` (clamped ≤ 90).
+         */
+        get: operations["list_upcoming_api_v1_recurring_upcoming_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List History
+         * @description Backward-looking settled bills within the last ``days`` (clamped ≤ 30).
+         */
+        get: operations["list_history_api_v1_recurring_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Resource
+         * @description Export one resource for the current user as CSV (streamed) or JSON.
+         */
+        get: operations["export_resource_api_v1_exports__resource__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Ping
+         * @description Confirm the caller holds the ADMIN role. Returns 403 otherwise.
+         */
+        get: operations["admin_ping_api_v1_admin_ping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description Paginated, searchable inventory of all non-SYSTEM users (A2).
+         */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Detail
+         * @description Single-user admin detail (A3): identity + locale, recent sessions /
+         *     devices / activity, the profile-card stats, and soft-delete status.
+         *
+         *     404 for a non-existent, SYSTEM, or hard-purged ``user_id``; 200 for a
+         *     soft-deleted user still in the grace window (with ``cemetery_status``).
+         */
+        get: operations["get_user_detail_api_v1_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Lock User
+         * @description Disable an account (B1). Recovery-proof: blocks login, every
+         *     authenticated request, and password recovery until unlocked. 404 for
+         *     missing/SYSTEM, 409 if already disabled. Optional ``{reason}`` is logged.
+         */
+        patch: operations["lock_user_api_v1_admin_users__user_id__lock_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Unlock User
+         * @description Re-enable a disabled account (B1). 404 for missing/SYSTEM, 409 if the
+         *     account is not currently disabled.
+         */
+        patch: operations["unlock_user_api_v1_admin_users__user_id__unlock_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Force Logout
+         * @description Force-logout: terminate every active session for the user (B2).
+         *     Idempotent (0 when none active); does not lock the account (pair with
+         *     /lock for a full eject). 404 for missing/SYSTEM.
+         */
+        delete: operations["force_logout_api_v1_admin_users__user_id__sessions_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/cemetery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cemetery
+         * @description Paginated post-deletion audit trail (C1): cemetery headstones with
+         *     replica counts. Email search + ``from``/``to`` date range over the entomb
+         *     timestamp.
+         */
+        get: operations["list_cemetery_api_v1_admin_cemetery_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/cemetery/{deleted_user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cemetery Detail
+         * @description One cemetery headstone + a truncated peek (≤10 each) at its
+         *     committee-bill and expense-total replicas (C1). 404 if not found.
+         */
+        get: operations["get_cemetery_detail_api_v1_admin_cemetery__deleted_user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/signal-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Signal Settings
+         * @description The target user's disabled activity-feed kinds (E1). 404 missing/SYSTEM.
+         */
+        get: operations["get_user_signal_settings_api_v1_admin_users__user_id__signal_settings_get"];
+        /**
+         * Set User Signal Setting
+         * @description Operator toggles a feed ``kind`` on/off for the target user (E1). 404
+         *     missing/SYSTEM or unknown kind.
+         */
+        put: operations["set_user_signal_setting_api_v1_admin_users__user_id__signal_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/signal-catalog/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Tune Signal Catalog
+         * @description System-level signal tuning (E1): adjust a kind's priority / rank /
+         *     platform-wide enable. 404 unknown kind; 422 invalid priority.
+         */
+        put: operations["tune_signal_catalog_api_v1_admin_signal_catalog__kind__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Feed */
+        get: operations["get_feed_api_v1_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Seen */
+        post: operations["post_seen_api_v1_activity_seen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Catalog */
+        get: operations["get_catalog_api_v1_activity_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity/signal-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Signal Settings */
+        get: operations["get_signal_settings_api_v1_activity_signal_settings_get"];
+        /** Put Signal Settings */
+        put: operations["put_signal_settings_api_v1_activity_signal_settings_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -888,6 +1992,445 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccountDataResetRequest
+         * @description Body for ``POST /api/v1/users/me/data-reset`` — password re-entry
+         *     (step-up auth on a destructive 'clean restart'; the account is kept).
+         */
+        AccountDataResetRequest: {
+            /** Password */
+            password: string;
+        };
+        /**
+         * AccountDeletionCancelRequest
+         * @description Body for ``POST /api/v1/users/me/delete/cancel`` — the signed token carried
+         *     by the cancel link in the confirmation email (no auth: the user is logged
+         *     out while the account is pending deletion).
+         */
+        AccountDeletionCancelRequest: {
+            /** Token */
+            token: string;
+        };
+        /**
+         * AccountDeletionCancelResponse
+         * @description Acknowledgement that a scheduled deletion was cancelled (or was already
+         *     inactive — the endpoint is idempotent).
+         */
+        AccountDeletionCancelResponse: {
+            /** Detail */
+            detail: string;
+        };
+        /**
+         * AccountDeletionRequest
+         * @description Body for ``POST /api/v1/users/me/delete`` — password re-entry (step-up auth
+         *     on a destructive action; the caller is already authenticated).
+         */
+        AccountDeletionRequest: {
+            /** Password */
+            password: string;
+        };
+        /**
+         * AccountDeletionResponse
+         * @description Acknowledgement that an account is now scheduled for deletion.
+         */
+        AccountDeletionResponse: {
+            /** Detail */
+            detail: string;
+            /** Grace Days */
+            grace_days: number;
+        };
+        /** AccountIdentifierCreate */
+        AccountIdentifierCreate: {
+            /** Identifier */
+            identifier: string;
+            /** @default UPI */
+            identifier_type: components["schemas"]["IdentifierType"];
+        };
+        /** AccountIdentifierResponse */
+        AccountIdentifierResponse: {
+            /** Uid */
+            uid: number;
+            /** Identifier */
+            identifier: string;
+            identifier_type: components["schemas"]["IdentifierType"];
+        };
+        /**
+         * AccountType
+         * @enum {string}
+         */
+        AccountType: "REGULAR" | "SAVINGS" | "OTHER" | "INVESTMENT" | "LOAN" | "CREDIT_CARD";
+        /** ActivityFeedOut */
+        ActivityFeedOut: {
+            /** Items */
+            items: components["schemas"]["ActivityItemOut"][];
+            /** Has More */
+            has_more: boolean;
+        };
+        /** ActivityItemOut */
+        ActivityItemOut: {
+            /** Uid */
+            uid: number;
+            /** Kind */
+            kind: string;
+            /** Event Class */
+            event_class: string;
+            /** Priority */
+            priority: number;
+            /** Domain */
+            domain: string;
+            /** State */
+            state: string;
+            /** Summary */
+            summary: string;
+            /** Meta */
+            meta: Record<string, never>;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Refreshed At
+             * Format: date-time
+             */
+            refreshed_at: string;
+            /** Aggregate Count */
+            aggregate_count?: number | null;
+        };
+        /**
+         * AdminAccountStatusResponse
+         * @description Result of a lock/unlock — the new disable state. ``disabled_at`` is the
+         *     set timestamp after a lock, ``None`` after an unlock.
+         */
+        AdminAccountStatusResponse: {
+            /** User Id */
+            user_id: number;
+            /** Disabled At */
+            disabled_at?: string | null;
+        };
+        /**
+         * AdminBillGenerateRequest
+         * @description Admin/ops backfill — generate on behalf of a (possibly auto-mode) user.
+         */
+        AdminBillGenerateRequest: {
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /** User Id */
+            user_id: number;
+        };
+        /**
+         * AdminCemeteryBillReplica
+         * @description One committee-bill replica in the cemetery detail peek (truncated).
+         */
+        AdminCemeteryBillReplica: {
+            /** Original Bill Id */
+            original_bill_id: number;
+            /** Amount */
+            amount: number;
+            /** Bill Status */
+            bill_status: string;
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /**
+             * Billed At
+             * Format: date-time
+             */
+            billed_at: string;
+        };
+        /**
+         * AdminCemeteryDetailResponse
+         * @description Cemetery headstone + a truncated peek (≤10 each) at the replicas. The
+         *     full replica tables are for SQL, not the UI.
+         */
+        AdminCemeteryDetailResponse: {
+            /** Deleted User Id */
+            deleted_user_id: number;
+            /** Former User Id */
+            former_user_id: number;
+            /** Email */
+            email?: string | null;
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /** Account Opened At */
+            account_opened_at?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Committee Bill Replicas Count */
+            committee_bill_replicas_count: number;
+            /** Expense Total Replicas Count */
+            expense_total_replicas_count: number;
+            /** Committee Bill Replicas */
+            committee_bill_replicas: components["schemas"]["AdminCemeteryBillReplica"][];
+            /** Expense Total Replicas */
+            expense_total_replicas: components["schemas"]["AdminCemeteryExpenseReplica"][];
+        };
+        /**
+         * AdminCemeteryExpenseReplica
+         * @description One expense-total replica in the cemetery detail peek (truncated).
+         */
+        AdminCemeteryExpenseReplica: {
+            /** Period Type */
+            period_type: string;
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /** Total Count */
+            total_count: number;
+            /** Total Debit */
+            total_debit: number;
+            /** Total Credit */
+            total_credit: number;
+        };
+        /**
+         * AdminCemeteryListResponse
+         * @description A cursor-paginated page of cemetery headstones.
+         */
+        AdminCemeteryListResponse: {
+            /** Deleted Users */
+            deleted_users: components["schemas"]["AdminCemeteryRow"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Has More */
+            has_more: boolean;
+        };
+        /**
+         * AdminCemeteryRow
+         * @description One headstone in the cemetery audit (``GET /api/v1/admin/cemetery``).
+         *
+         *     The cemetery is the *post-purge* tombstone, so ``deleted_at`` is the entomb
+         *     timestamp; there is no scheduled-purge (it already happened). ``email`` is
+         *     the one PII field the cemetery retains ([[cemetery-retention-model]]).
+         */
+        AdminCemeteryRow: {
+            /** Deleted User Id */
+            deleted_user_id: number;
+            /** Former User Id */
+            former_user_id: number;
+            /** Email */
+            email?: string | null;
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /** Account Opened At */
+            account_opened_at?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Committee Bill Replicas Count */
+            committee_bill_replicas_count: number;
+            /** Expense Total Replicas Count */
+            expense_total_replicas_count: number;
+        };
+        /**
+         * AdminCemeteryStatus
+         * @description Soft-delete status for a user still inside the grace window. ``None`` on
+         *     the detail response when the account is active; a hard-purged user 404s.
+         */
+        AdminCemeteryStatus: {
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /**
+             * Scheduled Purge At
+             * Format: date-time
+             */
+            scheduled_purge_at: string;
+        };
+        /**
+         * AdminDeviceRow
+         * @description One of the user's recently-seen known devices (admin user-detail).
+         */
+        AdminDeviceRow: {
+            /** Device Uid */
+            device_uid: number;
+            /** Fingerprint */
+            fingerprint: string;
+            /** Label */
+            label?: string | null;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
+        };
+        /**
+         * AdminForceLogoutResponse
+         * @description Result of force-logout (B2): how many active sessions were terminated.
+         */
+        AdminForceLogoutResponse: {
+            /** Terminated */
+            terminated: number;
+        };
+        /**
+         * AdminLockRequest
+         * @description Body for ``PATCH /admin/users/{id}/lock`` — an optional free-text reason
+         *     (internal audit only, logged). ``/unlock`` takes no body.
+         */
+        AdminLockRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * AdminPingResponse
+         * @description Liveness/authorization probe for the admin surface.
+         */
+        AdminPingResponse: {
+            /** Status */
+            status: string;
+            /** User Id */
+            user_id: number;
+        };
+        /**
+         * AdminSessionRow
+         * @description One of the user's recent sessions (admin user-detail).
+         */
+        AdminSessionRow: {
+            /** Session Id */
+            session_id: string;
+            /** Ip Address */
+            ip_address: string;
+            /** Device Summary */
+            device_summary: string;
+            /** Is Locked */
+            is_locked: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /**
+         * AdminSignalTuneRequest
+         * @description Body for `PUT /admin/signal-catalog/{kind}` (E1, system-level tuning) —
+         *     all optional; only the provided axes are changed. `priority` 1..3,
+         *     `rank_order` is the within-priority sort, `system_enabled` toggles the kind
+         *     platform-wide (system default; per-user disable is separate).
+         */
+        AdminSignalTuneRequest: {
+            /** Priority */
+            priority?: number | null;
+            /** Rank Order */
+            rank_order?: number | null;
+            /** System Enabled */
+            system_enabled?: boolean | null;
+        };
+        /**
+         * AdminUserDetailResponse
+         * @description Single-user admin detail (``GET /api/v1/admin/users/{id}``) — the
+         *     inventory row plus locale, recent sessions/devices, recent activity, the
+         *     profile-card stats block, and soft-delete status. Composed by
+         *     ``admin_services`` from each owning module's read.
+         */
+        AdminUserDetailResponse: {
+            /** User Id */
+            user_id: number;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Role */
+            role: string;
+            /**
+             * Registered At
+             * Format: date-time
+             */
+            registered_at: string;
+            /** Last Active At */
+            last_active_at?: string | null;
+            /** Locked Until */
+            locked_until?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Disabled At */
+            disabled_at?: string | null;
+            /** Two Factor Enabled */
+            two_factor_enabled: boolean;
+            /** Session Count */
+            session_count: number;
+            /** Country */
+            country?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Recent Sessions */
+            recent_sessions: components["schemas"]["AdminSessionRow"][];
+            /** Recent Known Devices */
+            recent_known_devices: components["schemas"]["AdminDeviceRow"][];
+            /** Recent Activity */
+            recent_activity?: components["schemas"]["ActivityItemOut"][] | null;
+            cemetery_status?: components["schemas"]["AdminCemeteryStatus"] | null;
+            stats: components["schemas"]["UserStatsResponse"];
+        };
+        /**
+         * AdminUserListResponse
+         * @description A cursor-paginated page of the admin user inventory.
+         *
+         *     ``next_cursor`` is an opaque token to pass back as ``?cursor=``; it is
+         *     ``None`` exactly when ``has_more`` is false.
+         */
+        AdminUserListResponse: {
+            /** Users */
+            users: components["schemas"]["AdminUserRow"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Has More */
+            has_more: boolean;
+        };
+        /**
+         * AdminUserRow
+         * @description One row in the admin user inventory (``GET /api/v1/admin/users``).
+         *
+         *     Composed by ``admin_services`` from the users-owned profile directory
+         *     (``email``/``full_name``) + auth-owned account fields + session stats.
+         */
+        AdminUserRow: {
+            /** User Id */
+            user_id: number;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Role */
+            role: string;
+            /**
+             * Registered At
+             * Format: date-time
+             */
+            registered_at: string;
+            /** Last Active At */
+            last_active_at?: string | null;
+            /** Locked Until */
+            locked_until?: string | null;
+            /** Deleted At */
+            deleted_at?: string | null;
+            /** Disabled At */
+            disabled_at?: string | null;
+            /** Two Factor Enabled */
+            two_factor_enabled: boolean;
+            /** Session Count */
+            session_count: number;
+        };
         /** AliasCheckResponse */
         AliasCheckResponse: {
             /** Alias */
@@ -905,17 +2448,58 @@ export interface components {
             /** Answer */
             answer: string;
         };
+        /** BankAccountCreate */
+        BankAccountCreate: {
+            /** Label */
+            label: string;
+            /** Account Type */
+            account_type: string;
+            /**
+             * Is Committee Account
+             * @default false
+             */
+            is_committee_account: boolean;
+            /** Identifiers */
+            identifiers?: components["schemas"]["AccountIdentifierCreate"][] | null;
+        };
+        /** BankAccountResponse */
+        BankAccountResponse: {
+            /** Uid */
+            uid: number;
+            /** Label */
+            label: string;
+            account_type: components["schemas"]["AccountType"];
+            /** Is Committee Account */
+            is_committee_account: boolean;
+            /** Archived At */
+            archived_at?: string | null;
+            /**
+             * Identifiers
+             * @default []
+             */
+            identifiers: components["schemas"]["AccountIdentifierResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** BankAccountUpdate */
+        BankAccountUpdate: {
+            /** Label */
+            label?: string | null;
+            /** Account Type */
+            account_type?: string | null;
+            /** Is Committee Account */
+            is_committee_account?: boolean | null;
+        };
         /** BeneficiaryCreate */
         BeneficiaryCreate: {
             /** Name */
             name: string;
             /** Aliases */
             aliases?: string[] | null;
-            /**
-             * Beneficiary Type
-             * @enum {string}
-             */
-            beneficiary_type: "merchant" | "person";
+            beneficiary_type: components["schemas"]["BeneficiaryType"];
             merchant?: components["schemas"]["MerchantDetailInput"] | null;
             person?: components["schemas"]["PersonDetailInput"] | null;
         };
@@ -934,8 +2518,7 @@ export interface components {
             name: string;
             /** Aliases */
             aliases?: string[] | null;
-            /** Beneficiary Type */
-            beneficiary_type?: string | null;
+            beneficiary_type?: components["schemas"]["BeneficiaryType"] | null;
             merchant?: components["schemas"]["MerchantDetailResponse"] | null;
             person?: components["schemas"]["PersonDetailResponse"] | null;
             /**
@@ -944,38 +2527,286 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * BeneficiaryType
+         * @enum {string}
+         */
+        BeneficiaryType: "merchant" | "person";
         /** BeneficiaryUpdate */
         BeneficiaryUpdate: {
             /** Name */
             name?: string | null;
             /** Aliases */
             aliases?: string[] | null;
-            /** Beneficiary Type */
-            beneficiary_type?: ("merchant" | "person") | null;
+            beneficiary_type?: components["schemas"]["BeneficiaryType"] | null;
             merchant?: components["schemas"]["MerchantDetailInput"] | null;
             person?: components["schemas"]["PersonDetailInput"] | null;
         };
-        /** Body_upload_statement_api_transactions_upload_statement_post */
-        Body_upload_statement_api_transactions_upload_statement_post: {
+        /** BillAllocationDTO */
+        BillAllocationDTO: {
+            /** Payment Txn Id */
+            payment_txn_id?: number | null;
+            /** Amount */
+            amount: number;
+            /** Source */
+            source: string;
+            /** Allocated At */
+            allocated_at?: string | null;
+        };
+        /** BillDetailResponse */
+        BillDetailResponse: {
+            /** Bill Id */
+            bill_id: number;
+            /** User Id */
+            user_id: number;
+            /** Amount */
+            amount: number;
+            /** Amount Paid */
+            amount_paid: number;
+            status: components["schemas"]["BillStatus"];
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /** Billed At */
+            billed_at?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Paid At */
+            paid_at?: string | null;
+            /** Last Modified */
+            last_modified?: string | null;
+            /** Items */
+            items: components["schemas"]["BillItemDTO"][];
+            /** Allocations */
+            allocations: components["schemas"]["BillAllocationDTO"][];
+            totals: components["schemas"]["BillTotalsDTO"];
+        };
+        /** BillGenerateResponse */
+        BillGenerateResponse: {
+            /** Bill Ids */
+            bill_ids: number[];
+        };
+        /** BillItemDTO */
+        BillItemDTO: {
+            /** Txn Id */
+            txn_id?: number | null;
+            /** Date */
+            date?: string | null;
+            /** Beneficiary */
+            beneficiary?: string | null;
+            /** Amount */
+            amount?: number | null;
+            debit_credit?: components["schemas"]["DebitCredit"] | null;
+            txn_type: components["schemas"]["TxnType"];
+            /** Tax Amount */
+            tax_amount: number;
+            /** Penalty */
+            penalty: number;
+            /**
+             * Is Adjustment
+             * @default false
+             */
+            is_adjustment: boolean;
+            /** Adjustment For Bill Id */
+            adjustment_for_bill_id?: number | null;
+            /** Penalty Tag Id */
+            penalty_tag_id?: number | null;
+            /** Penalty Tag Name */
+            penalty_tag_name?: string | null;
+        };
+        /** BillListResponse */
+        BillListResponse: {
+            /** Bills */
+            bills: components["schemas"]["BillSummaryDTO"][];
+        };
+        /**
+         * BillStatus
+         * @enum {string}
+         */
+        BillStatus: "ACCRUING" | "BILLED" | "PAID" | "OVERDUE" | "EXPIRED";
+        /** BillSummaryDTO */
+        BillSummaryDTO: {
+            /** Bill Id */
+            bill_id: number;
+            /** User Id */
+            user_id: number;
+            /** Amount */
+            amount: number;
+            /** Amount Paid */
+            amount_paid: number;
+            status: components["schemas"]["BillStatus"];
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /** Billed At */
+            billed_at?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Paid At */
+            paid_at?: string | null;
+            /** Last Modified */
+            last_modified?: string | null;
+        };
+        /** BillTotalsDTO */
+        BillTotalsDTO: {
+            /** Tax Total */
+            tax_total: number;
+            /** Penalty Total */
+            penalty_total: number;
+        };
+        /** Body_upload_profile_image_api_v1_users_me_profile_image_post */
+        Body_upload_profile_image_api_v1_users_me_profile_image_post: {
             /**
              * File
              * Format: binary
              */
             file: string;
         };
-        /** BudgetLimitUpsert */
-        BudgetLimitUpsert: {
+        /** Body_upload_statement_api_v1_statement_uploads_post */
+        Body_upload_statement_api_v1_statement_uploads_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Parser Override */
+            parser_override?: string | null;
+        };
+        /**
+         * BrandingResponse
+         * @description Product brand identity served to the frontend (name/tagline/copy/logo).
+         */
+        BrandingResponse: {
+            /** Name */
+            name: string;
+            /** Tagline */
+            tagline: string;
+            /** Description */
+            description: string;
+            /** Logo Url */
+            logo_url?: string | null;
+        };
+        /** BudgetLimitEnvelope */
+        BudgetLimitEnvelope: {
+            budget: components["schemas"]["BudgetLimitResponse"];
+        };
+        /** BudgetLimitListResponse */
+        BudgetLimitListResponse: {
+            /** Budgets */
+            budgets: components["schemas"]["BudgetLimitResponse"][];
+        };
+        /** BudgetLimitResponse */
+        BudgetLimitResponse: {
+            /** Uid */
+            uid: number;
             /** Tag Id */
             tag_id: number;
-            /**
-             * Budget Period
-             * @default monthly
-             */
-            budget_period: string;
+            /** Tag Name */
+            tag_name?: string | null;
+            budget_period: components["schemas"]["PeriodType"];
             /** Limit Amt */
             limit_amt: number;
             /** Penalty Rate */
             penalty_rate?: number | null;
+            /** Created By */
+            created_by?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** BudgetLimitUpsert */
+        BudgetLimitUpsert: {
+            /** Tag Id */
+            tag_id: number;
+            /** @default monthly */
+            budget_period: components["schemas"]["PeriodType"];
+            /** Limit Amt */
+            limit_amt: number;
+            /** Penalty Rate */
+            penalty_rate?: number | null;
+        };
+        /** BudgetStatusResponse */
+        BudgetStatusResponse: {
+            /** Categories */
+            categories: components["schemas"]["BudgetStatusRow"][];
+            total_budget?: components["schemas"]["BudgetStatusRow"] | null;
+            /** Currency */
+            currency: string;
+            /** Month */
+            month: string;
+            /** Available Months */
+            available_months: string[];
+        };
+        /**
+         * BudgetStatusRow
+         * @description One merged budget-status report row (tag taxonomy ⋈ tracker ⋈ limit).
+         *
+         *     NULL tracker/limit columns surface as ``None``. ``uid`` is present only on
+         *     the TOTAL row; ``default_penalty_rate`` only on category rows.
+         */
+        BudgetStatusRow: {
+            /** Tag Id */
+            tag_id: number;
+            /** Tag Name */
+            tag_name?: string | null;
+            tag_type?: components["schemas"]["TagType"] | null;
+            /** Current Debit */
+            current_debit?: number | null;
+            /** Current Credit */
+            current_credit?: number | null;
+            /** Current Net Expense */
+            current_net_expense?: number | null;
+            /** Avg Net Expense */
+            avg_net_expense?: number | null;
+            /** Min Net Expense */
+            min_net_expense?: number | null;
+            /** Max Net Expense */
+            max_net_expense?: number | null;
+            /** Limit Amt */
+            limit_amt?: number | null;
+            /** Penalty Rate */
+            penalty_rate?: number | null;
+            /** Uid */
+            uid?: number | null;
+            /** Default Penalty Rate */
+            default_penalty_rate?: number | null;
+            /** Created At */
+            created_at?: string | null;
+        };
+        /**
+         * Cadence
+         * @enum {string}
+         */
+        Cadence: "WEEKLY" | "MONTHLY" | "YEARLY";
+        /** CatalogEntryOut */
+        CatalogEntryOut: {
+            /** Kind */
+            kind: string;
+            /** Event Class */
+            event_class: string;
+            /** Domain */
+            domain: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Priority */
+            priority: number;
+            /** Rank Order */
+            rank_order: number;
+            /** System Enabled */
+            system_enabled: boolean;
+            /** Collapse Threshold */
+            collapse_threshold?: number | null;
+            /** Collapse Label */
+            collapse_label?: string | null;
+        };
+        /** CatalogOut */
+        CatalogOut: {
+            /** Entries */
+            entries: components["schemas"]["CatalogEntryOut"][];
         };
         /** CategorizationRuleCreate */
         CategorizationRuleCreate: {
@@ -988,6 +2819,41 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** CategorizationRuleCreatedResponse */
+        CategorizationRuleCreatedResponse: {
+            rule: components["schemas"]["CreatedRuleRef"];
+        };
+        /** CategorizationRuleDTO */
+        CategorizationRuleDTO: {
+            /** Uid */
+            uid: number;
+            /** Rule Name */
+            rule_name: string;
+            /** Beneficiary Id */
+            beneficiary_id: number;
+            /** Beneficiary Name */
+            beneficiary_name: string;
+            /**
+             * Beneficiary Aliases
+             * @default []
+             */
+            beneficiary_aliases: string[];
+            /** Tag Ids */
+            tag_ids: number[];
+            /** Notes */
+            notes?: string | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Last Modified */
+            last_modified?: string | null;
+        };
+        /** CategorizationRuleListResponse */
+        CategorizationRuleListResponse: {
+            /** Rules */
+            rules: components["schemas"]["CategorizationRuleDTO"][];
+        };
         /** CategorizationRuleUpdate */
         CategorizationRuleUpdate: {
             /** Name */
@@ -998,19 +2864,6 @@ export interface components {
             tag_ids?: number[] | null;
             /** Notes */
             notes?: string | null;
-        };
-        /** CategorizeResponse */
-        CategorizeResponse: {
-            /** Upload Id */
-            upload_id: number;
-            /** Categorized Count */
-            categorized_count: number;
-            /** Problematic Count */
-            problematic_count: number;
-            /** Requires Confirmation */
-            requires_confirmation: boolean;
-            /** Problematic */
-            problematic: Record<string, never>[];
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -1041,6 +2894,19 @@ export interface components {
             default_currency?: string | null;
             /** Timezone */
             timezone?: string | null;
+            /**
+             * Timezones
+             * @default []
+             */
+            timezones: string[];
+        };
+        /**
+         * CreatedRuleRef
+         * @description The created rule's identity — `create_rule` returns only its `uid`.
+         */
+        CreatedRuleRef: {
+            /** Uid */
+            uid: number;
         };
         /** CurrenciesResponse */
         CurrenciesResponse: {
@@ -1058,29 +2924,100 @@ export interface components {
             /** Default Country */
             default_country?: string | null;
         };
+        /**
+         * DateFormat
+         * @enum {string}
+         */
+        DateFormat: "system" | "dmy" | "mdy" | "ymd" | "dmonth";
+        /**
+         * DebitCredit
+         * @enum {string}
+         */
+        DebitCredit: "debit" | "credit";
+        /**
+         * DefaultTxnKind
+         * @enum {string}
+         */
+        DefaultTxnKind: "debit" | "credit";
         /** DeletedResponse */
         DeletedResponse: {
             /** Message */
             message: string;
         };
         /**
-         * FinalizeRequest
-         * @description Body for the finalize step.
-         *
-         *     ``decision`` ∈ {``commit``, ``rollback``, ``set_misc``}. Optional in the
-         *     schema so an empty/missing value lands in the service layer and turns
-         *     into a 400 with the same message the legacy router returned, instead of
-         *     a Pydantic 422.
+         * DeviceRevokeRequest
+         * @description Body for the one-click revoke link from the new-device intimation email.
          */
-        FinalizeRequest: {
-            /** Decision */
-            decision?: string | null;
+        DeviceRevokeRequest: {
+            /** Token */
+            token: string;
         };
-        /** FinalizeResponse */
-        FinalizeResponse: {
-            /** Status */
-            status: string;
+        /** EmailChangeConfirmBody */
+        EmailChangeConfirmBody: {
+            /** Otp */
+            otp: string;
         };
+        /**
+         * EmailChangeRequestBody
+         * @description Start an email change. ``code`` (a current TOTP or backup code) is
+         *     required only when the account has 2FA enabled; otherwise omit it.
+         */
+        EmailChangeRequestBody: {
+            /**
+             * New Email
+             * Format: email
+             */
+            new_email: string;
+            /** Password */
+            password: string;
+            /** Code */
+            code?: string | null;
+        };
+        /** ExpenseTrendResponse */
+        ExpenseTrendResponse: {
+            period_type: components["schemas"]["PeriodType"];
+            /** Returned Count */
+            returned_count: number;
+            /** Rows */
+            rows: components["schemas"]["ExpenseTrendRow"][];
+        };
+        /** ExpenseTrendRow */
+        ExpenseTrendRow: {
+            /** Tag Id */
+            tag_id: number;
+            /** Tag Name */
+            tag_name?: string | null;
+            /** Period Type */
+            period_type: string;
+            /** Period Start */
+            period_start: string;
+            /** Period End */
+            period_end: string;
+            /** Total Count */
+            total_count: number;
+            /** Total Debit */
+            total_debit: number;
+            /** Total Credit */
+            total_credit: number;
+            /** Net Expense */
+            net_expense: number;
+            /** Avg Net Expense */
+            avg_net_expense?: number | null;
+            /** Min Net Expense */
+            min_net_expense?: number | null;
+            /** Max Net Expense */
+            max_net_expense?: number | null;
+        };
+        /**
+         * ExportFormat
+         * @enum {string}
+         */
+        ExportFormat: "csv" | "json";
+        /**
+         * ExportResource
+         * @enum {string}
+         */
+        ExportResource: "transactions" | "beneficiaries" | "tax-bills" | "tax-details" | "spend-by-tag" | "spend-by-merchant" | "bank-accounts" | "profile";
         /** ForgotPasswordRequest */
         ForgotPasswordRequest: {
             /**
@@ -1089,11 +3026,118 @@ export interface components {
              */
             email_id: string;
         };
+        /**
+         * GroupBy
+         * @enum {string}
+         */
+        GroupBy: "tag" | "merchant";
+        /** GroupedTransactionsResponse */
+        GroupedTransactionsResponse: {
+            /** @description 'tag' or 'merchant' */
+            group_by: components["schemas"]["GroupBy"];
+            /**
+             * Period Type
+             * @description 'weekly', 'monthly', or 'all'
+             */
+            period_type: string;
+            /**
+             * Period Start
+             * @description Bucket start (YYYY-MM-DD); null for the all-time window
+             */
+            period_start?: string | null;
+            /** Groups */
+            groups: components["schemas"]["TransactionGroup"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Returned Count */
+            returned_count: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * IdentifierType
+         * @enum {string}
+         */
+        IdentifierType: "UPI";
+        /**
+         * JobStatusResponse
+         * @description Poll payload — the full job state the frontend dock widget renders.
+         */
+        JobStatusResponse: {
+            /** Job Id */
+            job_id: number;
+            status: components["schemas"]["StatementJobStatus"];
+            /** Stage */
+            stage: string;
+            /** File Name */
+            file_name?: string | null;
+            /** Parser Used */
+            parser_used?: string | null;
+            /** Source Type */
+            source_type?: string | null;
+            /** Txns Parsed */
+            txns_parsed: number;
+            /** Txns Inserted */
+            txns_inserted: number;
+            /** Error Detail */
+            error_detail?: string | null;
+            /** Detected Identifier */
+            detected_identifier?: string | null;
+            /** Bank Account Id */
+            bank_account_id?: number | null;
+            /** Suggest Register Account */
+            suggest_register_account: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /**
+         * KnownDeviceInfo
+         * @description One row in the Settings → Security "trusted devices" list.
+         *
+         *     ``is_current`` flags the device this request came from. No fingerprint hash
+         *     is exposed — only the human-readable label + timestamps.
+         */
+        KnownDeviceInfo: {
+            /** Uid */
+            uid: number;
+            /** Label */
+            label?: string | null;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /**
+             * Is Current
+             * @default false
+             */
+            is_current: boolean;
+        };
+        /**
+         * LandingRoute
+         * @enum {string}
+         */
+        LandingRoute: "/dashboard" | "/transactions" | "/budgets" | "/consumption-tax";
+        /**
+         * LoginChallengeStatus
+         * @enum {string}
+         */
+        LoginChallengeStatus: "new_device_verification_required" | "two_factor_required";
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -1118,12 +3162,31 @@ export interface components {
             /** Tag Ids */
             tag_ids: number[];
         };
-        /** MapBeneficiariesResponse */
-        MapBeneficiariesResponse: {
-            /** Status */
-            status: string;
-            /** Mapped Count */
-            mapped_count: number;
+        /**
+         * MarkPaidRequest
+         * @description Manual settlement. Provide ``payment_txn_id`` to link a real payment txn,
+         *     or leave it null for a pure override. ``amount`` defaults to the txn amount
+         *     (linked) or the remaining balance (override).
+         */
+        MarkPaidRequest: {
+            /** Payment Txn Id */
+            payment_txn_id?: number | null;
+            /** Amount */
+            amount?: number | null;
+        };
+        /** MarkPaidResponse */
+        MarkPaidResponse: {
+            status: components["schemas"]["BillStatus"];
+            /** Bill Id */
+            bill_id: number;
+            /** Amount Paid */
+            amount_paid: number;
+        };
+        /** MarkUnpaidResponse */
+        MarkUnpaidResponse: {
+            status: components["schemas"]["BillStatus"];
+            /** Bill Id */
+            bill_id: number;
         };
         /** MerchantDetailInput */
         MerchantDetailInput: {
@@ -1150,6 +3213,38 @@ export interface components {
             /** Message */
             message: string;
         };
+        /**
+         * NewDeviceChallengeResponse
+         * @description Pending-login response when a correct password arrives from an unknown
+         *     device (T-new-device-otp). The frontend branches on ``status``: instead of
+         *     a session, it gets a short-lived ``pending_token`` and must collect the
+         *     emailed OTP, then call ``POST /api/v1/auth/new-device/verify``.
+         */
+        NewDeviceChallengeResponse: {
+            /** @default new_device_verification_required */
+            status: components["schemas"]["LoginChallengeStatus"];
+            /** Pending Token */
+            pending_token: string;
+            /** Masked Email */
+            masked_email?: string | null;
+        };
+        /** NewDeviceResendRequest */
+        NewDeviceResendRequest: {
+            /** Pending Token */
+            pending_token: string;
+        };
+        /** NewDeviceVerifyRequest */
+        NewDeviceVerifyRequest: {
+            /** Pending Token */
+            pending_token: string;
+            /** Otp */
+            otp: string;
+        };
+        /**
+         * NumberFormat
+         * @enum {string}
+         */
+        NumberFormat: "system" | "comma-dot" | "dot-comma" | "space-comma" | "indian" | "plain";
         /** OTPVerifyRequest */
         OTPVerifyRequest: {
             /**
@@ -1160,6 +3255,27 @@ export interface components {
             /** Otp */
             otp: string;
         };
+        /**
+         * ParserInfo
+         * @description One entry in the parser catalogue (``GET /parsers`` + the 422 envelope).
+         *
+         *     ``key`` is the registry **class key** (``phonepe`` / ``csv``) the frontend
+         *     sends back as ``parser_override``; ``label`` is the display string;
+         *     ``source_type`` is the wire tag persisted on the job.
+         */
+        ParserInfo: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Source Type */
+            source_type: string;
+        };
+        /**
+         * PeriodType
+         * @enum {string}
+         */
+        PeriodType: "weekly" | "monthly" | "quarterly" | "annual";
         /** PersonDetailInput */
         PersonDetailInput: {
             /** Relationship Type */
@@ -1179,8 +3295,29 @@ export interface components {
             upi_id?: string | null;
         };
         /**
+         * ProfileImagePreset
+         * @description One built-in profile-image preset: a stable id + its servable URL.
+         */
+        ProfileImagePreset: {
+            /** Id */
+            id: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * ProfileImagePresetSelection
+         * @description Request body for selecting a built-in preset as the profile picture.
+         */
+        ProfileImagePresetSelection: {
+            /** Preset Id */
+            preset_id: string;
+        };
+        /**
          * ProfileUpdate
          * @description Partial profile update — every field optional.
+         *
+         *     ``currency`` is no longer here: it moved to the Preferences tier
+         *     (``PATCH /api/v1/users/preferences``) in T-preferences.
          */
         ProfileUpdate: {
             /** First Name */
@@ -1193,8 +3330,6 @@ export interface components {
             contact?: string | null;
             /** Country */
             country?: string | null;
-            /** Currency */
-            currency?: string | null;
         };
         /** RecoveryConfigResponse */
         RecoveryConfigResponse: {
@@ -1226,6 +3361,147 @@ export interface components {
             /** Question */
             question: string;
         };
+        /** RecurringBillResponse */
+        RecurringBillResponse: {
+            /** Uid */
+            uid: number;
+            /** Template Id */
+            template_id: number;
+            /** Beneficiary Id */
+            beneficiary_id: number;
+            /** Expected Amount */
+            expected_amount: number;
+            debit_credit: components["schemas"]["DebitCredit"];
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            status: components["schemas"]["RecurringBillStatus"];
+            /** Matched Txn Id */
+            matched_txn_id?: number | null;
+        };
+        /**
+         * RecurringBillStatus
+         * @enum {string}
+         */
+        RecurringBillStatus: "pending" | "confirmed" | "expired";
+        /**
+         * RecurringPatternType
+         * @enum {string}
+         */
+        RecurringPatternType: "FIXED_AMOUNT" | "FIXED_CADENCE";
+        /**
+         * RecurringStatus
+         * @enum {string}
+         */
+        RecurringStatus: "candidate" | "locked" | "review";
+        /**
+         * RecurringTemplateCreate
+         * @description User-declared recurring template. The user is source-of-truth, so a
+         *     created template is authoritative (born ``locked`` + owned by the user).
+         */
+        RecurringTemplateCreate: {
+            /** Beneficiary Id */
+            beneficiary_id: number;
+            debit_credit: components["schemas"]["DebitCredit"];
+            cadence: components["schemas"]["Cadence"];
+            /** Expected Amount */
+            expected_amount: number;
+            /**
+             * Next Due Date
+             * Format: date
+             */
+            next_due_date: string;
+            pattern_type?: components["schemas"]["RecurringPatternType"] | null;
+            /**
+             * Cadence Interval
+             * @default 1
+             */
+            cadence_interval: number;
+            /**
+             * Amount Tolerance
+             * @default 0.15
+             */
+            amount_tolerance: number;
+            /** Day Of Month */
+            day_of_month?: number | null;
+            /** Day Of Week */
+            day_of_week?: number | null;
+            /** Week Of Month */
+            week_of_month?: number | null;
+        };
+        /** RecurringTemplateResponse */
+        RecurringTemplateResponse: {
+            /** Uid */
+            uid: number;
+            /** Beneficiary Id */
+            beneficiary_id: number;
+            debit_credit: components["schemas"]["DebitCredit"];
+            pattern_type: components["schemas"]["RecurringPatternType"];
+            /** Expected Amount */
+            expected_amount: number;
+            /** Amount Tolerance */
+            amount_tolerance: number;
+            cadence: components["schemas"]["Cadence"];
+            /** Cadence Interval */
+            cadence_interval: number;
+            /** Day Of Month */
+            day_of_month?: number | null;
+            /** Day Of Week */
+            day_of_week?: number | null;
+            /** Week Of Month */
+            week_of_month?: number | null;
+            /**
+             * Anchor Date
+             * Format: date
+             */
+            anchor_date: string;
+            /**
+             * Next Due Date
+             * Format: date
+             */
+            next_due_date: string;
+            status: components["schemas"]["RecurringStatus"];
+            /** Active */
+            active: boolean;
+            /** Occurrence Count */
+            occurrence_count: number;
+            /** Last Seen Date */
+            last_seen_date?: string | null;
+            /** Last Confirmed Date */
+            last_confirmed_date?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * RecurringTemplateUpdate
+         * @description Partial update. Any field touched transfers ownership to the user.
+         */
+        RecurringTemplateUpdate: {
+            /** Expected Amount */
+            expected_amount?: number | null;
+            /** Amount Tolerance */
+            amount_tolerance?: number | null;
+            cadence?: components["schemas"]["Cadence"] | null;
+            /** Cadence Interval */
+            cadence_interval?: number | null;
+            pattern_type?: components["schemas"]["RecurringPatternType"] | null;
+            /** Day Of Month */
+            day_of_month?: number | null;
+            /** Day Of Week */
+            day_of_week?: number | null;
+            /** Week Of Month */
+            week_of_month?: number | null;
+            /** Next Due Date */
+            next_due_date?: string | null;
+            status?: components["schemas"]["RecurringStatus"] | null;
+            /** Active */
+            active?: boolean | null;
+        };
         /**
          * RegisterRequest
          * @description Integrated registration: profile + credentials + optional recovery Q&A.
@@ -1252,8 +3528,6 @@ export interface components {
             contact?: string | null;
             /** Country */
             country?: string | null;
-            /** Currency */
-            currency?: string | null;
         };
         /** ResetPasswordFinalRequest */
         ResetPasswordFinalRequest: {
@@ -1266,6 +3540,109 @@ export interface components {
         ResetTokenResponse: {
             /** Reset Token */
             reset_token: string;
+        };
+        /**
+         * SecurityStatusResponse
+         * @description Auth-owned account-protection snapshot for ``GET /api/v1/auth/security``.
+         *
+         *     Keeps ``UserAuth``-owned security state on an auth-domain route (the rest of
+         *     the Security tab reads ``/auth/{recovery,sessions,devices}``); it never rides
+         *     the users-module ``/me`` profile DTO. Status only — the TOTP secret and the
+         *     backup-code values never leave ``UserAuth``.
+         */
+        SecurityStatusResponse: {
+            /** Has Recovery */
+            has_recovery: boolean;
+            /** Two Factor Enabled */
+            two_factor_enabled: boolean;
+            /** Backup Codes Remaining */
+            backup_codes_remaining: number;
+        };
+        /** SeenRef */
+        SeenRef: {
+            /** Kind */
+            kind: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Subject Id */
+            subject_id: string;
+        };
+        /** SeenRequest */
+        SeenRequest: {
+            /** Refs */
+            refs: components["schemas"]["SeenRef"][];
+            /**
+             * Hard
+             * @default false
+             */
+            hard: boolean;
+        };
+        /** SeenResponse */
+        SeenResponse: {
+            /** Affected */
+            affected: number;
+        };
+        /**
+         * SessionInfo
+         * @description One active session in the Settings → Security list (T-concurrent-sessions).
+         *
+         *     Deliberately omits ``refresh_token`` — the list is a read-only inventory of
+         *     where the account is signed in, never a credential surface. ``is_current``
+         *     marks the session the requesting token belongs to so the UI can label "This
+         *     device" and guard against accidentally revoking it. ``known_device_uid``
+         *     correlates the row with the device-trust registry (future trusted-devices UI).
+         */
+        SessionInfo: {
+            /** Session Id */
+            session_id: string;
+            /** Ip Address */
+            ip_address: string;
+            /** Device Data */
+            device_data: string;
+            /** Known Device Uid */
+            known_device_uid?: number | null;
+            /**
+             * Is Current
+             * @default false
+             */
+            is_current: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Last Modified
+             * Format: date-time
+             */
+            last_modified: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** SignalSettingUpdate */
+        SignalSettingUpdate: {
+            /** Kind */
+            kind: string;
+            /** Enabled */
+            enabled: boolean;
+        };
+        /** SignalSettingsOut */
+        SignalSettingsOut: {
+            /** Disabled */
+            disabled: string[];
+        };
+        /**
+         * StatementJobStatus
+         * @enum {string}
+         */
+        StatementJobStatus: "PROCESSING" | "COMPLETED" | "FAILED";
+        /** StatusResponse */
+        StatusResponse: {
+            /** Status */
+            status: string;
         };
         /**
          * SystemConstantsResponse
@@ -1297,8 +3674,7 @@ export interface components {
             parent?: number | null;
             /** Aliases */
             aliases?: string[] | null;
-            /** Tag Type */
-            tag_type?: string | null;
+            tag_type?: components["schemas"]["TagType"] | null;
         };
         /** TagEnvelope */
         TagEnvelope: {
@@ -1325,8 +3701,7 @@ export interface components {
              * @default []
              */
             aliases: string[];
-            /** Tag Type */
-            tag_type?: string | null;
+            tag_type?: components["schemas"]["TagType"] | null;
             /** Created By */
             created_by?: number | null;
             /** Created At */
@@ -1334,14 +3709,45 @@ export interface components {
             /** Children */
             children?: components["schemas"]["TagNode"][] | null;
         };
+        /**
+         * TagType
+         * @enum {string}
+         */
+        TagType: "total" | "uncategorized" | "consumption_tax" | "income" | "transfer" | "exempted" | "committed" | "essential" | "discretionary";
         /** TagUpdate */
         TagUpdate: {
             /** Tag Name */
             tag_name?: string | null;
             /** Aliases */
             aliases?: string[] | null;
-            /** Tag Type */
-            tag_type?: string | null;
+            tag_type?: components["schemas"]["TagType"] | null;
+        };
+        /** TaxationRuleDTO */
+        TaxationRuleDTO: {
+            /** Uid */
+            uid?: number | null;
+            txn_type: components["schemas"]["TxnType"];
+            /** Tax Rate */
+            tax_rate: number;
+            /** Default Penalty Rate */
+            default_penalty_rate: number;
+            /** Created By */
+            created_by?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Name */
+            name?: string | null;
+        };
+        /** TaxationRuleListResponse */
+        TaxationRuleListResponse: {
+            /** Rules */
+            rules: components["schemas"]["TaxationRuleDTO"][];
+        };
+        /** TaxationRuleRef */
+        TaxationRuleRef: {
+            /** Uid */
+            uid?: number | null;
+            txn_type: components["schemas"]["TxnType"];
         };
         /**
          * TaxationRuleUpdate
@@ -1354,6 +3760,24 @@ export interface components {
             tax_rate: number;
             /** Default Penalty Rate */
             default_penalty_rate: number;
+        };
+        /** TaxationRuleUpsertResponse */
+        TaxationRuleUpsertResponse: {
+            rule: components["schemas"]["TaxationRuleRef"];
+        };
+        /** TimezoneOption */
+        TimezoneOption: {
+            /** Name */
+            name: string;
+            /** Offset Winter */
+            offset_winter: string;
+            /** Offset Summer */
+            offset_summer: string;
+        };
+        /** TimezonesResponse */
+        TimezonesResponse: {
+            /** Timezones */
+            timezones: components["schemas"]["TimezoneOption"][];
         };
         /**
          * TokenResponse
@@ -1374,8 +3798,7 @@ export interface components {
         TransactionCreate: {
             /** Amount */
             amount: number;
-            /** Debit Credit */
-            debit_credit: string;
+            debit_credit: components["schemas"]["DebitCredit"];
             /** Beneficiary Id */
             beneficiary_id?: number | null;
             /** Beneficiary Name */
@@ -1390,12 +3813,91 @@ export interface components {
             /** Tag Ids */
             tag_ids?: number[] | null;
         };
+        /** TransactionEnvelope */
+        TransactionEnvelope: {
+            transaction: components["schemas"]["TransactionResponse"];
+        };
+        /**
+         * TransactionGroup
+         * @description One aggregated group in a ``?group_by`` response (T-aggregates-engine).
+         *
+         *     Entity identity is the entity-specific pair: ``tag_id`` / ``tag_name`` /
+         *     ``tag_type`` for ``group_by=tag``; ``beneficiary_id`` / ``beneficiary_name``
+         *     for ``group_by=merchant`` — the other pair is null (beneficiaries have no
+         *     ``tag_type``). ``total_count`` is the txn count in the window;
+         *     ``net_expense`` = ``total_debit − total_credit`` (expense-positive; refunds
+         *     net it down, net-inflow tags read negative). ``tag_type`` lets the FE split
+         *     the budgets surface (expense types) from the general tracker view. Read
+         *     join-free from the materialized aggregate tables.
+         */
+        TransactionGroup: {
+            /** Tag Id */
+            tag_id?: number | null;
+            /** Tag Name */
+            tag_name?: string | null;
+            tag_type?: components["schemas"]["TagType"] | null;
+            /** Beneficiary Id */
+            beneficiary_id?: number | null;
+            /** Beneficiary Name */
+            beneficiary_name?: string | null;
+            /** Total Count */
+            total_count: number;
+            /** Net Expense */
+            net_expense: number;
+        };
+        /** TransactionListResponse */
+        TransactionListResponse: {
+            /** Transactions */
+            transactions: components["schemas"]["TransactionResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Returned Count */
+            returned_count: number;
+        };
+        /** TransactionMutationResponse */
+        TransactionMutationResponse: {
+            /** Status */
+            status: string;
+            transaction: components["schemas"]["TransactionResponse"];
+        };
+        /** TransactionResponse */
+        TransactionResponse: {
+            /** Txn Id */
+            txn_id: number;
+            /** User Id */
+            user_id: number;
+            /** Amount */
+            amount: number;
+            debit_credit: components["schemas"]["DebitCredit"];
+            /** Beneficiary Id */
+            beneficiary_id?: number | null;
+            /** Beneficiary */
+            beneficiary?: string | null;
+            /**
+             * Txn Date
+             * Format: date-time
+             * @description Transaction date in ISO 8601 format
+             */
+            txn_date: string;
+            /** Notes */
+            notes?: string | null;
+            /** Source */
+            source: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Tag Ids */
+            tag_ids: number[];
+        };
         /** TransactionUpdate */
         TransactionUpdate: {
             /** Amount */
             amount?: number | null;
-            /** Debit Credit */
-            debit_credit?: string | null;
+            debit_credit?: components["schemas"]["DebitCredit"] | null;
             /** Beneficiary Id */
             beneficiary_id?: number | null;
             /** Beneficiary Name */
@@ -1410,14 +3912,75 @@ export interface components {
             /** Tag Ids */
             tag_ids?: number[] | null;
         };
-        /** UploadResponse */
-        UploadResponse: {
-            /** Upload Id */
-            upload_id: number;
-            /** Inserted Count */
-            inserted_count: number;
-            /** Requires Confirmation */
-            requires_confirmation: boolean;
+        /**
+         * TwoFactorDisableRequest
+         * @description Disabling 2FA re-confirms intent with the account password — the user is
+         *     already past the login TOTP gate for this session, so password re-entry is
+         *     the step-up (and rescues a user who has lost their authenticator).
+         */
+        TwoFactorDisableRequest: {
+            /** Password */
+            password: string;
+        };
+        /**
+         * TwoFactorEnrollResponse
+         * @description Returned by ``POST /api/v1/auth/2fa/enroll``. The secret is staged but 2FA
+         *     stays *off* until the first code is confirmed at ``verify-enroll``.
+         *
+         *     ``secret`` (base32) and ``provisioning_uri`` (``otpauth://``) are two views
+         *     of the same shared secret: the URI is what the frontend renders as a QR
+         *     code; ``secret`` is the manual-entry fallback. Both are shown only at
+         *     enrollment and never returned again.
+         *
+         *     ``enroll_token`` is a short-lived signed token carrying the *encrypted* staged
+         *     secret (stateless staging — nothing is persisted until confirmation). The FE
+         *     holds it across the QR-scan step and passes it back to ``verify-enroll``. On
+         *     cancel the FE simply drops it — no server call needed; it expires on its own.
+         */
+        TwoFactorEnrollResponse: {
+            /** Secret */
+            secret: string;
+            /** Provisioning Uri */
+            provisioning_uri: string;
+            /** Enroll Token */
+            enroll_token: string;
+        };
+        /**
+         * TwoFactorEnrollResult
+         * @description Returned once when enrollment is confirmed: the single-use backup codes,
+         *     shown exactly this once (only their hashes are stored).
+         */
+        TwoFactorEnrollResult: {
+            /** Backup Codes */
+            backup_codes: string[];
+        };
+        /** TwoFactorLoginVerifyRequest */
+        TwoFactorLoginVerifyRequest: {
+            /** Pending Token */
+            pending_token: string;
+            /** Code */
+            code: string;
+        };
+        /** TwoFactorVerifyEnrollRequest */
+        TwoFactorVerifyEnrollRequest: {
+            /** Enroll Token */
+            enroll_token: string;
+            /** Code */
+            code: string;
+        };
+        /**
+         * TxnType
+         * @enum {string}
+         */
+        TxnType: "uncategorized" | "consumption_tax" | "income" | "transfer" | "exempted" | "committed" | "essential" | "discretionary";
+        /**
+         * UploadAcceptedResponse
+         * @description 202 body — the job was queued; poll ``GET /api/v1/statement-uploads/{job_id}``.
+         */
+        UploadAcceptedResponse: {
+            /** Job Id */
+            job_id: number;
+            status: components["schemas"]["StatementJobStatus"];
         };
         /**
          * UserEnvelope
@@ -1428,21 +3991,55 @@ export interface components {
         };
         /**
          * UserPreferencesResponse
-         * @description Stored preferences the frontend reads post-login/refresh.
+         * @description The user's full preferences row — every Preferences-tier setting plus
+         *     the two accessibility flags. Served by ``GET /api/v1/users/preferences``; the
+         *     frontend dissects it across its preference / accessibility stores.
+         *
+         *     ``country`` is *not* here — it is Profile-tier and lives on ``/me``. All
+         *     fields are present (the row is seeded complete at registration).
          */
         UserPreferencesResponse: {
             /** Currency */
+            currency: string;
+            /** Timezone */
+            timezone: string;
+            date_format: components["schemas"]["DateFormat"];
+            number_format: components["schemas"]["NumberFormat"];
+            landing_route: components["schemas"]["LandingRoute"];
+            default_txn_kind: components["schemas"]["DefaultTxnKind"];
+            /** Underline Links */
+            underline_links: boolean;
+            /** Focus Ring Always */
+            focus_ring_always: boolean;
+            /** Auto Enabled */
+            auto_enabled: boolean;
+        };
+        /**
+         * UserPreferencesUpdate
+         * @description Partial preferences update — every field optional; provided fields are
+         *     validated against their allowed value sets (unknown values → 422).
+         */
+        UserPreferencesUpdate: {
+            /** Currency */
             currency?: string | null;
-            /** Country */
-            country?: string | null;
             /** Timezone */
             timezone?: string | null;
+            date_format?: components["schemas"]["DateFormat"] | null;
+            number_format?: components["schemas"]["NumberFormat"] | null;
+            landing_route?: components["schemas"]["LandingRoute"] | null;
+            default_txn_kind?: components["schemas"]["DefaultTxnKind"] | null;
+            /** Underline Links */
+            underline_links?: boolean | null;
+            /** Focus Ring Always */
+            focus_ring_always?: boolean | null;
+            /** Auto Enabled */
+            auto_enabled?: boolean | null;
         };
         /**
          * UserPrivateResponse
          * @description The owner's view of their own profile.
          *
-         *     Returned only by ``/api/users/me``. Carries every field the owner entered.
+         *     Returned only by ``/api/v1/users/me``. Carries every field the owner entered.
          */
         UserPrivateResponse: {
             /** User Id */
@@ -1459,8 +4056,37 @@ export interface components {
             contact?: string | null;
             /** Country */
             country?: string | null;
-            /** Currency */
-            currency?: string | null;
+            /** Profile Image Url */
+            profile_image_url?: string | null;
+            /** Role */
+            role: string;
+        };
+        /**
+         * UserStatsResponse
+         * @description Profile-card stats: account metadata + lifetime counts.
+         *
+         *     Display-only overview of the user's footprint, served by
+         *     ``GET /api/v1/users/me/stats``. ``joined_at`` is registration time
+         *     (``UserAuth.created_at``); ``last_active_at`` is the most recent session
+         *     activity (login / token refresh). ``total_beneficiaries`` counts only
+         *     user-added beneficiaries — the seeded demo/Self defaults are excluded.
+         */
+        UserStatsResponse: {
+            /**
+             * Joined At
+             * Format: date-time
+             */
+            joined_at: string;
+            /** Last Active At */
+            last_active_at?: string | null;
+            /** Total Transactions */
+            total_transactions: number;
+            /** Total Budgets */
+            total_budgets: number;
+            /** Total Beneficiaries */
+            total_beneficiaries: number;
+            /** Active Recurring */
+            active_recurring: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -1480,7 +4106,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    register_api_auth_register_post: {
+    register_api_v1_auth_register_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1513,7 +4139,7 @@ export interface operations {
             };
         };
     };
-    login_api_auth_login_post: {
+    login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1546,7 +4172,7 @@ export interface operations {
             };
         };
     };
-    refresh_api_auth_refresh_post: {
+    refresh_api_v1_auth_refresh_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1566,7 +4192,7 @@ export interface operations {
             };
         };
     };
-    logout_api_auth_logout_post: {
+    logout_api_v1_auth_logout_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1586,7 +4212,76 @@ export interface operations {
             };
         };
     };
-    change_password_api_auth_change_password_post: {
+    get_security_status_api_v1_auth_security_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityStatusResponse"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_auth_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionInfo"][];
+                };
+            };
+        };
+    };
+    delete_session_api_v1_auth_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_v1_auth_change_password_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1619,7 +4314,219 @@ export interface operations {
             };
         };
     };
-    get_recovery_config_api_auth_recovery_get: {
+    change_email_request_api_v1_auth_change_email_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailChangeRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_email_confirm_api_v1_auth_change_email_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailChangeConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_new_device_api_v1_auth_new_device_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewDeviceVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_new_device_otp_api_v1_auth_new_device_resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewDeviceResendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewDeviceChallengeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_new_device_api_v1_auth_new_device_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_devices_api_v1_auth_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnownDeviceInfo"][];
+                };
+            };
+        };
+    };
+    revoke_device_api_v1_auth_devices__uid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recovery_config_api_v1_auth_recovery_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1639,7 +4546,7 @@ export interface operations {
             };
         };
     };
-    update_recovery_config_api_auth_recovery_post: {
+    update_recovery_config_api_v1_auth_recovery_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1672,7 +4579,7 @@ export interface operations {
             };
         };
     };
-    lookup_recovery_question_api_auth_recovery_question_post: {
+    lookup_recovery_question_api_v1_auth_recovery_question_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1705,7 +4612,7 @@ export interface operations {
             };
         };
     };
-    verify_recovery_answer_api_auth_verify_answer_post: {
+    verify_recovery_answer_api_v1_auth_verify_answer_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1738,7 +4645,7 @@ export interface operations {
             };
         };
     };
-    forgot_password_api_auth_forgot_password_post: {
+    forgot_password_api_v1_auth_forgot_password_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1771,7 +4678,7 @@ export interface operations {
             };
         };
     };
-    verify_otp_api_auth_verify_otp_post: {
+    verify_otp_api_v1_auth_verify_otp_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1804,7 +4711,7 @@ export interface operations {
             };
         };
     };
-    reset_password_final_api_auth_reset_password_final_post: {
+    reset_password_final_api_v1_auth_reset_password_final_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1837,7 +4744,126 @@ export interface operations {
             };
         };
     };
-    get_me_api_users_me_get: {
+    enroll_2fa_api_v1_auth_2fa_enroll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorEnrollResponse"];
+                };
+            };
+        };
+    };
+    verify_enroll_2fa_api_v1_auth_2fa_verify_enroll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorVerifyEnrollRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorEnrollResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_2fa_api_v1_auth_2fa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorDisableRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_verify_2fa_api_v1_auth_2fa_login_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorLoginVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_me_api_v1_users_me_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1857,7 +4883,7 @@ export interface operations {
             };
         };
     };
-    update_me_api_users_me_patch: {
+    update_me_api_v1_users_me_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -1890,7 +4916,230 @@ export interface operations {
             };
         };
     };
-    get_preferences_api_users_preferences_get: {
+    get_my_stats_api_v1_users_me_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserStatsResponse"];
+                };
+            };
+        };
+    };
+    list_profile_image_presets_api_v1_users_profile_image_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileImagePreset"][];
+                };
+            };
+        };
+    };
+    upload_profile_image_api_v1_users_me_profile_image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_profile_image_api_v1_users_me_profile_image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_profile_image_api_v1_users_me_profile_image_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    select_profile_image_preset_api_v1_users_me_profile_image_preset_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileImagePresetSelection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_account_deletion_api_v1_users_me_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_account_deletion_api_v1_users_me_delete_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeletionCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionCancelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_my_data_api_v1_users_me_data_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDataResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_preferences_api_v1_users_preferences_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1910,7 +5159,40 @@ export interface operations {
             };
         };
     };
-    get_countries_api_metadata_countries_get: {
+    update_preferences_api_v1_users_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserPreferencesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreferencesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_countries_api_v1_metadata_countries_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1930,7 +5212,7 @@ export interface operations {
             };
         };
     };
-    get_currencies_api_metadata_currencies_get: {
+    get_currencies_api_v1_metadata_currencies_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1950,7 +5232,47 @@ export interface operations {
             };
         };
     };
-    get_constants_api_metadata_constants_get: {
+    get_timezones_api_v1_metadata_timezones_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimezonesResponse"];
+                };
+            };
+        };
+    };
+    get_branding_api_v1_metadata_branding_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingResponse"];
+                };
+            };
+        };
+    };
+    get_constants_api_v1_metadata_constants_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1970,7 +5292,7 @@ export interface operations {
             };
         };
     };
-    list_tags_api_tags__get: {
+    list_tags_api_v1_tags__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1990,7 +5312,7 @@ export interface operations {
             };
         };
     };
-    create_tag_api_tags__post: {
+    create_tag_api_v1_tags__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2023,7 +5345,7 @@ export interface operations {
             };
         };
     };
-    delete_tag_api_tags__tag_id__delete: {
+    delete_tag_api_v1_tags__tag_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2054,7 +5376,7 @@ export interface operations {
             };
         };
     };
-    update_tag_api_tags__tag_id__patch: {
+    update_tag_api_v1_tags__tag_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2089,16 +5411,19 @@ export interface operations {
             };
         };
     };
-    list_transactions_api_transactions__get: {
+    list_transactions_api_v1_transactions__get: {
         parameters: {
             query?: {
                 month?: string | null;
                 year?: string | null;
                 tag_id?: number | null;
-                debit_credit?: "debit" | "credit";
+                debit_credit?: components["schemas"]["DebitCredit"] | null;
                 beneficiary_id?: number | null;
-                group_by?: "merchant";
-                sort_by?: "date" | "amount" | "frequency" | "total_amount";
+                group_by?: components["schemas"]["GroupBy"] | null;
+                period?: "week" | "month";
+                /** @description Anchor date (YYYY-MM-DD) for period=week grouping */
+                date?: string | null;
+                sort_by?: "date" | "amount" | "total_count" | "net_expense" | "name";
                 order?: "asc" | "desc";
                 limit?: number;
                 offset?: number;
@@ -2115,7 +5440,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TransactionListResponse"] | components["schemas"]["GroupedTransactionsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2129,7 +5454,7 @@ export interface operations {
             };
         };
     };
-    create_transaction_api_transactions__post: {
+    create_transaction_api_v1_transactions__post: {
         parameters: {
             query?: {
                 rule_id?: number | null;
@@ -2150,7 +5475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TransactionMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2164,7 +5489,7 @@ export interface operations {
             };
         };
     };
-    get_transaction_api_transactions__txn_id__get: {
+    get_transaction_api_v1_transactions__txn_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2181,7 +5506,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TransactionEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -2195,7 +5520,7 @@ export interface operations {
             };
         };
     };
-    delete_transaction_api_transactions__txn_id__delete: {
+    delete_transaction_api_v1_transactions__txn_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2224,7 +5549,7 @@ export interface operations {
             };
         };
     };
-    update_transaction_api_transactions__txn_id__patch: {
+    update_transaction_api_v1_transactions__txn_id__patch: {
         parameters: {
             query?: {
                 rule_id?: number | null;
@@ -2247,7 +5572,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TransactionMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2261,7 +5586,27 @@ export interface operations {
             };
         };
     };
-    upload_statement_api_transactions_upload_statement_post: {
+    list_parsers_api_v1_statement_uploads_parsers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParserInfo"][];
+                };
+            };
+        };
+    };
+    upload_statement_api_v1_statement_uploads_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2270,17 +5615,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_statement_api_transactions_upload_statement_post"];
+                "multipart/form-data": components["schemas"]["Body_upload_statement_api_v1_statement_uploads_post"];
             };
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UploadResponse"];
+                    "application/json": components["schemas"]["UploadAcceptedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2294,12 +5639,12 @@ export interface operations {
             };
         };
     };
-    map_beneficiaries_api_transactions_upload_statement__upload_id__map_beneficiaries_post: {
+    get_upload_job_api_v1_statement_uploads__job_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                upload_id: number;
+                job_id: number;
             };
             cookie?: never;
         };
@@ -2311,7 +5656,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MapBeneficiariesResponse"];
+                    "application/json": components["schemas"]["JobStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2325,73 +5670,7 @@ export interface operations {
             };
         };
     };
-    categorize_statement_api_transactions_upload_statement__upload_id__categorize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                upload_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategorizeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    finalize_upload_api_transactions_upload_statement__upload_id__finalize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                upload_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FinalizeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FinalizeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    manual_categorize_txn_api_transactions__txn_id__manual_tags_post: {
+    manual_categorize_txn_api_v1_transactions__txn_id__manual_tags_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2426,7 +5705,7 @@ export interface operations {
             };
         };
     };
-    list_beneficiaries_api_beneficiaries__get: {
+    list_beneficiaries_api_v1_beneficiaries__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2446,7 +5725,7 @@ export interface operations {
             };
         };
     };
-    create_beneficiary_api_beneficiaries__post: {
+    create_beneficiary_api_v1_beneficiaries__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2479,7 +5758,7 @@ export interface operations {
             };
         };
     };
-    check_alias_api_beneficiaries_check_alias_get: {
+    check_alias_api_v1_beneficiaries_check_alias_get: {
         parameters: {
             query: {
                 alias: string;
@@ -2511,7 +5790,7 @@ export interface operations {
             };
         };
     };
-    merge_beneficiaries_route_api_beneficiaries_merge_post: {
+    merge_beneficiaries_route_api_v1_beneficiaries_merge_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2544,7 +5823,7 @@ export interface operations {
             };
         };
     };
-    list_relationships_api_beneficiaries_relationships_get: {
+    list_relationships_api_v1_beneficiaries_relationships_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2564,7 +5843,7 @@ export interface operations {
             };
         };
     };
-    get_beneficiary_api_beneficiaries__uid__get: {
+    get_beneficiary_api_v1_beneficiaries__uid__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2595,7 +5874,7 @@ export interface operations {
             };
         };
     };
-    delete_beneficiary_api_beneficiaries__uid__delete: {
+    delete_beneficiary_api_v1_beneficiaries__uid__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2624,7 +5903,7 @@ export interface operations {
             };
         };
     };
-    update_beneficiary_api_beneficiaries__uid__patch: {
+    update_beneficiary_api_v1_beneficiaries__uid__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2659,7 +5938,7 @@ export interface operations {
             };
         };
     };
-    list_categorization_rules_api_categorization_rules__get: {
+    list_bank_accounts_api_v1_bank_accounts__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2674,12 +5953,225 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BankAccountResponse"][];
                 };
             };
         };
     };
-    create_categorization_rule_api_categorization_rules__post: {
+    create_bank_account_api_v1_bank_accounts__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bank_account_api_v1_bank_accounts__uid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_bank_account_api_v1_bank_accounts__uid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_bank_account_api_v1_bank_accounts__uid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_identifier_api_v1_bank_accounts__uid__identifiers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountIdentifierCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIdentifierResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_identifier_api_v1_bank_accounts__uid__identifiers__identifier_uid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+                identifier_uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_categorization_rules_api_v1_categorization_rules__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorizationRuleListResponse"];
+                };
+            };
+        };
+    };
+    create_categorization_rule_api_v1_categorization_rules__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2698,7 +6190,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CategorizationRuleCreatedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2712,7 +6204,7 @@ export interface operations {
             };
         };
     };
-    update_categorization_rule_api_categorization_rules__uid__put: {
+    update_categorization_rule_api_v1_categorization_rules__uid__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -2733,7 +6225,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2747,7 +6239,7 @@ export interface operations {
             };
         };
     };
-    delete_categorization_rule_api_categorization_rules__uid__delete: {
+    delete_categorization_rule_api_v1_categorization_rules__uid__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2764,7 +6256,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2778,7 +6270,7 @@ export interface operations {
             };
         };
     };
-    re_run_rules_api_categorization_rules_re_run_post: {
+    re_run_rules_api_v1_categorization_rules_re_run_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2793,15 +6285,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
         };
     };
-    list_taxation_rules_api_taxation_rules__get: {
+    list_taxation_rules_api_v1_taxation_rules__get: {
         parameters: {
             query?: {
-                txn_type?: string | null;
+                txn_type?: components["schemas"]["TxnType"] | null;
             };
             header?: never;
             path?: never;
@@ -2815,7 +6307,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TaxationRuleListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2829,12 +6321,12 @@ export interface operations {
             };
         };
     };
-    upsert_taxation_rule_api_taxation_rules__txn_type__put: {
+    upsert_taxation_rule_api_v1_taxation_rules__txn_type__put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                txn_type: string;
+                txn_type: components["schemas"]["TxnType"];
             };
             cookie?: never;
         };
@@ -2850,7 +6342,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["TaxationRuleUpsertResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2864,7 +6356,124 @@ export interface operations {
             };
         };
     };
-    generate_bills_api_consumption_tax_bills_generate_post: {
+    list_bills_api_v1_consumption_tax_bills_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillListResponse"];
+                };
+            };
+        };
+    };
+    get_bill_api_v1_consumption_tax_bills__bill_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_bill_paid_api_v1_consumption_tax_bills__bill_id__mark_paid_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkPaidRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkPaidResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_bill_unpaid_api_v1_consumption_tax_bills__bill_id__mark_unpaid_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkUnpaidResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_bills_api_v1_consumption_tax_bills_generate_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -2883,7 +6492,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BillGenerateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2897,14 +6506,18 @@ export interface operations {
             };
         };
     };
-    list_bills_api_consumption_tax_bills_get: {
+    admin_generate_bills_api_v1_consumption_tax_admin_bills_generate_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBillGenerateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2912,29 +6525,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_bill_api_consumption_tax_bills__bill_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                bill_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BillGenerateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2948,41 +6539,10 @@ export interface operations {
             };
         };
     };
-    pay_bill_api_consumption_tax_bills__bill_id__pay_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                bill_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_budget_limits_api_budget_limits__get: {
+    list_budget_limits_api_v1_budget_limits__get: {
         parameters: {
             query?: {
-                budget_period?: string;
+                budget_period?: components["schemas"]["PeriodType"];
             };
             header?: never;
             path?: never;
@@ -2996,7 +6556,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BudgetLimitListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3010,7 +6570,7 @@ export interface operations {
             };
         };
     };
-    upsert_budget_limit_api_budget_limits__post: {
+    upsert_budget_limit_api_v1_budget_limits__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3029,7 +6589,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["BudgetLimitEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -3043,7 +6603,7 @@ export interface operations {
             };
         };
     };
-    get_budget_status_api_budget_limits_status_get: {
+    get_budget_status_api_v1_budget_limits_status_get: {
         parameters: {
             query?: {
                 month?: string | null;
@@ -3060,7 +6620,778 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["BudgetStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_budget_limit_api_v1_budget_limits__tag_id__delete: {
+        parameters: {
+            query?: {
+                budget_period?: components["schemas"]["PeriodType"];
+            };
+            header?: never;
+            path: {
+                tag_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_expense_trend_api_v1_expense_tracker__get: {
+        parameters: {
+            query?: {
+                period_type?: components["schemas"]["PeriodType"];
+                /** @description Number of buckets back */
+                n?: number;
+                /** @description Limit the trend to a single tag */
+                tag_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseTrendResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_v1_recurring_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"][];
+                };
+            };
+        };
+    };
+    create_template_api_v1_recurring_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_template_api_v1_recurring_templates__uid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_template_api_v1_recurring_templates__uid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_upcoming_api_v1_recurring_upcoming_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_history_api_v1_recurring_history_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_resource_api_v1_exports__resource__get: {
+        parameters: {
+            query?: {
+                format?: components["schemas"]["ExportFormat"];
+            };
+            header?: never;
+            path: {
+                resource: components["schemas"]["ExportResource"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_ping_api_v1_admin_ping_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPingResponse"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                /** @description Search by email or full name (case-insensitive). */
+                q?: string | null;
+                limit?: number;
+                /** @description Opaque forward cursor from a prior page. */
+                cursor?: string | null;
+                /** @description Include soft-deleted accounts (default off). */
+                include_deleted?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_detail_api_v1_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lock_user_api_v1_admin_users__user_id__lock_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AdminLockRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccountStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlock_user_api_v1_admin_users__user_id__unlock_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccountStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    force_logout_api_v1_admin_users__user_id__sessions_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminForceLogoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cemetery_api_v1_admin_cemetery_get: {
+        parameters: {
+            query?: {
+                /** @description Search by retained email. */
+                q?: string | null;
+                /** @description Filter deleted_at ≥ this date. */
+                from?: string | null;
+                /** @description Filter deleted_at ≤ this date. */
+                to?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCemeteryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cemetery_detail_api_v1_admin_cemetery__deleted_user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deleted_user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCemeteryDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_signal_settings_api_v1_admin_users__user_id__signal_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_user_signal_setting_api_v1_admin_users__user_id__signal_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalSettingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tune_signal_catalog_api_v1_admin_signal_catalog__kind__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSignalTuneRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_feed_api_v1_activity_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                domain?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityFeedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_seen_api_v1_activity_seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_catalog_api_v1_activity_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogOut"];
+                };
+            };
+        };
+    };
+    get_signal_settings_api_v1_activity_signal_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalSettingsOut"];
+                };
+            };
+        };
+    };
+    put_signal_settings_api_v1_activity_signal_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalSettingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalSettingsOut"];
                 };
             };
             /** @description Validation Error */

@@ -1,10 +1,17 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { AccountProfilePage } from './AccountProfilePage';
@@ -35,7 +42,7 @@ describe('AccountProfilePage', () => {
     });
     localStorage.clear();
     server.use(
-      http.get('http://localhost:4000/api/users/me', () =>
+      http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({
           user: {
             user_id: 1,
@@ -72,7 +79,7 @@ describe('AccountProfilePage', () => {
   it('PATCHes only the profile slice (no country / currency / timezone)', async () => {
     let patchBody: Record<string, unknown> | null = null;
     server.use(
-      http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
+      http.patch(`${API_BASE}/users/me`, async ({ request }) => {
         patchBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ user: { user_id: 1 } });
       })

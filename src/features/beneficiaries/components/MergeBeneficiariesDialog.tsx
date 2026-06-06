@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { mergeBeneficiariesRequest } from '../api/mutations';
 import type { Beneficiary } from '../api/queries';
@@ -41,6 +42,8 @@ export function MergeBeneficiariesDialog({
   const [target, setTarget] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Destructive-op confirm (Batch 15 — replaces window.confirm).
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -56,7 +59,7 @@ export function MergeBeneficiariesDialog({
     setTarget(source);
   }
 
-  async function handleMerge() {
+  function handleMerge() {
     setError(null);
     if (!source || !target) {
       setError('Pick a source and a target.');
@@ -66,13 +69,11 @@ export function MergeBeneficiariesDialog({
       setError('Source and target must differ.');
       return;
     }
-    if (
-      !window.confirm(
-        'Merging will consolidate all aliases and update all transaction links. This cannot be undone. Proceed?'
-      )
-    )
-      return;
+    setConfirmOpen(true);
+  }
 
+  async function confirmMerge() {
+    setConfirmOpen(false);
     setBusy(true);
     try {
       await mergeBeneficiariesRequest({
@@ -115,7 +116,7 @@ export function MergeBeneficiariesDialog({
         onSourceChange={setSource}
         onTargetChange={setTarget}
         onSwap={handleSwap}
-        onMerge={() => void handleMerge()}
+        onMerge={handleMerge}
       />
       {error && <div className="form-error mt-3">{error}</div>}
       {busy && (
@@ -123,6 +124,17 @@ export function MergeBeneficiariesDialog({
           Merging…
         </div>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Merge beneficiaries?"
+        message="Merging will consolidate all aliases and update all transaction links. This cannot be undone."
+        confirmLabel="Merge"
+        cancelLabel="Cancel"
+        intent="danger"
+        busy={busy}
+        onConfirm={() => void confirmMerge()}
+        onClose={() => setConfirmOpen(false)}
+      />
     </Modal>
   );
 }

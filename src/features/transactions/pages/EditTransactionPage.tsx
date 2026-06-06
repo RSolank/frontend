@@ -2,9 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
+import { BankAccountField } from '../../bankAccounts/components/BankAccountField';
 import {
   createCategorizationRule,
   updateCategorizationRuleTags,
@@ -46,7 +48,10 @@ interface FlatTag {
   tag_name: string;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
@@ -74,6 +79,11 @@ interface PayloadFields {
   beneficiaryName: string;
   txnDate: string;
   notes: string;
+  // Batch 13f: optional bank-account link (manual rows only).
+  // The BE doesn't yet read this field on PATCH — graceful no-op
+  // until the BE handoff lands (see TransactionCreatePayload
+  // schemas.ts comment).
+  bankAccountId: number | null;
   tagIds: number[];
 }
 
@@ -92,6 +102,7 @@ function buildTransactionPayload(
     debit_credit: fields.debitCredit,
     beneficiary_id: resolveBeneficiaryId(fields.beneficiaryId),
     beneficiary_name: fields.beneficiaryName || null,
+    bank_account_id: fields.bankAccountId,
     txn_date: fields.txnDate,
     notes: fields.notes || null,
     tag_ids: fields.tagIds,
@@ -105,22 +116,23 @@ interface RuleResolutionArgs {
   tagIds: number[];
 }
 
+// Discriminator for the two distinct confirm steps in
+// `resolveRuleToLink`. The page supplies a `confirm` async whose UX
+// is a ConfirmDialog (Batch 15 — replaces the legacy window.confirm
+// pair). Kept as a parameter so this helper stays a pure async
+// flow free of UI state.
+type RulePromptKind = 'create-or-update' | 'update-existing';
+
 // The "tags changed → offer to create/update a categorization rule" flow.
 // Returns the rule uid to link to the txn, or null if the user declines at
-// any prompt / there's nothing to link. Extracted from handleSubmit (where it
-// was a depth-5 confirm tree) and rewritten with guard-clause early returns —
-// behaviour is identical, the nesting is gone.
-async function resolveRuleToLink({
-  tagsChanged,
-  beneficiaryId,
-  beneficiaryName,
-  tagIds,
-}: RuleResolutionArgs): Promise<number | null> {
+// any prompt / there's nothing to link.
+async function resolveRuleToLink(
+  args: RuleResolutionArgs,
+  confirm: (kind: RulePromptKind) => Promise<boolean>
+): Promise<number | null> {
+  const { tagsChanged, beneficiaryId, beneficiaryName, tagIds } = args;
   if (!tagsChanged || !beneficiaryId) return null;
-  const createRule = window.confirm(
-    'You updated the tags. Would you like to create/update a categorization rule for this beneficiary?'
-  );
-  if (!createRule) return null;
+  if (!(await confirm('create-or-update'))) return null;
 
   const { rules } = await fetchCategorizationRules();
   const existingRule = rules.find(
@@ -128,13 +140,7 @@ async function resolveRuleToLink({
   );
 
   if (existingRule) {
-    if (
-      !window.confirm(
-        `A rule for this beneficiary already exists. Update it with these tags?`
-      )
-    ) {
-      return null;
-    }
+    if (!(await confirm('update-existing'))) return null;
     await updateCategorizationRuleTags(existingRule.uid, tagIds);
     return existingRule.uid;
   }
@@ -183,6 +189,12 @@ export function EditTransactionPage({
   const [beneficiaryId, setBeneficiaryId] = useState<number | string>('');
   const [txnDate, setTxnDate] = useState('');
   const [notes, setNotes] = useState('');
+  // Batch 13f: optional bank-account picker. Pre-load is gated on
+  // the BE returning `bank_account_id` on `TransactionResponse`
+  // (handoff item); until then, the picker loads as "No account"
+  // and the field helper text spells out the gap so users know to
+  // re-pick when they care.
+  const [bankAccountId, setBankAccountId] = useState<number | null>(null);
   const [tagIds, setTagIds] = useState<number[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -193,6 +205,31 @@ export function EditTransactionPage({
   // cleared automatically on the first successful edit. See the
   // LockedFieldBanner component for the auto-dismiss contract.
   const [lockedReason, setLockedReason] = useState<string | null>(null);
+  // Discard-changes confirm modal — opens when the Cancel button is
+  // clicked while the form is dirty. The Modal's X / backdrop click
+  // already routes through `confirmOnDirty`; this dialog matches that
+  // flow for the explicit Cancel button.
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  // Mid-submit "create / update categorization rule?" prompt. Two
+  // distinct ConfirmDialog steps (create-or-update → update-existing
+  // if a rule already exists) driven by a ref-stored resolver so
+  // `resolveRuleToLink` keeps its straight-line await flow.
+  const [rulePromptKind, setRulePromptKind] = useState<RulePromptKind | null>(
+    null
+  );
+  const ruleResolveRef = useRef<((ok: boolean) => void) | null>(null);
+  function promptRule(kind: RulePromptKind): Promise<boolean> {
+    return new Promise((resolve) => {
+      ruleResolveRef.current = resolve;
+      setRulePromptKind(kind);
+    });
+  }
+  function decideRule(ok: boolean) {
+    setRulePromptKind(null);
+    const r = ruleResolveRef.current;
+    ruleResolveRef.current = null;
+    r?.(ok);
+  }
 
   // Snapshot of the form fields at load time. Used for the Cancel
   // (revert to loaded values) flow + the isDirty diff.
@@ -203,6 +240,7 @@ export function EditTransactionPage({
     beneficiaryId: number | string;
     txnDate: string;
     notes: string;
+    bankAccountId: number | null;
     tagIds: number[];
   } | null>(null);
 
@@ -271,6 +309,10 @@ export function EditTransactionPage({
           beneficiaryId: loadedBenId,
           txnDate: loadedDate,
           notes: loadedNotes,
+          // Batch 13f: BE doesn't return `bank_account_id` on
+          // TransactionResponse yet (handoff). Snapshot is null;
+          // any picker change registers as dirty.
+          bankAccountId: null,
           tagIds: [...loadedTagIds],
         };
         setLockedReason(null);
@@ -320,12 +362,15 @@ export function EditTransactionPage({
 
     try {
       const tagsChanged = sortedKey(tagIds) !== sortedKey(txn.tag_ids ?? []);
-      const ruleIdToLink = await resolveRuleToLink({
-        tagsChanged,
-        beneficiaryId,
-        beneficiaryName,
-        tagIds,
-      });
+      const ruleIdToLink = await resolveRuleToLink(
+        {
+          tagsChanged,
+          beneficiaryId,
+          beneficiaryName,
+          tagIds,
+        },
+        promptRule
+      );
 
       const payload = buildTransactionPayload(txn, {
         amount,
@@ -334,6 +379,7 @@ export function EditTransactionPage({
         beneficiaryName,
         txnDate,
         notes,
+        bankAccountId,
         tagIds,
       });
 
@@ -366,6 +412,7 @@ export function EditTransactionPage({
     if (beneficiaryId !== snap.beneficiaryId) return true;
     if (txnDate !== snap.txnDate) return true;
     if (notes !== snap.notes) return true;
+    if (bankAccountId !== snap.bankAccountId) return true;
     if (sortedKey(tagIds) !== sortedKey(snap.tagIds)) return true;
     return false;
   }, [
@@ -375,6 +422,7 @@ export function EditTransactionPage({
     beneficiaryId,
     txnDate,
     notes,
+    bankAccountId,
     tagIds,
   ]);
 
@@ -387,8 +435,7 @@ export function EditTransactionPage({
       dismiss();
       return;
     }
-    if (!window.confirm('Discard unsaved changes?')) return;
-    dismiss();
+    setConfirmDiscardOpen(true);
   }
 
   const onLockedFieldClick = isStatement
@@ -445,6 +492,7 @@ export function EditTransactionPage({
         }
         totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
         notes={notes}
+        bankAccountId={bankAccountId}
         submitting={submitting}
         isDirty={isDirty}
         dismissLabel={dismissLabel}
@@ -480,6 +528,10 @@ export function EditTransactionPage({
           clearLockedBannerOnEdit();
           setNotes(value);
         }}
+        onBankAccountChange={(value) => {
+          clearLockedBannerOnEdit();
+          setBankAccountId(value);
+        }}
         onCloseRequest={handleCloseRequest}
       />
 
@@ -494,6 +546,39 @@ export function EditTransactionPage({
         onClose={() => setCreateTagOpen(false)}
         onSaved={handleTagCreated}
         flatTags={tags}
+      />
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard changes?"
+        message="You have unsaved changes. Discard them and close?"
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        intent="danger"
+        onConfirm={() => {
+          setConfirmDiscardOpen(false);
+          dismiss();
+        }}
+        onClose={() => setConfirmDiscardOpen(false)}
+      />
+      <ConfirmDialog
+        open={rulePromptKind === 'create-or-update'}
+        title="Update categorization rule?"
+        message="You changed the tags. Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
+        confirmLabel="Yes, update rule"
+        cancelLabel="Skip"
+        intent="primary"
+        onConfirm={() => decideRule(true)}
+        onClose={() => decideRule(false)}
+      />
+      <ConfirmDialog
+        open={rulePromptKind === 'update-existing'}
+        title="Overwrite existing rule?"
+        message="A categorization rule for this beneficiary already exists. Replace its tags with the new selection?"
+        confirmLabel="Overwrite"
+        cancelLabel="Cancel"
+        intent="primary"
+        onConfirm={() => decideRule(true)}
+        onClose={() => decideRule(false)}
       />
     </>
   );
@@ -516,6 +601,7 @@ interface EditTransactionFormProps {
   miscellaneousTagId: number | undefined;
   totalTagId: number | undefined;
   notes: string;
+  bankAccountId: number | null;
   submitting: boolean;
   isDirty: boolean;
   dismissLabel: string;
@@ -529,6 +615,7 @@ interface EditTransactionFormProps {
   onRemoveTag: (tid: number) => void;
   onRequestAddTag: () => void;
   onNotesChange: (value: string) => void;
+  onBankAccountChange: (value: number | null) => void;
   onCloseRequest: () => void;
 }
 
@@ -555,6 +642,7 @@ function EditTransactionForm({
   miscellaneousTagId,
   totalTagId,
   notes,
+  bankAccountId,
   submitting,
   isDirty,
   dismissLabel,
@@ -568,6 +656,7 @@ function EditTransactionForm({
   onRemoveTag,
   onRequestAddTag,
   onNotesChange,
+  onBankAccountChange,
   onCloseRequest,
 }: EditTransactionFormProps) {
   return (
@@ -682,6 +771,16 @@ function EditTransactionForm({
           onRemove={onRemoveTag}
           onRequestAddTag={onRequestAddTag}
         />
+
+        {!isStatement && (
+          <BankAccountField
+            id="bank-account-picker-edit"
+            label="Bank account"
+            value={bankAccountId}
+            onChange={onBankAccountChange}
+            helper="The backend doesn't yet return the saved bank account on edit — re-pick if you want to update it."
+          />
+        )}
 
         <div>
           <label htmlFor="notes" className="form-label">

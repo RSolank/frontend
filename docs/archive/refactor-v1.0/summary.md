@@ -1,9 +1,9 @@
 # Frontend feature-architecture refactor — summary (v1.0)
 
-> The *what* of the v1.0 frontend refactor: goal, the architectural
+> The _what_ of the v1.0 frontend refactor: goal, the architectural
 > decisions it locked, the shape that actually shipped, the conventions it
 > established, and the backend follow-ups it deferred. For the chronological
-> *how* — per-batch dates, commit SHAs, mid-flight pivots, and debugging
+> _how_ — per-batch dates, commit SHAs, mid-flight pivots, and debugging
 > notes — see [`log.md`](log.md).
 
 ## Goal
@@ -33,18 +33,18 @@ These were resolved in the planning session and held across all batches. They
 are the enduring contract; `CONTRIBUTING.md` §3 and `docs/architecture.md`
 carry the live version.
 
-| Area | Choice |
-|---|---|
-| **Layout** | Feature-based under `src/features/<feature>/`; each feature owns its `pages / components / state / api / <feature>.routes.tsx`. Cross-cutting infra in `src/shared/`. Features depend on `shared/`, never the reverse (enforced by `eslint-plugin-boundaries`). |
-| **Feature naming** | Mirrors the backend module vocabulary (`auth`, `users`, `tags`, `beneficiaries`, `transactions` + `statement_upload`, `categorization`, `taxation`, `budgets`) plus the frontend-only `dashboard`, `account`, `settings`. |
-| **Server state** | TanStack Query v5. Every request goes through `shared/api/apiClient.ts`; every URL through the central `shared/api/routes.ts` registry — no inline `/api/...` strings. |
-| **Client state** | Zustand, one store per domain (`useAuthStore` replaced the old `AuthContext`; preferences + the accessibility stores follow the same shape). |
-| **Forms** | react-hook-form + Zod; the Zod schema doubles as the TypeScript request type. |
-| **Styling** | Tailwind v4 with `@layer components` for shared patterns; class-based dark mode via `@custom-variant`. |
-| **Types** | TypeScript strict (`noUncheckedIndexedAccess`), migrated per-feature as each batch moved files. The API surface is generated into `src/shared/types/api.ts` from the backend OpenAPI schema via `npm run gen:api`. |
-| **Routing** | `createBrowserRouter` + per-feature `RouteObject[]` composed by `src/app/routes.tsx`; `protectedRoutes()` wraps authed routes. Global `ErrorBoundary` + per-feature `errorElement`. |
-| **Tests** | Vitest (happy-dom), colocated `*.test.tsx`; MSW mocks the backend, with handlers under `src/test/handlers/<feature>.ts`. |
-| **Bundle gate** | `size-limit` on the first-paint bundle (see drift note below for the final numbers). |
+| Area               | Choice                                                                                                                                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Layout**         | Feature-based under `src/features/<feature>/`; each feature owns its `pages / components / state / api / <feature>.routes.tsx`. Cross-cutting infra in `src/shared/`. Features depend on `shared/`, never the reverse (enforced by `eslint-plugin-boundaries`). |
+| **Feature naming** | Mirrors the backend module vocabulary (`auth`, `users`, `tags`, `beneficiaries`, `transactions` + `statement_upload`, `categorization`, `taxation`, `budgets`) plus the frontend-only `dashboard`, `account`, `settings`.                                       |
+| **Server state**   | TanStack Query v5. Every request goes through `shared/api/apiClient.ts`; every URL through the central `shared/api/routes.ts` registry — no inline `/api/...` strings.                                                                                          |
+| **Client state**   | Zustand, one store per domain (`useAuthStore` replaced the old `AuthContext`; preferences + the accessibility stores follow the same shape).                                                                                                                    |
+| **Forms**          | react-hook-form + Zod; the Zod schema doubles as the TypeScript request type.                                                                                                                                                                                   |
+| **Styling**        | Tailwind v4 with `@layer components` for shared patterns; class-based dark mode via `@custom-variant`.                                                                                                                                                          |
+| **Types**          | TypeScript strict (`noUncheckedIndexedAccess`), migrated per-feature as each batch moved files. The API surface is generated into `src/shared/types/api.ts` from the backend OpenAPI schema via `npm run gen:api`.                                              |
+| **Routing**        | `createBrowserRouter` + per-feature `RouteObject[]` composed by `src/app/routes.tsx`; `protectedRoutes()` wraps authed routes. Global `ErrorBoundary` + per-feature `errorElement`.                                                                             |
+| **Tests**          | Vitest (happy-dom), colocated `*.test.tsx`; MSW mocks the backend, with handlers under `src/test/handlers/<feature>.ts`.                                                                                                                                        |
+| **Bundle gate**    | `size-limit` on the first-paint bundle (see drift note below for the final numbers).                                                                                                                                                                            |
 
 ## Final shape that shipped
 
@@ -57,7 +57,7 @@ summary of each shipped unit:
   Query, Zustand, react-hook-form + Zod, Tailwind v4, MSW, `size-limit`,
   OpenAPI types, docs skeleton).
 - **Batch 1** — `shared/` + `app/` shell + theme (light/dark/system, no-FOUC)
-  + the user-preferences header infrastructure.
+  - the user-preferences header infrastructure.
 - **Batch 2** — `auth` feature; Register gains a timezone field; preferences
   hydration on login.
 - **Batch 3** — `users` + `metadata` features.
@@ -75,7 +75,7 @@ summary of each shipped unit:
   **9.5** ExpenseTracker anomaly badges + Dashboard week-by-category · **9.6**
   Calendar view + filter overhaul (locked the ISO-week / DetailModal /
   SearchableSelect conventions) · **9.8** cross-feature convention enforcement
-  + DetailModal seamless transition + folded audits.
+  - DetailModal seamless transition + folded audits.
 - **Batch 10** — ship-it series **10.1**–**10.12**: central routes registry ·
   ESLint on the TS tree + complexity/sonarjs gates · preferences audit ·
   coverage wiring + Lighthouse · docs sweep + README · legacy-dir cleanup ·

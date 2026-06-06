@@ -2,37 +2,28 @@ import { useEffect, useState } from 'react';
 
 import {
   fetchCountries,
-  fetchCurrencies,
   type CountryOption,
-  type CurrencyOption,
 } from '../../../shared/api/referenceData';
 import {
   COUNTRY_PREFER_NOT_SAY,
   CountrySelect,
 } from '../../../shared/components/CountrySelect';
-import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DateField } from '../../../shared/components/DateField';
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
+import { SECURITY_QUESTIONS } from '../../../shared/constants/securityQuestions';
+import { useAuthStore } from '../../../shared/state/auth.store';
 import {
   getBrowserRegion,
   getBrowserTimezone,
   getCountryNameFromRegion,
-  getTimezonesForCountryName,
 } from '../../../shared/utils/countryTimezones';
 import { validatePassword } from '../../../shared/utils/validation';
 import { useAuth } from '../state/useAuth';
 
-const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;
+import { AuthErrorNotice } from './AuthErrorNotice';
 
-const SECURITY_QUESTIONS = [
-  'What was the name of your first school?',
-  'What is the name of your favorite childhood friend?',
-  'What is your mother’s maiden name?',
-  'What was the name of your first pet?',
-  'What city were you born in?',
-  'What is your favorite teacher’s name?',
-];
+const PREFER_NOT_SAY = COUNTRY_PREFER_NOT_SAY;
 
 interface FormState {
   email_id: string;
@@ -44,7 +35,6 @@ interface FormState {
   dob: string;
   contact_local: string;
   country: string;
-  currency: string;
   timezone: string;
 }
 
@@ -58,7 +48,6 @@ const INITIAL_FORM: FormState = {
   dob: '',
   contact_local: '',
   country: '',
-  currency: '',
   timezone: '',
 };
 
@@ -99,7 +88,6 @@ function buildRegisterPayload(form: FormState, dialCode: string) {
     contact: phoneDigits ? `${dialCode}${phoneDigits}` : null,
     country:
       !form.country || form.country === PREFER_NOT_SAY ? null : form.country,
-    currency: form.currency || 'INR',
     timezone: form.timezone,
   };
 }
@@ -114,7 +102,6 @@ function useRegisterForm(onSuccess?: () => void) {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [countries, setCountries] = useState<CountryOption[]>([]);
-  const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
   const [dialCode, setDialCode] = useState('+91');
 
   useEffect(() => {
@@ -122,15 +109,11 @@ function useRegisterForm(onSuccess?: () => void) {
 
     async function load() {
       try {
-        const [countriesResp, currenciesResp] = await Promise.all([
-          fetchCountries(),
-          fetchCurrencies(),
-        ]);
+        const countriesResp = await fetchCountries();
         if (cancelled) return;
 
         const allCountries = countriesResp.countries ?? [];
         setCountries(allCountries);
-        setCurrencies(currenciesResp.currencies ?? []);
 
         const region = getBrowserRegion();
         const regionName = region ? getCountryNameFromRegion(region) : null;
@@ -144,14 +127,10 @@ function useRegisterForm(onSuccess?: () => void) {
 
         if (matched) {
           setDialCode(matched.country_code || '+91');
-          const fallbackTz =
-            matched.timezone ||
-            getTimezonesForCountryName(matched.name)[0] ||
-            getBrowserTimezone();
+          const fallbackTz = matched.timezones?.[0] || getBrowserTimezone();
           setForm((f) => ({
             ...f,
             country: matched.name,
-            currency: matched.default_currency || f.currency || 'INR',
             timezone: fallbackTz,
           }));
         } else {
@@ -196,14 +175,10 @@ function useRegisterForm(onSuccess?: () => void) {
   function handleCountryChange(value: string, country: CountryOption | null) {
     if (country) {
       setDialCode(country.country_code || '+00');
-      const tz =
-        country.timezone ||
-        getTimezonesForCountryName(country.name)[0] ||
-        getBrowserTimezone();
+      const tz = country.timezones?.[0] || getBrowserTimezone();
       setForm((f) => ({
         ...f,
         country: country.name,
-        currency: country.default_currency || f.currency,
         timezone: tz,
       }));
     } else {
@@ -213,11 +188,6 @@ function useRegisterForm(onSuccess?: () => void) {
         timezone: f.timezone || getBrowserTimezone(),
       }));
     }
-    if (error) setError(null);
-  }
-
-  function handleCurrencyChange(code: string) {
-    setForm((f) => ({ ...f, currency: code }));
     if (error) setError(null);
   }
 
@@ -251,13 +221,11 @@ function useRegisterForm(onSuccess?: () => void) {
     form,
     dialCode,
     countries,
-    currencies,
     submitting,
     currentCountry,
     countryLocked,
     handleChange,
     handleCountryChange,
-    handleCurrencyChange,
     handleTimezoneChange,
     handleSubmit,
   };
@@ -267,14 +235,12 @@ interface RegisterFieldsProps {
   form: FormState;
   dialCode: string;
   countries: CountryOption[];
-  currencies: CurrencyOption[];
   currentCountry: CountryOption | null;
   countryLocked: boolean;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
   onCountryChange: (value: string, country: CountryOption | null) => void;
-  onCurrencyChange: (code: string) => void;
   onTimezoneChange: (timezone: string) => void;
 }
 
@@ -285,12 +251,10 @@ function RegisterFields({
   form,
   dialCode,
   countries,
-  currencies,
   currentCountry,
   countryLocked,
   onChange,
   onCountryChange,
-  onCurrencyChange,
   onTimezoneChange,
 }: RegisterFieldsProps) {
   return (
@@ -427,29 +391,16 @@ function RegisterFields({
           </div>
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
-        <div className="flex-1">
-          <label htmlFor="register-country" className="form-label">
-            Country
-          </label>
-          <CountrySelect
-            id="register-country"
-            value={form.country}
-            onChange={onCountryChange}
-            countries={countries}
-          />
-        </div>
-        <div className="flex-1">
-          <label htmlFor="register-currency" className="form-label">
-            Currency
-          </label>
-          <CurrencySelect
-            id="register-currency"
-            value={form.currency}
-            onChange={onCurrencyChange}
-            currencies={currencies}
-          />
-        </div>
+      <div className="mt-3">
+        <label htmlFor="register-country" className="form-label">
+          Country
+        </label>
+        <CountrySelect
+          id="register-country"
+          value={form.country}
+          onChange={onCountryChange}
+          countries={countries}
+        />
       </div>
       <div className="mt-3">
         <label htmlFor="register-timezone" className="form-label">
@@ -458,7 +409,7 @@ function RegisterFields({
         <TimezoneSelect
           id="register-timezone"
           countryName={currentCountry ? currentCountry.name : null}
-          countryDefaultTimezone={currentCountry?.timezone ?? null}
+          countryDefaultTimezone={currentCountry?.timezones?.[0] ?? null}
           value={form.timezone}
           onChange={onTimezoneChange}
           required
@@ -480,38 +431,40 @@ export function RegisterForm({
     form,
     dialCode,
     countries,
-    currencies,
     submitting,
     currentCountry,
     countryLocked,
     handleChange,
     handleCountryChange,
-    handleCurrencyChange,
     handleTimezoneChange,
     handleSubmit,
   } = useRegisterForm(onSuccess);
+  const retryAfterSeconds = useAuthStore((s) => s.retryAfterSeconds);
 
   return (
     <>
-      {error && <div className="form-error mb-2">{error}</div>}
+      <AuthErrorNotice
+        error={error}
+        retryAfterSeconds={retryAfterSeconds}
+        action="registration"
+      />
       <form onSubmit={handleSubmit}>
         <RegisterFields
           form={form}
           dialCode={dialCode}
           countries={countries}
-          currencies={currencies}
           currentCountry={currentCountry}
           countryLocked={countryLocked}
           onChange={handleChange}
           onCountryChange={handleCountryChange}
-          onCurrencyChange={handleCurrencyChange}
           onTimezoneChange={handleTimezoneChange}
         />
         <button
           type="submit"
           disabled={
             submitting ||
-            (form.password.length > 0 && !validatePassword(form.password).isValid)
+            (form.password.length > 0 &&
+              !validatePassword(form.password).isValid)
           }
           className="btn-primary mt-4"
         >

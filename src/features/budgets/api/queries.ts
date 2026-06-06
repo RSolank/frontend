@@ -9,17 +9,30 @@ import { budgetKeys } from './keys';
 // shape for `.total_budget`). All numeric fields are nullable because
 // a tag with no spend in the requested month carries 0/null aggregates
 // + a null limit_amt (no budget configured).
+//
+// BE Phase 1.7 (`3252ca4`, T-aggregates-engine) renamed the spend fields
+// to the **net-expense** family: `net_expense = total_debit − total_credit`
+// (expense-positive — refunds net spend down). `current_debit` and
+// `current_credit` ship alongside for surfaces that need the gross
+// breakdown; budget breaches + anomaly stats compare against
+// `current_net_expense`.
 export interface BudgetCategory {
   tag_id: number;
   tag_name: string;
   tag_type: string;
-  current_expense: number | null;
-  avg_expense: number | null;
-  min_expense: number | null;
-  max_expense: number | null;
+  current_debit: number | null;
+  current_credit: number | null;
+  current_net_expense: number | null;
+  avg_net_expense: number | null;
+  min_net_expense: number | null;
+  max_net_expense: number | null;
   limit_amt: number | null;
   penalty_rate: number | null;
   default_penalty_rate: number | null;
+  // BE `budgets.created-at` — populated when the tag has a configured
+  // BudgetLimit; null when the tag only carries tracker stats. Powers
+  // the "Created on …" footer in BudgetFormDialog.
+  created_at?: string | null;
 }
 
 export interface BudgetStatusResponse {

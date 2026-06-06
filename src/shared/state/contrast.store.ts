@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 // Accessibility — when ON, the app overrides its low-contrast neutral
-// palette (slate-500/400 secondary text, indigo-50/950 hover surfaces)
+// palette (slate-500/400 secondary text, accent-50/950 hover surfaces)
 // with WCAG-AAA-tier pairings. Mostly affects dark mode, where the
 // default contrast is closest to the AA floor. Toggled via a CSS
 // class on <html>; component code doesn't change.

@@ -7,26 +7,25 @@
 
 ## Purpose
 
-- Render the standalone `/categorization-rules` page where users
-  list, add, edit, and delete the `beneficiary → tags` rules the
-  backend's categorization engine consults.
+- Render `/settings/categorization-rules` inside the
+  [Settings shell](settings.md) where users list, add, edit, and
+  delete the `beneficiary → tags` rules the backend's
+  categorization engine consults.
 - Surface the "Re-run categorization" action that re-tags existing
   transactions against the current rule set.
-- Own the `/api/categorization-rules` query / cache key namespace.
+- Own the `/api/v1/categorization-rules` query / cache key namespace.
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/categorization-rules` | `pages/CategorizationRulesPage.tsx` | Lazy-loaded via `categorization.routes.tsx`. |
+| Path                             | Component                           | Notes                                       |
+| -------------------------------- | ----------------------------------- | ------------------------------------------- |
+| `/settings/categorization-rules` | `pages/CategorizationRulesPage.tsx` | Mounted by the settings shell. Lazy-loaded. |
 
-Routes are exported from
-[`features/categorization/categorization.routes.tsx`](../../src/features/categorization/categorization.routes.tsx)
-and composed into the root router by `src/app/routes.tsx`
-(`<CategorizationRulesPage>` is wrapped by `protectedRoutes()`).
-
-This surface is a first-class route with its own bundle, mounted in the
-Settings shell alongside Categories and Taxation Rules under `/settings/*`.
+The CategorizationRulesPage is registered by
+[`features/settings/settings.routes.tsx`](../../src/features/settings/settings.routes.tsx)
+as a child of `/settings`. The legacy top-level `/categorization-rules`
+URL was retired in Batch 9 — see
+[`docs/modules/settings.md`](settings.md).
 
 ## Rule-name conventions
 
@@ -51,11 +50,17 @@ deleting the rule.
 
 ## Components
 
-- `pages/CategorizationRulesPage.tsx` — full standalone page with
-  header, create / update form, beneficiary search dropdown, tag
-  chip editor (with `Set Primary` + remove affordances), and the
-  grouped existing-rules list. Tailwind-styled with dark-mode
-  parity.
+- `pages/CategorizationRulesPage.tsx` — page-level surface with
+  header, "Re-run categorization" action, beneficiary search and
+  the grouped existing-rules list. The form itself lives in the
+  modal below.
+- `components/CategorizationRuleFormDialog.tsx` — `<Modal size="lg">`
+  wrapping the rule form (beneficiary search dropdown, tag chip
+  editor with `Set Primary` + remove affordances, auto-generated
+  rule-name preview). The "+ Add new beneficiary" CTA inside the
+  beneficiary search opens
+  `features/beneficiaries/components/BeneficiaryFormDialog.tsx`
+  nested inside this dialog.
 - `components/GroupedRulesList.tsx` — bucketed rule renderer.
   Single-rule groups render as the full rule card; multi-rule
   groups render as a collapsible header (chip row + count) with
@@ -113,13 +118,12 @@ between groups.
 
 The beneficiary search dropdown has an `＋ Add new beneficiary`
 CTA pinned at the top. Click → opens
-`features/beneficiaries/components/CreateBeneficiaryDialog.tsx`
-(a portaled modal wrapping the shared `BeneficiaryFormFields` +
-Save/Cancel footer). The Name field pre-fills from whatever's in
-the search box.
+`features/beneficiaries/components/BeneficiaryFormDialog.tsx`
+(the shared create / edit modal). The Name field pre-fills from
+whatever's in the search box.
 
 On success, the dialog closes, the page refetches
-`/api/beneficiaries`, and the rule form's beneficiary fields
+`/api/v1/beneficiaries`, and the rule form's beneficiary fields
 auto-select to the newly-created entry. The user's in-flight rule
 state (tags, notes, etc.) survives untouched.
 
@@ -150,27 +154,27 @@ so the rule list refreshes after a write.
 
 [`api/`](../../src/features/categorization/api/)
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `categorizationKeys` — `all`, `rules()`, `rulesList()` |
-| `schemas.ts` | `CategorizationRulePayload` (full PUT / POST body shape) |
-| `queries.ts` | `fetchCategorizationRules`, `useCategorizationRulesQuery`, `CategorizationRule`, `CategorizationRulesResponse` |
-| `mutations.ts` | `updateCategorizationRuleRequest` (full PUT), `reRunCategorizationRequest` |
-| `ruleUtils.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName`, `FlatTag` |
-| `grouping.ts` | `tagSetKey`, `chooseRepresentativePrimary`, `groupRules`, `RuleGroup` |
+| File           | Exports                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `keys.ts`      | `categorizationKeys` — `all`, `rules()`, `rulesList()`                                                         |
+| `schemas.ts`   | `CategorizationRulePayload` (full PUT / POST body shape)                                                       |
+| `queries.ts`   | `fetchCategorizationRules`, `useCategorizationRulesQuery`, `CategorizationRule`, `CategorizationRulesResponse` |
+| `mutations.ts` | `updateCategorizationRuleRequest` (full PUT), `reRunCategorizationRequest`                                     |
+| `ruleUtils.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName`, `FlatTag`                                               |
+| `grouping.ts`  | `tagSetKey`, `chooseRepresentativePrimary`, `groupRules`, `RuleGroup`                                          |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/categorization-rules` | `useCategorizationRulesQuery` |
-| `POST /api/categorization-rules` | Page create form via `createCategorizationRule` (owned by beneficiaries) |
-| `PUT /api/categorization-rules/:uid` | Page update form (full body) via `updateCategorizationRuleRequest`; chip-level promote/remove via `updateCategorizationRuleTags` (owned by beneficiaries) |
-| `DELETE /api/categorization-rules/:uid` | Page delete + last-tag-removal flow via `deleteCategorizationRule` (owned by beneficiaries) |
-| `POST /api/categorization-rules/re-run` | `reRunCategorizationRequest` |
-| `GET /api/tags` | Page reference data (via `fetchTags` from `features/tags/api/queries`) |
-| `GET /api/beneficiaries` | Page reference data (via `fetchBeneficiaries` from `features/beneficiaries/api/queries`) |
-| `GET /api/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, `MISCELLANEOUS_TAG_ID` |
+| Method + path                              | Used by                                                                                                                                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/categorization-rules`         | `useCategorizationRulesQuery`                                                                                                                             |
+| `POST /api/v1/categorization-rules`        | Page create form via `createCategorizationRule` (owned by beneficiaries)                                                                                  |
+| `PUT /api/v1/categorization-rules/:uid`    | Page update form (full body) via `updateCategorizationRuleRequest`; chip-level promote/remove via `updateCategorizationRuleTags` (owned by beneficiaries) |
+| `DELETE /api/v1/categorization-rules/:uid` | Page delete + last-tag-removal flow via `deleteCategorizationRule` (owned by beneficiaries)                                                               |
+| `POST /api/v1/categorization-rules/re-run` | `reRunCategorizationRequest`                                                                                                                              |
+| `GET /api/v1/tags`                         | Page reference data (via `fetchTags` from `features/tags/api/queries`)                                                                                    |
+| `GET /api/v1/beneficiaries`                | Page reference data (via `fetchBeneficiaries` from `features/beneficiaries/api/queries`)                                                                  |
+| `GET /api/v1/metadata/constants`           | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, `MISCELLANEOUS_TAG_ID`                                                                   |
 
 ## Cross-feature seams
 
@@ -191,14 +195,14 @@ Endpoints touched:
 
 ## Tests
 
-| File | Covers |
-|---|---|
+| File                                     | Covers                                                                                                                                                                                                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pages/CategorizationRulesPage.test.tsx` | Singleton rules render + alias suffixes, Edit / Delete affordance per row, create-rule end-to-end with auto-generated name, delete confirms + hits the API, multi-rule group collapses + expands, add-beneficiary dialog opens from the dropdown CTA + pre-fills Name |
-| `api/ruleUtils.test.ts` | `flattenTags`, `formatTagAssignment`, `buildRuleName` |
-| `api/grouping.test.ts` | `tagSetKey` (order/dedupe invariance), `chooseRepresentativePrimary` (unique winner, shared-parent fallback, no-shared-parent fallback to smallest id), `groupRules` (bucketing, group sort, within-group sort) |
+| `api/ruleUtils.test.ts`                  | `flattenTags`, `formatTagAssignment`, `buildRuleName`                                                                                                                                                                                                                 |
+| `api/grouping.test.ts`                   | `tagSetKey` (order/dedupe invariance), `chooseRepresentativePrimary` (unique winner, shared-parent fallback, no-shared-parent fallback to smallest id), `groupRules` (bucketing, group sort, within-group sort)                                                       |
 
-MSW handlers for `/api/categorization-rules`, `/api/tags`,
-`/api/beneficiaries`, `/api/metadata/constants` live in the test
+MSW handlers for `/api/v1/categorization-rules`, `/api/v1/tags`,
+`/api/v1/beneficiaries`, `/api/v1/metadata/constants` live in the test
 file's `beforeEach`; per-test overrides via `server.use(...)`.
 
 ## Follow-ups

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { AliasChipsInput } from './AliasChipsInput';
@@ -9,15 +10,12 @@ import { AliasChipsInput } from './AliasChipsInput';
 describe('AliasChipsInput', () => {
   beforeEach(() => {
     server.use(
-      http.get(
-        'http://localhost:4000/api/beneficiaries/check-alias',
-        ({ request }) => {
-          const url = new URL(request.url);
-          const alias = url.searchParams.get('alias') ?? '';
-          const unique = alias === 'EKART';
-          return HttpResponse.json({ alias, unique });
-        }
-      )
+      http.get(`${API_BASE}/beneficiaries/check-alias`, ({ request }) => {
+        const url = new URL(request.url);
+        const alias = url.searchParams.get('alias') ?? '';
+        const unique = alias === 'EKART';
+        return HttpResponse.json({ alias, unique });
+      })
     );
   });
 

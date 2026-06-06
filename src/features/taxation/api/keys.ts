@@ -17,7 +17,4 @@ export const taxationKeys = {
   billsList: () => [...taxationKeys.bills(), 'list'] as const,
   billDetail: (billId: number) =>
     [...taxationKeys.bills(), 'detail', billId] as const,
-
-  tracker: () => [...taxationKeys.all, 'tracker'] as const,
-  trackerCurrentWeek: () => [...taxationKeys.tracker(), 'current-week'] as const,
 } as const;

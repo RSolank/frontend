@@ -1,15 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Accessibility / personalization — picks where the user lands
-// immediately after a successful login (and what the top-bar Home
-// icon points at, if we want it consistent later).
+// Personalization — picks where the user lands immediately after a
+// successful login (and what the top-bar Home icon points at, if we
+// want it consistent later).
 //
-// Frontend-only (Zustand `persist` ⇒ `localStorage["landing-route"]`)
-// by design. Does NOT follow the user across devices. Backend has no
-// `default_landing_route` column today; when it lands, hydration
-// extends `hydratePreferences()` with one extra setter. Until then
-// this is on-device only.
+// Server-synced after BE Phase 1.9 — the `user_preferences` row's
+// `landing_route` column is the SoT. Hydrated at boot by
+// `hydratePreferences()` and PATCHed back on user-driven setX by
+// `subscribeToPreferenceStores()` (see CONTRIBUTING.md §5).
+// Zustand `persist` (`localStorage["landing-route"]`) is the local
+// cache that bridges between cold-boot and the GET response.
 
 export type LandingRoute =
   | '/dashboard'

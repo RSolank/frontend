@@ -56,7 +56,9 @@ export function fetchRelationships(): Promise<string[]> {
 }
 
 export function fetchCategorizationRules(): Promise<CategorizationRulesResponse> {
-  return apiFetch<CategorizationRulesResponse>(routes.categorizationRules.list());
+  return apiFetch<CategorizationRulesResponse>(
+    routes.categorizationRules.list()
+  );
 }
 
 export function useBeneficiariesQuery() {

@@ -6,21 +6,23 @@
 
 ## Purpose
 
-- Render the `/beneficiaries` list and `/beneficiaries/:id` detail
-  pages where users manage merchants and people.
+- Render the `/beneficiaries` list page where users manage
+  merchants and people. `/beneficiaries/:id` is a legacy alias
+  that redirects to `/beneficiaries?edit=<id>`; the list-page
+  edit modal owns the full view + edit + merge surface.
 - Drive the alias-uniqueness probe + chip UI that feeds the
   auto-categorization engine.
-- Own the `/api/beneficiaries/*` query surface and the merge flow.
+- Own the `/api/v1/beneficiaries/*` query surface and the merge flow.
 - Sync merchant → category changes by writing through the
-  `/api/categorization-rules` endpoint so the beneficiary form can
+  `/api/v1/categorization-rules` endpoint so the beneficiary form can
   set / change / clear a merchant's primary tag in one save.
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/beneficiaries` | `pages/BeneficiariesPage.tsx` | List + filter + inline create form. Lazy-loaded. |
-| `/beneficiaries/:id` | `pages/BeneficiaryDetailPage.tsx` | Read-only by default; Edit toggles the form + the merge consolidator. Lazy-loaded. |
+| Path                 | Component                                        | Notes                                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/beneficiaries`     | `pages/BeneficiariesPage.tsx`                    | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded.                                                                                                 |
+| `/beneficiaries/:id` | `DetailRedirect` (in `beneficiaries.routes.tsx`) | Legacy alias — redirects to `/beneficiaries?edit=<id>`. The standalone detail page was retired in the 2026-05-26 follow-up; the list-page modal owns the full view + edit + merge surface. |
 
 Routes are exported from
 [`features/beneficiaries/beneficiaries.routes.tsx`](../../src/features/beneficiaries/beneficiaries.routes.tsx)
@@ -30,17 +32,23 @@ and composed into the root router by `src/app/routes.tsx`
 ## Components
 
 - `components/AliasChipsInput.tsx` — debounced uniqueness check against
-  `/api/beneficiaries/check-alias`; surfaces "checking", "available",
+  `/api/v1/beneficiaries/check-alias`; surfaces "checking", "available",
   "taken", "duplicate" states; controlled `aliases[]` value.
 - `components/BeneficiaryFormFields.tsx` — shared by the create form
-  on the list page and the edit form on the detail page. Owns the
-  category + assigned-tags editor (uses `fetchTags` from the tags
-  feature) and the merchant↔person type switch.
+  on the list page and the list-page edit modal. Owns the category +
+  assigned-tags editor (uses `fetchTags` from the tags feature) and
+  the merchant↔person type switch.
 - `components/MergeBeneficiariesForm.tsx` — source / target picker
-  with swap + mismatched-type warning, used on the detail page in
-  edit mode. Source / target render as a 2-up grid (stacked below
-  `sm`); Swap + Merge buttons share a separate action row so the
-  swap arrow never lands between selects on narrow viewports.
+  with swap + mismatched-type warning, mounted inside
+  `MergeBeneficiariesDialog` from the list-page edit modal. Source
+  / target render as a 2-up grid (stacked below `sm`); Swap +
+  Merge buttons share a separate action row so the swap arrow
+  never lands between selects on narrow viewports.
+- `components/BeneficiaryFormDialog.tsx` — unified create / edit
+  modal (also reused inline by the categorization-rules page).
+- `components/MergeBeneficiariesDialog.tsx` — `<Modal>` wrapper
+  around `MergeBeneficiariesForm`, opened from the edit modal's
+  Merge action.
 
 ## State
 
@@ -53,35 +61,35 @@ No Zustand state. Server-state lives in React Query under
 
 [`api/`](../../src/features/beneficiaries/api/)
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `beneficiaryKeys` — `all`, `list()`, `detail(id)`, `relationships()` |
-| `aliases.ts` | `formatAliasesDisplay`, `buildAliasCheckUrl` (pure utilities) |
-| `schemas.ts` | `beneficiaryFormSchema` (Zod), `BeneficiaryFormInput`, `BeneficiaryPayload`, `MergePayload`, `emptyBeneficiaryForm`, `beneficiaryToForm`, `switchBeneficiaryType`, `formToPayload` |
-| `queries.ts` | `fetchBeneficiaries`, `fetchBeneficiary`, `fetchRelationships`, `fetchCategorizationRules`, `useBeneficiariesQuery`, `Beneficiary`, `BeneficiaryType` |
-| `mutations.ts` | `createBeneficiaryRequest`, `updateBeneficiaryRequest`, `deleteBeneficiaryRequest`, `mergeBeneficiariesRequest`, `updateCategorizationRuleTags`, `deleteCategorizationRule` |
+| File           | Exports                                                                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keys.ts`      | `beneficiaryKeys` — `all`, `list()`, `detail(id)`, `relationships()`                                                                                                                                    |
+| `aliases.ts`   | `formatAliasesDisplay`, `buildAliasCheckUrl` (pure utilities)                                                                                                                                           |
+| `schemas.ts`   | `beneficiaryFormSchema` (Zod), `BeneficiaryFormInput`, `BeneficiaryPayload`, `MergePayload`, `emptyBeneficiaryForm`, `beneficiaryToForm`, `switchBeneficiaryType`, `formToPayload`                      |
+| `queries.ts`   | `fetchBeneficiaries`, `fetchBeneficiary`, `fetchRelationships`, `fetchCategorizationRules`, `useBeneficiariesQuery`, `Beneficiary`, `BeneficiaryType`                                                   |
+| `mutations.ts` | `createBeneficiaryRequest`, `updateBeneficiaryRequest`, `deleteBeneficiaryRequest`, `mergeBeneficiariesRequest`, `createCategorizationRule`, `updateCategorizationRuleTags`, `deleteCategorizationRule` |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/beneficiaries` | List page, detail page (merge picker), beneficiary mutations invalidate |
-| `GET /api/beneficiaries/:id` | Detail page load |
-| `POST /api/beneficiaries` | List page inline create |
-| `PATCH /api/beneficiaries/:id` | Detail page save |
-| `DELETE /api/beneficiaries/:id` | Detail page action menu |
-| `POST /api/beneficiaries/merge` | Detail page merge form |
-| `GET /api/beneficiaries/check-alias` | AliasChipsInput (debounced) |
-| `GET /api/beneficiaries/relationships` | Person form's Relationship dropdown |
-| `GET /api/categorization-rules` | Detail page save (warns on category change) + form field rule-tag sync |
-| `PUT /api/categorization-rules/:uid` | BeneficiaryFormFields set-primary / remove-rule-tag |
-| `DELETE /api/categorization-rules/:uid` | BeneficiaryFormFields remove-last-rule-tag |
+| Method + path                              | Used by                                                                |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| `GET /api/v1/beneficiaries`                | List page, edit modal (merge picker), beneficiary mutations invalidate |
+| `GET /api/v1/beneficiaries/:id`            | Edit modal load                                                        |
+| `POST /api/v1/beneficiaries`               | List page inline create                                                |
+| `PATCH /api/v1/beneficiaries/:id`          | Edit modal save                                                        |
+| `DELETE /api/v1/beneficiaries/:id`         | Edit modal action menu                                                 |
+| `POST /api/v1/beneficiaries/merge`         | Edit modal merge form                                                  |
+| `GET /api/v1/beneficiaries/check-alias`    | AliasChipsInput (debounced)                                            |
+| `GET /api/v1/beneficiaries/relationships`  | Person form's Relationship dropdown                                    |
+| `GET /api/v1/categorization-rules`         | Edit modal save (warns on category change) + form field rule-tag sync  |
+| `PUT /api/v1/categorization-rules/:uid`    | BeneficiaryFormFields set-primary / remove-rule-tag                    |
+| `DELETE /api/v1/categorization-rules/:uid` | BeneficiaryFormFields remove-last-rule-tag                             |
 
 ## Responsive
 
 Per [`docs/conventions.md`](../conventions.md):
 
-- The beneficiaries list table scrolls *inside its card*
+- The beneficiaries list table scrolls _inside its card_
   (`overflow-x-auto` + `min-w-[28rem]` on the `<table>`) below
   `sm`, so `body` never overflows even when names + alias columns
   would otherwise crowd a phone width.
@@ -106,12 +114,13 @@ Per [`docs/conventions.md`](../conventions.md):
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `api/aliases.test.ts` | `formatAliasesDisplay`, `buildAliasCheckUrl` |
-| `components/AliasChipsInput.test.tsx` | Debounced uniqueness check, taken → disabled Add, unique → chip added |
-| `pages/BeneficiariesPage.test.tsx` | List + alias bracket display, search + type filter, end-to-end create with alias check + POST body shape |
-| `pages/BeneficiaryDetailPage.test.tsx` | Read-only render, edit-mode merge form + alias add, type switch carries shared fields, type-mismatch merge warning |
+| File                                        | Covers                                                                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/aliases.test.ts`                       | `formatAliasesDisplay`, `buildAliasCheckUrl`                                                                                                      |
+| `components/AliasChipsInput.test.tsx`       | Debounced uniqueness check, taken → disabled Add, unique → chip added                                                                             |
+| `components/BeneficiaryFormFields.test.tsx` | Field rendering, type switch, category dropdown wiring against `fetchTags`                                                                        |
+| `components/BeneficiaryFormDialog.test.tsx` | Modal-first CRUD flow — create + edit + merge entry from the list page                                                                            |
+| `pages/BeneficiariesPage.test.tsx`          | List + alias bracket display, search + type filter, end-to-end create with alias check + POST body shape; modal-first edit / delete / merge flows |
 
 All MSW handlers are registered per-test via `server.use(...)` —
 the beneficiary endpoints don't yet have permissive defaults in
@@ -128,9 +137,11 @@ can promote a shared `beneficiaries.ts` handler if convergence emerges.
   `useUrlValueModal('edit').openWith(uid)`; `?edit=<uid>` is shareable.
 - **Delete** — opens `<ConfirmDialog intent="danger" />` instead of
   `window.confirm()`.
-- **Details** — row "Details" link still routes to
-  `/beneficiaries/:id` (preserved for deep-links + the full
-  merge / type-switch workflow, which lives on the detail page).
+- **Merge / type-switch** — accessible from the edit modal's action
+  area; opens `<MergeBeneficiariesDialog>` over the edit modal.
+- **Legacy `/beneficiaries/:id` URL** — `DetailRedirect` translates
+  it to `/beneficiaries?edit=<id>` so old share-links land on the
+  edit modal opened to the same record.
 
 `components/BeneficiaryFormDialog.tsx` is the unified create/edit
 dialog.

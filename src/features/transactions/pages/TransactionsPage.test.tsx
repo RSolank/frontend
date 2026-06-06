@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -58,15 +59,21 @@ const txnList = {
   returned_count: 2,
 };
 
+// BE 2026-06-06 (`9c00ecd`) — grouped reads carry `period_type` +
+// `period_start` on every page; with no month/period/date query
+// param the BE now aggregates all-time (period_type=`"all"`,
+// period_start=null) rather than scoping to the current month.
 const merchantGroups = {
   groups: [
     {
       beneficiary_id: 42,
       beneficiary_name: 'Coffee Shop',
-      frequency: 3,
-      total_amount: -450,
+      total_count: 3,
+      net_expense: 450,
     },
   ],
+  period_type: 'all',
+  period_start: null,
   returned_count: 1,
 };
 
@@ -78,10 +85,8 @@ describe('TransactionsPage', () => {
       timezone: 'Asia/Kolkata',
     });
     server.use(
-      http.get('http://localhost:4000/api/tags', () =>
-        HttpResponse.json(tagsResponse)
-      ),
-      http.get('http://localhost:4000/api/metadata/currencies', () =>
+      http.get(`${API_BASE}/tags`, () => HttpResponse.json(tagsResponse)),
+      http.get(`${API_BASE}/metadata/currencies`, () =>
         HttpResponse.json({
           currencies: [
             { code: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
@@ -89,17 +94,13 @@ describe('TransactionsPage', () => {
           ],
         })
       ),
-      http.get('http://localhost:4000/api/beneficiaries', () =>
-        HttpResponse.json([])
-      )
+      http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json([]))
     );
   });
 
   function mountWithList(list: object = txnList) {
     server.use(
-      http.get('http://localhost:4000/api/transactions', () =>
-        HttpResponse.json(list)
-      )
+      http.get(`${API_BASE}/transactions`, () => HttpResponse.json(list))
     );
     return renderWithProviders(<TransactionsPage />);
   }
@@ -136,7 +137,7 @@ describe('TransactionsPage', () => {
   it('Merchant tab switches view; Details filters by beneficiary_id', async () => {
     const capturedUrls: string[] = [];
     server.use(
-      http.get('http://localhost:4000/api/transactions', ({ request }) => {
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
         capturedUrls.push(request.url);
         const url = new URL(request.url);
         if (url.searchParams.get('group_by') === 'merchant') {
@@ -179,6 +180,52 @@ describe('TransactionsPage', () => {
     });
   });
 
+  it('Merchant view scope pill — "All time" when BE returns period_type=all', async () => {
+    server.use(
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('group_by') === 'merchant') {
+          return HttpResponse.json(merchantGroups);
+        }
+        return HttpResponse.json(txnList);
+      })
+    );
+    renderWithProviders(<TransactionsPage />);
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
+    // Pill matches the BE-supplied window. Default fixture has
+    // period_type='all' / period_start=null.
+    expect(await screen.findByTestId('merchant-scope-pill')).toHaveTextContent(
+      'All time'
+    );
+  });
+
+  it('Merchant view scope pill — formatted month for monthly window', async () => {
+    server.use(
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('group_by') === 'merchant') {
+          return HttpResponse.json({
+            ...merchantGroups,
+            period_type: 'monthly',
+            period_start: '2026-02-01',
+          });
+        }
+        return HttpResponse.json(txnList);
+      })
+    );
+    renderWithProviders(<TransactionsPage />);
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
+    expect(await screen.findByTestId('merchant-scope-pill')).toHaveTextContent(
+      /Feb 2026/
+    );
+  });
+
   it('Calendar tab renders the calendar grid', async () => {
     mountWithList();
     await waitFor(() =>
@@ -205,7 +252,7 @@ describe('TransactionsPage', () => {
     try {
       const ANCHOR_DAY = '2026-05-27';
       server.use(
-        http.get('http://localhost:4000/api/transactions', ({ request }) => {
+        http.get(`${API_BASE}/transactions`, ({ request }) => {
           const url = new URL(request.url);
           const month = url.searchParams.get('month');
           if (month === '2026-05') {
@@ -261,7 +308,9 @@ describe('TransactionsPage', () => {
     // Set debit-only.
     fireEvent.click(within(sidebar).getByRole('button', { name: 'Debit' }));
     // The filter button gains a (1) badge once we close.
-    fireEvent.click(within(sidebar).getByRole('button', { name: /clear all/i }));
+    fireEvent.click(
+      within(sidebar).getByRole('button', { name: /clear all/i })
+    );
 
     // Done closes the sidebar.
     fireEvent.click(within(sidebar).getByRole('button', { name: 'Done' }));

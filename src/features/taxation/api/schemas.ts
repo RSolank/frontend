@@ -8,7 +8,10 @@ export const taxationRuleFormSchema = z.object({
   tax_rate: z
     .number({ message: 'Tax rate must be a number' })
     .min(0, 'Tax rate must be ≥ 0')
-    .max(10, 'Tax rate must be ≤ 10 (i.e. 1000%) — usually a fraction like 0.05'),
+    .max(
+      10,
+      'Tax rate must be ≤ 10 (i.e. 1000%) — usually a fraction like 0.05'
+    ),
   default_penalty_rate: z
     .number({ message: 'Default penalty rate must be a number' })
     .min(0, 'Default penalty rate must be ≥ 0')
@@ -21,7 +24,9 @@ export type TaxationRuleFormInput = z.infer<typeof taxationRuleFormSchema>;
 // period_end are `YYYY-MM-DD` (interpreted in user tz upstream).
 export const billGenerateSchema = z
   .object({
-    period_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD'),
+    period_start: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD'),
     period_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD'),
   })
   .refine((b) => b.period_start <= b.period_end, {

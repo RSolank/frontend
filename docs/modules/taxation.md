@@ -18,16 +18,16 @@
   discretionary / uncategorized). Each card carries a humanized
   percentage display (5%, 12.5%) and an inline editor that accepts
   `5%` / `0.05` / `5` (assumed %).
-- Own the `/api/taxation-rules` and `/api/consumption-tax/*` query /
+- Own the `/api/v1/taxation-rules` and `/api/v1/consumption-tax/*` query /
   cache key namespaces (`taxationKeys` in
   [`api/keys.ts`](../../src/features/taxation/api/keys.ts)).
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/consumption-tax` | `pages/TaxTrackerPage.tsx` | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per the rename-labels-not-URLs rule. |
-| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at its canonical URL inside the Settings shell. |
+| Path                       | Component                     | Notes                                                                                                                 |
+| -------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `/consumption-tax`         | `pages/TaxTrackerPage.tsx`    | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per the rename-labels-not-URLs rule. |
+| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at its canonical URL inside the Settings shell.                                                    |
 
 Routes are exported from
 [`taxation.routes.tsx`](../../src/features/taxation/taxation.routes.tsx)
@@ -36,20 +36,37 @@ and composed into the root router by `src/app/routes.tsx`
 
 ## Tax Tracker (current-week card)
 
-The current-week tracker card calls
-`GET /api/consumption-tax/tracker/current-week` for:
+**FE-derived from the ACCRUING bill** (Platform FE Batch 20 UAT,
+`2be7b2c`). A standalone
+`GET /api/v1/consumption-tax/tracker/current-week` endpoint was scoped
+during BE Phase 2.6 planning but **never shipped** — Phase 2.6 (`e7c05aa`)
+delivered only the bill routes. Since the taxation engine already
+maintains an incremental real-time ledger via the ACCRUING bill (every
+mutation flushes through `recalc_for_txns`), the FE composes the
+tracker locally from data the engine already exposes:
 
-- `running_tax` / `running_penalty` — sum of tax / penalty accrued for
-  in-progress week's transactions.
-- `projected_tax` / `projected_penalty` — backend-supplied or
-  client-derived linear projection.
-- `per_tag[]` — top contributing tags for the in-progress week.
+1. Read the bills list (`useBillsQuery`) and pick the ACCRUING bill
+   for the active ISO week (Mon→Sun in the user's tz).
+2. Read its detail (`useBillQuery(accruing.bill_id)`) — items +
+   allocations + adjustments — the source of truth for what's accrued
+   this week.
+3. `deriveTrackerFromBill(bill)` reduces over items into:
+   - `running_tax` / `running_penalty` — sums from real (non-adjustment) items.
+   - `projected_tax` / `projected_penalty` — linear extrapolation via
+     `fractionOfWeekElapsed(...)`.
+   - `per_tag[]` — `foldInto(map, delta)` aggregates per-tag spend ranked
+     descending.
+4. **Three terminal states** distinguished cleanly:
+   - **No ACCRUING bill yet** → "No tax accrued for this week yet."
+     (zero-accrual happy path; no error tone).
+   - **Bills query error** → same empty-state copy (engine isn't
+     reachable, but we don't surface a scary error on a card the user
+     hasn't asked for explicitly).
+   - **Bill resolves but items empty** → same.
 
-When the backend hasn't shipped the endpoint yet (HTTP 404 / 501), the
-card renders a "Backend pending — see Tax Tracker handoff" empty state
-with the active week label so the surface still looks structurally
-complete. Once the endpoint lands, the card automatically populates —
-no frontend follow-up.
+No new BE work is needed for this card. Three downstream readers
+(tracker card + bill list + bill detail dialog) now all share the
+same query cache for the active ACCRUING bill — a single fetch.
 
 Bill detail modal (`components/BillDetailDialog.tsx`):
 
@@ -79,75 +96,97 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   Add and Edit. Edit mode: txn_type rendered as a read-only label;
   Add mode with one missing type: type prefilled + read-only; Add
   mode with multiple missing types: `<select>` picker of the
-  available types. Save calls `PUT /api/taxation-rules/:txn_type`
+  available types. Save calls `PUT /api/v1/taxation-rules/:txn_type`
   (upsert — see backend handoff for why no POST is needed).
 - `components/GenerateBillsDialog.tsx` — modal-first generation
-  surface. Week-picker or date-range mode; computes Sun→Sat
-  boundaries in the user's tz; blocks generation for periods ending
-  at-or-after `precedingWeekStart`.
+  surface. Week-picker or date-range mode; computes ISO Mon→Sun
+  boundaries in the user's tz (per the project-wide week
+  convention — see [`docs/conventions.md`](../conventions.md#week-convention));
+  blocks generation for periods ending at-or-after
+  `precedingWeekStart`. Week-picker mode mounts `<WeekPickerCalendar>`.
+- `components/WeekPickerCalendar.tsx` — calendar grid backing the
+  week-picker mode in `<GenerateBillsDialog>`. Renders Mon→Sun weeks
+  in the user's tz with prev/next-month chevrons; hovering or
+  focusing a date highlights its whole week; selection snaps to the
+  Mon→Sun range. Disables weeks ending at-or-after the
+  precedingWeekStart (which can't yet be billed).
 - `components/CurrentWeekTracker.tsx` — running-tax card with status
-  stats, a week-progress bar, and a top-5 per-tag breakdown. Falls
-  back to a "pending" empty state when the endpoint 404s.
+  stats, a week-progress bar, and a top-5 per-tag breakdown. Distinguishes
+  `isLoading` / `isError` / no-ACCRUING-bill states; renders
+  "No tax accrued for this week yet." in the error/empty cases (see the
+  Tax Tracker section above for the FE-derive contract).
 - `components/BillDetailDialog.tsx` — `<Modal size="xl">` wrapper for
   the bill detail surfaces. Items table renders **Date / Beneficiary
-  / Type / Amount / Tax / Penalty / Penalty tag**. When the bill is
-  `pending` and the caller passes an `onPay` prop, a **Pay bill**
-  action appears in the modal footer alongside Close — mirroring
-  the row-level Pay button so the user can settle the bill without
-  exiting the breakdown view.
+  / Type / Amount / Tax / Penalty / Penalty tag**. BE Phase 2.6
+  splits the items into a real-transactions table + a separate
+  **Adjustments** section for `is_adjustment=true` rows (corrections
+  to past finalized bills that landed on the current ACCRUING bill
+  per Decision 23). The header strip shows the per-state pill and
+  the `amount_paid / amount` progress when partial. When the bill is
+  in a settleable state (`BILLED` / `OVERDUE`) and the caller passes
+  `onMarkPaid`, a **Mark paid** action appears in the footer; for
+  `PAID` bills the inverse **Reopen** action surfaces via
+  `onMarkUnpaid`.
+- `components/billStatus.tsx` — shared bill-state visual treatment:
+  `BillStatusPill`, `billStatusDescriptor`, `isPayable`, and
+  `isUnpayable` helpers. Used by both the page row and the detail
+  dialog so the icon + colour + label are identical across surfaces.
+- `state/taxMode.store.ts` and the matching
+  `shared/components/TaxModeToggle` — the `auto_enabled` toggle UI.
+  Store lives in `shared/state/` to match the rest of the
+  preference-store cluster; toggle in `shared/components/` so the
+  `/account/preferences` page can compose it across the feature
+  boundary. Hydrated + PATCHed via the existing
+  `hydratePreferences()` + `subscribeToPreferenceStores()` pipeline.
 
 ## Hooks
 
-| Hook | Purpose |
-|---|---|
-| `useTaxationRulesQuery` | `GET /api/taxation-rules/` → `{ rules[] }`. |
-| `useBillsQuery` | `GET /api/consumption-tax/bills` → `{ bills[] }`. |
-| `useBillQuery(billId)` | Lazy `GET /api/consumption-tax/bills/:id` — only fires when `billId != null`. |
-| `useTrackerCurrentWeekQuery` | `GET /api/consumption-tax/tracker/current-week` — swallows 404 / 501 (returns `null`) so the page renders the pending empty state instead of erroring. Refetches every 5 minutes. |
+| Hook                         | Purpose                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useTaxationRulesQuery`      | `GET /api/v1/taxation-rules/` → `{ rules[] }`.                                                                                                                                                    |
+| `useBillsQuery`              | `GET /api/v1/consumption-tax/bills` → `{ bills[] }`.                                                                                                                                              |
+| `useBillQuery(billId)`       | Lazy `GET /api/v1/consumption-tax/bills/:id` — only fires when `billId != null`.                                                                                                                  |
+| `useTrackerCurrentWeekQuery` | **FE-derived** — composes `useBillsQuery` + lazy `useBillQuery(activeAccruingBillId)` and runs `deriveTrackerFromBill` on the result. No standalone tracker endpoint (Phase 2.6 didn't ship one). |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/taxation/api/mutations.ts) —
-`updateTaxationRuleRequest`, `generateBillsRequest`, `payBillRequest`.
+`updateTaxationRuleRequest`, `generateBillsRequest`,
+`markBillPaidRequest`, `markBillUnpaidRequest`. (`payBillRequest`
+was removed in Platform FE Batch 8 — BE Phase 2.6 deleted the
+`pay_bill` endpoint per Decision 25.)
 
 ## API
 
 Read endpoints consumed (under `/api`):
 
-- `GET /api/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
-- `GET /api/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount }`.
-- `GET /api/consumption-tax/bills/:id` → detail with `totals` + `items[]`.
-- `GET /api/consumption-tax/tracker/current-week` → see Backend handoff (scaffold, may 404 today).
+- `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
+- `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
+- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
+- (no standalone tracker endpoint — see Tax Tracker section for the FE-derive contract.)
 
 Write endpoints consumed:
 
-- `PUT /api/taxation-rules/:txn_type` — body `{ tax_rate, default_penalty_rate }`.
-- `POST /api/consumption-tax/bills/generate` — body `{ period_start, period_end }`.
-- `POST /api/consumption-tax/bills/:id/pay`.
+- `PUT /api/v1/taxation-rules/:txn_type` — body `{ tax_rate, default_penalty_rate }`.
+- `POST /api/v1/consumption-tax/bills/generate` — body `{ period_start, period_end }`.
+- `POST /api/v1/consumption-tax/bills/:id/mark-paid` — body `{ payment_txn_id?, amount? }` (BE Phase 2.6, Decision 25).
+- `POST /api/v1/consumption-tax/bills/:id/mark-unpaid` — no body. The undo path.
 
-## Backend handoff
+Preferences:
 
-The current-week tracker surface depends on a new backend endpoint
-that's not yet shipped. Spec lives at
-`.scratch/task-handoff-fe-to-be.md` §1 — the
-`.scratch/` folder is the canonical coordination point between
-frontend and backend tracks during the platform plan, sitting next
-to `task-backend-platform.md` so the backend team picks it up as
-part of Phase 0.7's incremental taxation engine work.
-
-Until the endpoint ships:
-- The CurrentWeekTracker card renders a pending empty state showing
-  the active week label and a "Live accrual will appear here once the
-  backend's incremental taxation ledger ships" hint.
-- Bill generation + finalized bill detail still work; the entire
-  pre-Batch-7 surface continues to function.
+- `auto_enabled` on `/api/v1/users/preferences` — taxation auto-mode
+  toggle (Decision 26). Wired via the existing preference-store
+  pipeline; the toggle lives on
+  [`/account/preferences`](account.md).
 
 ## Tests
 
-| Test file | What it covers |
-|---|---|
-| `pages/TaxationRulesPage.test.tsx` | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert. |
-| `pages/TaxTrackerPage.test.tsx` | Bills list renders with status pills + formatted money; opening a row shows the bill detail modal with penalty breakdown by tag; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
-| `api/billPeriod.test.ts` | Sun → Sat week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 on Sun midnight, ~1 on Sat late, ~0.5 mid-week. |
+| Test file                                  | What it covers                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages/TaxationRulesPage.test.tsx`         | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert.                                                                                                                                                                                                                                                                              |
+| `pages/TaxTrackerPage.test.tsx`            | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
+| `components/billStatus.test.tsx`           | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states.                                                                                                                                                                                                                                                                                                                                        |
+| `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state.                                                                                                                                                                                                                                                                                                                                                       |
+| `api/billPeriod.test.ts`                   | ISO Mon → Sun week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 at the start of Monday, ~1 at the end of Sunday, ~0.5 mid-week.                                                                                                                                                                                                                                                                  |
 
 ## Responsive design
 
@@ -177,10 +216,6 @@ expect it to reset on reload.
 
 ## Future polish (queued)
 
-- Backend-sourced projections — once the live ledger lands, the
-  projection numbers will come from the backend rather than the
-  client-side `safeDivide(runningTax, fractionOfWeekElapsed(...))`
-  fallback the tracker uses today.
 - Bill-detail download — a CSV/PDF export action for accountants.
   Not yet implemented; flag if requested.
 - **User-preferred date-format override.** Bill dates

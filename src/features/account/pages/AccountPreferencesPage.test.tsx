@@ -1,11 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { AccountPreferencesPage } from './AccountPreferencesPage';
@@ -36,8 +43,11 @@ describe('AccountPreferencesPage', () => {
     });
     usePreferencesStore.getState().reset();
     localStorage.clear();
+    // After BE Phase 1.9 `/api/users/me` returns identity only —
+    // currency + timezone live on `/api/users/preferences`. The page
+    // hydrates from both queries before first paint.
     server.use(
-      http.get('http://localhost:4000/api/users/me', () =>
+      http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({
           user: {
             user_id: 1,
@@ -45,40 +55,66 @@ describe('AccountPreferencesPage', () => {
             first_name: 'Taylor',
             last_name: 'Doe',
             country: 'India',
-            currency: 'INR',
-            timezone: 'Asia/Kolkata',
           },
         })
-      )
-    );
-  });
-
-  it('hydrates preferences from /api/users/me', async () => {
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
-    );
-  });
-
-  it('PATCHes only the preferences slice and re-hydrates the store', async () => {
-    let patchBody: Record<string, unknown> | null = null;
-    server.use(
-      http.patch('http://localhost:4000/api/users/me', async ({ request }) => {
-        patchBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ user: { user_id: 1 } });
-      }),
-      http.get('http://localhost:4000/api/users/preferences', () =>
+      ),
+      http.get(`${API_BASE}/users/preferences`, () =>
         HttpResponse.json({
-          currency: 'USD',
-          country: 'United States',
-          timezone: 'America/New_York',
+          currency: 'INR',
+          timezone: 'Asia/Kolkata',
         })
       )
     );
+  });
+
+  it('hydrates the form from /api/users/me + /api/users/preferences', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
+    );
+  });
+
+  it('PATCHes /me (country) + /preferences (currency, timezone) in parallel and re-hydrates the store', async () => {
+    let mePatchBody: Record<string, unknown> | null = null;
+    let prefsPatchBody: Record<string, unknown> | null = null;
+    // Track the server's current preferences view so the post-save
+    // re-hydrate GET reflects the just-PATCHed values.
+    const serverPrefs: { currency: string; timezone: string } = {
+      currency: 'INR',
+      timezone: 'Asia/Kolkata',
+    };
+    server.use(
+      http.get(`${API_BASE}/users/preferences`, () =>
+        HttpResponse.json({ ...serverPrefs })
+      ),
+      http.patch(`${API_BASE}/users/me`, async ({ request }) => {
+        mePatchBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ user: { user_id: 1 } });
+      }),
+      http.patch(`${API_BASE}/users/preferences`, async ({ request }) => {
+        prefsPatchBody = (await request.json()) as Record<string, unknown>;
+        // Server-side flip — the next GET sees the new values.
+        serverPrefs.currency = 'USD';
+        serverPrefs.timezone = 'America/New_York';
+        return HttpResponse.json({ ...serverPrefs });
+      })
+    );
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
+      expect(
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
 
     await act(async () => {
@@ -86,22 +122,22 @@ describe('AccountPreferencesPage', () => {
     });
 
     await waitFor(() => {
-      expect(patchBody).toMatchObject({
-        country: 'India',
+      // /me PATCH carries country only — no preferences fields.
+      expect(mePatchBody).toMatchObject({ country: 'India' });
+      expect(mePatchBody).not.toHaveProperty('currency');
+      expect(mePatchBody).not.toHaveProperty('timezone');
+      // /preferences PATCH carries the preferences slice — no /me fields.
+      expect(prefsPatchBody).toMatchObject({
         currency: 'INR',
         timezone: 'Asia/Kolkata',
       });
-      // Profile-page slice must NOT be in the payload — preferences
-      // PATCHes only its own fields.
-      expect(patchBody).not.toHaveProperty('first_name');
-      expect(patchBody).not.toHaveProperty('last_name');
-      expect(patchBody).not.toHaveProperty('contact');
+      expect(prefsPatchBody).not.toHaveProperty('country');
+      expect(prefsPatchBody).not.toHaveProperty('first_name');
     });
 
     // Hydrate side-effect: the preferences store now reflects the
-    // /preferences response (USD / America/New_York) so the
-    // x-user-currency / x-user-timezone headers update on the next
-    // request.
+    // re-fetched /preferences response so every consumer of
+    // `usePreferencesStore` reads the new currency + timezone.
     await waitFor(() => {
       const prefs = usePreferencesStore.getState();
       expect(prefs.currency).toBe('USD');
@@ -116,14 +152,21 @@ describe('AccountPreferencesPage', () => {
     // stores (date / number / landing route).
     renderPage();
     await waitFor(() =>
-      expect(screen.getByLabelText(/Timezone/i)).toHaveValue('Asia/Kolkata')
+      expect(
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
+      ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
     expect(screen.getByText('Defaults')).toBeInTheDocument();
     expect(
       screen.getByLabelText(/Add transaction defaults to/i)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Accessibility' })
-    ).toHaveAttribute('href', '/account/accessibility');
+    expect(screen.getByRole('link', { name: 'Accessibility' })).toHaveAttribute(
+      'href',
+      '/account/accessibility'
+    );
   });
 });

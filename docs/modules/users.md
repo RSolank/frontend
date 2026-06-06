@@ -3,19 +3,19 @@
 > Mirrors `backend/app/modules/users`. This feature ships **no pages of
 > its own** — the Profile UI was split into the
 > [Account surface](account.md) at `/account/*`. The feature still
-> owns the `/api/users/me` and `/api/users/preferences` API hooks
-> (plus a couple of `/api/auth/*` helpers exclusively consumed by the
+> owns the `/api/v1/users/me` and `/api/v1/users/preferences` API hooks
+> (plus a couple of `/api/v1/auth/*` helpers exclusively consumed by the
 > account pages). Lives at
 > [`src/features/users/`](../../src/features/users/).
 
 ## Purpose
 
-- Own the `/api/users/me` and `/api/users/preferences` query surface
+- Own the `/api/v1/users/me` and `/api/v1/users/preferences` query surface
   consumed by both the [account pages](account.md) (for editing) and
   the auth flow (for boot-time + post-login hydration).
 - Hold the canonical `userKeys` cache-key factory so any mutation
   across the app can invalidate the user query graph with one key.
-- Expose the `/api/auth/change-password` and `/api/auth/recovery`
+- Expose the `/api/v1/auth/change-password` and `/api/v1/auth/recovery`
   mutation helpers — they live under the auth backend prefix but are
   consumed only by `AccountSecurityPage`, so the helper placement
   follows the calling page rather than the URL prefix.
@@ -23,37 +23,50 @@
 ## State
 
 The users feature holds no Zustand state. The two account-adjacent
-stores live in `shared/state/` because `shared/api/apiClient.ts`
-reads from them:
+stores live in `shared/state/` because `shared/components/ProtectedRoute`
+and the cross-feature `formatMoney` / `formatDate` helpers read them
+— the dependency direction rule blocks pulling them into
+`features/users/state/`:
 
 - [`useAuthStore`](../../src/shared/state/auth.store.ts) — the user
   object the header / nav reads from after `refreshAuthUser()`
-  populates it.
+  populates it. Also carries `retryAfterSeconds` for the auth-form
+  live countdown.
 - [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
-  — rewritten on Preferences save via `hydratePreferences()`. Headers
-  + every `formatMoney` / `formatDate` call observe the change.
+  — rewritten on Preferences save via `hydratePreferences()`. Every
+  `formatMoney` / `formatDate` call observes the change.
 
 ## API
 
 [`api/`](../../src/features/users/api/)
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `userKeys` — `all`, `me()`, `preferences()` |
-| `schemas.ts` | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` (every field optional — pages PATCH partial payloads) |
-| `queries.ts` | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `useCurrentUserQuery`, `useUserPreferencesQuery` |
-| `mutations.ts` | `updateProfileRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest` |
+| File             | Exports                                                                                                                                                                                                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keys.ts`        | `userKeys` — `all`, `me()`, `preferences()`, `stats()`, `profileImagePresets()`                                                                                                                                                                                            |
+| `schemas.ts`     | `profileFormSchema`, `changePasswordSchema`, `setRecoveryQuestionSchema`, server-shape `ProfileUpdatePayload` + `PreferencesUpdatePayload` (every field optional — pages PATCH partial payloads)                                                                           |
+| `queries.ts`     | `fetchCurrentUser`, `fetchUserPreferences`, `fetchRecoveryQuestions`, `fetchProfileImagePresets`, `fetchUserStats`, `useCurrentUserQuery`, `useUserPreferencesQuery`, `useProfileImagePresetsQuery`, `useUserStatsQuery`                                                   |
+| `mutations.ts`   | `updateProfileRequest`, `updatePreferencesRequest`, `changePasswordRequest`, `setRecoveryQuestionRequest`, `setProfileImagePresetRequest`, `uploadProfileImageRequest`, `removeProfileImageRequest`, `deleteAccountRequest`, `cancelDeletionRequest`, `resetMyDataRequest` |
+| `preferences.ts` | `hydratePreferences`, `applyHydratedPreferences`, `subscribeToPreferenceStores` — boot-time + post-save hydration into the Zustand preference stores; one global subscriber PATCHes back on user-driven setters                                                            |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/users/me` | `AccountProfilePage` + `AccountPreferencesPage` hydrate, `refreshAuthUser` (auth boot) |
-| `PATCH /api/users/me` | `AccountProfilePage` save (partial), `AccountPreferencesPage` save (partial) |
-| `GET /api/users/preferences` | `hydratePreferences` (auth boot + post-login + post-Preferences-save) |
-| `GET /api/auth/recovery` | `AccountSecurityPage` |
-| `POST /api/auth/recovery` | `AccountSecurityPage` |
-| `POST /api/auth/change-password` | `AccountSecurityPage` |
+| Method + path                               | Used by                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GET /api/v1/users/me`                      | `AccountProfilePage` + `AccountPreferencesPage` hydrate, `refreshAuthUser` (auth boot) |
+| `PATCH /api/v1/users/me`                    | `AccountProfilePage` save (partial), `AccountPreferencesPage` save (partial)           |
+| `GET /api/v1/users/preferences`             | `hydratePreferences` (auth boot + post-login + post-Preferences-save)                  |
+| `PATCH /api/v1/users/preferences`           | `AccountPreferencesPage` save (currency, timezone) + every preference-store subscriber |
+| `GET /api/v1/users/me/stats`                | `UserStatsCard` on `AccountProfilePage`                                                |
+| `GET /api/v1/users/profile-image-presets`   | `ProfileImagePicker` grid                                                              |
+| `PUT /api/v1/users/me/profile-image/preset` | `ProfileImagePicker` preset select                                                     |
+| `POST /api/v1/users/me/profile-image`       | `ProfileImagePicker` upload (multipart)                                                |
+| `DELETE /api/v1/users/me/profile-image`     | `ProfileImagePicker` remove                                                            |
+| `POST /api/v1/users/me/delete`              | `DangerZone` schedule deletion                                                         |
+| `POST /api/v1/users/me/delete/cancel`       | `CancelDeletionPage` (unauth)                                                          |
+| `POST /api/v1/users/me/data-reset`          | `ResetZone` — wipe domain data, keep the account (BE Phase 2.15)                       |
+| `GET /api/v1/auth/recovery`                 | `AccountSecurityPage`                                                                  |
+| `POST /api/v1/auth/recovery`                | `AccountSecurityPage`                                                                  |
+| `POST /api/v1/auth/change-password`         | `AccountSecurityPage`                                                                  |
 
 ## Cross-feature seams
 
@@ -74,15 +87,15 @@ Endpoints touched:
 The users feature itself has no pages and therefore no page tests.
 The behavior the feature backs is covered by the consuming features:
 
-| Coverage | Test file |
-|---|---|
-| `GET /api/users/me` hydration | [`features/account/pages/AccountProfilePage.test.tsx`](../../src/features/account/pages/AccountProfilePage.test.tsx), [`features/account/pages/AccountPreferencesPage.test.tsx`](../../src/features/account/pages/AccountPreferencesPage.test.tsx) |
-| `PATCH /api/users/me` partial payloads | Same |
-| `hydratePreferences` round-trip | `AccountPreferencesPage.test.tsx` |
-| `/api/auth/change-password` validation | [`features/account/pages/AccountSecurityPage.test.tsx`](../../src/features/account/pages/AccountSecurityPage.test.tsx) |
-| `/api/auth/recovery` hydrate | Same |
-| Login-time + boot-time preferences hydration | [`features/auth/pages/LoginPage.test.tsx`](../../src/features/auth/pages/LoginPage.test.tsx) |
+| Coverage                                     | Test file                                                                                                                                                                                                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/users/me` hydration             | [`features/account/pages/AccountProfilePage.test.tsx`](../../src/features/account/pages/AccountProfilePage.test.tsx), [`features/account/pages/AccountPreferencesPage.test.tsx`](../../src/features/account/pages/AccountPreferencesPage.test.tsx) |
+| `PATCH /api/v1/users/me` partial payloads    | Same                                                                                                                                                                                                                                               |
+| `hydratePreferences` round-trip              | `AccountPreferencesPage.test.tsx`                                                                                                                                                                                                                  |
+| `/api/v1/auth/change-password` validation    | [`features/account/pages/AccountSecurityPage.test.tsx`](../../src/features/account/pages/AccountSecurityPage.test.tsx)                                                                                                                             |
+| `/api/v1/auth/recovery` hydrate              | Same                                                                                                                                                                                                                                               |
+| Login-time + boot-time preferences hydration | [`features/auth/pages/LoginPage.test.tsx`](../../src/features/auth/pages/LoginPage.test.tsx)                                                                                                                                                       |
 
-`src/test/handlers/users.ts` exposes GET + PATCH `/api/users/me` and
-GET `/api/users/preferences` permissively; individual tests override
+`src/test/handlers/users.ts` exposes GET + PATCH `/api/v1/users/me` and
+GET `/api/v1/users/preferences` permissively; individual tests override
 via `server.use(...)` to assert request bodies.

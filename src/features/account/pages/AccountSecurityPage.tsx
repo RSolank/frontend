@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { PasswordRequirements } from '../../../shared/components/PasswordRequirements';
+import { SECURITY_QUESTIONS } from '../../../shared/constants/securityQuestions';
 import { validatePassword } from '../../../shared/utils/validation';
 import {
   changePasswordRequest,
@@ -10,15 +11,10 @@ import {
   fetchRecoveryQuestions,
   type RecoveryQuestionItem,
 } from '../../users/api/queries';
-
-const SECURITY_QUESTIONS = [
-  'What was the name of your first school?',
-  'What is the name of your favorite childhood friend?',
-  'What is your mother’s maiden name?',
-  'What was the name of your first pet?',
-  'What city were you born in?',
-  'What is your favorite teacher’s name?',
-];
+import { EmailChangeForm } from '../components/EmailChangeForm';
+import { SessionList } from '../components/SessionList';
+import { TrustedDeviceList } from '../components/TrustedDeviceList';
+import { TwoFactorSection } from '../components/TwoFactorSection';
 
 interface ApiErrorShape {
   detail?: string;
@@ -122,7 +118,7 @@ export function AccountSecurityPage() {
         <form onSubmit={handlePasswordSubmit} className="grid gap-3">
           <div>
             <label htmlFor="security-current-password" className="form-label">
-              Current password <span className="text-rose-600">*</span>
+              Current password <span className="text-danger-600">*</span>
             </label>
             <input
               id="security-current-password"
@@ -142,7 +138,7 @@ export function AccountSecurityPage() {
           </div>
           <div>
             <label htmlFor="security-new-password" className="form-label">
-              New password <span className="text-rose-600">*</span>
+              New password <span className="text-danger-600">*</span>
             </label>
             <input
               id="security-new-password"
@@ -172,7 +168,7 @@ export function AccountSecurityPage() {
             <div
               className={
                 passwordStatus.includes('successfully')
-                  ? 'text-sm font-medium text-emerald-600 dark:text-emerald-400'
+                  ? 'text-success-600 dark:text-success-400 text-sm font-medium'
                   : 'form-error'
               }
             >
@@ -187,10 +183,10 @@ export function AccountSecurityPage() {
           Security question
         </h2>
         <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
-          Configuring a security question helps you recover your account if
-          you forget your password. Setting a new question will{' '}
-          <strong>replace</strong> any previous choice. Answers are hashed
-          and stored securely.
+          Configuring a security question helps you recover your account if you
+          forget your password. Setting a new question will{' '}
+          <strong>replace</strong> any previous choice. Answers are hashed and
+          stored securely.
         </p>
 
         {recoveryQuestions.length > 0 && (
@@ -248,15 +244,13 @@ export function AccountSecurityPage() {
           </div>
 
           <button type="submit" className="btn-primary !w-auto">
-            {recoveryQuestions.length > 0
-              ? 'Update question'
-              : 'Save question'}
+            {recoveryQuestions.length > 0 ? 'Update question' : 'Save question'}
           </button>
           {recoveryStatus && (
             <div
               className={
                 recoveryStatus.includes('successfully')
-                  ? 'text-sm font-medium text-emerald-600 dark:text-emerald-400'
+                  ? 'text-success-600 dark:text-success-400 text-sm font-medium'
                   : 'form-error'
               }
             >
@@ -266,18 +260,44 @@ export function AccountSecurityPage() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-6 dark:border-slate-700 dark:bg-slate-900/40">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Two-factor authentication
+        </h2>
+        <TwoFactorSection />
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Change email
+        </h2>
+        <EmailChangeForm />
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
           Active sessions
         </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Coming soon. The backend already tracks sessions in{' '}
-          <code className="rounded bg-slate-200 px-1 py-0.5 text-xs dark:bg-slate-800">
-            user_sessions
-          </code>{' '}
-          but no list/revoke endpoint is exposed yet. Tracked under
-          &ldquo;Backend follow-ups&rdquo; in the implementation plan.
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Devices currently signed in to your account. Revoke any you
+          don&rsquo;t recognise — the affected device will be signed out
+          immediately. Backend enforces a 5-session cap; new sign-ins evict the
+          oldest device.
         </p>
+        <SessionList />
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+        <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Trusted devices
+        </h2>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Devices that have cleared the new-device email-OTP gate. Forget any
+          you don&rsquo;t recognise — that device&rsquo;s next sign-in will
+          require an emailed code, and its active session (if any) ends
+          immediately.
+        </p>
+        <TrustedDeviceList />
       </div>
     </div>
   );

@@ -23,7 +23,9 @@ export function WeekSummaryWidget() {
   const week = useMemo(() => weekRangeInTz(new Date(), timezone), [timezone]);
   const weekCrossesMonth =
     week.period_start.slice(0, 7) !== week.period_end.slice(0, 7);
-  const activeMonth = weekCrossesMonth ? undefined : week.period_start.slice(0, 7);
+  const activeMonth = weekCrossesMonth
+    ? undefined
+    : week.period_start.slice(0, 7);
 
   const txnQuery = useTransactionsQuery({
     limit: WEEK_FETCH_LIMIT,
@@ -99,7 +101,7 @@ function Row({
     <div className="flex items-center justify-between">
       <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
       <dd
-        className={`tabular-nums font-semibold text-slate-800 dark:text-slate-100 ${
+        className={`font-semibold text-slate-800 tabular-nums dark:text-slate-100 ${
           isMoney ? 'money' : ''
         }`}
       >

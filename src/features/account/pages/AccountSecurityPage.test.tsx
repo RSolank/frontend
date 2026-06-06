@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
 import { AccountSecurityPage } from './AccountSecurityPage';
@@ -35,7 +36,7 @@ describe('AccountSecurityPage', () => {
     });
     localStorage.clear();
     server.use(
-      http.get('http://localhost:4000/api/auth/recovery', () =>
+      http.get(`${API_BASE}/auth/recovery`, () =>
         HttpResponse.json({
           questions: [{ question: 'What was the name of your first pet?' }],
         })
@@ -65,11 +66,15 @@ describe('AccountSecurityPage', () => {
     );
   });
 
-  it('renders the active-sessions coming-soon placeholder', () => {
+  it('renders the active-sessions card backed by /api/auth/sessions', async () => {
     renderPage();
     expect(
       screen.getByRole('heading', { name: 'Active sessions' })
     ).toBeInTheDocument();
-    expect(screen.getByText(/Coming soon/i)).toBeInTheDocument();
+    // Default MSW handler returns an empty session list — the
+    // SessionList renders the empty state inline.
+    await waitFor(() =>
+      expect(screen.getByText(/No active sessions/i)).toBeInTheDocument()
+    );
   });
 });

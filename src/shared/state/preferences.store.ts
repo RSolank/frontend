@@ -1,16 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Mirrors the backend's UserPreferencesMiddleware contract — see
-// CONTRIBUTING.md §5 "User preferences contract". Every authenticated
-// request injects these as `x-user-currency` / `x-user-timezone` headers
-// (handled in shared/api/apiClient.ts). Defaults match the middleware's
-// fallbacks (USD / UTC) so an unhydrated store still produces valid
-// requests.
+// Currency + timezone slice of the BE Phase 1.9 `user_preferences`
+// contract (see CONTRIBUTING.md §5 "User preferences contract").
+// Hydrated at boot from `GET /api/users/preferences` by
+// `features/users/api/preferences.ts:hydratePreferences()`; the
+// Account Preferences page's Save handler PATCHes both fields
+// explicitly (no subscriber needed — the page is the only writer).
+// Defaults match the BE seed fallbacks (USD / UTC) so an unhydrated
+// store still produces valid values for `formatMoney` /
+// `formatDate` consumers.
 //
-// Must live in shared/ because shared/api/apiClient.ts reads from it;
-// per the dependency direction rule (features → shared, never the
-// reverse) it cannot live in features/users/state/.
+// Lives in shared/ for historical reasons (apiClient used to read it
+// for the now-retired preference headers); the dependency direction
+// rule (features → shared, never reverse) is preserved either way.
 
 export interface UserPreferences {
   currency: string;

@@ -16,6 +16,7 @@
 - [**DetailModal**](#detailmodal-canonical-view--edit-surface) — the canonical view + edit surface for CRUD features.
 - [**Modal-header destructive actions**](#modal-header-destructive-actions-remove-in-edit) — the Remove-in-edit convention.
 - [**Row highlight on save**](#row-highlight-on-save) — post-save feedback on the originating list.
+- [**Idle-time prefetch**](#idle-time-prefetch) — warm click-gated chunks during the browser idle window.
 - [**Accessibility vs Preferences**](#accessibility-vs-preferences) — device a11y toggle vs backend-persisted preference.
 - [**Week convention**](#week-convention) — ISO Mon→Sun, app-wide.
 
@@ -42,10 +43,28 @@ and re-skin it later.
   body regular, supporting text muted. Limit to ~3 sizes per screen.
   Use a system font stack or one well-chosen webfont (Inter / Geist /
   system-ui), set globally — no per-component font surprises.
-- **Color discipline.** A restrained neutral palette + one accent + a
-  small set of semantic colors (success, warning, error, info). Defined
-  once in Tailwind's `@theme` block, referenced everywhere; no ad-hoc
-  hex values inside components.
+- **Color discipline.** A restrained neutral palette + one brand
+  accent + three semantic state colors. Locked in Platform FE Batch
+  17 via a single `@theme inline` block at the top of
+  [`src/index.css`](../src/index.css):
+  - **`accent-*`** is the brand accent. It is the ONLY token that
+    flips per theme: **teal** in light mode, **indigo** in dark
+    mode. Every brand surface (CTAs, links, focus rings, active-tab
+    indicators, hover affordances) reads from `accent-*` — never
+    from `indigo-*` or `teal-*` directly. The flip lives in the
+    `:root` / `html.dark` blocks; consumers stay theme-agnostic.
+  - **`success-*` / `warning-*` / `danger-*`** are the semantic
+    state tokens. They DO NOT flip per theme — the same family
+    resolves in both modes (emerald / amber / rose). The per-shade
+    selection handles light vs dark contrast at each call site
+    (e.g. `text-success-600 dark:text-success-400`).
+  - Decorative one-offs (the landing-page gradient end, mock
+    category-tint dots) MAY use raw Tailwind colors — they're not
+    brand surfaces. Treat anything that conveys "this is
+    interactive / on-brand" as brand and tokenize it.
+  - No ad-hoc hex values inside components. The CSS-variable
+    indirection is what makes the theme flip work at runtime; a
+    raw `#xxxxxx` literal can't follow `.dark`.
 - **Corners and surfaces.** Small-to-medium rounded corners
   (`rounded-md` / `rounded-lg`); subtle shadows (`shadow-sm` /
   `shadow-md`) for elevated surfaces (cards, modals, dropdowns). No
@@ -82,14 +101,14 @@ and re-skin it later.
     `sm` — the owning feature picks what reads better for its data.
     Tables should never force `body` to scroll horizontally.
   - **Header / navigation collapse rules** — non-essential elements
-    (e.g. "Hello, *firstname*" greeting, breadcrumbs) get
+    (e.g. "Hello, _firstname_" greeting, breadcrumbs) get
     `hidden sm:inline` / `hidden md:flex` so the icon row stays
     uncrowded on narrow screens. Don't ship a hamburger pattern until
     a screen genuinely needs it.
   - **Per-surface responsibility** — check every surface you build at
     `sm` (375 px), `md` (768 px), and a desktop width before shipping it.
-  - **Effort tiers by surface density.** The *check* is always per
-    batch; the *implementation work* scales with what the feature
+  - **Effort tiers by surface density.** The _check_ is always per
+    batch; the _implementation work_ scales with what the feature
     actually contains:
     - **Form / list / chip surfaces** (auth pages, profile, tags,
       beneficiaries, settings): usually a 5-minute viewport smoke
@@ -99,7 +118,7 @@ and re-skin it later.
     - **Table, grid, multi-step, and dense surfaces** (transactions
       list, statement upload, taxation bills, budget grids,
       Dashboard, statement-parse review tables): require deliberate
-      responsive design *upfront* — pick the degradation strategy
+      responsive design _upfront_ — pick the degradation strategy
       (horizontal-scroll-inside-card, card-stack, column-hide) before
       writing the markup, not after. Tables don't degrade naturally;
       retrofitting is painful.
@@ -126,8 +145,8 @@ and re-skin it later.
     controls, and back-button semantics. The modal is an additional
     entry path, not a replacement.
   - **Don't use a modal for primary-content surfaces** (dashboards,
-    list views, detail pages). Modals are for *secondary, focused
-    actions* — anything that would also work as "open in a new tab"
+    list views, detail pages). Modals are for _secondary, focused
+    actions_ — anything that would also work as "open in a new tab"
     belongs on a route, not in a modal.
 - **Loading and empty states** are first-class. Skeletons for any list
   fetch > 200 ms (per §8); thoughtful empty states with a clear next
@@ -218,7 +237,7 @@ and any future surface meeting both conditions.
 **Apply only when both invariants hold:**
 
 1. There is a finite list of candidate values to choose from.
-2. The user is allowed to *add* new values to that same list.
+2. The user is allowed to _add_ new values to that same list.
 
 If a field only searches a fixed catalog (country / currency /
 timezone — the user can pick, not add), use a plain `<select>` or
@@ -245,20 +264,20 @@ case.
   source list** and, for single-select, **auto-selects** the new
   entry; for multi-select, **auto-appends** it.
 - **Selection-state rendering depends on cardinality:**
-  - **Single-select:** the chosen value lives *inside* the search
+  - **Single-select:** the chosen value lives _inside_ the search
     input — pick replaces the search text with the value's label;
     the dropdown closes; the parent is responsible for caching the
     chosen id alongside the visible name. No chip rail.
     Reference: `BeneficiarySearch`.
   - **Multi-select:** every pick appends a chip to a rail rendered
-    *below* the input. Chips carry a `×` remove button. Already-
+    _below_ the input. Chips carry a `×` remove button. Already-
     selected ids are filtered out of the dropdown so the same
     value can't be re-picked.
     Reference: `TagSelector`, categorization-rules tag picker.
   - **Feature-specific chip enrichment** (e.g. "Primary" badge +
     "Set Primary" buttons on categorization-rule tag chips, alias
     bracket display on beneficiary chips) is allowed on top of the
-    multi-select base. It's a *layer over* the pattern, not a
+    multi-select base. It's a _layer over_ the pattern, not a
     deviation from it.
 - **Type-then-create flow:** if the user types a name not in the
   list, the Add CTA stays at top of the dropdown. Optionally
@@ -316,19 +335,21 @@ ordinary entry in `options[]`.
 
 **Decision matrix for current pickers:**
 
-| Surface | Convention | Reason |
-|---|---|---|
-| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create) | Data-driven, user can add |
-| Tag picker on Add Tx | `SearchableList` (pick-or-create, multi) | Data-driven, user can add |
-| Tag dropdown in Filter Sidebar | `SearchableSelect` | Data-driven, often > 15 |
-| Merchant search bar (Transactions filter row) | bespoke (per-feature `MerchantSearchBar`) | Filter-row chrome, not a sidebar dropdown |
-| Country picker (Register, Profile) | `SearchableSelect` | 250 items |
-| Currency picker (Profile, Preferences) | `SearchableSelect` | 170 items |
-| Timezone picker (Register, Profile) | bespoke `TimezoneSelect` (country-narrowing) | Specialised filter cascade |
-| Month dropdown (Transactions filter) | plain `<select>` | Sequential, 25 items, native jump works |
-| Type filter (debit/credit/all) | pill toggle | 3 items — toggle, not dropdown |
-| Sort field / direction (Filter Sidebar) | plain `<select>` | ≤ 4 items, fixed |
-| Date format / number format pickers | plain `<select>` | ≤ 10 items, semantic groups |
+| Surface                                           | Convention                                                                 | Reason                                                                                                                                                                               |
+| ------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create)                                          | Data-driven, user can add                                                                                                                                                            |
+| Tag picker on Add Tx                              | `SearchableList` (pick-or-create, multi)                                   | Data-driven, user can add                                                                                                                                                            |
+| Tag dropdown in Filter Sidebar                    | `SearchableSelect`                                                         | Data-driven, often > 15                                                                                                                                                              |
+| Beneficiary category (Beneficiary form)           | `SearchableSelect`                                                         | Data-driven, ~25+ tags in the default seed                                                                                                                                           |
+| Merchant search bar (Transactions filter row)     | bespoke (per-feature `MerchantSearchBar`)                                  | Filter-row chrome, not a sidebar dropdown                                                                                                                                            |
+| Country picker (Register, Profile)                | `SearchableSelect`                                                         | 250 items                                                                                                                                                                            |
+| Currency picker (Profile, Preferences)            | `SearchableSelect`                                                         | 170 items                                                                                                                                                                            |
+| Timezone picker (Register, Profile)               | bespoke `TimezoneSelect` (country-narrowing + `SearchableSelect` fallback) | Specialised filter cascade; full IANA fallback is searchable per the >15-items rule                                                                                                  |
+| Bank-account picker (Add / Edit transaction)      | plain `<select>`                                                           | Per-user count is bounded (≤ ~5 in practice); the "user-extendable" trigger doesn't fire because users don't accumulate accounts past a visual-scan threshold. Documented carve-out. |
+| Month dropdown (Transactions filter)              | plain `<select>`                                                           | Sequential, 25 items, native jump works                                                                                                                                              |
+| Type filter (debit/credit/all)                    | pill toggle                                                                | 3 items — toggle, not dropdown                                                                                                                                                       |
+| Sort field / direction (Filter Sidebar)           | plain `<select>`                                                           | ≤ 4 items, fixed                                                                                                                                                                     |
+| Date format / number format pickers               | plain `<select>`                                                           | ≤ 10 items, semantic groups                                                                                                                                                          |
 
 **Anti-patterns to avoid:**
 
@@ -421,10 +442,12 @@ as live inputs).
   view+edit; add+edit branch on `editing` prop).
 - `features/tags` — `TagFormDialog` (system tags render readonly).
 - `features/budgets` — `BudgetFormDialog`.
-- `features/categorization` — rule edit modal.
+- `features/categorization` — `CategorizationRuleFormDialog`.
 - `features/taxation` — `TaxationRuleFormDialog` for rules,
   `BillDetailDialog` for bills (read-only DetailModal — bills
   aren't edited, only viewed + paid).
+- `features/recurring` — `RecurringFormDialog`.
+- `features/bankAccounts` — `BankAccountFormDialog`.
 
 All CRUD features above comply; new features adopt this convention
 from the start.
@@ -441,10 +464,10 @@ crowding the Cancel / Save footer.
 
 - **Render only in edit mode.** Add-mode (no `editing*` prop) hides
   the Remove button — there's nothing to remove yet.
-- **Icon-only, sized 32×32.** Matches the close X chrome. Rose tint
-  (`text-rose-600 dark:text-rose-400` with `hover:bg-rose-50 /
-  dark:hover:bg-rose-950/40`) differentiates from the close X
-  without dominating the header.
+- **Icon-only, sized 32×32.** Matches the close X chrome. Danger
+  tint (`text-danger-600 dark:text-danger-400` with
+  `hover:bg-danger-50 / dark:hover:bg-danger-950/40`) differentiates
+  from the close X without dominating the header.
 - **`title` + `aria-label` carry the text label** (e.g. "Remove
   beneficiary") — keyboard / screen-reader friendly; tooltip
   surfaces on hover.
@@ -466,14 +489,17 @@ crowding the Cancel / Save footer.
 
 **Where the convention applies:**
 
-| Modal | Status | Notes |
-|---|---|---|
-| `BudgetFormDialog` | ✅ | Modal is the primary delete surface (no row-level delete on the cards). |
-| `BeneficiaryFormDialog` | ✅ | Row + modal both available. |
-| `TagFormDialog` | ✅ | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`). |
-| Transactions edit modal | ✅ | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate). |
-| `TaxationRuleFormDialog` | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete". |
-| `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete. |
+| Modal                                                                              | Status  | Notes                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `BudgetFormDialog`                                                                 | ✅      | Modal is the primary delete surface (no row-level delete on the cards).                                                                  |
+| `BeneficiaryFormDialog`                                                            | ✅      | Row + modal both available.                                                                                                              |
+| `TagFormDialog`                                                                    | ✅      | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`).                                   |
+| Transactions edit modal                                                            | ✅      | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate).                    |
+| `RecurringFormDialog`                                                              | ✅      | Modal is the primary delete surface — soft-deactivate via DELETE on the template uid.                                                    |
+| `BankAccountFormDialog`                                                            | ✅      | Modal is the primary delete surface — hard-delete; statement-upload identifier matches stop working (warning copy in the ConfirmDialog). |
+| `CategorizationRuleFormDialog`                                                     | ✅      | Header Trash for user rules; hidden when `isUserRule` is false.                                                                          |
+| `TaxationRuleFormDialog`                                                           | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete".                                   |
+| `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete.                                                                                         |
 
 **Shared infra:** `shared/components/Modal.tsx` exposes a
 `headerActions?: React.ReactNode` slot rendered between the title
@@ -498,9 +524,11 @@ eye lands on the changed row instead of scanning the table.
 
 - Highlight kicks in on **both create AND edit** success, not just
   edit. Symmetric UX: every save → glow.
-- Visual: **indigo ring** that fades after ~1500 ms. Use
-  `ring-2 ring-indigo-500 ring-inset` (or equivalent), conditional
-  on `highlightId === row.id`.
+- Visual: **accent ring** that fades after ~1500 ms. Use
+  `ring-2 ring-accent-500 ring-inset` (or equivalent), conditional
+  on `highlightId === row.id`. The accent token flips per theme
+  (teal in light, indigo in dark) — the highlight automatically
+  follows.
 - **Best-effort, no scrolling.** If the user has filtered or
   sorted the row out of view, the highlight still fires but the
   user may not see it. Don't auto-scroll — surprise scrolling is
@@ -520,31 +548,95 @@ specific variant that also handles group rebucket-and-expand on
 top of the base highlight; it predates the shared hook and is
 left in place.)
 
+## Idle-time prefetch
+
+Locked Platform FE Batch 20 UAT (`aca6817`). **Click-gated chunks
+that gate first-paint behind a lazy boundary should warm during
+the browser's idle window after the user lands.** Sub-page surfaces
+the user hasn't clicked yet — TopNav submenus, Accessibility
+panel, lazy modals, route chunks for the most-clicked paths —
+shouldn't block first paint, but they also shouldn't pay the
+load-on-click latency every time.
+
+**Shared hook + helper:**
+
+- [`shared/utils/prefetchOnIdle.ts → prefetchOnIdle(fn, delayMs)`](../../src/shared/utils/prefetchOnIdle.ts)
+  schedules `fn` (which returns a dynamic `import(...)`) for
+  `requestIdleCallback` after `delayMs`, with `setTimeout`
+  fallback for browsers without RIC. WeakSet-memoized — the same
+  `fn` won't run twice across re-mounts.
+- `useIdlePrefetch(entries: PrefetchEntry[], enabled: boolean)`
+  takes a list of `{ delay, importer, label }` and registers each
+  via `prefetchOnIdle`. Cleanup on unmount cancels still-pending
+  timers (the loaded chunks stay cached).
+
+**Schedule lives in `app/`, not `shared/`** — the eslint
+`boundaries` rule blocks `shared/ → features/` imports, but the
+schedule needs to dynamic-import feature pages. Two canonical
+schedules:
+
+- [`app/idlePrefetchSchedule.ts → AUTHED_PREFETCH`](../../src/app/idlePrefetchSchedule.ts)
+  — used by `App.tsx` once `useAuthStore.user` is set. Stagger 2–8 s
+  (most-clicked first): TopNav menus (2 s), Transactions (2.5 s),
+  ExpenseTracker (3 s), TaxTracker (3.5 s), ActivityFeedModal +
+  AccessibilityPanel (4 s), … through the long tail.
+- `ANON_PREFETCH` — used by `app/pages/Home.tsx` for the anonymous
+  landing page. Warms `AuthModal` after 2 s.
+
+**Exemptions** — surfaces that need to load _immediately_ on a
+user action skip the schedule and force-prefetch on mount of the
+relevant page. Example:
+[`UploadStatementPage`](../../src/features/transactions/statement_upload/pages/UploadStatementPage.tsx)
+prefetches `StatementUploadDock` on mount so the bottom-right dock
+is visible the instant the user submits and the page navigates
+away.
+
+**When NOT to add a chunk to the schedule:**
+
+- Chunks loaded by 99% of users in the first 5 s anyway (the
+  dashboard route — eagerly imported, not lazy).
+- Chunks gated by domain-specific state the user might never
+  enter (Admin portal — only mounted for SYSTEM-role accounts;
+  the route lazy-imports naturally, no idle warm needed).
+
+The schedule is the budget — adding a row makes it longer for
+everyone. Add only when usage data (or a UAT round) flags a
+specific click-gated chunk as slow.
+
 ## Accessibility vs Preferences
 
-Locked 2026-05-26. Two
-distinct user-pref classes live in this app — they look similar
-but persist and surface differently:
+Locked 2026-05-26, reclassified 2026-06-01 after BE Phase 1.9 +
+Platform FE Batch 2. Two distinct user-pref classes live in this
+app — they look similar but persist and surface differently:
 
-- **Accessibility** — frontend-only, no backend column. Survive
-  reloads via `localStorage` (Zustand `persist`), do NOT follow
-  the user across devices. Implemented as small Zustand stores
-  with a `bridge` in `app/providers.tsx` that mirrors store state
-  onto the `<html>` element (class or style). No-FOUC inline in
-  `index.html` paints the initial state before React mounts.
-  Examples: theme (light / dark / system), text size (zoom),
-  reduced motion, privacy mask. Surfaced under a single
-  **Accessibility** group — `<AccessibilityPopover />` on desktop
-  (a single icon button in the top bar opening a popover with all
-  four controls) and a dedicated **ACCESSIBILITY** section in the
-  mobile drawer.
-- **Preferences** — backend-persisted, follow the user across
-  devices via the preference-headers contract (§5 above). Examples:
-  currency, country, timezone. Surfaced on the account surface
-  (`/account/preferences`). The "defaults" cluster (default landing
-  route, default debit/credit on Add Transaction, date-format /
-  number-format overrides) belongs to this group; some of those still
-  need backend columns (a deferred backend follow-up).
+- **Device accessibility** — frontend-only, no backend column.
+  Survive reloads via `localStorage` (Zustand `persist`), do NOT
+  follow the user across devices. Implemented as small Zustand
+  stores with a `bridge` in `app/providers.tsx` that mirrors store
+  state onto the `<html>` element (class or style). No-FOUC inline
+  in `index.html` paints the initial state before React mounts.
+  These are device-shaped settings — the right value on the user's
+  desktop may be wrong on their phone. Examples: theme (light /
+  dark / system), text size (zoom), reduced motion, privacy mask.
+  Surfaced under a single **Accessibility** group —
+  `<AccessibilityPopover />` on desktop (a single icon button in
+  the top bar opening a popover with all four controls) and a
+  dedicated **ACCESSIBILITY** section in the mobile drawer.
+- **Preferences** — backend-persisted via the `user_preferences`
+  row (§5 above); follow the user across devices. Hydrated at boot
+  by `hydratePreferences()`, and every user-driven `setX()` fires
+  a PATCH side-effect via `subscribeToPreferenceStores()`. The
+  full SoT set is: currency, timezone, date*format, number_format,
+  landing_route, default_txn_kind, underline_links,
+  focus_ring_always, auto_enabled (the taxation auto-finalize toggle
+  added in BE Phase 2.6 — Decision 26). **Note:** underline-links and focus-ring-
+  always \_are* a11y flags by behaviour (they affect contrast /
+  visible focus) but live in Preferences because the right value
+  is a property of the _user_, not the _device_ — a user who needs
+  a visible focus ring on their laptop needs it on their phone
+  too. Surfaced on the account surface — currency / timezone /
+  country on `/account/preferences`, the rest on
+  `/account/accessibility` (UI grouping by feel, not by SoT).
 
 **Pattern for new Accessibility surfaces** (in case more get
 added):
@@ -569,6 +661,16 @@ it. Examples in `features/transactions/pages/TransactionsPage.tsx`
 amount cells. Future surfaces that render money adopt this
 className as they're touched.
 
+**Known carve-out — SVG `<title>` tooltips.** The privacy-mask
+CSS targets styled DOM nodes; SVG `<title>` is an accessibility
+metadata element that doesn't respond to CSS class selectors.
+`ExpenseTrendChart`'s per-bar hover tooltip embeds `money(value)`
+in a `<title>` and is therefore unblurrable from that surface.
+Severity is low (the bar height already conveys magnitude) and
+working around it would require a `<foreignObject>` overlay that
+costs more bundle than the privacy delta. Documented here so
+future readers don't flag it as a violation.
+
 ## Week convention
 
 Locked 2026-05-28. **Weeks are ISO 8601 — Monday
@@ -585,19 +687,7 @@ Never roll your own Monday math; use the helper so a future
 convention change is one file. `fractionOfWeekElapsed` and
 `precedingWeekStartInTz` also operate on ISO weeks.
 
-**Backend status — TRANSITIONAL.** The backend's bill generator
-(`backend/app/modules/taxation/taxation_services.py:_iter_week_ranges`)
-still iterates Sun → Sat. Frontend display surfaces are
-self-contained and already correct; the bill write path
-(`GenerateBillsDialog` → `POST /api/consumption-tax/generate`) will
-send Mon → Sun ranges that don't align with stored Sun → Sat
-bills until the backend cutover lands. The ask is filed in
-[`.scratch/task-handoff-fe-to-be.md §12`](../.scratch/task-handoff-fe-to-be.md)
-as a high-priority backend follow-up. Until that lands, do **not**
-batch-generate bills across the convention boundary.
-
 **Naming.** Use `weekStart` / `weekEnd` (or `period_start` /
 `period_end` when matching backend payload shape) — never
 `mondayStart` / `sundayEnd`. The labels stay neutral so the next
 convention change (if any) doesn't require a rename sweep.
-

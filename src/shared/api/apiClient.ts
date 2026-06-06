@@ -1,7 +1,4 @@
-import {
-  sanitizePreferences,
-  usePreferencesStore,
-} from '../state/preferences.store';
+import { getDeviceId } from '../utils/deviceId';
 
 import { routes } from './routes';
 
@@ -13,30 +10,37 @@ const BASE_URL =
 // (not an Error subclass). We preserve that shape so JS callers under
 // src/pages/** keep working; feature batches can migrate to a richer
 // error type when they convert.
+//
+// `retryAfterSeconds` is attached by Platform FE Batch 3 whenever the
+// response carries a `Retry-After` header on a 429 (auth.rate-limit)
+// or 403 (auth.devices device-block). Forms read it via
+// `useRetryCountdown(err.retryAfterSeconds)` to render an inline
+// "try again in N seconds" message; non-form callers fall through to
+// the generic error path.
 export type ApiError = {
   error?: string;
   status: number;
+  retryAfterSeconds?: number;
   [key: string]: unknown;
 };
 
-// Pulled out so the smoke test can assert exactly the two headers
-// implementing the CONTRIBUTING.md §5 contract land on every request.
-// Read via getState() — outside the React render path so non-component
-// callers (apiFetch is a module-level function) work without hooks.
-function preferenceHeaders(): Record<string, string> {
-  // Sanitize at the wire boundary — even if the in-memory store has been
-  // poisoned (e.g. legacy backend row with the currency *symbol* "₹"
-  // instead of the ISO code "INR"), the headers stay ByteString-safe so
-  // `fetch()` never throws a `Cannot convert value in record<ByteString…>`.
-  // Defaults to USD / UTC for any field that fails the printable-ASCII
-  // check. See shared/state/preferences.store.ts:isHeaderSafe for why.
-  const { currency, timezone } = sanitizePreferences(
-    usePreferencesStore.getState()
-  );
-  return {
-    'x-user-currency': currency,
-    'x-user-timezone': timezone,
-  };
+// Parses a `Retry-After` header into a positive integer of seconds.
+// The header may carry either a delta-seconds value (`120`) or an
+// HTTP-date (`Wed, 21 Oct 2026 07:28:00 GMT`). Returns `undefined` if
+// the header is missing or unparseable so the caller falls through
+// to the generic error path.
+function parseRetryAfter(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const trimmed = header.trim();
+  if (trimmed === '') return undefined;
+  if (/^\d+$/.test(trimmed)) {
+    const n = parseInt(trimmed, 10);
+    return n > 0 ? n : undefined;
+  }
+  const stamp = Date.parse(trimmed);
+  if (Number.isNaN(stamp)) return undefined;
+  const delta = Math.ceil((stamp - Date.now()) / 1000);
+  return delta > 0 ? delta : undefined;
 }
 
 // Outcome of a 401-triggered refresh attempt:
@@ -68,6 +72,11 @@ async function refreshAndRetry(
       headers: {
         'Content-Type': 'application/json',
         'X-Refresh-Token': refreshToken,
+        // Refresh is part of the device-aware lockout surface — the
+        // BE's suspicious-refresh path (Phase 1.4) needs X-Device-Id
+        // to tell "same browser, expired token" apart from "stolen
+        // token replay from a new device".
+        'X-Device-Id': getDeviceId(),
       },
     });
 
@@ -105,7 +114,7 @@ export async function apiFetch<T = unknown>(
   const headers: Record<string, string> = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...preferenceHeaders(),
+    'X-Device-Id': getDeviceId(),
     ...((options.headers as Record<string, string> | undefined) ?? {}),
   };
 
@@ -122,16 +131,59 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    let err: ApiError;
-    try {
-      err = (await res.json()) as ApiError;
-    } catch {
-      err = { error: 'Request failed', status: res.status };
-    }
-    err.status = res.status;
+    const err = await buildApiError(res);
+    handleAccountPendingDeletion(err);
     throw err;
   }
 
   if (res.status === 204) return {} as T;
   return (await res.json()) as T;
+}
+
+// BE Phase 2.1 — while an account is in the 14-day soft-delete grace
+// window, EVERY authenticated request returns
+// `403 {detail: "ACCOUNT_PENDING_DELETION"}`. Hard-logout the tab and
+// redirect to /account/cancel-deletion so the user sees the cancel
+// flow instead of a cryptic toast. The page handles the no-token
+// informational mode in addition to the email-link cancel flow.
+function handleAccountPendingDeletion(err: ApiError): void {
+  if (err.status !== 403) return;
+  if (err.detail !== 'ACCOUNT_PENDING_DELETION') return;
+  // Avoid a redirect loop if the cancel-deletion page itself triggers
+  // the 403 (it shouldn't — the cancel endpoint is unauthenticated —
+  // but be defensive).
+  if (typeof window !== 'undefined') {
+    if (window.location.pathname.startsWith('/account/cancel-deletion')) {
+      return;
+    }
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/account/cancel-deletion';
+  }
+}
+
+// Builds the `ApiError` thrown on a non-2xx response. Extracted out
+// of `apiFetch` so the function stays under the complexity ceiling
+// (CONTRIBUTING.md §3 — ratchet, no suppression). Reads the JSON body
+// best-effort, normalises the status, and (on 429/403) decorates the
+// error with `retryAfterSeconds` so the auth-form countdown hook can
+// surface a live tick.
+async function buildApiError(res: Response): Promise<ApiError> {
+  let err: ApiError;
+  try {
+    err = (await res.json()) as ApiError;
+  } catch {
+    err = { error: 'Request failed', status: res.status };
+  }
+  err.status = res.status;
+  // `Retry-After` is meaningful on both 429 (auth.rate-limit) and
+  // 403 (auth.devices device-block). Other statuses with the header
+  // are out-of-spec for this project and ignored.
+  if (res.status === 429 || res.status === 403) {
+    const retryAfter = parseRetryAfter(res.headers.get('Retry-After'));
+    if (retryAfter !== undefined) {
+      err.retryAfterSeconds = retryAfter;
+    }
+  }
+  return err;
 }

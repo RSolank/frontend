@@ -1,24 +1,58 @@
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
+import { lazy } from 'react';
+import {
+  createBrowserRouter,
+  Navigate,
+  type RouteObject,
+} from 'react-router-dom';
 
 import { accountRoutes } from '../features/account/account.routes';
+import { adminRoutes } from '../features/admin/admin.routes';
 import { authRoutes } from '../features/auth/auth.routes';
 import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { budgetsRoutes } from '../features/budgets/budgets.routes';
 import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
+import { recurringRoutes } from '../features/recurring/recurring.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
 
 import { App } from './App';
-import { HelpPage } from './pages/Help';
 import { HomePage } from './pages/Home';
 import { protectedRoutes } from './routeHelpers';
+
+// Help is a content-heavy doc-style page hit by a small minority of
+// sessions (TopNav link, not a primary surface) — lazy-load it to
+// keep first-paint under the 125 kB JS ceiling.
+const HelpPage = lazy(() =>
+  import('./pages/Help').then((m) => ({ default: m.HelpPage }))
+);
+
+// `/account/cancel-deletion` is unauthenticated by design — the user
+// IS logged out while the BE central lock is active, and the email
+// link is the canonical entry point. Lives outside `accountRoutes`
+// (which sit inside ProtectedRoute) so reaching it doesn't bounce
+// through the login gate.
+const CancelDeletionPage = lazy(() =>
+  import('../features/account/pages/CancelDeletionPage').then((m) => ({
+    default: m.CancelDeletionPage,
+  }))
+);
+// BE Phase 2.3 — one-click revoke link from the new-device email.
+// Unauthenticated by design (the user is presumed locked out of the
+// just-revoked device); same shell as `/account/cancel-deletion`.
+const RevokeDevicePage = lazy(() =>
+  import('../features/account/pages/RevokeDevicePage').then((m) => ({
+    default: m.RevokeDevicePage,
+  }))
+);
 
 // Public-facing routes (no auth gate). The auth feature owns /login and
 // /register from Batch 2 onwards.
 const publicRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
   { path: '/help', element: <HelpPage /> },
+  { path: '/account/cancel-deletion', element: <CancelDeletionPage /> },
+  { path: '/account/revoke-device', element: <RevokeDevicePage /> },
   ...authRoutes,
 ];
 
@@ -31,10 +65,12 @@ const publicRoutes: RouteObject[] = [
 const authedRoutes: RouteObject[] = protectedRoutes([
   ...dashboardRoutes,
   ...accountRoutes,
+  ...adminRoutes,
   ...beneficiariesRoutes,
   ...transactionsRoutes,
   ...taxationRoutes,
   ...budgetsRoutes,
+  ...recurringRoutes,
   ...settingsRoutes,
 ]);
 

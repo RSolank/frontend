@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
@@ -101,16 +102,14 @@ const constants = {
 
 beforeEach(() => {
   server.use(
-    http.get('http://localhost:4000/api/categorization-rules', () =>
+    http.get(`${API_BASE}/categorization-rules`, () =>
       HttpResponse.json(rulesResponse)
     ),
-    http.get('http://localhost:4000/api/tags', () =>
-      HttpResponse.json(tagsResponse)
-    ),
-    http.get('http://localhost:4000/api/beneficiaries', () =>
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json(tagsResponse)),
+    http.get(`${API_BASE}/beneficiaries`, () =>
       HttpResponse.json(beneficiariesResponse)
     ),
-    http.get('http://localhost:4000/api/metadata/constants', () =>
+    http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(constants)
     )
   );
@@ -137,17 +136,14 @@ describe('CategorizationRulesPage', () => {
   it('creates a rule with beneficiary search and auto-generated name', async () => {
     const postSpy = vi.fn();
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: [] })
       ),
-      http.post(
-        'http://localhost:4000/api/categorization-rules',
-        async ({ request }) => {
-          const body = (await request.json()) as Record<string, unknown>;
-          postSpy(body);
-          return HttpResponse.json({ rule: { uid: 3 } });
-        }
-      )
+      http.post(`${API_BASE}/categorization-rules`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        postSpy(body);
+        return HttpResponse.json({ rule: { uid: 3 } });
+      })
     );
 
     renderWithProviders(<CategorizationRulesPage />);
@@ -159,9 +155,8 @@ describe('CategorizationRulesPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add Rule' }));
 
-    const searchInput = await screen.findByPlaceholderText(
-      /Search beneficiary/i
-    );
+    const searchInput =
+      await screen.findByPlaceholderText(/Search beneficiary/i);
     fireEvent.change(searchInput, { target: { value: 'New' } });
     fireEvent.focus(searchInput);
 
@@ -201,13 +196,10 @@ describe('CategorizationRulesPage', () => {
   it('deletes a user-created rule via the API', async () => {
     const deleteSpy = vi.fn();
     server.use(
-      http.delete(
-        'http://localhost:4000/api/categorization-rules/1',
-        () => {
-          deleteSpy();
-          return HttpResponse.json({ status: 'ok' });
-        }
-      )
+      http.delete(`${API_BASE}/categorization-rules/1`, () => {
+        deleteSpy();
+        return HttpResponse.json({ status: 'ok' });
+      })
     );
 
     renderWithProviders(<CategorizationRulesPage />);
@@ -239,7 +231,7 @@ describe('CategorizationRulesPage', () => {
   it('groups rules with the same tag-set into a collapsible header', async () => {
     // Three rules sharing tag_ids [12] → one multi-rule group.
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({
           rules: [
             {
@@ -299,7 +291,7 @@ describe('CategorizationRulesPage', () => {
     // Empty rule list so the form's beneficiary slot can take any
     // option (no existing-rule conflict).
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: [] })
       )
     );
@@ -313,9 +305,8 @@ describe('CategorizationRulesPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add Rule' }));
 
-    const searchInput = await screen.findByPlaceholderText(
-      /Search beneficiary/i
-    );
+    const searchInput =
+      await screen.findByPlaceholderText(/Search beneficiary/i);
     fireEvent.change(searchInput, { target: { value: 'NewShop' } });
     fireEvent.focus(searchInput);
     fireEvent.mouseDown(
@@ -398,7 +389,7 @@ describe('CategorizationRulesPage', () => {
     ];
 
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({ rules: manyRules })
       )
     );
@@ -407,9 +398,7 @@ describe('CategorizationRulesPage', () => {
 
     // Section headings render whenever the band has entries —
     // independent of whether the other band exists.
-    expect(
-      await screen.findByText(/Standalone rules/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Standalone rules/i)).toBeInTheDocument();
     expect(screen.getByText(/Grouped rules/i)).toBeInTheDocument();
 
     // 17 singletons − 5 visible = 12 hidden.
@@ -426,7 +415,7 @@ describe('CategorizationRulesPage', () => {
     // Two singletons, no multi-rule groups. The Standalone heading
     // should still render (seed-data-friendly behavior).
     server.use(
-      http.get('http://localhost:4000/api/categorization-rules', () =>
+      http.get(`${API_BASE}/categorization-rules`, () =>
         HttpResponse.json({
           rules: [
             {
@@ -456,9 +445,7 @@ describe('CategorizationRulesPage', () => {
 
     renderWithProviders(<CategorizationRulesPage />);
 
-    expect(
-      await screen.findByText(/Standalone rules/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Standalone rules/i)).toBeInTheDocument();
     expect(screen.queryByText(/Grouped rules/i)).not.toBeInTheDocument();
   });
 
@@ -472,9 +459,8 @@ describe('CategorizationRulesPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add Rule' }));
 
-    const searchInput = await screen.findByPlaceholderText(
-      /Search beneficiary/i
-    );
+    const searchInput =
+      await screen.findByPlaceholderText(/Search beneficiary/i);
     fireEvent.change(searchInput, { target: { value: 'Swiggy' } });
     fireEvent.focus(searchInput);
 

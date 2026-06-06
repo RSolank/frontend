@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { PasswordRequirements } from '../../../../shared/components/PasswordRequirements';
+import { useAuthStore } from '../../../../shared/state/auth.store';
 import { validatePassword } from '../../../../shared/utils/validation';
 import {
   forgotPasswordRequest,
   recoveryQuestionRequest,
+  isTwoFactorChallenge,
   resetPasswordFinalRequest,
   verifyAnswerRequest,
   verifyOtpRequest,
@@ -16,6 +18,14 @@ type RecoveryStep = 'email' | 'choice' | 'question' | 'otp' | 'reset';
 interface ApiErrorShape {
   detail?: string;
   error?: string;
+  retryAfterSeconds?: number;
+}
+
+function formatRetrySeconds(seconds: number): string {
+  if (seconds <= 1) return '1 second';
+  if (seconds < 60) return `${seconds} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? '1 minute' : `${minutes} minutes`;
 }
 
 interface RecoveryFlowProps {
@@ -44,6 +54,14 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
 
   function readError(err: unknown, fallback: string) {
     const e = err as ApiErrorShape;
+    // Recovery routes are rate-limited (auth.rate-limit) on an
+    // (IP, email) composite key — surface the live countdown via the
+    // auth store so `<AuthErrorNotice action="recovery" />` upstream
+    // in `<LoginForm>` ticks down on the inline copy.
+    if (typeof e.retryAfterSeconds === 'number' && e.retryAfterSeconds > 0) {
+      useAuthStore.getState().setRetryAfterSeconds(e.retryAfterSeconds);
+      return `Too many recovery attempts. Please try again in ${formatRetrySeconds(e.retryAfterSeconds)}.`;
+    }
     return e.detail || e.error || fallback;
   }
 
@@ -103,7 +121,17 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await resetPasswordFinalRequest(resetToken, newPassword);
+      const res = await resetPasswordFinalRequest(resetToken, newPassword);
+      // BE Phase 2.7 — recovery for a 2FA-enabled user lands on the
+      // TOTP challenge (new password saved, but no session issued
+      // yet). Backup codes are the escape hatch if the authenticator
+      // is lost.
+      if (isTwoFactorChallenge(res)) {
+        navigate('/verify/2fa', {
+          state: { pending_token: res.pending_token },
+        });
+        return;
+      }
       navigate('/dashboard');
     } catch (err) {
       onError(readError(err, 'Failed to reset password'));
@@ -212,7 +240,7 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
 // itself stays under the max-lines gate.
 
 const CHOICE_BUTTON_CLASS =
-  'inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-slate-950';
+  'inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-accent-300 hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 dark:focus-visible:ring-offset-slate-950';
 
 interface EmailStepProps {
   email: string;
@@ -259,10 +287,18 @@ function ChoiceStep({ onChooseQuestion, onChooseOtp }: ChoiceStepProps) {
       <p style={{ margin: 0 }} className="text-slate-700 dark:text-slate-300">
         How would you like to verify your identity?
       </p>
-      <button type="button" onClick={onChooseQuestion} className={CHOICE_BUTTON_CLASS}>
+      <button
+        type="button"
+        onClick={onChooseQuestion}
+        className={CHOICE_BUTTON_CLASS}
+      >
         Security question
       </button>
-      <button type="button" onClick={onChooseOtp} className={CHOICE_BUTTON_CLASS}>
+      <button
+        type="button"
+        onClick={onChooseOtp}
+        className={CHOICE_BUTTON_CLASS}
+      >
         OTP (One-time password)
       </button>
     </div>
@@ -291,7 +327,9 @@ function QuestionStep({
       <form onSubmit={onSubmit}>
         <div style={{ marginBottom: '0.75rem' }}>
           <span className="form-label">Security question</span>
-          <div style={{ marginBottom: 4, color: '#374151', fontWeight: 'bold' }}>
+          <div
+            style={{ marginBottom: 4, color: '#374151', fontWeight: 'bold' }}
+          >
             {question}
           </div>
         </div>
@@ -344,7 +382,13 @@ function OtpStep({
   return (
     <form onSubmit={onSubmit}>
       <div style={{ marginBottom: '0.75rem' }}>
-        <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            color: '#6b7280',
+            marginBottom: '0.5rem',
+          }}
+        >
           A 6-digit code has been sent to {email}.
         </p>
         <label htmlFor="recovery-otp" className="form-label">

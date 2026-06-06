@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  chooseRepresentativePrimary,
-  groupRules,
-  tagSetKey,
-} from './grouping';
+import { chooseRepresentativePrimary, groupRules, tagSetKey } from './grouping';
 import type { CategorizationRule } from './queries';
 import type { FlatTag } from './ruleUtils';
 

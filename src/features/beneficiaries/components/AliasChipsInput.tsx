@@ -100,19 +100,19 @@ export function AliasChipsInput({
       );
     if (checkStatus === 'unique')
       return (
-        <span className="text-xs text-emerald-600 dark:text-emerald-400">
+        <span className="text-success-600 dark:text-success-400 text-xs">
           Alias is available
         </span>
       );
     if (checkStatus === 'taken')
       return (
-        <span className="text-xs text-rose-600 dark:text-rose-400">
+        <span className="text-danger-600 dark:text-danger-400 text-xs">
           Alias already in use
         </span>
       );
     if (checkStatus === 'duplicate')
       return (
-        <span className="text-xs text-rose-600 dark:text-rose-400">
+        <span className="text-danger-600 dark:text-danger-400 text-xs">
           Alias already added
         </span>
       );
@@ -122,7 +122,7 @@ export function AliasChipsInput({
   const canAdd = !readOnly && !!aliasTemp.trim() && checkStatus === 'unique';
   const invalidBorder =
     checkStatus === 'taken' || checkStatus === 'duplicate'
-      ? '!border-rose-400 dark:!border-rose-700'
+      ? '!border-danger-400 dark:!border-danger-700'
       : '';
 
   return (
@@ -166,7 +166,7 @@ export function AliasChipsInput({
           aliases.map((a) => (
             <span
               key={a}
-              className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+              className="border-accent-200 bg-accent-50 text-accent-700 dark:border-accent-900/50 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
             >
               {a}
               {!readOnly && (
@@ -174,7 +174,7 @@ export function AliasChipsInput({
                   type="button"
                   onClick={() => handleRemove(a)}
                   aria-label={`Remove alias ${a}`}
-                  className="ml-0.5 text-base leading-none font-bold text-indigo-500 dark:text-indigo-400"
+                  className="text-accent-500 dark:text-accent-400 ml-0.5 text-base leading-none font-bold"
                 >
                   ×
                 </button>

@@ -5,7 +5,6 @@ import { useDateFormatStore } from '../state/dateFormat.store';
 import {
   formatDate,
   formatDateTime,
-  formatDisplayDate,
   formatInputDate,
   localToUtcIso,
   todayInUserTz,
@@ -104,13 +103,8 @@ describe('localToUtcIso', () => {
   });
 });
 
-describe('legacy formatters (kept for unmigrated callers)', () => {
-  it('formatDisplayDate handles invalid input gracefully', () => {
-    expect(formatDisplayDate(null)).toBe('—');
-    expect(formatDisplayDate('bogus')).toBe('bogus');
-  });
-
-  it('formatInputDate extracts YYYY-MM-DD', () => {
+describe('formatInputDate', () => {
+  it('extracts YYYY-MM-DD', () => {
     expect(formatInputDate('2026-03-05T12:34:56Z')).toBe('2026-03-05');
     expect(formatInputDate(null)).toBe('');
     expect(formatInputDate('bogus')).toBe('');

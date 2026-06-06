@@ -17,9 +17,9 @@ interface MerchantSearchBarProps {
 function optionClass(isHighlighted: boolean, isSelected: boolean): string {
   const base = 'block w-full px-3 py-2 text-left text-sm ';
   if (isHighlighted)
-    return `${base}bg-indigo-100 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-100`;
+    return `${base}bg-accent-100 text-accent-900 dark:bg-accent-950/60 dark:text-accent-100`;
   if (isSelected)
-    return `${base}bg-indigo-50 text-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200`;
+    return `${base}bg-accent-50 text-accent-800 dark:bg-accent-950/30 dark:text-accent-200`;
   return `${base}text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800`;
 }
 
@@ -178,7 +178,7 @@ export function MerchantSearchBar({
           aria-controls="merchant-search-listbox"
           aria-autocomplete="list"
           aria-activedescendant={activeId}
-          className="form-input !pl-8 !pr-8"
+          className="form-input !pr-8 !pl-8"
         />
         {(draft || beneficiaryId) && (
           <button

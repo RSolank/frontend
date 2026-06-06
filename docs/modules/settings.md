@@ -12,21 +12,22 @@
   (<lg) listing every section.
 - Move category + categorization-rule URLs under `/settings/` so the
   full settings surface is bookmarkable as a single deep-link tree.
-- Provide a growth path: future settings (e.g. Bank/UPI accounts when
-  the async statement-import pipeline lands) slot in as another
-  sidebar item with no shell rework.
+- Provide a growth path: new settings sections slot in as another
+  sidebar item with no shell rework — Bank Accounts joined this way
+  in Batch 13 without any layout changes.
 
 ## Pages
 
 The settings feature owns no pages of its own — it composes pages that
 live in their owning feature module:
 
-| Path | Component | Owning feature |
-|---|---|---|
-| `/settings` | redirect → `/settings/categories` | — |
-| `/settings/categories` | `TagsPage` | [`features/tags/`](../../src/features/tags/) |
-| `/settings/categorization-rules` | `CategorizationRulesPage` | [`features/categorization/`](../../src/features/categorization/) |
-| `/settings/taxation-rules` | `TaxationRulesPage` | [`features/taxation/`](../../src/features/taxation/) |
+| Path                             | Component                         | Owning feature                                                          |
+| -------------------------------- | --------------------------------- | ----------------------------------------------------------------------- |
+| `/settings`                      | redirect → `/settings/categories` | —                                                                       |
+| `/settings/categories`           | `TagsPage`                        | [`features/tags/`](../../src/features/tags/)                            |
+| `/settings/categorization-rules` | `CategorizationRulesPage`         | [`features/categorization/`](../../src/features/categorization/)        |
+| `/settings/taxation-rules`       | `TaxationRulesPage`               | [`features/taxation/`](../../src/features/taxation/)                    |
+| `/settings/bank-accounts`        | `BankAccountsPage`                | [`features/bankAccounts/`](../../src/features/bankAccounts/) (Batch 13) |
 
 The pre-Batch-9 `/categories` and `/categorization-rules` URLs are
 **retired** — no `<Navigate>` redirects, no route entries. A repo-wide
@@ -72,13 +73,14 @@ chunk — the shell adds zero bundle cost to the initial paint.
 
 [`shared/components/TopNav.tsx`](../../src/shared/components/TopNav.tsx)'s
 Settings dropdown (desktop) and mobile-drawer SETTINGS section both
-list the same three sections at their `/settings/*` paths. The active
-route paints an indigo bottom border in the main-nav row.
+list the same four sections (Categories, Categorization Rules,
+Taxation Rules, Bank Accounts) at their `/settings/*` paths. The
+active route paints an indigo bottom border in the main-nav row.
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `settings.routes.test.tsx` | `/settings` index redirect, legacy URL redirects, sidebar links resolve to canonical `/settings/*` paths |
-| `shared/components/SectionedPageLayout.test.tsx` | Breadcrumb tail, sidebar + tab nav parity, `<Outlet />` content rendering |
-| `shared/components/TopNav.test.tsx` | Drawer Settings section href assertions |
+| File                                             | Covers                                                                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `settings.routes.test.tsx`                       | `/settings` index redirect, legacy URL redirects, sidebar links resolve to canonical `/settings/*` paths |
+| `shared/components/SectionedPageLayout.test.tsx` | Breadcrumb tail, sidebar + tab nav parity, `<Outlet />` content rendering                                |
+| `shared/components/TopNav.test.tsx`              | Drawer Settings section href assertions                                                                  |

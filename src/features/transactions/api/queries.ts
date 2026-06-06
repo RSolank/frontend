@@ -3,10 +3,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../../../shared/api/apiClient';
 import { routes } from '../../../shared/api/routes';
 
-import {
-  transactionKeys,
-  type TransactionListParams,
-} from './keys';
+import { transactionKeys, type TransactionListParams } from './keys';
 import type {
   SingleTransactionResponse,
   TransactionListResponse,
@@ -58,7 +55,10 @@ export function useInfiniteTransactionsQuery(
   baseParams: Omit<TransactionListParams, 'offset'>
 ) {
   return useInfiniteQuery({
-    queryKey: transactionKeys.list({ ...baseParams, offset: 0 } as TransactionListParams),
+    queryKey: transactionKeys.list({
+      ...baseParams,
+      offset: 0,
+    } as TransactionListParams),
     queryFn: ({ pageParam }) =>
       fetchTransactions({ ...baseParams, offset: pageParam }),
     initialPageParam: 0,

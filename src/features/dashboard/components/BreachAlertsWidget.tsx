@@ -27,12 +27,12 @@ export function BreachAlertsWidget() {
         (c) =>
           c.limit_amt != null &&
           c.limit_amt > 0 &&
-          (c.current_expense ?? 0) > c.limit_amt
+          (c.current_net_expense ?? 0) > c.limit_amt
       )
       .sort(
         (a, b) =>
-          (b.current_expense ?? 0) / (b.limit_amt ?? 1) -
-          (a.current_expense ?? 0) / (a.limit_amt ?? 1)
+          (b.current_net_expense ?? 0) / (b.limit_amt ?? 1) -
+          (a.current_net_expense ?? 0) / (a.limit_amt ?? 1)
       );
   }, [data]);
 
@@ -41,20 +41,20 @@ export function BreachAlertsWidget() {
   return (
     <section
       data-testid="dashboard-breach-alerts"
-      className="rounded-lg border border-rose-300 bg-rose-50 p-3 shadow-sm dark:border-rose-800/60 dark:bg-rose-950/30"
+      className="border-danger-300 bg-danger-50 dark:border-danger-800/60 dark:bg-danger-950/30 rounded-lg border p-3 shadow-sm"
     >
       <header className="mb-2 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+        <h3 className="text-danger-800 dark:text-danger-200 text-sm font-semibold">
           Budget breaches
         </h3>
-        <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
+        <span className="text-danger-700 dark:text-danger-300 text-xs font-medium">
           {breached.length} this month
         </span>
       </header>
       <ul className="flex flex-col gap-1.5">
         {breached.map((c) => {
           const limit = c.limit_amt as number;
-          const current = c.current_expense ?? 0;
+          const current = c.current_net_expense ?? 0;
           const over = current - limit;
           return (
             <li
@@ -62,10 +62,10 @@ export function BreachAlertsWidget() {
               className="flex items-center justify-between gap-2 text-xs"
               data-testid={`dashboard-breach-${c.tag_id}`}
             >
-              <span className="truncate font-medium text-rose-900 dark:text-rose-100">
+              <span className="text-danger-900 dark:text-danger-100 truncate font-medium">
                 {c.tag_name}
               </span>
-              <span className="shrink-0 tabular-nums text-rose-800 money dark:text-rose-200">
+              <span className="text-danger-800 money dark:text-danger-200 shrink-0 tabular-nums">
                 +{money(over)} over
               </span>
             </li>
@@ -74,7 +74,7 @@ export function BreachAlertsWidget() {
       </ul>
       <Link
         to="/budgets"
-        className="mt-2 inline-block text-xs font-semibold text-rose-800 hover:underline dark:text-rose-200"
+        className="text-danger-800 dark:text-danger-200 mt-2 inline-block text-xs font-semibold hover:underline"
       >
         Review budgets →
       </Link>

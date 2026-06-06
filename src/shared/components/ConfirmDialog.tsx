@@ -28,7 +28,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const confirmClass =
     intent === 'danger'
-      ? 'inline-flex items-center justify-center rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60'
+      ? 'inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60'
       : 'btn-primary !w-auto';
 
   return (

@@ -5,6 +5,22 @@ import { routes } from '../../../shared/api/routes';
 
 import { userKeys } from './keys';
 
+// `GET /api/users/me` returns identity only after BE Phase 1.9 —
+// currency moved to `/api/users/preferences` (the new server SoT for
+// preferences). Timezone follows the same logic; surface it from the
+// preferences query, not from /me. `profile_image_url` is the BE
+// Phase 1.13 single nullable field that carries `null` (initials),
+// `/media/presets/<id>.webp`, or `/media/profile-images/<user>/<uuid>.webp`.
+//
+// 2FA state is intentionally NOT here — `UserAuth`-owned account
+// protection lives on its own auth-domain route
+// (`GET /api/v1/auth/security`, see `features/auth/api/security.ts`).
+// Mixing it into `/me` would cross the profile/auth domain split.
+// `role` (BE T-admin A1, `2c47fa9`) is a profile-domain authorization
+// attribute and surfaces here so the FE admin gate reads it straight
+// off the boot-time /me response instead of probing /admin/ping. The
+// field is required server-side; older fixtures still ship without it
+// for back-compat (treated as 'user' on consumer reads).
 export interface UserProfile {
   user_id: number;
   email_id: string;
@@ -13,8 +29,8 @@ export interface UserProfile {
   dob?: string | null;
   contact?: string | null;
   country?: string | null;
-  currency?: string | null;
-  timezone?: string | null;
+  profile_image_url?: string | null;
+  role?: 'user' | 'admin' | string;
   [key: string]: unknown;
 }
 
@@ -22,10 +38,26 @@ export interface UserMeResponse {
   user: UserProfile;
 }
 
+// Server `user_preferences` row shape (flat) — the SoT for every
+// cross-device user preference after BE Phase 1.9. Each key is
+// optional + nullable because partial PATCHes leave unset rows null
+// and the wire shape preserves that for forward-compat.
 export interface PreferencesResponse {
   currency?: string | null;
-  country?: string | null;
   timezone?: string | null;
+  date_format?: string | null;
+  number_format?: string | null;
+  landing_route?: string | null;
+  default_txn_kind?: string | null;
+  underline_links?: boolean | null;
+  focus_ring_always?: boolean | null;
+  // BE Phase 2.6 — taxation auto-mode toggle (Decision 26). When
+  // true, the Monday worker finalizes ACCRUING→BILLED on schedule;
+  // when false, bills stay ACCRUING for visibility and the user
+  // drives generation via `POST /consumption-tax/bills/generate`.
+  // The stacking-defense `STALE_BILL_THRESHOLD` worker flips this
+  // off when the unpaid-bill count crosses the threshold.
+  auto_enabled?: boolean | null;
 }
 
 export interface RecoveryQuestionItem {
@@ -36,22 +68,24 @@ export interface RecoveryListResponse {
   questions: RecoveryQuestionItem[];
 }
 
-// Stats shape for the Profile page's <UserStatsCard /> placeholder.
-// Backend ask: `.scratch/task-handoff-fe-to-be.md §5` (queued for
-// Phase 0.5 / Phase 1). When it ships at GET /api/users/me/stats
-// (or /api/v1/users/me/stats post-prefix-cutover), this is the shape
-// the card expects — mirrors §5's documented payload.
+// Stats shape for the Profile page's <UserStatsCard />. Backend
+// shipped this at `GET /api/users/me/stats` in Phase 1.15 (`1e05a17`)
+// per `task-platform.md → users.me-stats`. Two BE-reframed semantics
+// vs the original spec worth knowing for the card copy:
+// - `last_active_at` = `MAX(user_sessions.last_modified)` (reframed
+//   from "last edit", which was unimplementable).
+// - `total_beneficiaries` counts user-added only (the ~21 seeded
+//   demo merchants + Self are excluded), so a brand-new account
+//   shows 0.
+// - `active_recurring` = templates currently forecasting (active +
+//   locked/review). Always present now that T-recurring shipped.
 export interface UserStatsResponse {
-  joined_at: string; // ISO datetime, e.g. "2026-01-12T08:00:00Z".
+  joined_at: string;
+  last_active_at: string | null;
   total_transactions: number;
   total_budgets: number;
   total_beneficiaries: number;
-  // Optional — populated once the recurring infrastructure (§10) ships;
-  // backend omits when the feature isn't live yet.
-  active_recurring?: number;
-  // ISO datetime of the most recent txn / budget edit. Optional so a
-  // brand-new account with zero activity can return only counts.
-  last_active_at?: string | null;
+  active_recurring: number;
 }
 
 export function fetchCurrentUser(): Promise<UserMeResponse> {
@@ -60,6 +94,34 @@ export function fetchCurrentUser(): Promise<UserMeResponse> {
 
 export function fetchUserPreferences(): Promise<PreferencesResponse> {
   return apiFetch<PreferencesResponse>(routes.users.preferences());
+}
+
+// BE Phase 1.13 — 12 shared geometric Pillow-rendered tiles served
+// from `/media/presets/<id>.webp`. The `url` field is the path the
+// FE feeds straight to `<ProfileImage profileImageUrl=...>` (or any
+// `<img>` after prefixing with `VITE_API_URL`).
+export interface ProfileImagePreset {
+  id: string;
+  url: string;
+}
+
+// BE returns a bare `list[ProfileImagePreset]` (see
+// `backend/app/modules/users/user_routes.py` —
+// `response_model=list[ProfileImagePreset]`). The previous wrapper
+// `{presets?: [...]}` always resolved to `undefined.presets ?? []`,
+// which is why the picker showed no presets until 2026-06-05.
+export function fetchProfileImagePresets(): Promise<ProfileImagePreset[]> {
+  return apiFetch<ProfileImagePreset[]>(routes.users.profileImagePresets());
+}
+
+export function useProfileImagePresetsQuery(enabled = true) {
+  return useQuery({
+    queryKey: userKeys.profileImagePresets(),
+    queryFn: fetchProfileImagePresets,
+    enabled,
+    // Presets only change between deploys.
+    staleTime: 60 * 60 * 1000,
+  });
 }
 
 export function fetchRecoveryQuestions(): Promise<RecoveryListResponse> {
@@ -82,18 +144,8 @@ export function useUserPreferencesQuery(enabled = true) {
   });
 }
 
-// Returns null when the endpoint is not yet implemented (404 / 501) so
-// the Profile card can render a friendly "Coming soon" state instead of
-// surfacing a hard error. Same swallow pattern as the Tax Tracker
-// current-week endpoint (see features/taxation/api/queries.ts).
-export async function fetchUserStats(): Promise<UserStatsResponse | null> {
-  try {
-    return await apiFetch<UserStatsResponse>(routes.users.meStats());
-  } catch (err) {
-    const e = err as { status?: number };
-    if (e?.status === 404 || e?.status === 501) return null;
-    throw err;
-  }
+export function fetchUserStats(): Promise<UserStatsResponse> {
+  return apiFetch<UserStatsResponse>(routes.users.meStats());
 }
 
 export function useUserStatsQuery(enabled = true) {

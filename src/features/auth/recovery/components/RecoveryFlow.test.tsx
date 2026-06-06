@@ -79,9 +79,7 @@ describe('RecoveryFlow', () => {
       expect(mockVerifyAnswer).toHaveBeenCalledWith('user@example.test', 'Rex')
     );
     // Reset step.
-    expect(
-      await screen.findByLabelText(/New password/)
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText(/New password/)).toBeInTheDocument();
   });
 
   it('email -> otp directly when the account has no security question', async () => {

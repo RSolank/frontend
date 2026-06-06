@@ -19,7 +19,9 @@ describe('useDefaultTxnKindStore', () => {
   it('persists user selection to localStorage', () => {
     useDefaultTxnKindStore.getState().setKind('credit');
     expect(useDefaultTxnKindStore.getState().kind).toBe('credit');
-    expect(localStorage.getItem('default-txn-kind')).toContain('"kind":"credit"');
+    expect(localStorage.getItem('default-txn-kind')).toContain(
+      '"kind":"credit"'
+    );
   });
 
   it('getDefaultTxnKind() returns the current value (imperative read)', () => {

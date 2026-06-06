@@ -7,7 +7,10 @@ import {
   useCurrenciesQuery,
 } from '../shared/api/referenceData';
 import { ErrorBoundary } from '../shared/components/ErrorBoundary';
-import { applyContrast, useContrastStore } from '../shared/state/contrast.store';
+import {
+  applyContrast,
+  useContrastStore,
+} from '../shared/state/contrast.store';
 import {
   applyFocusRing,
   useFocusRingStore,

@@ -28,14 +28,18 @@ function describeMergePair(
   mergeSource: string,
   mergeTarget: string
 ) {
-  const source = beneficiaries.find((b) => String(b.uid) === String(mergeSource));
-  const target = beneficiaries.find((b) => String(b.uid) === String(mergeTarget));
+  const source = beneficiaries.find(
+    (b) => String(b.uid) === String(mergeSource)
+  );
+  const target = beneficiaries.find(
+    (b) => String(b.uid) === String(mergeTarget)
+  );
   const typeMismatch = Boolean(
     source &&
-      target &&
-      source.beneficiary_type &&
-      target.beneficiary_type &&
-      source.beneficiary_type !== target.beneficiary_type
+    target &&
+    source.beneficiary_type &&
+    target.beneficiary_type &&
+    source.beneficiary_type !== target.beneficiary_type
   );
   return {
     source,
@@ -86,12 +90,12 @@ export function MergeBeneficiariesForm({
   );
 
   return (
-    <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
-      <h3 className="mt-0 mb-3 text-base font-semibold text-amber-900 dark:text-amber-200">
+    <div className="border-warning-200 bg-warning-50 dark:border-warning-900/50 dark:bg-warning-950/30 mt-6 rounded-xl border p-5">
+      <h3 className="text-warning-900 dark:text-warning-200 mt-0 mb-3 text-base font-semibold">
         Consolidate Beneficiaries
       </h3>
 
-      <div className="mb-4 rounded-lg border border-amber-200 bg-white px-4 py-3 dark:border-amber-900/50 dark:bg-slate-900">
+      <div className="border-warning-200 dark:border-warning-900/50 mb-4 rounded-lg border bg-white px-4 py-3 dark:bg-slate-900">
         <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-200">
           <span>
             <strong>Source:</strong> {source?.name || 'Select a source'} (
@@ -103,7 +107,7 @@ export function MergeBeneficiariesForm({
           </span>
         </div>
         {typeMismatch ? (
-          <p className="mt-3 mb-0 text-sm font-semibold text-amber-800 dark:text-amber-300">
+          <p className="text-warning-800 dark:text-warning-300 mt-3 mb-0 text-sm font-semibold">
             Type mismatch detected. The source detail row will be merged into
             the matching target side first: merchant fields map to merchant
             fields, person fields map to person fields, and any missing values
@@ -171,7 +175,7 @@ export function MergeBeneficiariesForm({
         <button
           type="button"
           onClick={onMerge}
-          className="ml-auto rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-amber-600 dark:hover:bg-amber-500 dark:focus-visible:ring-offset-slate-950"
+          className="bg-warning-700 hover:bg-warning-800 focus-visible:ring-warning-500 dark:bg-warning-600 dark:hover:bg-warning-500 ml-auto rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
         >
           Merge
         </button>

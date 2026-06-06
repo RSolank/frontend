@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import {
   shiftIso,
   shiftMonthKey,
@@ -29,15 +30,15 @@ interface WeekPickerCalendarProps {
 // reads cleanly and stays off sonarjs/no-nested-conditional.
 function weekRowClass(isSelected: boolean, billable: boolean): string {
   if (isSelected)
-    return 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40';
+    return 'border-accent-500 bg-accent-50 dark:border-accent-400 dark:bg-accent-950/40';
   if (billable)
-    return 'border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/30';
+    return 'border-slate-200 bg-white hover:border-accent-300 hover:bg-accent-50/40 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-accent-700 dark:hover:bg-accent-950/30';
   return 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-500';
 }
 
 // Day-number colour: today accent, in-month default, out-of-month muted.
 function weekDayClass(isToday: boolean, inMonth: boolean): string {
-  if (isToday) return 'font-bold text-indigo-600 dark:text-indigo-300';
+  if (isToday) return 'font-bold text-accent-600 dark:text-accent-300';
   if (inMonth) return 'text-slate-700 dark:text-slate-200';
   return 'text-slate-400 dark:text-slate-600';
 }
@@ -46,11 +47,9 @@ function weekDayClass(isToday: boolean, inMonth: boolean): string {
 // week (project convention — see CONTRIBUTING.md §6 + the
 // `billPeriod.ts` helpers). Clicking a row selects the whole week
 // rather than a single date, so the user picks the unit of billing
-// directly instead of picking-a-date-and-resolving.
-//
-// Distinct from the transactions browser calendar which is Sun → Sat
-// for visual convention. Here, billing is the domain, so the row
-// header reads `Mon Tue Wed Thu Fri Sat Sun`.
+// directly instead of picking-a-date-and-resolving. The transactions
+// browser calendar follows the same ISO Mon → Sun convention; both
+// row headers read `Mon Tue Wed Thu Fri Sat Sun`.
 export function WeekPickerCalendar({
   selectedWeekStart,
   onSelect,
@@ -60,20 +59,15 @@ export function WeekPickerCalendar({
   const today = todayIsoInTz(timezone);
   const [viewMonth, setViewMonth] = useState(() => today.slice(0, 7));
 
-  const rows = useMemo(() => buildWeekRows(viewMonth, timezone), [
-    viewMonth,
-    timezone,
-  ]);
+  const rows = useMemo(
+    () => buildWeekRows(viewMonth, timezone),
+    [viewMonth, timezone]
+  );
 
-  const monthLabel = useMemo(() => {
-    const [y, m] = viewMonth.split('-').map(Number);
-    return new Date(Date.UTC(y as number, (m as number) - 1, 1, 12))
-      .toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      });
-  }, [viewMonth]);
+  const monthLabel = useMemo(
+    () => formatYearMonth(viewMonth, 'long'),
+    [viewMonth]
+  );
 
   return (
     <div className="rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
@@ -83,7 +77,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, -1))}
           aria-label="Previous month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronLeft aria-hidden size={18} />
         </button>
@@ -94,7 +88,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, 1))}
           aria-label="Next month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronRight aria-hidden size={18} />
         </button>
@@ -133,10 +127,10 @@ export function WeekPickerCalendar({
               aria-pressed={isSelected}
               aria-label={`Week of ${formatBillDate(row.start, timezone)} to ${formatBillDate(row.end, timezone)}`}
               data-testid={`week-row-${row.start}`}
-              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${weekRowClass(
+              className={`focus-visible:ring-accent-500 grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none ${weekRowClass(
                 isSelected,
                 billable
-              )} ${containsToday && !isSelected ? 'ring-1 ring-indigo-300/60 dark:ring-indigo-700/60' : ''}`}
+              )} ${containsToday && !isSelected ? 'ring-accent-300/60 dark:ring-accent-700/60 ring-1' : ''}`}
             >
               {/* Row prefix — the Monday ISO date (short form) so the
                   user has a stable label for the row independent of
@@ -144,7 +138,7 @@ export function WeekPickerCalendar({
               <span
                 className={`text-left font-semibold tabular-nums ${
                   isSelected
-                    ? 'text-indigo-700 dark:text-indigo-200'
+                    ? 'text-accent-700 dark:text-accent-200'
                     : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
@@ -167,8 +161,8 @@ export function WeekPickerCalendar({
       </div>
 
       <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-        Click a row to select that ISO week (Mon → Sun) for billing.
-        Greyed rows haven&rsquo;t finalised yet — only weeks ending before{' '}
+        Click a row to select that ISO week (Mon → Sun) for billing. Greyed rows
+        haven&rsquo;t finalised yet — only weeks ending before{' '}
         <span className="font-medium">
           {formatBillDate(precedingWeekStart, timezone)}
         </span>{' '}

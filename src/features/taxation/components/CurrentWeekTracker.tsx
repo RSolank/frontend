@@ -2,59 +2,54 @@ import { useMemo } from 'react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
-import { fractionOfWeekElapsed, weekRangeInTz } from '../api/billPeriod';
+import { fractionOfWeekElapsed } from '../api/billPeriod';
 import {
   useTrackerCurrentWeekQuery,
   type PerTagContribution,
   type TrackerCurrentWeekResponse,
 } from '../api/queries';
 
-// Single-card surface for the in-progress week's tax accrual. Reads
-// /api/consumption-tax/tracker/current-week when the backend supports
-// it; if the endpoint 404s (still pending — see
-// `.scratch/task-handoff-fe-to-be.md §1`), falls back to a
-// "pending" empty state with the active week label so the surface still
-// looks structurally complete.
+// Single-card surface for the in-progress week's tax accrual.
 //
-// The component is intentionally read-only — no mutation paths, no
-// generate / pay actions live here. The bills list below this card
-// handles those. This card is the live-accrual view; bills are the
-// settled history.
+// **Data source (rewritten 2026-06-06):** the previously-spec'd
+// `GET /api/v1/consumption-tax/tracker/current-week` route was never
+// shipped on the backend despite the coord doc marking Phase 2.6 as
+// LANDED; every call 404'd, the component's `isLoading || !data`
+// guard rendered "Loading…" forever. `useTrackerCurrentWeekQuery`
+// now derives the response shape from the ACCRUING bill (the
+// engine maintains it incrementally on every txn mutation), so the
+// card lights up without a BE round trip. `data === null` is the
+// settled "no in-progress bill yet" state — render the empty card.
+//
+// Read-only by design — no mutation paths, no generate/pay actions
+// live here. The bills list below this card handles those.
 export function CurrentWeekTracker() {
   const timezone = usePreferencesStore((s) => s.timezone);
   const { money } = useMoneyFormatter();
-  const { data, isLoading } = useTrackerCurrentWeekQuery();
+  const { data, isLoading, isError } = useTrackerCurrentWeekQuery();
 
-  const fallbackWeek = useMemo(
-    () => weekRangeInTz(new Date(), timezone),
-    [timezone]
-  );
   const elapsedFraction = useMemo(
     () => fractionOfWeekElapsed(new Date(), timezone),
     [timezone]
   );
 
-
-  if (isLoading && data == null) {
+  if (isLoading) {
     return (
-      <section
-        aria-labelledby="tracker-heading"
-        className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-      >
-        <h3 id="tracker-heading" className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          This week — running tax
-        </h3>
-        <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-          Loading…
-        </div>
-      </section>
+      <CardShell>
+        <CardBody copy="Loading…" />
+      </CardShell>
     );
   }
 
-  // Backend endpoint not implemented yet — render the empty/pending state
-  // with the active week label and a hint about the backend gap.
-  if (data == null) {
-    return <PendingState weekStart={fallbackWeek.period_start} weekEnd={fallbackWeek.period_end} />;
+  // BE error or no in-progress bill yet → friendly empty state.
+  // Covers both "user has no txns this week" and any transient 5xx
+  // — the user shouldn't see "Loading…" hang forever in either case.
+  if (isError || !data) {
+    return (
+      <CardShell>
+        <CardBody copy="No tax accrued for this week yet." />
+      </CardShell>
+    );
   }
 
   const projectedTax =
@@ -67,26 +62,13 @@ export function CurrentWeekTracker() {
       : safeDivide(data.running_penalty, elapsedFraction);
 
   return (
-    <section
-      aria-labelledby="tracker-heading"
-      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-    >
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 id="tracker-heading" className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          This week — running tax
-        </h3>
+    <CardShell
+      header={
         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
           {data.period_start} → {data.period_end}
         </span>
-      </header>
-
-      {data.is_estimate && (
-        <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
-          Backend is returning approximate data while the live ledger is in
-          flight — see the Tax Tracker handoff for status.
-        </p>
-      )}
-
+      }
+    >
       <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Accrued tax" value={money(data.running_tax)} accent />
         <Stat label="Accrued penalty" value={money(data.running_penalty)} />
@@ -97,7 +79,40 @@ export function CurrentWeekTracker() {
       <WeekProgress fraction={elapsedFraction} />
 
       <PerTagBreakdown perTag={data.per_tag} money={money} />
+    </CardShell>
+  );
+}
+
+interface CardShellProps {
+  header?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function CardShell({ header, children }: CardShellProps) {
+  return (
+    <section
+      aria-labelledby="tracker-heading"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3
+          id="tracker-heading"
+          className="text-base font-semibold text-slate-900 dark:text-slate-100"
+        >
+          This week — running tax
+        </h3>
+        {header}
+      </header>
+      {children}
     </section>
+  );
+}
+
+function CardBody({ copy }: { copy: string }) {
+  return (
+    <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+      {copy}
+    </div>
   );
 }
 
@@ -117,7 +132,7 @@ interface StatProps {
 // (slate-900). if/else (not a nested ternary) so it stays off
 // sonarjs/no-nested-conditional.
 function statValueClass(accent?: boolean, muted?: boolean): string {
-  if (accent) return 'text-indigo-700 dark:text-indigo-200';
+  if (accent) return 'text-accent-700 dark:text-accent-200';
   if (muted) return 'text-slate-600 dark:text-slate-300';
   return 'text-slate-900 dark:text-slate-100';
 }
@@ -127,7 +142,7 @@ function Stat({ label, value, accent, muted }: StatProps) {
     <div
       className={`rounded-md px-3 py-2 ${
         accent
-          ? 'bg-indigo-50 dark:bg-indigo-950/40'
+          ? 'bg-accent-50 dark:bg-accent-950/40'
           : 'bg-slate-50 dark:bg-slate-800/60'
       }`}
     >
@@ -141,7 +156,7 @@ function Stat({ label, value, accent, muted }: StatProps) {
         {label}
       </div>
       <div
-        className={`mt-0.5 text-base font-semibold tabular-nums money ${statValueClass(
+        className={`money mt-0.5 text-base font-semibold tabular-nums ${statValueClass(
           accent,
           muted
         )}`}
@@ -162,7 +177,7 @@ function WeekProgress({ fraction }: { fraction: number }) {
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className="h-full bg-indigo-500 transition-[width] duration-300"
+          className="bg-accent-500 h-full transition-[width] duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -196,44 +211,12 @@ function PerTagBreakdown({
                 {p.txn_type}
               </span>
             </div>
-            <span className="tabular-nums text-sm text-slate-900 money dark:text-slate-100">
+            <span className="money text-sm text-slate-900 tabular-nums dark:text-slate-100">
               {money(p.tax_amount + p.penalty)}
             </span>
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-function PendingState({
-  weekStart,
-  weekEnd,
-}: {
-  weekStart: string;
-  weekEnd: string;
-}) {
-  return (
-    <section
-      aria-labelledby="tracker-pending-heading"
-      className="rounded-lg border border-dashed border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-    >
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3
-          id="tracker-pending-heading"
-          className="text-base font-semibold text-slate-900 dark:text-slate-100"
-        >
-          This week — running tax
-        </h3>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          {weekStart} → {weekEnd}
-        </span>
-      </header>
-      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-        Live accrual will appear here once the backend&rsquo;s incremental
-        taxation ledger ships. Until then, see the finalized bills below
-        for completed-week detail.
-      </p>
     </section>
   );
 }

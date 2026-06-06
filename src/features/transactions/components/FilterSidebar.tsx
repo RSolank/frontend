@@ -83,7 +83,7 @@ export function FilterSidebar({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in dark:bg-slate-950/60" />
+        <Dialog.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm dark:bg-slate-950/60" />
         <Dialog.Content
           aria-describedby={undefined}
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-xl bg-white shadow-xl outline-none sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:rounded-l-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800"
@@ -96,7 +96,7 @@ export function FilterSidebar({
               <button
                 type="button"
                 aria-label="Close filters"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X aria-hidden size={18} />
               </button>
@@ -167,8 +167,8 @@ export function FilterSidebar({
                   >
                     {view === 'merchant' ? (
                       <>
-                        <option value="total_amount">Total spend</option>
-                        <option value="frequency">Total transactions</option>
+                        <option value="net_expense">Total spend</option>
+                        <option value="total_count">Total transactions</option>
                       </>
                     ) : (
                       <>
@@ -205,7 +205,7 @@ export function FilterSidebar({
             <button
               type="button"
               onClick={onClearAll}
-              className="text-sm font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+              className="text-danger-600 hover:text-danger-700 dark:text-danger-400 dark:hover:text-danger-300 text-sm font-semibold"
             >
               Clear all
             </button>

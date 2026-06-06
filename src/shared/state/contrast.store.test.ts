@@ -16,12 +16,12 @@ describe('contrast.store', () => {
 
   it('applyContrast toggles the html class', () => {
     applyContrast(true);
-    expect(
-      document.documentElement.classList.contains('high-contrast')
-    ).toBe(true);
+    expect(document.documentElement.classList.contains('high-contrast')).toBe(
+      true
+    );
     applyContrast(false);
-    expect(
-      document.documentElement.classList.contains('high-contrast')
-    ).toBe(false);
+    expect(document.documentElement.classList.contains('high-contrast')).toBe(
+      false
+    );
   });
 });

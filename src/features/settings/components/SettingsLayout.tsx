@@ -11,6 +11,7 @@ export const SETTINGS_SECTIONS: SectionSpec[] = [
   { path: '/settings/categories', label: 'Categories' },
   { path: '/settings/categorization-rules', label: 'Categorization Rules' },
   { path: '/settings/taxation-rules', label: 'Taxation Rules' },
+  { path: '/settings/bank-accounts', label: 'Bank Accounts' },
 ];
 
 export function SettingsLayout() {

@@ -47,7 +47,9 @@ describe('BeneficiaryFormDialog', () => {
     renderWithProviders(
       <BeneficiaryFormDialog open onClose={vi.fn()} onSaved={vi.fn()} />
     );
-    expect(screen.getByRole('button', { name: 'Save beneficiary' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Save beneficiary' })
+    ).toBeDisabled();
   });
 
   it('enables Save when creating with a pre-filled name', () => {
@@ -59,7 +61,9 @@ describe('BeneficiaryFormDialog', () => {
         initialName="Netflix"
       />
     );
-    expect(screen.getByRole('button', { name: 'Save beneficiary' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Save beneficiary' })
+    ).toBeEnabled();
   });
 
   it('disables Save when editing a pristine (not-yet-dirty) beneficiary', () => {

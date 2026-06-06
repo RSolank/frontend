@@ -22,7 +22,15 @@ import { useSearchParams } from 'react-router-dom';
 
 export type TransactionView = 'list' | 'merchant' | 'calendar';
 export type TypeFilter = 'all' | 'debit' | 'credit';
-export type SortField = 'date' | 'amount' | 'frequency' | 'total_amount';
+// BE Phase 1.7 contract: backend accepts `date | amount | total_count |
+// net_expense | name`. (Old `frequency` / `total_amount` were renamed
+// to `total_count` / `net_expense` as part of T-aggregates-engine.)
+export type SortField =
+  | 'date'
+  | 'amount'
+  | 'total_count'
+  | 'net_expense'
+  | 'name';
 export type SortOrder = 'asc' | 'desc';
 
 export interface TransactionFilters {
@@ -61,7 +69,7 @@ function defaultSortForView(view: TransactionView): {
   sortBy: SortField;
   order: SortOrder;
 } {
-  if (view === 'merchant') return { sortBy: 'total_amount', order: 'desc' };
+  if (view === 'merchant') return { sortBy: 'net_expense', order: 'desc' };
   return { sortBy: 'date', order: 'desc' };
 }
 
@@ -79,8 +87,9 @@ function parseSortField(raw: string | null): SortField | null {
   if (
     raw === 'date' ||
     raw === 'amount' ||
-    raw === 'frequency' ||
-    raw === 'total_amount'
+    raw === 'total_count' ||
+    raw === 'net_expense' ||
+    raw === 'name'
   ) {
     return raw;
   }
@@ -100,7 +109,7 @@ export function useTransactionFilters(): UseTransactionFiltersReturn {
   const tag = searchParams.get('tag') ?? '';
   const month = searchParams.get('month') ?? '';
   const beneficiaryId = searchParams.get('beneficiary') ?? '';
-  // Sort defaults vary by view (merchant view defaults to total_amount).
+  // Sort defaults vary by view (merchant view defaults to net_expense).
   // When the user explicitly sets a sort, the URL carries it; otherwise
   // we synthesise the default at read time so the parsed value reflects
   // what the query would actually use.
@@ -122,7 +131,7 @@ export function useTransactionFilters(): UseTransactionFiltersReturn {
         }
       }
       // Resetting the view also resets the sort to the default for that
-      // view (so switching to Merchant lands on total_amount-desc, not
+      // view (so switching to Merchant lands on net_expense-desc, not
       // a stale date-desc inherited from List).
       if (patch.view) {
         const def = defaultSortForView(patch.view);

@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useCapabilities } from '../../../shared/api/capabilities';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver';
@@ -17,11 +18,9 @@ import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
-import {
-  monthKeyFromIso,
-  todayIsoInTz,
-} from '../api/calendar';
+import { monthKeyFromIso, todayIsoInTz } from '../api/calendar';
 import { transactionKeys, type TransactionListParams } from '../api/keys';
 import { deleteTransactionRequest } from '../api/mutations';
 import {
@@ -54,7 +53,10 @@ interface FlatTag {
   tag_name: string;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
@@ -66,6 +68,46 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
 // call site (keeps the count label off sonarjs/no-nested-conditional).
 function pluralCount(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? '' : 's'}`;
+}
+
+// Merchant view scope copy — BE 2026-06-06 grouped reads carry the
+// active window on every page. Three cases:
+//   - 'all'      → no window param sent → all-time aggregate
+//                  (new default, surfaces backdated imports).
+//   - 'monthly'  → period_start = YYYY-MM-DD; render as "Feb 2026".
+//   - 'weekly'   → period_start = YYYY-MM-DD (Mon); render as
+//                  "Feb 9 → Feb 15" using ISO Mon→Sun convention.
+// Anything else falls back to a copy of the raw period_type so future
+// BE additions still render something readable instead of `[object]`.
+function scopePillCopy(periodType: string, periodStart: string | null): string {
+  if (periodType === 'all') return 'All time';
+  if (periodType === 'monthly' && periodStart) {
+    return formatYearMonth(periodStart.slice(0, 7), 'short');
+  }
+  if (periodType === 'weekly' && periodStart) {
+    const start = new Date(`${periodStart}T00:00:00Z`);
+    const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const f = new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    return `${f.format(start)} → ${f.format(end)}`;
+  }
+  return periodType;
+}
+
+// Merchant empty-state copy — scope-aware. Old "No merchants found."
+// was ambiguous (was it "no data ever" or "no data this month?"). The
+// new copy folds the active window into the message so the user
+// knows exactly which scope is empty.
+function merchantEmptyCopy(
+  periodType: string | null,
+  scopeLabel: string | null
+): string {
+  if (periodType === 'all') return 'No merchants across your history yet.';
+  if (scopeLabel) return `No merchants for ${scopeLabel}.`;
+  return 'No merchants found.';
 }
 
 // Resolve the banner message from the delete error + the active query error.
@@ -90,7 +132,11 @@ const PAGE_SIZE = 25;
 // pagination would be the fix.
 const CALENDAR_FETCH_LIMIT = 100;
 
-const VIEW_TABS: Array<{ value: TransactionView; label: string; icon: typeof ListIcon }> = [
+const VIEW_TABS: Array<{
+  value: TransactionView;
+  label: string;
+  icon: typeof ListIcon;
+}> = [
   { value: 'list', label: 'List', icon: ListIcon },
   { value: 'merchant', label: 'Merchant', icon: Store },
   { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
@@ -105,8 +151,17 @@ export function TransactionsPage() {
   const tags = useMemo(() => flattenTags(tagsData?.tags), [tagsData?.tags]);
 
   const filters = useTransactionFilters();
-  const { view, type, tag, month, beneficiaryId, sortBy, order, set, clearAll } =
-    filters;
+  const {
+    view,
+    type,
+    tag,
+    month,
+    beneficiaryId,
+    sortBy,
+    order,
+    set,
+    clearAll,
+  } = filters;
   const isCalendar = view === 'calendar';
   const isMerchant = view === 'merchant';
 
@@ -176,6 +231,18 @@ export function TransactionsPage() {
     () => accumulatedPages.flatMap((p) => p.groups ?? []),
     [accumulatedPages]
   );
+  // BE 2026-06-06 — grouped reads carry the active window on every
+  // page. All pages of the same query share the same window, so take
+  // it from the first page. Drives the scope pill + empty-state copy
+  // below; both null until the first page lands. Bundled into one
+  // memo so the complexity gate sees a single derived value.
+  const groupedPeriod = useMemo(
+    () => ({
+      type: accumulatedPages[0]?.period_type ?? null,
+      start: accumulatedPages[0]?.period_start ?? null,
+    }),
+    [accumulatedPages]
+  );
 
   // IntersectionObserver-driven auto-load on desktop. Sentinel is
   // hidden on mobile (display:none → no intersection events fire),
@@ -232,7 +299,7 @@ export function TransactionsPage() {
   const sameMonth = dayMonthKey === calendarMonthKey;
   const { data: dayData } = useTransactionsQuery(dayParams);
   const dayTxnsAll = useMemo(
-    () => (sameMonth ? calendarTxns : dayData?.transactions ?? []),
+    () => (sameMonth ? calendarTxns : (dayData?.transactions ?? [])),
     [sameMonth, calendarTxns, dayData?.transactions]
   );
   const dayTxns = useMemo(() => {
@@ -286,9 +353,9 @@ export function TransactionsPage() {
 
   // Defensive error string — never let an unexpected object flow into
   // JSX as a child (post-Batch-9.6 hardening).
-  const activeError = (isCalendar ? calendarError : listError) as
-    | ApiErrorShape
-    | null;
+  const activeError = (
+    isCalendar ? calendarError : listError
+  ) as ApiErrorShape | null;
   const errorMessage = resolveErrorMessage(
     deleteError,
     activeError,
@@ -330,6 +397,8 @@ export function TransactionsPage() {
           isMerchant={isMerchant}
           listLoading={listLoading}
           groups={groups}
+          groupedPeriodType={groupedPeriod.type}
+          groupedPeriodStart={groupedPeriod.start}
           transactions={transactions}
           tags={tags}
           timezone={timezone}
@@ -346,7 +415,9 @@ export function TransactionsPage() {
       )}
 
       {errorMessage && (
-        <div className="form-error mt-4 text-center">{String(errorMessage)}</div>
+        <div className="form-error mt-4 text-center">
+          {String(errorMessage)}
+        </div>
       )}
 
       <Modal
@@ -380,7 +451,7 @@ export function TransactionsPage() {
               onClick={() => setConfirmDeleteId(editingTxn.txn_id)}
               aria-label="Remove transaction"
               title="Remove transaction"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
               data-testid="transaction-form-remove"
             >
               <Trash2 aria-hidden size={16} />
@@ -475,6 +546,9 @@ function TransactionsToolbar({
   onBeneficiaryChange,
   onOpenFilters,
 }: TransactionsToolbarProps) {
+  // Statement-upload safety valve — BE may disable on resource-
+  // constrained deploys. Defaults open until BE ships the flag.
+  const { statement_upload_enabled: importEnabled } = useCapabilities();
   return (
     <>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:mb-8">
@@ -490,13 +564,15 @@ function TransactionsToolbar({
           <button type="button" onClick={onAdd} className="btn-primary !w-auto">
             + Add Transaction
           </button>
-          <Link
-            to="/upload-statement"
-            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <FileUp aria-hidden="true" size={16} />
-            Import Statement
-          </Link>
+          {importEnabled && (
+            <Link
+              to="/upload-statement"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <FileUp aria-hidden="true" size={16} />
+              Import Statement
+            </Link>
+          )}
         </div>
       </header>
 
@@ -552,7 +628,7 @@ function TransactionsToolbar({
             <SlidersHorizontal aria-hidden size={14} />
             Filters
             {sidebarActiveCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white dark:bg-indigo-500">
+              <span className="bg-accent-600 dark:bg-accent-500 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white">
                 {sidebarActiveCount}
               </span>
             )}
@@ -567,6 +643,11 @@ interface TransactionListBodyProps {
   isMerchant: boolean;
   listLoading: boolean;
   groups: MerchantGroup[];
+  // Active grouped-read window (BE 2026-06-06). Drives the merchant
+  // view's scope pill + empty-state copy. Null on the flat list view
+  // / before the first page resolves.
+  groupedPeriodType: 'weekly' | 'monthly' | 'all' | string | null;
+  groupedPeriodStart: string | null;
   transactions: TransactionDTO[];
   tags: FlatTag[];
   timezone: string;
@@ -590,6 +671,8 @@ function TransactionListBody({
   isMerchant,
   listLoading,
   groups,
+  groupedPeriodType,
+  groupedPeriodStart,
   transactions,
   tags,
   timezone,
@@ -606,6 +689,10 @@ function TransactionListBody({
   const countLabel = isMerchant
     ? pluralCount(groups.length, 'merchant')
     : pluralCount(transactions.length, 'transaction');
+  const scopeLabel =
+    isMerchant && groupedPeriodType
+      ? scopePillCopy(groupedPeriodType, groupedPeriodStart)
+      : null;
 
   function renderRows() {
     if (listLoading) {
@@ -619,7 +706,7 @@ function TransactionListBody({
       if (groups.length === 0) {
         return (
           <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-            No merchants found.
+            {merchantEmptyCopy(groupedPeriodType, scopeLabel)}
           </div>
         );
       }
@@ -664,8 +751,16 @@ function TransactionListBody({
 
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-        {countLabel}
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+        <span>{countLabel}</span>
+        {scopeLabel && (
+          <span
+            data-testid="merchant-scope-pill"
+            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            {scopeLabel}
+          </span>
+        )}
       </div>
 
       {renderRows()}
@@ -683,7 +778,7 @@ function TransactionListBody({
           >
             {isFetchingNextPage ? 'Loading…' : 'Show more'}
           </button>
-          <div ref={sentinelRef} aria-hidden className="hidden md:block h-1" />
+          <div ref={sentinelRef} aria-hidden className="hidden h-1 md:block" />
           {isFetchingNextPage && (
             <span className="hidden text-xs text-slate-400 md:inline-block dark:text-slate-500">
               Loading more…

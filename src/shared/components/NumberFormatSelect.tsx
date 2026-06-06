@@ -72,7 +72,9 @@ export function NumberFormatSelect() {
       >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.value === 'system' ? `${o.label} (${previewFor(o.value)})` : o.label}
+            {o.value === 'system'
+              ? `${o.label} (${previewFor(o.value)})`
+              : o.label}
           </option>
         ))}
       </select>

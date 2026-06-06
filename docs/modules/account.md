@@ -1,7 +1,7 @@
 # Account surface
 
-> The five-section user-management area at `/account/*` — profile,
-> security, privacy, accessibility, preferences. Lives at
+> The six-section user-management area at `/account/*` — profile,
+> security, privacy, accessibility, preferences, notifications. Lives at
 > [`src/features/account/`](../../src/features/account/).
 
 ## Purpose
@@ -19,22 +19,25 @@
 
 ## Pages
 
-| Path | Component | Content |
-|---|---|---|
-| `/account` | redirect → `/account/profile` | — |
-| `/account/profile` | `pages/AccountProfilePage.tsx` | name, dob, email (read-only), contact |
-| `/account/security` | `pages/AccountSecurityPage.tsx` | change password, security question, active-sessions placeholder |
-| `/account/privacy` | `pages/AccountPrivacyPage.tsx` | placeholder (data export / deletion / retention — needs backend) |
-| `/account/accessibility` | `pages/AccountAccessibilityPage.tsx` | theme / zoom / reduce-motion / privacy-mask |
-| `/account/preferences` | `pages/AccountPreferencesPage.tsx` | country / currency / timezone + defaults placeholder |
-| `/profile` | redirect → `/account/profile` | legacy alias |
+| Path                       | Component                               | Content                                                                                                                                              |
+| -------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/account`                 | redirect → `/account/profile`           | —                                                                                                                                                    |
+| `/account/profile`         | `pages/AccountProfilePage.tsx`          | profile-image picker, name, dob, email (read-only), contact                                                                                          |
+| `/account/security`        | `pages/AccountSecurityPage.tsx`         | change password, change email, security question, active sessions list + revoke                                                                      |
+| `/account/privacy`         | `pages/AccountPrivacyPage.tsx`          | privacy mask pointer, data export, danger zone (delete account)                                                                                      |
+| `/account/accessibility`   | `pages/AccountAccessibilityPage.tsx`    | theme / zoom / reduce-motion / privacy-mask                                                                                                          |
+| `/account/preferences`     | `pages/AccountPreferencesPage.tsx`      | country / currency / timezone + defaults placeholder                                                                                                 |
+| `/account/notifications`   | `pages/AccountNotificationsPage.tsx`    | per-user signal disable for activity-feed kinds (BE Phase 2.14 + 2.16); renders the shared [`<SignalSettingsEditor viewerRole="user">`](activity.md) |
+| `/profile`                 | redirect → `/account/profile`           | legacy alias                                                                                                                                         |
+| `/account/cancel-deletion` | `pages/CancelDeletionPage.tsx` (UNAUTH) | landing for the deletion-cancel email link + apiClient `ACCOUNT_PENDING_DELETION` 403 interceptor                                                    |
+| `/account/revoke-device`   | `pages/RevokeDevicePage.tsx` (UNAUTH)   | landing for the new-device intimation email's "this wasn't me" CTA — auto-POSTs `/api/v1/auth/new-device/revoke {token}` on mount (BE Phase 2.3)     |
 
 ## Shell
 
 [`components/AccountLayout.tsx`](../../src/features/account/components/AccountLayout.tsx)
 wraps
 [`shared/components/SectionedPageLayout`](../../src/shared/components/SectionedPageLayout.tsx)
-with the five-section spec — same primitive that backs the
+with the six-section spec — same primitive that backs the
 [Settings shell](settings.md).
 
 ## Routes
@@ -48,44 +51,192 @@ Every page is auth-gated by the parent `<ProtectedRoute>` wrap.
 
 ### Profile
 
-Submits a partial PATCH to `/api/users/me` carrying only
+Submits a partial PATCH to `/api/v1/users/me` carrying only
 `first_name`, `last_name`, `dob`, `contact`. The dial-code default
 derives from the persisted `user.contact` prefix; users can override
 the dial code in the input (e.g. when their phone is from a different
 country than residence).
 
+A "Profile picture" card at the top of the page hosts the
+[`<ProfileImagePicker>`](../../src/features/account/components/ProfileImagePicker.tsx)
+— preview + Upload + Remove + a 4/6-col grid of geometric presets
+backed by BE Phase 1.13's `/api/v1/users/profile-image-presets`. Each
+mutation calls `syncMe()` (Batch 20 UAT, `a89cf94`) which refetches
+`/me`, primes both the auth store and the `userKeys.me()` query
+cache, and propagates the new `profile_image_url` instantly to the
+TopNav avatar (the shared `<ProfileImage>` primitive in
+`shared/components/`). Replaces a plain `invalidateQueries()` that
+left a one-render staleness gap.
+
+A "Your account at a glance" stats card
+([`<UserStatsCard>`](../../src/features/account/components/UserStatsCard.tsx))
+renders below the profile form. Reads BE Phase 1.15's
+`GET /api/v1/users/me/stats` (member-since, last-active, txn count,
+beneficiaries added, active recurring count); falls back to a
+friendly hidden state when the route 404s.
+
 ### Preferences
 
-Submits a partial PATCH to `/api/users/me` carrying only `country`,
-`currency`, `timezone`. On save, invalidates `userKeys.all` and runs
-`hydratePreferences()` so the
+After BE Phase 1.9 the page Save fans out two parallel PATCHes —
+`PATCH /api/v1/users/me` carrying `{ country }` (identity slice) and
+`PATCH /api/v1/users/preferences` carrying `{ currency, timezone }`
+(the preferences row's `currency` + `timezone` columns). On save,
+invalidates `userKeys.all` and runs `hydratePreferences()` so
 [`usePreferencesStore`](../../src/shared/state/preferences.store.ts)
-reflects the new values immediately — `x-user-currency` and
-`x-user-timezone` headers on subsequent requests, every
-`formatMoney` / `formatDate` call across the app, all stay in sync.
+reflects the new values immediately — every `formatMoney` /
+`formatDate` call across the app stays in sync.
 
 A "Defaults" card points users at `/account/accessibility` for the
-date format / number format / default landing controls (now
-shipped, frontend-only) and notes that cross-device sync of those
-+ default debit/credit on Add Transaction still needs backend
-columns — tracked in
-[`docs/archive/refactor-v1.0/summary.md`](../archive/refactor-v1.0/summary.md)
-under "Backend follow-ups deferred" (defaults-cluster persistence).
+date format / number format / default landing route / default
+debit-credit / underline-links / focus-ring-always controls. All
+six are server-synced via the same `user_preferences` row (see
+[CONTRIBUTING.md §5](../../CONTRIBUTING.md#data-fetching--server-state)
+"User preferences contract") — `hydratePreferences()` writes to
+their stores at boot, and `subscribeToPreferenceStores()` PATCHes
+back on every user-driven `setX()`.
+
+A "Taxation" card surfaces the `auto_enabled` toggle (BE Phase 2.6,
+Decision 26 — Auto-finalize weekly bills). Same hydrate / subscribe
+pipeline as the other preferences; toggle is the shared
+`<TaxModeToggle>` component. When OFF, bills stay in ACCRUING for
+visibility and the user drives generation manually from the Tax
+Tracker. When the BE stale-bill worker EXPIREs unpaid bills past
+`STALE_BILL_THRESHOLD`, this flag flips off server-side — the
+hydrate path catches that on the next boot/refresh.
 
 ### Security
 
-Change password POSTs `/api/auth/change-password`. Security question
-POSTs `/api/auth/recovery` (one question per user, replaces the
-previous choice). The "Active sessions" placeholder card flags the
-backend follow-up — the `user_sessions` table exists, but no
-list/revoke endpoint is exposed yet.
+Change password POSTs `/api/v1/auth/change-password`. Security question
+POSTs `/api/v1/auth/recovery` (one question per user, replaces the
+previous choice).
+
+**Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7,
+auth-domain snapshot Phase 3.0 `fc22163`). Three flow states managed
+by a `FlowState` discriminator:
+
+1. **idle** — reads `security.two_factor_enabled` from
+   [`useSecurityStatusQuery()`](../../src/features/auth/api/security.ts)
+   (BE `GET /api/v1/auth/security`) to render either the Enable CTA
+   (off) or the Enabled-with-Disable card (on). The same snapshot
+   carries `backup_codes_remaining`; the enabled-idle card surfaces
+   it as a "X backup codes remaining" line (warning tone when ≤3,
+   danger when 0 with copy nudging re-enroll). 2FA state lives on
+   the auth domain — never on `/me` — so the profile/auth split
+   stays clean across FE + BE.
+2. **enrolling** — `/2fa/enroll` returned a staged secret +
+   provisioning URI + a JWT `enroll_token` (Batch 20 UAT, BE
+   refactor `b6675df`: secret no longer persists to `user_auth`
+   at /enroll — the token wraps the encrypted secret instead).
+   The panel shows the base32 secret prominently for manual
+   authenticator entry and an `otpauth://` deep link that mobile
+   authenticators register. (A proper QR render is queued as
+   polish — adding a QR library now would punch the §3 ceiling.)
+   Submitting a 6-digit code POSTs `{enroll_token, code}` to
+   `/2fa/verify-enroll`; the token is the BE's source of truth
+   for which secret to commit on success.
+3. **showing-backup-codes** — verify-enroll returned 10 one-time
+   backup codes. Panel renders them in a 2- / 3-column grid + a
+   Download button (text-file blob). Code visibility is one-shot;
+   the BE only returns hashes — no regenerate endpoint.
+
+Disable lives behind a `<Modal size="sm">` that re-confirms with
+the password (BE step-up). The undo / regenerate of backup codes is
+intentionally out of scope (no BE endpoint).
+
+**Change email** — `<EmailChangeForm>` runs the two-step BE Phase 2.8
+flow: step 1 POSTs `/api/v1/auth/change-email-request {new_email,
+password, code?}` and the BE emails an OTP to the new address +
+a security notice to the current address; step 2 POSTs the OTP to
+`/api/v1/auth/change-email-confirm` for an atomic dual-column swap.
+The form is 2FA-aware via the same `useSecurityStatusQuery()` read
+as `<TwoFactorSection>` — `codeRequired` initializes from
+`security?.two_factor_enabled` and a `useEffect` re-syncs once the
+snapshot resolves async (covers the first-render capture). The 401
+reveal path is kept as defense-in-depth. 409/429 on confirm are
+terminal per the spec → restart from step 1. On success,
+invalidates `userKeys.me()` and surfaces the "other devices were
+signed out" notice.
+
+**Trusted devices** — `<TrustedDeviceList>` (BE Phase 2.3,
+T-new-device-otp). Lists every device that has cleared the
+emailed-OTP gate (`GET /api/v1/auth/devices`). Each row shows the
+parsed UA label, first / last seen timestamps, and a "This device"
+chip on the row whose `is_current === true`. Forgetting a device
+DELETEs it (cascades the active session if any) and forces re-
+verification on the next sign-in from that device. Lives next to
+Active sessions on `/account/security`.
+
+**Active sessions** — `<SessionList>` reads the BE Phase 1.12
+`GET /api/v1/auth/sessions` endpoint. Each row carries a UA-derived
+device label ("Chrome on macOS" / "Safari on iOS"), IP, last-active
+timestamp in the user's tz, a "This device" badge on the row backing
+the current request, and a Revoke button. ConfirmDialog gates the
+revoke; current-device revoke uses stronger copy. Mutations
+invalidate `authKeys.sessions()` (30s staleTime). The session list
+also benefits from BE Phase 1.4 — the `X-Device-Id` header sent by
+apiClient since Platform FE Batch 3 sharpens the device fingerprint
+so the same phone on a new network doesn't show as two rows.
 
 ### Privacy
 
-Pure placeholder until backend endpoints exist for data export +
-account deletion + retention windows. Points users at the
-**privacy mask** under Accessibility for in-app amount blurring
-today.
+**Privacy controls card** — pointer to the privacy mask under
+Accessibility for in-app amount blurring.
+
+**Export data** — `<DataExportPanel>` lists the 8 BE-exposed
+resources (transactions, beneficiaries, tax-bills, tax-details,
+spend-by-tag, spend-by-merchant, bank-accounts, profile) backed by
+BE Phase 1.10's `GET /api/v1/exports/{resource}?format=csv|json`. CSV
+streams with `Content-Disposition: attachment`; the FE fetches with
+the bearer header (anchor `download` can't carry headers), reads the
+response as a blob, and clicks an off-DOM link. CSV / JSON toggle is
+a pill control.
+
+**Reset zone** — `<ResetZone>` (BE Phase 2.15, T-data-reset). Warning-
+tone card above the Danger Zone for a "clean restart" that keeps
+the account, login, and preferences but wipes every domain row the
+user owns (transactions, beneficiaries, tags, budgets, recurring
+templates, statement uploads, bills, activity, bank accounts).
+Password-confirm modal mirrors the delete flow with distinct copy
+("Wipe all your data and start fresh — your account stays"). POSTs
+`/api/v1/users/me/data-reset {password}` (BE step-up; 403 on wrong
+password). On success: `setQueryData(userKeys.stats(), resp)` flips
+the Profile stats card to zeros instantly using the BE-returned
+post-reset snapshot, then `invalidateQueries()` refetches every other
+domain query. Inline `<span role="status">` success message; modal
+closes; no redirect (current session is preserved). Distinct from
+Danger Zone — destructive-but-recoverable (account stays) vs total
+loss (account removed). Different tones, different cards.
+
+**Danger zone** — `<DangerZone>` schedules the user's account for
+deletion via BE Phase 2.1's `POST /api/v1/users/me/delete {password}`.
+Confirms via a password-modal, hard-logouts on success (drops tokens
+
+- navigates to `/` with a sessionStorage banner cue). 403 surfaces
+  inline as "Incorrect password". The companion
+  [`CancelDeletionPage`](../../src/features/account/pages/CancelDeletionPage.tsx)
+  (unauth, mounted on `/account/cancel-deletion`) handles the email
+  link's `?token=` + the apiClient `ACCOUNT_PENDING_DELETION` 403
+  interceptor that hard-logouts + redirects any other tab still in
+  the grace window.
+
+### Notifications
+
+User-side per-kind toggle for activity-feed signals (BE Phase 2.14
+user routes + 2.16 admin persistence layer). `<AccountNotificationsPage>`
+fetches the catalog + the user's disabled-kinds set via
+[`useActivityCatalogQuery()`](../../src/shared/api/activityCatalog.ts)
+
+- [`useUserSignalSettingsQuery()`](../../src/shared/api/activityFeed.ts)
+  and renders the shared stateless
+  [`<SignalSettingsEditor viewerRole="user">`](../../src/shared/components/SignalSettingsEditor.tsx)
+  — same editor that powers the operator-side admin user-detail
+  section, viewer-role gated. Toggle PATCHes
+  `/api/v1/activity/signal-settings {kind, enabled}` via an inline
+  `useToggleUserSignalMutation` that writes the response straight into
+  the query cache + invalidates the activity feed. System-disabled
+  kinds (`system_enabled=false` in the catalog) render with a "System
+  off" badge and the user-side toggle disabled. Full activity-surface
+  contract documented in [activity.md](activity.md).
 
 ### Accessibility
 
@@ -98,23 +249,23 @@ toggle in either surface updates this page live and vice versa.
 
 **Display & motion (seven paint-time controls):**
 
-| Setting | Store | Bridge / effect |
-|---|---|---|
-| Theme (light/dark/system) | [`useThemeStore`](../../src/shared/state/theme.store.ts) | `applyTheme` mirrors mode to `<html class="dark">`. No-FOUC inline script in `index.html`. |
-| Text size (zoom) | [`useZoomStore`](../../src/shared/state/zoom.store.ts) | `applyZoom` sets `<html>` fontSize. |
-| Reduce motion | [`useMotionStore`](../../src/shared/state/motion.store.ts) | `applyMotion` toggles `.reduce-motion` on `<html>`. |
-| Privacy mask | [`usePrivacyStore`](../../src/shared/state/privacy.store.ts) | `applyPrivacyMask` toggles `.mask-amounts` on `<html>`; CSS blurs elements with `.money` class. |
-| High contrast | [`useContrastStore`](../../src/shared/state/contrast.store.ts) | `applyContrast` toggles `.high-contrast` on `<html>`; CSS boosts secondary text + border + accent contrast. |
-| Underline links | [`useLinkUnderlineStore`](../../src/shared/state/linkUnderline.store.ts) | `applyLinkUnderline` toggles `.underline-links` on `<html>`; CSS forces `text-decoration: underline` on every `<a>`. WCAG 1.4.1. |
-| Always show focus | [`useFocusRingStore`](../../src/shared/state/focusRing.store.ts) | `applyFocusRing` toggles `.focus-always` on `<html>`; CSS forces `:focus` outline regardless of `:focus-visible`. |
+| Setting                   | Store                                                                    | Bridge / effect                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Theme (light/dark/system) | [`useThemeStore`](../../src/shared/state/theme.store.ts)                 | `applyTheme` mirrors mode to `<html class="dark">`. No-FOUC inline script in `index.html`.                                       |
+| Text size (zoom)          | [`useZoomStore`](../../src/shared/state/zoom.store.ts)                   | `applyZoom` sets `<html>` fontSize.                                                                                              |
+| Reduce motion             | [`useMotionStore`](../../src/shared/state/motion.store.ts)               | `applyMotion` toggles `.reduce-motion` on `<html>`.                                                                              |
+| Privacy mask              | [`usePrivacyStore`](../../src/shared/state/privacy.store.ts)             | `applyPrivacyMask` toggles `.mask-amounts` on `<html>`; CSS blurs elements with `.money` class.                                  |
+| High contrast             | [`useContrastStore`](../../src/shared/state/contrast.store.ts)           | `applyContrast` toggles `.high-contrast` on `<html>`; CSS boosts secondary text + border + accent contrast.                      |
+| Underline links           | [`useLinkUnderlineStore`](../../src/shared/state/linkUnderline.store.ts) | `applyLinkUnderline` toggles `.underline-links` on `<html>`; CSS forces `text-decoration: underline` on every `<a>`. WCAG 1.4.1. |
+| Always show focus         | [`useFocusRingStore`](../../src/shared/state/focusRing.store.ts)         | `applyFocusRing` toggles `.focus-always` on `<html>`; CSS forces `:focus` outline regardless of `:focus-visible`.                |
 
 **Data formatting (three format-time controls):**
 
-| Setting | Store | Effect |
-|---|---|---|
-| Date format | [`useDateFormatStore`](../../src/shared/state/dateFormat.store.ts) | `formatDate` / `formatDateTime` in `shared/utils/dateUtils.ts` read the store via `getState()` and pass the resolved locale + opts to `Intl.DateTimeFormat`. Pass `respectUserFormat: false` to opt out (e.g. a calendar widget that needs a fixed shape). |
-| Number / currency separator | [`useNumberFormatStore`](../../src/shared/state/numberFormat.store.ts) | `formatMoney` in `shared/utils/currency.ts` reads the store and keys its `Intl.NumberFormat` cache by mode. |
-| Default landing route | [`useLandingRouteStore`](../../src/shared/state/landingRoute.store.ts) | `useAuth.login` and `LoginPage` (already-authed redirect) call `getLandingRoute()` and navigate there. Defaults to `/dashboard` for first-time / unset visitors. |
+| Setting                     | Store                                                                  | Effect                                                                                                                                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Date format                 | [`useDateFormatStore`](../../src/shared/state/dateFormat.store.ts)     | `formatDate` / `formatDateTime` in `shared/utils/dateUtils.ts` read the store via `getState()` and pass the resolved locale + opts to `Intl.DateTimeFormat`. Pass `respectUserFormat: false` to opt out (e.g. a calendar widget that needs a fixed shape). |
+| Number / currency separator | [`useNumberFormatStore`](../../src/shared/state/numberFormat.store.ts) | `formatMoney` in `shared/utils/currency.ts` reads the store and keys its `Intl.NumberFormat` cache by mode.                                                                                                                                                |
+| Default landing route       | [`useLandingRouteStore`](../../src/shared/state/landingRoute.store.ts) | `useAuth.login` and `LoginPage` (already-authed redirect) call `getLandingRoute()` and navigate there. Defaults to `/dashboard` for first-time / unset visitors.                                                                                           |
 
 **All ten persist in `localStorage` only — they do NOT follow the
 user across devices** (Zustand `persist` middleware, one
@@ -131,33 +282,73 @@ usage surfaces a need we can lift them later.
 
 The user dropdown in
 [`shared/components/TopNav.tsx`](../../src/shared/components/TopNav.tsx)
-stays at "Profile + Sign Out" — Profile links to `/account/profile`,
-and the sectioned-page sidebar inside `/account/*` exposes the other
-four sections. The mobile-drawer Profile row points at the same URL.
+goes through the shared `<ProfileImage>` primitive — same indigo
+monogram fallback as the pre-Batch-5 button when
+`user.profile_image_url` is `null`, the BE-served WEBP when it's
+set. The Account link points at `/account/profile`; the
+sectioned-page sidebar inside `/account/*` exposes the other four
+sections. The mobile-drawer Profile row points at the same URL.
+The accessibility toggle panel is lazy-loaded — both
+`AccessibilityPopover` and the mobile drawer Suspense-import
+[`<AccessibilityPanel>`](../../src/shared/components/AccessibilityPanel.tsx).
 
 ## API surface (consumed)
 
 The account surface owns no API hooks itself — every request goes
-through the [`users`](users.md) feature's `api/`:
+through the relevant feature's `api/`:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/users/me` | Profile + Preferences hydrate |
-| `PATCH /api/users/me` | Profile save (partial), Preferences save (partial) |
-| `GET /api/users/preferences` | Post-save hydration of `usePreferencesStore` |
-| `POST /api/auth/change-password` | Security |
-| `GET /api/auth/recovery` | Security (current question) |
-| `POST /api/auth/recovery` | Security (set/replace question) |
+| Method + path                               | Used by                                                                                                                     |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/users/me`                      | Profile + Preferences hydrate; carries `profile_image_url`                                                                  |
+| `PATCH /api/v1/users/me`                    | Profile save (partial), Preferences save (partial: country only after Batch 2)                                              |
+| `GET /api/v1/users/me/stats`                | Profile — UserStatsCard ("Your account at a glance")                                                                        |
+| `GET /api/v1/users/preferences`             | Hydration of every preference store                                                                                         |
+| `PATCH /api/v1/users/preferences`           | Preferences save (currency, timezone slice)                                                                                 |
+| `GET /api/v1/users/profile-image-presets`   | Profile picture picker grid                                                                                                 |
+| `PUT /api/v1/users/me/profile-image/preset` | Profile picture preset selection                                                                                            |
+| `POST /api/v1/users/me/profile-image`       | Profile picture upload (multipart)                                                                                          |
+| `DELETE /api/v1/users/me/profile-image`     | Profile picture remove                                                                                                      |
+| `POST /api/v1/users/me/delete`              | Danger zone scheduled deletion                                                                                              |
+| `POST /api/v1/users/me/delete/cancel`       | Cancel-deletion page (unauth)                                                                                               |
+| `POST /api/v1/users/me/data-reset`          | Reset zone — wipe domain data, keep the account                                                                             |
+| `POST /api/v1/auth/change-password`         | Security — change password                                                                                                  |
+| `POST /api/v1/auth/change-email-request`    | Security — change email step 1                                                                                              |
+| `POST /api/v1/auth/change-email-confirm`    | Security — change email step 2                                                                                              |
+| `GET /api/v1/auth/sessions`                 | Security — active sessions list                                                                                             |
+| `DELETE /api/v1/auth/sessions/{id}`         | Security — revoke session                                                                                                   |
+| `GET /api/v1/auth/devices`                  | Security — TrustedDeviceList                                                                                                |
+| `DELETE /api/v1/auth/devices/{uid}`         | Security — forget device                                                                                                    |
+| `POST /api/v1/auth/2fa/enroll`              | Security — TwoFactorSection enrol step 1                                                                                    |
+| `POST /api/v1/auth/2fa/verify-enroll`       | Security — TwoFactorSection enrol step 2 (returns backup codes)                                                             |
+| `POST /api/v1/auth/2fa/disable`             | Security — TwoFactorSection disable (password step-up)                                                                      |
+| `GET /api/v1/auth/security`                 | Security — `<TwoFactorSection>` + `<EmailChangeForm>` read `has_recovery` / `two_factor_enabled` / `backup_codes_remaining` |
+| `POST /api/v1/auth/new-device/revoke`       | RevokeDevicePage (unauth)                                                                                                   |
+| `GET /api/v1/auth/recovery`                 | Security (current question)                                                                                                 |
+| `POST /api/v1/auth/recovery`                | Security (set/replace question)                                                                                             |
+| `GET /api/v1/activity/catalog`              | Notifications — kind catalog (shared editor)                                                                                |
+| `GET /api/v1/activity/signal-settings`      | Notifications — user's disabled-kinds set                                                                                   |
+| `PUT /api/v1/activity/signal-settings`      | Notifications — toggle per-kind disable                                                                                     |
+| `GET /api/v1/exports/{resource}`            | Privacy — data export                                                                                                       |
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `account.routes.test.tsx` | `/account` index redirect, `/profile` legacy redirect, sidebar exposes all five sections at canonical hrefs |
-| `pages/AccountProfilePage.test.tsx` | `/me` hydration, partial-PATCH shape (no preferences fields), phone validation |
-| `pages/AccountPreferencesPage.test.tsx` | `/me` hydration, partial-PATCH shape (no profile fields), `usePreferencesStore` re-hydration post-save, Defaults placeholder visibility |
-| `pages/AccountSecurityPage.test.tsx` | Password Update gated on validity, security-question hydrate, Active-sessions placeholder visibility |
-| `pages/AccountAccessibilityPage.test.tsx` | All ten controls (7 Display & motion + 3 Data formatting) render |
-| Store smoke tests | `shared/state/{contrast,linkUnderline,focusRing,dateFormat,numberFormat,landingRoute}.store.test.ts` — toggle / setter + `apply*` class mirror where applicable |
-| Helper override paths | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore` |
-| `pages/AccountPrivacyPage.test.tsx` | Placeholder card + cross-link to Accessibility |
+| File                                      | Covers                                                                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `account.routes.test.tsx`                 | `/account` index redirect, `/profile` legacy redirect, sidebar exposes all six sections at canonical hrefs                                                               |
+| `pages/AccountProfilePage.test.tsx`       | `/me` hydration, partial-PATCH shape (no preferences fields), phone validation                                                                                           |
+| `pages/AccountPreferencesPage.test.tsx`   | `/me` hydration, partial-PATCH shape (no profile fields), `usePreferencesStore` re-hydration post-save, Defaults placeholder visibility                                  |
+| `pages/AccountSecurityPage.test.tsx`      | Password Update gated on validity, security-question hydrate, Active-sessions card mounted                                                                               |
+| `components/SessionList.test.tsx`         | Row rendering + "This device" badge, confirm-then-revoke removes row, current-device stronger copy, empty state                                                          |
+| `components/EmailChangeForm.test.tsx`     | Happy-path two-step flow + sign-out notice, 401 reveals 2FA field, 409 inline on request, 409 on confirm restarts from step 1                                            |
+| `shared/components/ProfileImage.test.tsx` | Image / monogram rendering, initials fallbacks (first+last / first-only / email), shared indigo background                                                               |
+| `components/DataExportPanel.test.tsx`     | 8 resources rendered, format toggle drives the query string, non-OK surfaces inline                                                                                      |
+| `pages/AccountAccessibilityPage.test.tsx` | All ten controls (7 Display & motion + 3 Data formatting) render                                                                                                         |
+| Store smoke tests                         | `shared/state/{contrast,linkUnderline,focusRing,dateFormat,numberFormat,landingRoute}.store.test.ts` — toggle / setter + `apply*` class mirror where applicable          |
+| Helper override paths                     | `shared/utils/dateUtils.test.ts` — `formatDate` honors `useDateFormatStore`; `shared/utils/currency.test.ts` — `formatMoney` honors `useNumberFormatStore`               |
+| `pages/AccountPrivacyPage.test.tsx`       | Privacy / Reset / Danger Zone cards all present, modal opens, 403 (wrong password) surfaces inline                                                                       |
+| `components/ResetZone.test.tsx`           | Renders the warning-tone Reset zone card, password modal opens + submits, happy-path body assertion + status message, 403 inline "Incorrect password" + modal stays open |
+| `components/TwoFactorSection.test.tsx`    | idle → enrolling → showing-backup-codes flow, enabled card shows `backup_codes_remaining` badge, Disable modal password step-up, /2fa/enroll error handling              |
+| `pages/AccountNotificationsPage.test.tsx` | Catalog + disabled-list render, toggle PUTs `{kind, enabled}`, "System off" badge + disabled toggle on `system_enabled=false`                                            |
+| `components/TrustedDeviceList.test.tsx`   | Lists `/api/v1/auth/devices`, "This device" chip on `is_current`, forget-device DELETE removes row                                                                       |
+| `components/UserStatsCard.test.tsx`       | Renders the 5 stat tiles from `/api/v1/users/me/stats`; hidden state when the endpoint 404s                                                                              |
+| `pages/RevokeDevicePage.test.tsx`         | Auto-POSTs on mount with valid token (204 → success copy); 400 → invalid-token copy; no-token landing explains the email link                                            |

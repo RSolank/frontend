@@ -5,7 +5,6 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import {
-  BUDGET_DELETE_NOT_IMPLEMENTED,
   deleteBudgetLimitRequest,
   upsertBudgetLimitRequest,
 } from '../api/mutations';
@@ -54,7 +53,10 @@ function snapToStep(value: number, step: number): number {
 
 // Modal heading by mode — if/else (not a nested ternary) so it stays off
 // sonarjs/no-nested-conditional.
-function dialogTitle(category: BudgetCategory | null, isExisting: boolean): string {
+function dialogTitle(
+  category: BudgetCategory | null,
+  isExisting: boolean
+): string {
   if (!category) return 'Budget';
   if (isExisting) return `Edit budget — ${category.tag_name}`;
   return `Set budget — ${category.tag_name}`;
@@ -121,14 +123,7 @@ function useBudgetMutations(
       setConfirmRemoveOpen(false);
       onClose();
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === BUDGET_DELETE_NOT_IMPLEMENTED) {
-        setError(
-          'Removing a budget needs a backend endpoint that hasn’t shipped yet. See the coordination note for status — workaround: lower the limit to a value above your expected spend.'
-        );
-      } else {
-        setError(errorMessage(err, 'Failed to remove budget'));
-      }
+      setError(errorMessage(err, 'Failed to remove budget'));
       setConfirmRemoveOpen(false);
     } finally {
       setRemoving(false);
@@ -161,9 +156,9 @@ function useBudgetForm(
 ) {
   const isExisting = category != null && category.limit_amt != null;
 
-  const baseMin = Math.max(0, category?.min_expense ?? 0);
-  const baseMax = Math.max(baseMin, category?.max_expense ?? 0);
-  const baseAvg = Math.max(0, category?.avg_expense ?? 0);
+  const baseMin = Math.max(0, category?.min_net_expense ?? 0);
+  const baseMax = Math.max(baseMin, category?.max_net_expense ?? 0);
+  const baseAvg = Math.max(0, category?.avg_net_expense ?? 0);
 
   function initialValue(c: BudgetCategory | null): number {
     if (!c) return 0;
@@ -401,7 +396,7 @@ export function BudgetFormDialog({
               disabled={form.saving || form.removing}
               aria-label="Remove budget"
               title="Remove budget"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+              className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="budget-form-remove"
             >
               <Trash2 aria-hidden size={16} />
@@ -421,7 +416,9 @@ export function BudgetFormDialog({
             <button
               type="button"
               onClick={() => void form.handleSave()}
-              disabled={form.saving || form.removing || !form.isDirty || !category}
+              disabled={
+                form.saving || form.removing || !form.isDirty || !category
+              }
               className="btn-primary !w-auto"
               data-testid="budget-form-save"
             >
@@ -523,8 +520,8 @@ function BudgetFormBody({
         <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Spent this month
         </div>
-        <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
-          {money(category.current_expense)}
+        <div className="money mt-0.5 text-lg font-semibold text-slate-900 tabular-nums dark:text-slate-100">
+          {money(category.current_net_expense)}
         </div>
       </div>
 
@@ -554,9 +551,9 @@ function BudgetFormBody({
             data-testid="budget-amount-input"
           />
           <span>
-            Type a precise value for round numbers; use the slider
-            to visualize it against recent spending. Out-of-range
-            values settle ~1s after you stop typing.
+            Type a precise value for round numbers; use the slider to visualize
+            it against recent spending. Out-of-range values settle ~1s after you
+            stop typing.
           </span>
         </label>
 
@@ -565,10 +562,7 @@ function BudgetFormBody({
             icon="minus"
             onClick={() =>
               onValueAndDraft(
-                Math.max(
-                  effectiveBounds.lo,
-                  snapToStep(value - step, step)
-                )
+                Math.max(effectiveBounds.lo, snapToStep(value - step, step))
               )
             }
             label={`Decrease by ${step}`}
@@ -588,10 +582,7 @@ function BudgetFormBody({
             icon="plus"
             onClick={() =>
               onValueAndDraft(
-                Math.min(
-                  effectiveBounds.hi,
-                  snapToStep(value + step, step)
-                )
+                Math.min(effectiveBounds.hi, snapToStep(value + step, step))
               )
             }
             label={`Increase by ${step}`}
@@ -601,29 +592,28 @@ function BudgetFormBody({
         <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>
             Min{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseMin)}
             </strong>
           </span>
           <span>
             Avg{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseAvg)}
             </strong>
           </span>
           <span>
             Max{' '}
-            <strong className="text-slate-700 dark:text-slate-300">
+            <strong className="money text-slate-700 dark:text-slate-300">
               {money(baseMax)}
             </strong>
           </span>
         </div>
 
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Soft cap in {currencyCode}. Spend above this triggers the
-          penalty rate below, stacked on the base taxation rate for{' '}
-          <span className="capitalize">{category.tag_type}</span>{' '}
-          transactions.
+          Soft cap in {currencyCode}. Spend above this triggers the penalty rate
+          below, stacked on the base taxation rate for{' '}
+          <span className="capitalize">{category.tag_type}</span> transactions.
         </p>
       </fieldset>
 
@@ -641,12 +631,11 @@ function BudgetFormBody({
           aria-label="Penalty rate"
         />
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          Accepts <code>5%</code>, <code>0.05</code>, or <code>5</code>{' '}
-          (assumed %). Applied on top of base tax when this month&rsquo;s
-          spend crosses the limit. Default for{' '}
-          <span className="capitalize">{category.tag_type}</span>{' '}
-          transactions is{' '}
-          {formatRateForInput(category.default_penalty_rate ?? 0.05)}.
+          Accepts <code>5%</code>, <code>0.05</code>, or <code>5</code> (assumed
+          %). Applied on top of base tax when this month&rsquo;s spend crosses
+          the limit. Default for{' '}
+          <span className="capitalize">{category.tag_type}</span> transactions
+          is {formatRateForInput(category.default_penalty_rate ?? 0.05)}.
         </span>
       </label>
 
@@ -658,6 +647,21 @@ function BudgetFormBody({
           {error}
         </div>
       )}
+
+      {category.created_at ? (
+        <p
+          className="text-xs text-slate-500 dark:text-slate-400"
+          data-testid="budget-created-on"
+        >
+          Created on{' '}
+          {new Date(category.created_at).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
+          .
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -675,7 +679,7 @@ function StepButton({ icon, onClick, label }: StepButtonProps) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:text-indigo-300"
+      className="hover:border-accent-300 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:border-accent-700 dark:hover:text-accent-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
       data-testid={`budget-slider-step-${icon}`}
     >
       <Icon aria-hidden size={16} />
@@ -706,13 +710,13 @@ function SliderWithBubble({
   return (
     <div className="relative pt-9">
       <div
-        className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white shadow-md dark:bg-indigo-500"
+        className="money bg-accent-600 dark:bg-accent-500 pointer-events-none absolute top-0 -translate-x-1/2 rounded-md px-2 py-0.5 text-xs font-semibold text-white shadow-md"
         style={{ left: `${bubblePercent}%` }}
         data-testid="budget-slider-bubble"
       >
         {renderBubble(value)}
         <span
-          className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-indigo-600 dark:bg-indigo-500"
+          className="bg-accent-600 dark:bg-accent-500 absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45"
           aria-hidden
         />
       </div>
@@ -723,7 +727,7 @@ function SliderWithBubble({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full cursor-pointer accent-indigo-600 dark:accent-indigo-400"
+        className="accent-accent-600 dark:accent-accent-400 w-full cursor-pointer"
         aria-label="Monthly limit"
         data-testid="budget-slider"
       />

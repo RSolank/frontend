@@ -24,7 +24,9 @@ export interface CategorizationRulesResponse {
 }
 
 export function fetchCategorizationRules(): Promise<CategorizationRulesResponse> {
-  return apiFetch<CategorizationRulesResponse>(routes.categorizationRules.list());
+  return apiFetch<CategorizationRulesResponse>(
+    routes.categorizationRules.list()
+  );
 }
 
 export function useCategorizationRulesQuery() {

@@ -3,13 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 
 import { RegisterPage } from './RegisterPage';
 
 vi.mock('react-router-dom', async () => {
   const actual =
-    await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => vi.fn(),
@@ -70,20 +73,17 @@ describe('RegisterPage', () => {
     const { server } = await import('../../../test/server');
     const { http, HttpResponse } = await import('msw');
     server.use(
-      http.post(
-        'http://localhost:4000/api/auth/register',
-        async ({ request }) => {
-          captured = await request.json();
-          return HttpResponse.json({
-            access_token: 'msw-access',
-            refresh_token: 'msw-refresh',
-            user_id: 99,
-            email_id: 'user@example.test',
-            first_name: 'John',
-            last_name: 'Doe',
-          });
-        }
-      )
+      http.post(`${API_BASE}/auth/register`, async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({
+          access_token: 'msw-access',
+          refresh_token: 'msw-refresh',
+          user_id: 99,
+          email_id: 'user@example.test',
+          first_name: 'John',
+          last_name: 'Doe',
+        });
+      })
     );
 
     renderWithProviders(
@@ -120,8 +120,11 @@ describe('RegisterPage', () => {
         password: 'SecurePass123!',
         timezone: 'Asia/Kolkata',
         country: 'India',
-        currency: 'INR',
       });
+      // Currency was removed from the register payload after BE
+      // Phase 1.9 — the backend derives it from `country` when seeding
+      // the new `user_preferences` row.
+      expect(captured).not.toHaveProperty('currency');
     });
   });
 

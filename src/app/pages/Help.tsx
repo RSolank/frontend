@@ -39,20 +39,20 @@ export function HelpPage() {
             rel="noopener noreferrer"
             aria-label="View source on GitHub"
             title="View source on GitHub"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-900 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-white dark:hover:text-slate-900"
+            className="focus-visible:ring-accent-500 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:bg-slate-900 hover:text-white focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-white dark:hover:text-slate-900"
           >
             <GitHubMark size={20} />
           </a>
         </div>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          A full help center is on the way. In the meantime, here are
-          a few starting points:
+          A full help center is on the way. In the meantime, here are a few
+          starting points:
         </p>
         <ul className="mt-4 space-y-2 text-sm">
           <li>
             <Link
               to="/account/accessibility"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Accessibility settings
             </Link>{' '}
@@ -61,7 +61,7 @@ export function HelpPage() {
           <li>
             <Link
               to="/account/preferences"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Account preferences
             </Link>{' '}
@@ -70,29 +70,27 @@ export function HelpPage() {
           <li>
             <Link
               to="/settings/categories"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               Categories &amp; rules
             </Link>{' '}
-            — how transactions get tagged + the taxation rules
-            engine.
+            — how transactions get tagged + the taxation rules engine.
           </li>
         </ul>
         <p className="mt-6 text-xs text-slate-500 dark:text-slate-400">
-          Have a question this page doesn&rsquo;t answer? Drop it in
-          the project&rsquo;s issue tracker — feedback shapes what
-          ends up here first.
+          Have a question this page doesn&rsquo;t answer? Drop it in the
+          project&rsquo;s issue tracker — feedback shapes what ends up here
+          first.
         </p>
 
         <div className="mt-6 border-t border-slate-100 pt-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
           <p>
-            For developers — source, setup instructions, and
-            architecture notes:{' '}
+            For developers — source, setup instructions, and architecture notes:{' '}
             <a
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
             >
               github.com/RSolank/personal-budget-app
             </a>

@@ -1,10 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { Suspense } from 'react';
-import {
-  RouterProvider,
-  createMemoryRouter,
-} from 'react-router-dom';
+import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { settingsRoutes } from './settings.routes';
@@ -63,23 +60,26 @@ describe('settingsRoutes', () => {
     await expectActiveBreadcrumb('Categories');
   });
 
-  it('shell exposes the three sidebar links at their canonical /settings/* paths', async () => {
+  it('shell exposes all sidebar links at their canonical /settings/* paths', async () => {
     renderAt('/settings/taxation-rules');
     await expectActiveBreadcrumb('Taxation Rules');
-    const navs = screen.getAllByRole('navigation', { name: 'Settings sections' });
+    const navs = screen.getAllByRole('navigation', {
+      name: 'Settings sections',
+    });
     expect(navs).toHaveLength(2); // mobile + desktop, both in DOM
     for (const nav of navs) {
-      expect(within(nav).getByRole('link', { name: 'Categories' })).toHaveAttribute(
-        'href',
-        '/settings/categories'
-      );
+      expect(
+        within(nav).getByRole('link', { name: 'Categories' })
+      ).toHaveAttribute('href', '/settings/categories');
       expect(
         within(nav).getByRole('link', { name: 'Categorization Rules' })
       ).toHaveAttribute('href', '/settings/categorization-rules');
-      expect(within(nav).getByRole('link', { name: 'Taxation Rules' })).toHaveAttribute(
-        'href',
-        '/settings/taxation-rules'
-      );
+      expect(
+        within(nav).getByRole('link', { name: 'Taxation Rules' })
+      ).toHaveAttribute('href', '/settings/taxation-rules');
+      expect(
+        within(nav).getByRole('link', { name: 'Bank Accounts' })
+      ).toHaveAttribute('href', '/settings/bank-accounts');
     }
   });
 });

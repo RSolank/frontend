@@ -26,13 +26,17 @@ const TOP_CATEGORIES_LIMIT = 3;
 
 // A category is worth showing if it has spend or a configured limit.
 function isActiveCategory(c: BudgetCategory): boolean {
-  return (c.current_expense ?? 0) > 0 || (c.limit_amt != null && c.limit_amt > 0);
+  return (
+    (c.current_net_expense ?? 0) > 0 || (c.limit_amt != null && c.limit_amt > 0)
+  );
 }
 
 // Breached = has a positive limit and spend exceeds it.
 function isBreachedCategory(c: BudgetCategory): boolean {
   return (
-    c.limit_amt != null && c.limit_amt > 0 && (c.current_expense ?? 0) > c.limit_amt
+    c.limit_amt != null &&
+    c.limit_amt > 0 &&
+    (c.current_net_expense ?? 0) > c.limit_amt
   );
 }
 
@@ -56,7 +60,9 @@ function useExpenseTrackerView(): ExpenseTrackerView {
     const cats = data?.categories ?? [];
     return cats
       .filter(isActiveCategory)
-      .sort((a, b) => (b.current_expense ?? 0) - (a.current_expense ?? 0));
+      .sort(
+        (a, b) => (b.current_net_expense ?? 0) - (a.current_net_expense ?? 0)
+      );
   }, [data]);
 
   const breachCount = useMemo(
@@ -66,7 +72,7 @@ function useExpenseTrackerView(): ExpenseTrackerView {
 
   const total = data?.total_budget ?? null;
   const hasAnySpend =
-    (total?.current_expense ?? 0) > 0 || visibleCategories.length > 0;
+    (total?.current_net_expense ?? 0) > 0 || visibleCategories.length > 0;
   const hasAnyLimit =
     (total?.limit_amt ?? 0) > 0 ||
     visibleCategories.some((c) => (c.limit_amt ?? 0) > 0);
@@ -83,15 +89,18 @@ function useExpenseTrackerView(): ExpenseTrackerView {
 
 export function ExpenseTrackerCard() {
   const { money } = useMoneyFormatter();
-  const { showLoading, showEmpty, total, visibleCategories, breachCount, month } =
-    useExpenseTrackerView();
+  const {
+    showLoading,
+    showEmpty,
+    total,
+    visibleCategories,
+    breachCount,
+    month,
+  } = useExpenseTrackerView();
 
   if (showLoading) {
     return (
-      <DashboardCard
-        title="Expense Tracker"
-        testId="dashboard-expense-card"
-      >
+      <DashboardCard title="Expense Tracker" testId="dashboard-expense-card">
         <div className="text-sm text-slate-500 dark:text-slate-400">
           Loading…
         </div>
@@ -120,16 +129,17 @@ export function ExpenseTrackerCard() {
     );
   }
 
-  const titleChip = breachCount > 0 ? (
-    <span
-      className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/60 dark:text-rose-200"
-      data-testid="dashboard-expense-breach-chip"
-    >
-      {breachCount} over budget
-    </span>
-  ) : (
-    formatYearMonth(month, 'short')
-  );
+  const titleChip =
+    breachCount > 0 ? (
+      <span
+        className="bg-danger-100 text-danger-700 dark:bg-danger-950/60 dark:text-danger-200 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+        data-testid="dashboard-expense-breach-chip"
+      >
+        {breachCount} over budget
+      </span>
+    ) : (
+      formatYearMonth(month, 'short')
+    );
 
   return (
     <DashboardCard
@@ -178,7 +188,7 @@ interface TotalRollupProps {
 }
 
 function TotalRollup({ category, money }: TotalRollupProps) {
-  const current = category?.current_expense ?? 0;
+  const current = category?.current_net_expense ?? 0;
   const limit = category?.limit_amt ?? 0;
   const hasLimit = limit > 0;
   const percent = hasLimit ? (current / limit) * 100 : 0;
@@ -192,7 +202,7 @@ function TotalRollup({ category, money }: TotalRollupProps) {
           <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Spent this month
           </div>
-          <div className="mt-0.5 text-2xl font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+          <div className="money mt-0.5 text-2xl font-semibold text-slate-900 tabular-nums dark:text-slate-100">
             {money(current)}
           </div>
         </div>
@@ -200,14 +210,17 @@ function TotalRollup({ category, money }: TotalRollupProps) {
           <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Monthly limit
           </div>
-          <div className="mt-0.5 text-sm font-semibold tabular-nums text-slate-700 money dark:text-slate-200">
+          <div className="money mt-0.5 text-sm font-semibold text-slate-700 tabular-nums dark:text-slate-200">
             {hasLimit ? money(limit) : '—'}
           </div>
         </div>
       </div>
 
       {hasLimit ? (
-        <div className="mt-3" data-testid={`dashboard-expense-progress-${status}`}>
+        <div
+          className="mt-3"
+          data-testid={`dashboard-expense-progress-${status}`}
+        >
           <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className={`h-full transition-[width] duration-300 ${style.bar}`}
@@ -224,7 +237,7 @@ function TotalRollup({ category, money }: TotalRollupProps) {
       ) : (
         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
           No total limit configured —{' '}
-          <span className="font-medium text-indigo-600 dark:text-indigo-300">
+          <span className="text-accent-600 dark:text-accent-300 font-medium">
             set one
           </span>{' '}
           to track monthly headroom.
@@ -240,7 +253,7 @@ interface CategoryRowProps {
 }
 
 function CategoryRow({ category, money }: CategoryRowProps) {
-  const current = category.current_expense ?? 0;
+  const current = category.current_net_expense ?? 0;
   const limit = category.limit_amt ?? 0;
   const hasLimit = limit > 0;
   const percent = hasLimit ? (current / limit) * 100 : 0;
@@ -256,7 +269,7 @@ function CategoryRow({ category, money }: CategoryRowProps) {
         <span className="truncate font-medium text-slate-800 dark:text-slate-100">
           {category.tag_name}
         </span>
-        <span className="ml-2 shrink-0 tabular-nums text-slate-600 money dark:text-slate-300">
+        <span className="money ml-2 shrink-0 text-slate-600 tabular-nums dark:text-slate-300">
           {money(current)}
           {hasLimit && (
             <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">
@@ -298,13 +311,13 @@ const STATUS_STYLE: Record<
   { bar: string; text: string; label: string }
 > = {
   safe: {
-    bar: 'bg-emerald-500 dark:bg-emerald-400',
-    text: 'text-emerald-700 dark:text-emerald-300',
+    bar: 'bg-success-500 dark:bg-success-400',
+    text: 'text-success-700 dark:text-success-300',
     label: 'On track',
   },
   watch: {
-    bar: 'bg-amber-500 dark:bg-amber-400',
-    text: 'text-amber-700 dark:text-amber-300',
+    bar: 'bg-warning-500 dark:bg-warning-400',
+    text: 'text-warning-700 dark:text-warning-300',
     label: 'Watch',
   },
   near: {
@@ -313,8 +326,8 @@ const STATUS_STYLE: Record<
     label: 'Near limit',
   },
   over: {
-    bar: 'bg-rose-500 dark:bg-rose-400',
-    text: 'text-rose-700 dark:text-rose-300',
+    bar: 'bg-danger-500 dark:bg-danger-400',
+    text: 'text-danger-700 dark:text-danger-300',
     label: 'Over budget',
   },
   unset: {

@@ -15,14 +15,14 @@
 - Configure budget limits + per-budget penalty-rate overrides via a
   modal-first form (`<BudgetFormDialog />`). The same modal handles
   the global "Total Budget" surface — different tag id, same shape.
-- Own the `/api/budget-limits/*` query / cache key namespace
+- Own the `/api/v1/budget-limits/*` query / cache key namespace
   (`budgetKeys` in
   [`api/keys.ts`](../../src/features/budgets/api/keys.ts)).
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
+| Path       | Component                      | Notes                                                                                                                       |
+| ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `/budgets` | `pages/ExpenseTrackerPage.tsx` | Lazy-loaded. URL preserved per the labels-rename-URLs-stay rule; nav label is "Expense Tracker" (the URL stays `/budgets`). |
 
 Routes are exported from
@@ -46,24 +46,32 @@ wrapped by `protectedRoutes()`).
   which paints an indigo-tinted background to mark it as the
   top-level rollup. Carries an **anomaly badge** inline with the title
   that classifies the current month's spend
-  against `avg_expense` / `max_expense` into four bands —
+  against `avg_net_expense` / `max_net_expense` into four bands —
   `Below typical` (emerald, current ≤ avg×0.75),
   `Typical` (slate, within ±25 % of avg),
   `Near typical max` (amber, > avg×1.25 and ≤ max), and
   `Above typical max` (rose, > max). The badge is hidden when no
-  historical baseline exists yet (`avg_expense ≤ 0`).
+  historical baseline exists yet (`avg_net_expense ≤ 0`).
 - `components/BudgetFormDialog.tsx` — `<Modal size="md">` with two
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls
-  `POST /api/budget-limits/` (backend upsert by `tag_id + period`).
-  Cancel + Save in footer; confirmOnDirty on close.
+  `POST /api/v1/budget-limits/` (backend upsert by `tag_id + period`).
+  Cancel + Save in footer; confirmOnDirty on close. When the tag has
+  a configured limit, a muted "Created on …" footer renders below
+  the form fields from the BE Phase 3.0 `BudgetStatusRow.created_at`.
+- `components/ExpenseTrendChart.tsx` — six-month
+  `<svg>` bar chart of the Total tag's `net_expense`. Reads
+  `useExpenseTrendQuery('monthly', 6, TOTAL_TAG_ID)` from the
+  dashboard feature's `api/queries.ts`. Inline SVG (no chart-lib
+  dep — recharts would punch the bundle ceiling). Slots between
+  the Month Overview rollup and the Categories grid.
 
 ## Hooks
 
-| Hook | Purpose |
-|---|---|
-| `useBudgetStatusQuery(month)` | `GET /api/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`. |
-| `useBudgetLimitsQuery(period)` | `GET /api/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
+| Hook                           | Purpose                                                                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useBudgetStatusQuery(month)`  | `GET /api/v1/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`.                                   |
+| `useBudgetLimitsQuery(period)` | `GET /api/v1/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/budgets/api/mutations.ts) —
@@ -71,29 +79,45 @@ Mutations live in
 
 ## API
 
-Read endpoints consumed (under `/api/budget-limits`):
+Read endpoints consumed (under `/api/v1/budget-limits`):
 
-- `GET /api/budget-limits/status?month=YYYY-MM` → status response with
-  `categories[]` (tag_id, tag_name, tag_type, current_expense,
-  avg_expense, min_expense, max_expense, limit_amt, penalty_rate,
-  default_penalty_rate), `total_budget` (same shape, tag_id =
-  `TOTAL_TAG_ID`), `currency`, `month`, `available_months[]`.
-- `GET /api/budget-limits/?budget_period=monthly` → list of
+- `GET /api/v1/budget-limits/status?month=YYYY-MM` → status response with
+  `categories[]` (tag_id, tag_name, tag_type, `current_debit`,
+  `current_credit`, `current_net_expense`, `avg_net_expense`,
+  `min_net_expense`, `max_net_expense`, limit_amt, penalty_rate,
+  default_penalty_rate, `created_at`), `total_budget` (same shape,
+  tag_id = `TOTAL_TAG_ID`), `currency`, `month`, `available_months[]`.
+  `created_at` (BE Phase 3.0, `fc22163`) is populated when the tag
+  has a configured `BudgetLimit`; null for tags with only tracker
+  stats. Powers the "Created on …" footer on `<BudgetFormDialog>`.
+  BE Phase 1.7 (`3252ca4`, T-aggregates-engine) renamed the spend
+  family to `net_expense = total_debit − total_credit` (expense-
+  positive — refunds net spend down).
+- `GET /api/v1/budget-limits/?budget_period=monthly` → list of
   configured limits (no spend aggregates).
+- `GET /api/v1/expense-tracker?period_type=monthly&n=6&tag_id=<TOTAL>` →
+  per-bucket trend for the `<ExpenseTrendChart>` six-month chart.
+  Query hook lives in
+  [`features/dashboard/api/queries.ts`](../../src/features/dashboard/api/queries.ts)
+  because two consumers (this page + future dashboard widget)
+  share it; see [`dashboard.md`](dashboard.md).
 
 Write endpoints consumed:
 
-- `POST /api/budget-limits/` — body `{ tag_id, budget_period: 'monthly',
-  limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
+- `POST /api/v1/budget-limits/` — body `{ tag_id, budget_period: 'monthly',
+limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
   The legacy frontend POSTed without a trailing slash; the new code
   uses the canonical `POST /` shape exposed by the backend router.
+- `DELETE /api/v1/budget-limits/{tag_id}` — 204 on success. Drives the
+  Remove action on `BudgetFormDialog`.
 
 ## Filtering / display rules
 
-- The categories grid renders any category with `current_expense > 0`
-  OR a configured `limit_amt > 0`. Categories with no spend AND no
-  limit are filtered out (legacy behavior — keeps the grid focused on
-  cells the user actually cares about).
+- The categories grid renders any category with
+  `current_net_expense > 0` OR a configured `limit_amt > 0`.
+  Categories with no spend AND no limit are filtered out (legacy
+  behavior — keeps the grid focused on cells the user actually
+  cares about).
 - Categories are ordered as the backend returns them — root tags
   first, then alphabetical within each group (see
   `budget_services.list_budget_limits` ordering).
@@ -112,18 +136,20 @@ Write endpoints consumed:
   `api/rateInput.ts`. Accepts `5%` (explicit percent), `0.05` (raw
   fraction), or `5` (bare number ≥ 1, assumed percent). The Zod
   schema's `max=10` rejects pathological inputs like a typed `500`.
-- **No remove action** — the backend has no DELETE endpoint. Users
-  who want to "remove" a budget can save `limit_amt = 0`; the card
-  then shows `Limit: $0` and the progress bar paints red as soon as
-  any spend occurs in that category. Wiring up a proper soft-delete
-  endpoint is a backend follow-up if the UX feedback shows demand.
+- **Remove action** — `BudgetFormDialog` exposes a Remove button
+  in edit mode (trash header per the DetailModal convention).
+  Confirms via a nested `<ConfirmDialog />` then calls
+  `deleteBudgetLimitRequest(tag_id)` → `DELETE /api/v1/budget-limits/{tag_id}`
+  (BE 204). The category card flips back to its "Set budget" empty
+  state once the mutation resolves.
 
 ## Tests
 
-| Test file | What it covers |
-|---|---|
-| `api/rateInput.test.ts` | `formatRateForInput` and `parseRateInput` — fraction → `%` display, `%`-suffix parsing, bare ≥1 lenient mode, raw fraction passthrough, invalid input → null. |
-| `pages/ExpenseTrackerPage.test.tsx` | Renders the Total card + filtered category cards; cards expose no input controls (read-only enforcement); Edit / Set affordance opens the modal with prefilled values; over-budget pill renders for the discretionary case; save POST body shape is correct; month picker switches the active month query param. |
+| Test file                               | What it covers                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/rateInput.test.ts`                 | `formatRateForInput` and `parseRateInput` — fraction → `%` display, `%`-suffix parsing, bare ≥1 lenient mode, raw fraction passthrough, invalid input → null.                                                                                                                                                    |
+| `pages/ExpenseTrackerPage.test.tsx`     | Renders the Total card + filtered category cards; cards expose no input controls (read-only enforcement); Edit / Set affordance opens the modal with prefilled values; over-budget pill renders for the discretionary case; save POST body shape is correct; month picker switches the active month query param. |
+| `components/ExpenseTrendChart.test.tsx` | Six-month SVG bar chart render against `useExpenseTrendQuery` output; empty + populated branches.                                                                                                                                                                                                                |
 
 ## Responsive design
 
@@ -143,7 +169,7 @@ Write endpoints consumed:
   styling from `src/index.css`'s `@layer components`. The
   modal body wraps in `text-slate-700 dark:text-slate-200` so any
   inherited label or helper text stays legible.
-- The Total Budget card uses `bg-indigo-50/60 dark:bg-indigo-950/30`
+- The Total Budget card uses `bg-accent-50/60 dark:bg-accent-950/30`
   for its emphasis variant, providing clear separation from the
   neutral category cards in both themes.
 - Native widgets (the month-picker dropdown, calendar pickers used
@@ -158,9 +184,6 @@ Write endpoints consumed:
 
 ## Future polish (queued)
 
-- **Backend DELETE endpoint** — see "No remove action" under Form
-  semantics. Surface a "Remove budget" action in the modal once
-  the endpoint exists.
 - **Settings consolidation** — once the backend persists
   `default_landing_route` (deferred defaults-cluster follow-up), users
   who set landing to `/budgets` get this surface as their post-login home.
