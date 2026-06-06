@@ -37,7 +37,7 @@ export function AccessibilityPanel({
           <Link
             to="/account/accessibility"
             onClick={onClose}
-            className="text-xs font-medium text-accent-600 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-400 dark:hover:text-accent-300"
+            className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
           >
             More accessibility settings →
           </Link>

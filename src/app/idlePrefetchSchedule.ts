@@ -62,16 +62,12 @@ export const AUTHED_PREFETCH: readonly PrefetchEntry[] = [
   // mount as a safety net (see its useEffect).
   {
     load: () =>
-      import(
-        '../features/transactions/statement_upload/pages/UploadStatementPage'
-      ),
+      import('../features/transactions/statement_upload/pages/UploadStatementPage'),
     delayMs: 5_500,
   },
   {
     load: () =>
-      import(
-        '../features/transactions/statement_upload/components/StatementUploadDock'
-      ),
+      import('../features/transactions/statement_upload/components/StatementUploadDock'),
     delayMs: 5_500,
   },
   // 6.0s — settings sub-pages (parallel cluster). Pages live in

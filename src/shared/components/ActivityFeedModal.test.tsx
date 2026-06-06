@@ -6,10 +6,7 @@ import { API_BASE } from '../../test/baseUrl';
 import { renderWithProviders } from '../../test/renderWithProviders';
 import { server } from '../../test/server';
 
-import {
-  ActivityFeedModal,
-  __resetSeenThisSession,
-} from './ActivityFeedModal';
+import { ActivityFeedModal, __resetSeenThisSession } from './ActivityFeedModal';
 
 function makeItem(overrides: Record<string, unknown> = {}) {
   return {
@@ -91,9 +88,7 @@ describe('ActivityFeedModal', () => {
 
     await screen.findByText(/You owe 100/i);
     await waitFor(() => expect(seen).toHaveBeenCalled());
-    expect(seen).toHaveBeenCalledWith(
-      expect.objectContaining({ hard: false })
-    );
+    expect(seen).toHaveBeenCalledWith(expect.objectContaining({ hard: false }));
   });
 
   it('clicking a row opens the detail modal in-place (feed stays mounted)', async () => {

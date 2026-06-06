@@ -23,11 +23,13 @@ describe('HomePage', () => {
     // returns "Future begins today" per src/test/handlers/metadata.ts).
     // `findBy` waits for the branding query to resolve since there's
     // no hardcoded synchronous fallback.
+    expect(await screen.findByText(/Future begins today/i)).toBeInTheDocument();
     expect(
-      await screen.findByText(/Future begins today/i)
+      screen.getByRole('button', { name: /Sign in/i })
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Register/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Register/i })
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /Go to dashboard/i })
     ).not.toBeInTheDocument();

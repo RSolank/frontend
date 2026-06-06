@@ -21,8 +21,8 @@
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
+| Path       | Component                      | Notes                                                                                                                       |
+| ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `/budgets` | `pages/ExpenseTrackerPage.tsx` | Lazy-loaded. URL preserved per the labels-rename-URLs-stay rule; nav label is "Expense Tracker" (the URL stays `/budgets`). |
 
 Routes are exported from
@@ -68,9 +68,9 @@ wrapped by `protectedRoutes()`).
 
 ## Hooks
 
-| Hook | Purpose |
-|---|---|
-| `useBudgetStatusQuery(month)` | `GET /api/v1/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`. |
+| Hook                           | Purpose                                                                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useBudgetStatusQuery(month)`  | `GET /api/v1/budget-limits/status?month=<YYYY-MM>` → merged report with `categories[]`, `total_budget`, `month`, and `available_months[]`.                                   |
 | `useBudgetLimitsQuery(period)` | `GET /api/v1/budget-limits/?budget_period=<period>` — lightweight limits-only list. Exported so the Dashboard card can pull just the limits without the full status payload. |
 
 Mutations live in
@@ -105,7 +105,7 @@ Read endpoints consumed (under `/api/v1/budget-limits`):
 Write endpoints consumed:
 
 - `POST /api/v1/budget-limits/` — body `{ tag_id, budget_period: 'monthly',
-  limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
+limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
   The legacy frontend POSTed without a trailing slash; the new code
   uses the canonical `POST /` shape exposed by the backend router.
 - `DELETE /api/v1/budget-limits/{tag_id}` — 204 on success. Drives the
@@ -145,11 +145,11 @@ Write endpoints consumed:
 
 ## Tests
 
-| Test file | What it covers |
-|---|---|
-| `api/rateInput.test.ts` | `formatRateForInput` and `parseRateInput` — fraction → `%` display, `%`-suffix parsing, bare ≥1 lenient mode, raw fraction passthrough, invalid input → null. |
-| `pages/ExpenseTrackerPage.test.tsx` | Renders the Total card + filtered category cards; cards expose no input controls (read-only enforcement); Edit / Set affordance opens the modal with prefilled values; over-budget pill renders for the discretionary case; save POST body shape is correct; month picker switches the active month query param. |
-| `components/ExpenseTrendChart.test.tsx` | Six-month SVG bar chart render against `useExpenseTrendQuery` output; empty + populated branches. |
+| Test file                               | What it covers                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/rateInput.test.ts`                 | `formatRateForInput` and `parseRateInput` — fraction → `%` display, `%`-suffix parsing, bare ≥1 lenient mode, raw fraction passthrough, invalid input → null.                                                                                                                                                    |
+| `pages/ExpenseTrackerPage.test.tsx`     | Renders the Total card + filtered category cards; cards expose no input controls (read-only enforcement); Edit / Set affordance opens the modal with prefilled values; over-budget pill renders for the discretionary case; save POST body shape is correct; month picker switches the active month query param. |
+| `components/ExpenseTrendChart.test.tsx` | Six-month SVG bar chart render against `useExpenseTrendQuery` output; empty + populated branches.                                                                                                                                                                                                                |
 
 ## Responsive design
 

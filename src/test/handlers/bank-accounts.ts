@@ -19,33 +19,25 @@ const STUB_ACCOUNT = {
 };
 
 export const bankAccountHandlers = [
-  http.get(`${API_BASE}/bank-accounts/`, () =>
-    HttpResponse.json([])
-  ),
+  http.get(`${API_BASE}/bank-accounts/`, () => HttpResponse.json([])),
   http.post(`${API_BASE}/bank-accounts/`, async () =>
     HttpResponse.json(STUB_ACCOUNT, { status: 201 })
   ),
-  http.get(
-    `${API_BASE}/bank-accounts/:uid`,
-    ({ params }) =>
-      HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
+  http.get(`${API_BASE}/bank-accounts/:uid`, ({ params }) =>
+    HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
   ),
-  http.patch(
-    `${API_BASE}/bank-accounts/:uid`,
-    ({ params }) =>
-      HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
+  http.patch(`${API_BASE}/bank-accounts/:uid`, ({ params }) =>
+    HttpResponse.json({ ...STUB_ACCOUNT, uid: Number(params.uid) })
   ),
   http.delete(
     `${API_BASE}/bank-accounts/:uid`,
     () => new HttpResponse(null, { status: 204 })
   ),
-  http.post(
-    `${API_BASE}/bank-accounts/:uid/identifiers`,
-    async () =>
-      HttpResponse.json(
-        { uid: 1, identifier: 'stub@upi', identifier_type: 'UPI' },
-        { status: 201 }
-      )
+  http.post(`${API_BASE}/bank-accounts/:uid/identifiers`, async () =>
+    HttpResponse.json(
+      { uid: 1, identifier: 'stub@upi', identifier_type: 'UPI' },
+      { status: 201 }
+    )
   ),
   http.delete(
     `${API_BASE}/bank-accounts/:uid/identifiers/:identifierUid`,

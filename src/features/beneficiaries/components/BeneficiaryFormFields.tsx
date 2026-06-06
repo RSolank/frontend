@@ -24,7 +24,10 @@ interface FlatTag {
   parent: number | null;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({
       tag_id: n.tag_id,
@@ -59,7 +62,10 @@ interface BeneficiaryFormFieldsProps {
   readOnly?: boolean;
   excludeUid?: number | null;
   onAliasValidityChange?: (invalid: boolean) => void;
-  onTypeChange?: (next: 'merchant' | 'person', form: BeneficiaryFormInput) => void;
+  onTypeChange?: (
+    next: 'merchant' | 'person',
+    form: BeneficiaryFormInput
+  ) => void;
 }
 
 // Internal helper so callers can pass either a setter function or a
@@ -224,9 +230,7 @@ export function BeneficiaryFormFields({
 
       <AliasChipsInput
         aliases={form.aliases}
-        onChange={(aliases) =>
-          applyUpdate(setForm, (f) => ({ ...f, aliases }))
-        }
+        onChange={(aliases) => applyUpdate(setForm, (f) => ({ ...f, aliases }))}
         readOnly={readOnly}
         excludeUid={excludeUid}
         onValidityChange={(invalid) => onAliasValidityChange?.(invalid)}
@@ -402,7 +406,7 @@ function AssignedTagChips({
             >
               {tagLabel}
               {isPrimary && (
-                <span className="ml-1 rounded bg-success-600 px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
+                <span className="bg-success-600 ml-1 rounded px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
                   Primary
                 </span>
               )}
@@ -410,7 +414,7 @@ function AssignedTagChips({
                 <button
                   type="button"
                   onClick={() => onSetPrimary(tid)}
-                  className="ml-1 rounded bg-accent-600 px-1.5 py-0.5 text-[0.65rem] font-bold text-white hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none"
+                  className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 ml-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold text-white focus-visible:ring-2 focus-visible:outline-none"
                 >
                   Set Primary
                 </button>

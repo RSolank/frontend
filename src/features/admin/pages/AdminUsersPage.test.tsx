@@ -108,7 +108,9 @@ describe('AdminUsersPage', () => {
     primeAdmin(adminUser);
     renderWithProviders(<AdminUsersPage />);
 
-    const link = await screen.findByRole('link', { name: 'alice@example.test' });
+    const link = await screen.findByRole('link', {
+      name: 'alice@example.test',
+    });
     expect(link).toHaveAttribute('href', '/admin/users/11');
   });
 
@@ -235,8 +237,6 @@ describe('AdminUsersPage', () => {
 
     renderWithProviders(<AdminUsersPage />);
 
-    expect(
-      await screen.findByText('No users to show.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No users to show.')).toBeInTheDocument();
   });
 });

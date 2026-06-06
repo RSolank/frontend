@@ -71,10 +71,7 @@ export function WeekByCategoryStrip() {
     ...(activeMonth ? { month: activeMonth } : {}),
   });
   const { data: tagsData } = useTagsQuery();
-  const tagIndex = useMemo(
-    () => flattenTags(tagsData?.tags),
-    [tagsData]
-  );
+  const tagIndex = useMemo(() => flattenTags(tagsData?.tags), [tagsData]);
 
   const top = useMemo<WeekTagAgg[]>(() => {
     const all = txnQuery.data?.transactions ?? [];
@@ -150,7 +147,7 @@ export function WeekByCategoryStrip() {
             <span className="truncate font-medium text-slate-800 dark:text-slate-100">
               {row.tag_name}
             </span>
-            <span className="ml-2 shrink-0 tabular-nums text-slate-600 money dark:text-slate-300">
+            <span className="money ml-2 shrink-0 text-slate-600 tabular-nums dark:text-slate-300">
               {money(row.total)}
               <span className="ml-1 text-xs text-slate-400 dark:text-slate-500">
                 {row.count} {row.count === 1 ? 'txn' : 'txns'}

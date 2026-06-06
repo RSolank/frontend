@@ -68,8 +68,8 @@ describe('DataExportPanel', () => {
 
     renderWithProviders(<DataExportPanel />);
     fireEvent.click(screen.getByTestId('export-transactions'));
-    expect(
-      await screen.findByRole('alert')
-    ).toHaveTextContent(/Failed to export transactions \(403\)/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Failed to export transactions \(403\)/
+    );
   });
 });

@@ -44,9 +44,7 @@ describe('UserStatsCard', () => {
 
     renderCard();
 
-    await waitFor(() =>
-      expect(screen.getByText('1,247')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText('1,247')).toBeInTheDocument());
     expect(screen.getByText('67')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument(); // active_recurring

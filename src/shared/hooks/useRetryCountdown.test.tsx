@@ -5,7 +5,11 @@ import { formatRetryAfter, useRetryCountdown } from './useRetryCountdown';
 
 function Probe({ seconds }: { seconds: number | null }) {
   const remaining = useRetryCountdown(seconds);
-  return <span data-testid="remaining">{remaining === null ? 'null' : remaining}</span>;
+  return (
+    <span data-testid="remaining">
+      {remaining === null ? 'null' : remaining}
+    </span>
+  );
 }
 
 describe('useRetryCountdown', () => {

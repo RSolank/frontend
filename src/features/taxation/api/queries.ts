@@ -44,12 +44,7 @@ export function useTaxationRulesQuery() {
 // settles `BILLED` (or `OVERDUE`) bills. `EXPIRED` is the terminal
 // state the worker writes when the unpaid-bill threshold is hit
 // (`STALE_BILL_THRESHOLD`, default 4).
-export type BillStatus =
-  | 'ACCRUING'
-  | 'BILLED'
-  | 'PAID'
-  | 'OVERDUE'
-  | 'EXPIRED';
+export type BillStatus = 'ACCRUING' | 'BILLED' | 'PAID' | 'OVERDUE' | 'EXPIRED';
 
 export interface BillSummary {
   bill_id: number;
@@ -205,8 +200,7 @@ export function useTrackerCurrentWeekQuery(): {
   return {
     data,
     isLoading:
-      billsQuery.isLoading ||
-      (accruing !== null && billDetailQuery.isLoading),
+      billsQuery.isLoading || (accruing !== null && billDetailQuery.isLoading),
     isError: billsQuery.isError || billDetailQuery.isError,
   };
 }
@@ -238,8 +232,7 @@ function deriveTrackerFromBill(bill: BillDetail): TrackerCurrentWeekResponse {
     if (item.penalty) {
       foldInto(byTag, {
         tag_id: item.penalty_tag_id ?? item.tag_id ?? 0,
-        tag_name:
-          item.penalty_tag_name ?? item.tag_name ?? 'Uncategorized',
+        tag_name: item.penalty_tag_name ?? item.tag_name ?? 'Uncategorized',
         txn_type: item.txn_type,
         tax_amount: 0,
         penalty: item.penalty,
@@ -247,10 +240,7 @@ function deriveTrackerFromBill(bill: BillDetail): TrackerCurrentWeekResponse {
     }
   }
   const per_tag = Array.from(byTag.values())
-    .sort(
-      (a, b) =>
-        b.tax_amount + b.penalty - (a.tax_amount + a.penalty)
-    )
+    .sort((a, b) => b.tax_amount + b.penalty - (a.tax_amount + a.penalty))
     .slice(0, 10);
 
   return {

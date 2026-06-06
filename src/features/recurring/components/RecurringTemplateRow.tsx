@@ -1,4 +1,10 @@
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Pencil, X } from 'lucide-react';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
+  Pencil,
+  X,
+} from 'lucide-react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
@@ -64,9 +70,9 @@ export function RecurringTemplateRow({
           </span>
         )}
       </div>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-400 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600 sm:grid-cols-4 dark:text-slate-400">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">
             Amount
           </dt>
           <dd className="money font-medium text-slate-900 dark:text-slate-100">
@@ -74,13 +80,13 @@ export function RecurringTemplateRow({
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">
             Cadence
           </dt>
           <dd>{cadenceLabel(template.cadence, template.cadence_interval)}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">
             Next due
           </dt>
           <dd>
@@ -92,7 +98,7 @@ export function RecurringTemplateRow({
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">
+          <dt className="text-xs tracking-wide text-slate-500 uppercase">
             Seen
           </dt>
           <dd>{template.occurrence_count}×</dd>
@@ -103,7 +109,7 @@ export function RecurringTemplateRow({
           <button
             type="button"
             onClick={onConfirm}
-            className="inline-flex items-center gap-1 rounded-md bg-success-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-success-700 focus-visible:ring-2 focus-visible:ring-success-500 focus-visible:outline-none"
+            className="bg-success-600 hover:bg-success-700 focus-visible:ring-success-500 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
             data-testid={`recurring-confirm-${template.uid}`}
           >
             <CheckCircle2 size={14} aria-hidden />
@@ -113,7 +119,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid={`recurring-edit-${template.uid}`}
         >
           <Pencil size={14} aria-hidden />
@@ -122,7 +128,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onDismiss}
-          className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
+          className="text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
           data-testid={`recurring-dismiss-${template.uid}`}
         >
           <X size={14} aria-hidden />

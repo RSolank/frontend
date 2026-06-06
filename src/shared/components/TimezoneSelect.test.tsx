@@ -103,7 +103,9 @@ describe('TimezoneSelect', () => {
     const combobox = await screen.findByRole('combobox', { name: 'Timezone' });
     fireEvent.focus(combobox);
     await waitFor(() => {
-      const texts = screen.getAllByRole('option').map((o) => o.textContent ?? '');
+      const texts = screen
+        .getAllByRole('option')
+        .map((o) => o.textContent ?? '');
       // Full IANA reach — assert we see zones from multiple continents.
       expect(texts.some((t) => t.includes('Asia/Kolkata'))).toBe(true);
       expect(texts.some((t) => t.includes('Europe/Berlin'))).toBe(true);
@@ -135,7 +137,9 @@ describe('TimezoneSelect', () => {
     await waitFor(() => expect(combobox.value.startsWith('UTC')).toBe(true));
     fireEvent.focus(combobox);
     await waitFor(() => {
-      const texts = screen.getAllByRole('option').map((o) => o.textContent ?? '');
+      const texts = screen
+        .getAllByRole('option')
+        .map((o) => o.textContent ?? '');
       expect(texts.some((t) => t.includes('Europe/Berlin'))).toBe(true);
       expect(texts.some((t) => t.includes('America/Los_Angeles'))).toBe(true);
     });

@@ -19,10 +19,7 @@ import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
-import {
-  monthKeyFromIso,
-  todayIsoInTz,
-} from '../api/calendar';
+import { monthKeyFromIso, todayIsoInTz } from '../api/calendar';
 import { transactionKeys, type TransactionListParams } from '../api/keys';
 import { deleteTransactionRequest } from '../api/mutations';
 import {
@@ -55,7 +52,10 @@ interface FlatTag {
   tag_name: string;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
@@ -78,10 +78,7 @@ function pluralCount(n: number, noun: string): string {
 //                  "Feb 9 → Feb 15" using ISO Mon→Sun convention.
 // Anything else falls back to a copy of the raw period_type so future
 // BE additions still render something readable instead of `[object]`.
-function scopePillCopy(
-  periodType: string,
-  periodStart: string | null
-): string {
+function scopePillCopy(periodType: string, periodStart: string | null): string {
   if (periodType === 'all') return 'All time';
   if (periodType === 'monthly' && periodStart) {
     return formatYearMonth(periodStart.slice(0, 7), 'short');
@@ -134,7 +131,11 @@ const PAGE_SIZE = 25;
 // pagination would be the fix.
 const CALENDAR_FETCH_LIMIT = 100;
 
-const VIEW_TABS: Array<{ value: TransactionView; label: string; icon: typeof ListIcon }> = [
+const VIEW_TABS: Array<{
+  value: TransactionView;
+  label: string;
+  icon: typeof ListIcon;
+}> = [
   { value: 'list', label: 'List', icon: ListIcon },
   { value: 'merchant', label: 'Merchant', icon: Store },
   { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
@@ -149,8 +150,17 @@ export function TransactionsPage() {
   const tags = useMemo(() => flattenTags(tagsData?.tags), [tagsData?.tags]);
 
   const filters = useTransactionFilters();
-  const { view, type, tag, month, beneficiaryId, sortBy, order, set, clearAll } =
-    filters;
+  const {
+    view,
+    type,
+    tag,
+    month,
+    beneficiaryId,
+    sortBy,
+    order,
+    set,
+    clearAll,
+  } = filters;
   const isCalendar = view === 'calendar';
   const isMerchant = view === 'merchant';
 
@@ -288,7 +298,7 @@ export function TransactionsPage() {
   const sameMonth = dayMonthKey === calendarMonthKey;
   const { data: dayData } = useTransactionsQuery(dayParams);
   const dayTxnsAll = useMemo(
-    () => (sameMonth ? calendarTxns : dayData?.transactions ?? []),
+    () => (sameMonth ? calendarTxns : (dayData?.transactions ?? [])),
     [sameMonth, calendarTxns, dayData?.transactions]
   );
   const dayTxns = useMemo(() => {
@@ -342,9 +352,9 @@ export function TransactionsPage() {
 
   // Defensive error string — never let an unexpected object flow into
   // JSX as a child (post-Batch-9.6 hardening).
-  const activeError = (isCalendar ? calendarError : listError) as
-    | ApiErrorShape
-    | null;
+  const activeError = (
+    isCalendar ? calendarError : listError
+  ) as ApiErrorShape | null;
   const errorMessage = resolveErrorMessage(
     deleteError,
     activeError,
@@ -404,7 +414,9 @@ export function TransactionsPage() {
       )}
 
       {errorMessage && (
-        <div className="form-error mt-4 text-center">{String(errorMessage)}</div>
+        <div className="form-error mt-4 text-center">
+          {String(errorMessage)}
+        </div>
       )}
 
       <Modal
@@ -438,7 +450,7 @@ export function TransactionsPage() {
               onClick={() => setConfirmDeleteId(editingTxn.txn_id)}
               aria-label="Remove transaction"
               title="Remove transaction"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
+              className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
               data-testid="transaction-form-remove"
             >
               <Trash2 aria-hidden size={16} />
@@ -610,7 +622,7 @@ function TransactionsToolbar({
             <SlidersHorizontal aria-hidden size={14} />
             Filters
             {sidebarActiveCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-600 px-1.5 text-[10px] font-bold text-white dark:bg-accent-500">
+              <span className="bg-accent-600 dark:bg-accent-500 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white">
                 {sidebarActiveCount}
               </span>
             )}
@@ -760,7 +772,7 @@ function TransactionListBody({
           >
             {isFetchingNextPage ? 'Loading…' : 'Show more'}
           </button>
-          <div ref={sentinelRef} aria-hidden className="hidden md:block h-1" />
+          <div ref={sentinelRef} aria-hidden className="hidden h-1 md:block" />
           {isFetchingNextPage && (
             <span className="hidden text-xs text-slate-400 md:inline-block dark:text-slate-500">
               Loading more…

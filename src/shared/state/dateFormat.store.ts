@@ -62,7 +62,9 @@ export function optsForDateFormat(
 // en-US is mm/dd/yyyy, en-CA is yyyy-mm-dd. `'dmonth'` uses the
 // browser default locale (the user's textual month preference is
 // respected) with the helper's `month: 'short'` opt.
-export function localeForDateFormat(format: DateFormatMode): string | undefined {
+export function localeForDateFormat(
+  format: DateFormatMode
+): string | undefined {
   switch (format) {
     case 'dmy':
       return 'en-GB';

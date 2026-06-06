@@ -7,7 +7,5 @@ import { API_BASE } from '../baseUrl';
 // tag-aware UI (e.g. Dashboard week-by-category, categorization rules)
 // override via `server.use(...)`.
 export const tagsHandlers = [
-  http.get(`${API_BASE}/tags`, () =>
-    HttpResponse.json({ tags: [] })
-  ),
+  http.get(`${API_BASE}/tags`, () => HttpResponse.json({ tags: [] })),
 ];

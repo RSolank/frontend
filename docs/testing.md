@@ -6,13 +6,13 @@
 
 ## Stack (locked in CONTRIBUTING.md §10)
 
-| Concern | Choice |
-|---|---|
-| Runner | **Vitest** (`npm test` = `vitest run`; `npx vitest` watches) |
-| DOM env | **happy-dom** (configured in `vite.config.mts`) |
-| Assertion lib | `@testing-library/react` + `@testing-library/jest-dom` |
-| Backend mock | **MSW** — handlers in `src/test/handlers/<feature>.ts`; server in `src/test/server.ts`; lifecycle in `src/setupTests.ts`. Every handler URL flows through `API_BASE` from `src/test/baseUrl.ts` so the v1-prefix cutover is one const flip (see `docs/architecture.md` → Data fetching). |
-| Layout | **Co-located** `*.test.tsx` next to the file under test; `src/test/` is reserved for shared infra (MSW server, handlers, render helpers) |
+| Concern       | Choice                                                                                                                                                                                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runner        | **Vitest** (`npm test` = `vitest run`; `npx vitest` watches)                                                                                                                                                                                                                             |
+| DOM env       | **happy-dom** (configured in `vite.config.mts`)                                                                                                                                                                                                                                          |
+| Assertion lib | `@testing-library/react` + `@testing-library/jest-dom`                                                                                                                                                                                                                                   |
+| Backend mock  | **MSW** — handlers in `src/test/handlers/<feature>.ts`; server in `src/test/server.ts`; lifecycle in `src/setupTests.ts`. Every handler URL flows through `API_BASE` from `src/test/baseUrl.ts` so the v1-prefix cutover is one const flip (see `docs/architecture.md` → Data fetching). |
+| Layout        | **Co-located** `*.test.tsx` next to the file under test; `src/test/` is reserved for shared infra (MSW server, handlers, render helpers)                                                                                                                                                 |
 
 ## MSW lifecycle (live as of Batch 0)
 
@@ -44,7 +44,7 @@ nothing.
   "Unregister" on the SW entry).
 - **Kill-switch (if it recurs):** delete `public/mockServiceWorker.js`
   outright — nothing in the codebase needs it; `npx msw init public/
-  --save` regenerates it when a batch actually adopts browser MSW.
+--save` regenerates it when a batch actually adopts browser MSW.
 
 ## Adding a feature handler
 
@@ -67,10 +67,10 @@ trip the async, `waitFor`-heavy page tests at the 5s default).
 
 **Targets** (CONTRIBUTING.md §7):
 
-| Surface | Target |
-|---|---|
+| Surface                                                                                   | Target    |
+| ----------------------------------------------------------------------------------------- | --------- |
 | Critical-path pages — auth, transactions create/edit, budgets create, taxation bills view | 80% lines |
-| Everything else | 60% lines |
+| Everything else                                                                           | 60% lines |
 
 **Enforced now:** a **60% global floor** (lines / branches / functions /
 statements) — the "everything else" target — as a `thresholds` block.

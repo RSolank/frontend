@@ -74,14 +74,18 @@ export const usersHandlers = [
       },
     })
   ),
-  http.delete(`${API_BASE}/users/me/profile-image`, () =>
-    new HttpResponse(null, { status: 204 })
+  http.delete(
+    `${API_BASE}/users/me/profile-image`,
+    () => new HttpResponse(null, { status: 204 })
   ),
   // BE Phase 2.1 — two-phase soft delete. Default accepts any
   // password and returns the scheduled-deletion envelope. Tests
   // override to exercise 403 wrong-password and the cancel paths.
   http.post(`${API_BASE}/users/me/delete`, () =>
-    HttpResponse.json({ detail: 'Account scheduled for deletion.', grace_days: 14 })
+    HttpResponse.json({
+      detail: 'Account scheduled for deletion.',
+      grace_days: 14,
+    })
   ),
   http.post(`${API_BASE}/users/me/delete/cancel`, () =>
     HttpResponse.json({ detail: 'Account reactivated.' })

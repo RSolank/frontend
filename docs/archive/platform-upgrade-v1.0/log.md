@@ -1,8 +1,8 @@
 # Frontend platform upgrade — log (v1.0)
 
-> The *how* of the v1.0 frontend platform-upgrade work: chronological
+> The _how_ of the v1.0 frontend platform-upgrade work: chronological
 > per-batch record of every named commit on `feat/platform-upgrade`.
-> For the durable *what* — scope, patterns established, polish carried
+> For the durable _what_ — scope, patterns established, polish carried
 > forward — see [`summary.md`](summary.md). For UAT findings +
 > pre-deploy decisions — see [`uat-and-pre-deploy.md`](uat-and-pre-deploy.md).
 
@@ -20,30 +20,30 @@ Listed in landing order. SHAs reference the FE submodule. Each row's
 "BE phases consumed" column links the FE batch to the upstream BE
 platform-upgrade phases it wired in.
 
-| # | SHA | Title | BE phases consumed |
-|---|---|---|---|
-| Batch 1 | `d99ff14` | FE wiring cleanup post-BE Phase 1.3 / 1.15 / 2.6 | 1.3 (metadata.timezones), 1.15 (users.me-stats), 2.6 (taxation engine) |
-| Batch 2 | `b4bf9dc` | `users.preferences` server SoT | 1.9 (users.preferences) |
-| docs | `cc57419` | docs: align preferences contract docs with Platform FE Batch 2 | — |
-| Batch 3 | `90c12f1` | `auth.devices` X-Device-Id + `auth.rate-limit` Retry-After UX | 1.4 (auth.devices), 1.8 (auth.rate-limit) |
-| Batch 4 | `74d14a4` | `metadata.timezones` backend-sourced | 1.3 |
-| Batch 5 | `35ddbca` | Settings cluster — sessions / profile-image / delete-account / email-change / data-export | 1.6, 1.10, 1.12, 1.13, 2.1, 2.8 |
-| docs | `80d0916` | docs: align account/auth/performance docs with Platform FE Batch 5 | — |
-| Batch 6 | `023c125` | `admin.role-enum` gate + portal scaffold | 1.11 (role enum + Identity) |
-| Batch 7 | `251a704` | Insights/dashboard cluster — activity feed + group-by-tag/budget-status net-expense rename + 6-month trend chart | 1.7 (aggregates engine), 2.4 (activity feed v1) |
-| Batch 8 | `1149420` | `taxation.bill-state-machine` — 5-state machine + mark-paid/mark-unpaid + adjustments + `auto_enabled` toggle | 2.6 |
-| Batch 9 | `e4004e3` | `auth.2fa-totp` — TOTP enrollment + login-verify + polymorphic login response | 2.7 (T-2fa-enroll) |
-| Batch 10 | `6b40154` | `auth.new-device-otp` — OTP entry + revoke landing + trusted-device list + verify→2FA chain | 2.3 (T-new-device-otp) |
-| Batch 11 | `17e20a4` | `recurring.templates` — inference-first `/recurring` page + dashboard 7d upcoming widget | 1.5 (recurring engine) |
-| Batch 12 | `e6c6fe1` | `statement-upload.async` — async-job page + parser-selector flow + dock + retire legacy 4-step pipeline | 2.2 (T-statement-upload-async) |
-| Batch 13 | `096d9e2` | `bank-accounts.crud` — settings CRUD + identifier sub-resource + tax-pot nudge + manual-txn picker + statement-upload upgrade | bank-accounts carve-out |
-| Batch 14 | `5d70fa9` | Doc audit fix-forward + API_BASE extraction | — |
-| Batch 15 | `86d26a1` | Convention-adherence audit + fix-forward | — |
-| Batch 16 | `c21454b` | BE Phase 2.9-2.11 wireup (v1 prefix + Aevum brand) | 2.9–2.11 (api-v1-prefix + rebrand) |
-| Batch 17 | `a76b6f0` | Theme-aware accent + semantic color tokens | — |
-| Batch 18 | `bb900e1` | T-admin operator portal + activity-feed refresh | 2.14 (activity engine v2), 2.16 (admin operator layer) |
-| Batch 19 | `1ac3f9d` | data-reset + auth.security-status + budgets.created_at + TopNav lazy + doc sweep | 2.15 (T-data-reset), 3.0 (auth.security-status) |
-| **Batch 20** | **`a963f87`** | **UAT pre-deploy fixes** (12 WIPs squashed — see below) | 9c00ecd (BE txn group_by all-time), 2.7 follow-on (2FA enroll_token stateless staging), statement-upload BE recurring-engine on COMPLETED |
+| #            | SHA           | Title                                                                                                                         | BE phases consumed                                                                                                                        |
+| ------------ | ------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch 1      | `d99ff14`     | FE wiring cleanup post-BE Phase 1.3 / 1.15 / 2.6                                                                              | 1.3 (metadata.timezones), 1.15 (users.me-stats), 2.6 (taxation engine)                                                                    |
+| Batch 2      | `b4bf9dc`     | `users.preferences` server SoT                                                                                                | 1.9 (users.preferences)                                                                                                                   |
+| docs         | `cc57419`     | docs: align preferences contract docs with Platform FE Batch 2                                                                | —                                                                                                                                         |
+| Batch 3      | `90c12f1`     | `auth.devices` X-Device-Id + `auth.rate-limit` Retry-After UX                                                                 | 1.4 (auth.devices), 1.8 (auth.rate-limit)                                                                                                 |
+| Batch 4      | `74d14a4`     | `metadata.timezones` backend-sourced                                                                                          | 1.3                                                                                                                                       |
+| Batch 5      | `35ddbca`     | Settings cluster — sessions / profile-image / delete-account / email-change / data-export                                     | 1.6, 1.10, 1.12, 1.13, 2.1, 2.8                                                                                                           |
+| docs         | `80d0916`     | docs: align account/auth/performance docs with Platform FE Batch 5                                                            | —                                                                                                                                         |
+| Batch 6      | `023c125`     | `admin.role-enum` gate + portal scaffold                                                                                      | 1.11 (role enum + Identity)                                                                                                               |
+| Batch 7      | `251a704`     | Insights/dashboard cluster — activity feed + group-by-tag/budget-status net-expense rename + 6-month trend chart              | 1.7 (aggregates engine), 2.4 (activity feed v1)                                                                                           |
+| Batch 8      | `1149420`     | `taxation.bill-state-machine` — 5-state machine + mark-paid/mark-unpaid + adjustments + `auto_enabled` toggle                 | 2.6                                                                                                                                       |
+| Batch 9      | `e4004e3`     | `auth.2fa-totp` — TOTP enrollment + login-verify + polymorphic login response                                                 | 2.7 (T-2fa-enroll)                                                                                                                        |
+| Batch 10     | `6b40154`     | `auth.new-device-otp` — OTP entry + revoke landing + trusted-device list + verify→2FA chain                                   | 2.3 (T-new-device-otp)                                                                                                                    |
+| Batch 11     | `17e20a4`     | `recurring.templates` — inference-first `/recurring` page + dashboard 7d upcoming widget                                      | 1.5 (recurring engine)                                                                                                                    |
+| Batch 12     | `e6c6fe1`     | `statement-upload.async` — async-job page + parser-selector flow + dock + retire legacy 4-step pipeline                       | 2.2 (T-statement-upload-async)                                                                                                            |
+| Batch 13     | `096d9e2`     | `bank-accounts.crud` — settings CRUD + identifier sub-resource + tax-pot nudge + manual-txn picker + statement-upload upgrade | bank-accounts carve-out                                                                                                                   |
+| Batch 14     | `5d70fa9`     | Doc audit fix-forward + API_BASE extraction                                                                                   | —                                                                                                                                         |
+| Batch 15     | `86d26a1`     | Convention-adherence audit + fix-forward                                                                                      | —                                                                                                                                         |
+| Batch 16     | `c21454b`     | BE Phase 2.9-2.11 wireup (v1 prefix + Aevum brand)                                                                            | 2.9–2.11 (api-v1-prefix + rebrand)                                                                                                        |
+| Batch 17     | `a76b6f0`     | Theme-aware accent + semantic color tokens                                                                                    | —                                                                                                                                         |
+| Batch 18     | `bb900e1`     | T-admin operator portal + activity-feed refresh                                                                               | 2.14 (activity engine v2), 2.16 (admin operator layer)                                                                                    |
+| Batch 19     | `1ac3f9d`     | data-reset + auth.security-status + budgets.created_at + TopNav lazy + doc sweep                                              | 2.15 (T-data-reset), 3.0 (auth.security-status)                                                                                           |
+| **Batch 20** | **`a963f87`** | **UAT pre-deploy fixes** (12 WIPs squashed — see below)                                                                       | 9c00ecd (BE txn group_by all-time), 2.7 follow-on (2FA enroll_token stateless staging), statement-upload BE recurring-engine on COMPLETED |
 
 ## Batch 20 — squash detail
 

@@ -59,10 +59,10 @@ export function WeekPickerCalendar({
   const today = todayIsoInTz(timezone);
   const [viewMonth, setViewMonth] = useState(() => today.slice(0, 7));
 
-  const rows = useMemo(() => buildWeekRows(viewMonth, timezone), [
-    viewMonth,
-    timezone,
-  ]);
+  const rows = useMemo(
+    () => buildWeekRows(viewMonth, timezone),
+    [viewMonth, timezone]
+  );
 
   const monthLabel = useMemo(
     () => formatYearMonth(viewMonth, 'long'),
@@ -77,7 +77,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, -1))}
           aria-label="Previous month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronLeft aria-hidden size={18} />
         </button>
@@ -88,7 +88,7 @@ export function WeekPickerCalendar({
           type="button"
           onClick={() => setViewMonth((m) => shiftMonthKey(m, 1))}
           aria-label="Next month"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronRight aria-hidden size={18} />
         </button>
@@ -127,10 +127,10 @@ export function WeekPickerCalendar({
               aria-pressed={isSelected}
               aria-label={`Week of ${formatBillDate(row.start, timezone)} to ${formatBillDate(row.end, timezone)}`}
               data-testid={`week-row-${row.start}`}
-              className={`grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${weekRowClass(
+              className={`focus-visible:ring-accent-500 grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none ${weekRowClass(
                 isSelected,
                 billable
-              )} ${containsToday && !isSelected ? 'ring-1 ring-accent-300/60 dark:ring-accent-700/60' : ''}`}
+              )} ${containsToday && !isSelected ? 'ring-accent-300/60 dark:ring-accent-700/60 ring-1' : ''}`}
             >
               {/* Row prefix — the Monday ISO date (short form) so the
                   user has a stable label for the row independent of
@@ -161,8 +161,8 @@ export function WeekPickerCalendar({
       </div>
 
       <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-        Click a row to select that ISO week (Mon → Sun) for billing.
-        Greyed rows haven&rsquo;t finalised yet — only weeks ending before{' '}
+        Click a row to select that ISO week (Mon → Sun) for billing. Greyed rows
+        haven&rsquo;t finalised yet — only weeks ending before{' '}
         <span className="font-medium">
           {formatBillDate(precedingWeekStart, timezone)}
         </span>{' '}

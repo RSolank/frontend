@@ -59,8 +59,8 @@ export function VerifyTwoFactorPage() {
         Two-factor verification
       </h1>
       <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-        Enter the 6-digit code from your authenticator app — or one of
-        your one-time backup codes if you&rsquo;ve lost access to it.
+        Enter the 6-digit code from your authenticator app — or one of your
+        one-time backup codes if you&rsquo;ve lost access to it.
       </p>
       <form onSubmit={handleSubmit} className="grid gap-3">
         <div>

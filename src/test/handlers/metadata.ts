@@ -43,14 +43,46 @@ export const metadataHandlers = [
     HttpResponse.json({
       timezones: [
         { name: 'UTC', offset_winter: '+00:00', offset_summer: '+00:00' },
-        { name: 'Asia/Kolkata', offset_winter: '+05:30', offset_summer: '+05:30' },
-        { name: 'America/New_York', offset_winter: '-05:00', offset_summer: '-04:00' },
-        { name: 'America/Chicago', offset_winter: '-06:00', offset_summer: '-05:00' },
-        { name: 'America/Denver', offset_winter: '-07:00', offset_summer: '-06:00' },
-        { name: 'America/Los_Angeles', offset_winter: '-08:00', offset_summer: '-07:00' },
-        { name: 'America/Anchorage', offset_winter: '-09:00', offset_summer: '-08:00' },
-        { name: 'Europe/Berlin', offset_winter: '+01:00', offset_summer: '+02:00' },
-        { name: 'Europe/London', offset_winter: '+00:00', offset_summer: '+01:00' },
+        {
+          name: 'Asia/Kolkata',
+          offset_winter: '+05:30',
+          offset_summer: '+05:30',
+        },
+        {
+          name: 'America/New_York',
+          offset_winter: '-05:00',
+          offset_summer: '-04:00',
+        },
+        {
+          name: 'America/Chicago',
+          offset_winter: '-06:00',
+          offset_summer: '-05:00',
+        },
+        {
+          name: 'America/Denver',
+          offset_winter: '-07:00',
+          offset_summer: '-06:00',
+        },
+        {
+          name: 'America/Los_Angeles',
+          offset_winter: '-08:00',
+          offset_summer: '-07:00',
+        },
+        {
+          name: 'America/Anchorage',
+          offset_winter: '-09:00',
+          offset_summer: '-08:00',
+        },
+        {
+          name: 'Europe/Berlin',
+          offset_winter: '+01:00',
+          offset_summer: '+02:00',
+        },
+        {
+          name: 'Europe/London',
+          offset_winter: '+00:00',
+          offset_summer: '+01:00',
+        },
       ],
     })
   ),

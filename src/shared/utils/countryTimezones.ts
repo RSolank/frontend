@@ -76,7 +76,9 @@ export function getBrowserTimezone(): string {
 // Resolve an ISO 3166-1 alpha-2 region code (e.g. "IN") to its English
 // display name (e.g. "India") for matching against the metadata API. Falls
 // back to the region code if `Intl.DisplayNames` is unavailable.
-export function getCountryNameFromRegion(region: string | null | undefined): string | null {
+export function getCountryNameFromRegion(
+  region: string | null | undefined
+): string | null {
   if (!region) return null;
   try {
     const dn = new Intl.DisplayNames(['en'], { type: 'region' });

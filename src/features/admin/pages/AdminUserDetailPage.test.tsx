@@ -208,7 +208,9 @@ describe('AdminUserDetailPage', () => {
     renderDetail('11');
     await screen.findByRole('heading', { name: 'Jane Doe' });
 
-    await userEvent.click(screen.getByRole('button', { name: /lock account/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /lock account/i })
+    );
     // The dialog renders a second "Lock account" button as the confirm
     // — click the one inside the modal.
     const modalConfirm = await screen.findByRole('button', {
@@ -239,7 +241,9 @@ describe('AdminUserDetailPage', () => {
     renderDetail('11');
     await screen.findByRole('heading', { name: 'Jane Doe' });
 
-    await userEvent.click(screen.getByRole('button', { name: /unlock account/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /unlock account/i })
+    );
     const modalConfirm = await screen.findByRole('button', {
       name: 'Unlock account',
     });
@@ -256,13 +260,18 @@ describe('AdminUserDetailPage', () => {
         HttpResponse.json(populatedDetail)
       ),
       http.patch(`${API_BASE}/admin/users/:id/lock`, () =>
-        HttpResponse.json({ detail: 'Account already disabled' }, { status: 409 })
+        HttpResponse.json(
+          { detail: 'Account already disabled' },
+          { status: 409 }
+        )
       )
     );
 
     renderDetail('11');
     await screen.findByRole('heading', { name: 'Jane Doe' });
-    await userEvent.click(screen.getByRole('button', { name: /lock account/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /lock account/i })
+    );
     const modalConfirm = await screen.findByRole('button', {
       name: 'Lock account',
     });

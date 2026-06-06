@@ -4,10 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { API_BASE } from '../../../test/baseUrl';
 import { server } from '../../../test/server';
 
-import {
-  isNewDeviceChallenge,
-  isTwoFactorChallenge,
-} from './mutations';
+import { isNewDeviceChallenge, isTwoFactorChallenge } from './mutations';
 import {
   disableTwoFactorRequest,
   enrollTwoFactorRequest,
@@ -28,15 +25,12 @@ describe('twoFactor api surface', () => {
   it('verifyEnrollTwoFactorRequest forwards enroll_token + code, returns 10 backup codes', async () => {
     let seenBody: Record<string, unknown> | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/2fa/verify-enroll`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as Record<string, unknown>;
-          return HttpResponse.json({
-            backup_codes: Array.from({ length: 10 }, (_, i) => `bc-${i}`),
-          });
-        }
-      )
+      http.post(`${API_BASE}/auth/2fa/verify-enroll`, async ({ request }) => {
+        seenBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          backup_codes: Array.from({ length: 10 }, (_, i) => `bc-${i}`),
+        });
+      })
     );
     const res = await verifyEnrollTwoFactorRequest('eyJ-token', '123456');
     expect(seenBody).toEqual({ enroll_token: 'eyJ-token', code: '123456' });
@@ -46,13 +40,10 @@ describe('twoFactor api surface', () => {
   it('disableTwoFactorRequest POSTs the password', async () => {
     let seenBody: { password?: string } | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/2fa/disable`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as { password: string };
-          return HttpResponse.json({ status: 'ok' });
-        }
-      )
+      http.post(`${API_BASE}/auth/2fa/disable`, async ({ request }) => {
+        seenBody = (await request.json()) as { password: string };
+        return HttpResponse.json({ status: 'ok' });
+      })
     );
     await disableTwoFactorRequest('pw-test');
     expect(seenBody).toEqual({ password: 'pw-test' });
@@ -61,16 +52,13 @@ describe('twoFactor api surface', () => {
   it('loginVerifyTwoFactorRequest POSTs pending_token + code and returns tokens', async () => {
     let seenBody: Record<string, unknown> | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/2fa/login-verify`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as Record<string, unknown>;
-          return HttpResponse.json({
-            access_token: 'finalized',
-            refresh_token: 'finalized-r',
-          });
-        }
-      )
+      http.post(`${API_BASE}/auth/2fa/login-verify`, async ({ request }) => {
+        seenBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          access_token: 'finalized',
+          refresh_token: 'finalized-r',
+        });
+      })
     );
     const res = await loginVerifyTwoFactorRequest('pend-token', '123456');
     expect(seenBody).toEqual({ pending_token: 'pend-token', code: '123456' });

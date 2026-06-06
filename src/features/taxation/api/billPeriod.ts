@@ -109,9 +109,7 @@ export function formatBillDate(
   tz: string
 ): string {
   if (!value) return '—';
-  const iso = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T12:00:00Z`
-    : value;
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return value;
   // `dd/mon/yyyy` shape via `en-GB` short month — Intl emits
@@ -147,5 +145,8 @@ export function fractionOfWeekElapsed(date: Date, tz: string): number {
   const mm = Number(hms.find((x) => x.type === 'minute')?.value ?? '0');
   const ss = Number(hms.find((x) => x.type === 'second')?.value ?? '0');
   const elapsedSeconds = p.weekday * 86400 + hh * 3600 + mm * 60 + ss;
-  return Math.min(1, Math.max(1 / (7 * 24 * 3600), elapsedSeconds / (7 * 86400)));
+  return Math.min(
+    1,
+    Math.max(1 / (7 * 24 * 3600), elapsedSeconds / (7 * 86400))
+  );
 }

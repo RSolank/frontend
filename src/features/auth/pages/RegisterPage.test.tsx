@@ -10,7 +10,9 @@ import { RegisterPage } from './RegisterPage';
 
 vi.mock('react-router-dom', async () => {
   const actual =
-    await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => vi.fn(),
@@ -71,20 +73,17 @@ describe('RegisterPage', () => {
     const { server } = await import('../../../test/server');
     const { http, HttpResponse } = await import('msw');
     server.use(
-      http.post(
-        `${API_BASE}/auth/register`,
-        async ({ request }) => {
-          captured = await request.json();
-          return HttpResponse.json({
-            access_token: 'msw-access',
-            refresh_token: 'msw-refresh',
-            user_id: 99,
-            email_id: 'user@example.test',
-            first_name: 'John',
-            last_name: 'Doe',
-          });
-        }
-      )
+      http.post(`${API_BASE}/auth/register`, async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({
+          access_token: 'msw-access',
+          refresh_token: 'msw-refresh',
+          user_id: 99,
+          email_id: 'user@example.test',
+          first_name: 'John',
+          last_name: 'Doe',
+        });
+      })
     );
 
     renderWithProviders(

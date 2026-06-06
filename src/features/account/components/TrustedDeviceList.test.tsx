@@ -41,9 +41,7 @@ describe('<TrustedDeviceList>', () => {
   it('renders the empty state when no devices are trusted yet', async () => {
     renderWithProviders(<TrustedDeviceList />);
     await waitFor(() =>
-      expect(
-        screen.getByText(/No trusted devices yet/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/No trusted devices yet/i)).toBeInTheDocument()
     );
   });
 
@@ -75,13 +73,10 @@ describe('<TrustedDeviceList>', () => {
       http.get(`${API_BASE}/auth/devices`, () =>
         HttpResponse.json(POPULATED_DEVICES)
       ),
-      http.delete(
-        `${API_BASE}/auth/devices/:uid`,
-        ({ params }) => {
-          deletedUid = params.uid as string;
-          return new HttpResponse(null, { status: 204 });
-        }
-      )
+      http.delete(`${API_BASE}/auth/devices/:uid`, ({ params }) => {
+        deletedUid = params.uid as string;
+        return new HttpResponse(null, { status: 204 });
+      })
     );
 
     renderWithProviders(<TrustedDeviceList />);

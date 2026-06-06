@@ -18,10 +18,13 @@ export function createTransactionRequest(
   ruleId?: number | null
 ): Promise<CreateTransactionResponse> {
   const qs = ruleId ? `?rule_id=${ruleId}` : '';
-  return apiFetch<CreateTransactionResponse>(`${routes.transactions.create()}${qs}`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return apiFetch<CreateTransactionResponse>(
+    `${routes.transactions.create()}${qs}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 export function updateTransactionRequest(

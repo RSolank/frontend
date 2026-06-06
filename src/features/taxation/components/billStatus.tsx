@@ -24,8 +24,7 @@ interface BillStatusDescriptor {
 
 const FALLBACK: BillStatusDescriptor = {
   label: 'Unknown',
-  pillTone:
-    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+  pillTone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
   icon: Clock,
   iconTone: 'text-slate-400 dark:text-slate-500',
 };

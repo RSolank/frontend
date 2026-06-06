@@ -10,9 +10,10 @@ import { AddTransactionPage } from './AddTransactionPage';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>(
-    'react-router-dom'
-  );
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -51,12 +52,8 @@ const mockConstants = {
 beforeEach(() => {
   mockNavigate.mockReset();
   server.use(
-    http.get(`${API_BASE}/tags`, () =>
-      HttpResponse.json(mockTags)
-    ),
-    http.get(`${API_BASE}/beneficiaries`, () =>
-      HttpResponse.json([])
-    ),
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json(mockTags)),
+    http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json([])),
     http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(mockConstants)
     )

@@ -66,10 +66,7 @@ export const recoveryAnswerSchema = z.object({
 
 export const recoveryOtpSchema = z.object({
   email_id: z.email(),
-  otp: z
-    .string()
-    .min(6, 'OTP must be 6 digits')
-    .max(6, 'OTP must be 6 digits'),
+  otp: z.string().min(6, 'OTP must be 6 digits').max(6, 'OTP must be 6 digits'),
 });
 
 export const recoveryResetSchema = z.object({

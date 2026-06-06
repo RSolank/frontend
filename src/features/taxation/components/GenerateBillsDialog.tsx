@@ -105,10 +105,7 @@ function useGenerateBills({
       new Date(`${rangeStart}T12:00:00Z`),
       timezone
     );
-    const endSnap = weekRangeInTz(
-      new Date(`${rangeEnd}T12:00:00Z`),
-      timezone
-    );
+    const endSnap = weekRangeInTz(new Date(`${rangeEnd}T12:00:00Z`), timezone);
     return {
       ok: true,
       period_start: startSnap.period_start,
@@ -228,7 +225,7 @@ export function GenerateBillsDialog({
               name="generate-mode"
               checked={mode === 'week'}
               onChange={() => setMode('week')}
-              className="h-4 w-4 accent-accent-600 dark:accent-accent-400"
+              className="accent-accent-600 dark:accent-accent-400 h-4 w-4"
             />
             <span className="font-medium">Week picker</span>
           </label>
@@ -238,14 +235,17 @@ export function GenerateBillsDialog({
               name="generate-mode"
               checked={mode === 'range'}
               onChange={() => setMode('range')}
-              className="h-4 w-4 accent-accent-600 dark:accent-accent-400"
+              className="accent-accent-600 dark:accent-accent-400 h-4 w-4"
             />
             <span className="font-medium">Date range</span>
           </label>
         </fieldset>
 
         {mode === 'week' ? (
-          <div className="flex flex-col gap-2 text-sm" data-testid="generate-week-input">
+          <div
+            className="flex flex-col gap-2 text-sm"
+            data-testid="generate-week-input"
+          >
             <span className="font-medium text-slate-700 dark:text-slate-200">
               Pick a week
             </span>
@@ -284,7 +284,7 @@ export function GenerateBillsDialog({
         {resolvedPreview && (
           <div
             data-testid="generate-resolved-preview"
-            className="rounded-md border border-accent-200 bg-accent-50/60 px-3 py-2 text-sm text-accent-900 dark:border-accent-900/50 dark:bg-accent-950/30 dark:text-accent-200"
+            className="border-accent-200 bg-accent-50/60 text-accent-900 dark:border-accent-900/50 dark:bg-accent-950/30 dark:text-accent-200 rounded-md border px-3 py-2 text-sm"
           >
             <span className="font-medium">
               Resolves to ISO week
@@ -299,9 +299,9 @@ export function GenerateBillsDialog({
               {formatBillDate(resolvedPreview.period_end, timezone)}
             </span>
             {mode === 'range' && (
-              <p className="mt-0.5 text-xs text-accent-700/80 dark:text-accent-300/80">
-                Endpoints are snapped to ISO Mon → Sun boundaries so the
-                request covers whole weeks only.
+              <p className="text-accent-700/80 dark:text-accent-300/80 mt-0.5 text-xs">
+                Endpoints are snapped to ISO Mon → Sun boundaries so the request
+                covers whole weeks only.
               </p>
             )}
           </div>

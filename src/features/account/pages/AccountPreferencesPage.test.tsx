@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -65,9 +71,11 @@ describe('AccountPreferencesPage', () => {
     renderPage();
     await waitFor(() =>
       expect(
-        (screen.getByRole('combobox', {
-          name: 'Timezone',
-        }) as HTMLInputElement).value
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
       ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
   });
@@ -89,24 +97,23 @@ describe('AccountPreferencesPage', () => {
         mePatchBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ user: { user_id: 1 } });
       }),
-      http.patch(
-        `${API_BASE}/users/preferences`,
-        async ({ request }) => {
-          prefsPatchBody = (await request.json()) as Record<string, unknown>;
-          // Server-side flip — the next GET sees the new values.
-          serverPrefs.currency = 'USD';
-          serverPrefs.timezone = 'America/New_York';
-          return HttpResponse.json({ ...serverPrefs });
-        }
-      )
+      http.patch(`${API_BASE}/users/preferences`, async ({ request }) => {
+        prefsPatchBody = (await request.json()) as Record<string, unknown>;
+        // Server-side flip — the next GET sees the new values.
+        serverPrefs.currency = 'USD';
+        serverPrefs.timezone = 'America/New_York';
+        return HttpResponse.json({ ...serverPrefs });
+      })
     );
 
     renderPage();
     await waitFor(() =>
       expect(
-        (screen.getByRole('combobox', {
-          name: 'Timezone',
-        }) as HTMLInputElement).value
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
       ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
 
@@ -146,17 +153,20 @@ describe('AccountPreferencesPage', () => {
     renderPage();
     await waitFor(() =>
       expect(
-        (screen.getByRole('combobox', {
-          name: 'Timezone',
-        }) as HTMLInputElement).value
+        (
+          screen.getByRole('combobox', {
+            name: 'Timezone',
+          }) as HTMLInputElement
+        ).value
       ).toMatch(/^Asia\/Kolkata( \(UTC.*\))?$/)
     );
     expect(screen.getByText('Defaults')).toBeInTheDocument();
     expect(
       screen.getByLabelText(/Add transaction defaults to/i)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Accessibility' })
-    ).toHaveAttribute('href', '/account/accessibility');
+    expect(screen.getByRole('link', { name: 'Accessibility' })).toHaveAttribute(
+      'href',
+      '/account/accessibility'
+    );
   });
 });

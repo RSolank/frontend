@@ -72,9 +72,9 @@ export function DataExportPanel() {
   return (
     <div className="grid gap-3">
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        Download a copy of your material data. Configuration (tags,
-        rules, budgets) is intentionally excluded — those reconstruct
-        from your transactions.
+        Download a copy of your material data. Configuration (tags, rules,
+        budgets) is intentionally excluded — those reconstruct from your
+        transactions.
       </p>
 
       <div className="flex items-center gap-3">
@@ -106,14 +106,17 @@ export function DataExportPanel() {
         data-testid="export-resource-list"
       >
         {EXPORT_RESOURCES.map((r) => (
-          <li key={r.id} className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 dark:border-slate-800">
+          <li
+            key={r.id}
+            className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 dark:border-slate-800"
+          >
             <span className="text-sm text-slate-800 dark:text-slate-100">
               {r.label}
             </span>
             <button
               type="button"
               onClick={() => void downloadViaFetch(r.id, format, setStatus)}
-              className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 text-sm font-medium"
               data-testid={`export-${r.id}`}
             >
               Download

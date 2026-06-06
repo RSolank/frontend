@@ -45,20 +45,36 @@ describe('SectionedPageLayout', () => {
   it('renders breadcrumb root + active section label', () => {
     renderAt('/widgets/beta');
     const breadcrumb = screen.getByLabelText('Breadcrumb');
-    expect(within(breadcrumb).getByRole('link', { name: 'Widgets' })).toHaveAttribute('href', '/widgets');
-    expect(within(breadcrumb).getByText('Beta')).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(breadcrumb).getByRole('link', { name: 'Widgets' })
+    ).toHaveAttribute('href', '/widgets');
+    expect(within(breadcrumb).getByText('Beta')).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
   });
 
   it('mounts every section in the desktop sidebar AND the mobile tab nav', () => {
     renderAt('/widgets/alpha');
-    const navs = screen.getAllByRole('navigation', { name: 'Widgets sections' });
+    const navs = screen.getAllByRole('navigation', {
+      name: 'Widgets sections',
+    });
     // One for mobile tabs, one for desktop sidebar — both render in the
     // DOM and CSS hides whichever doesn't match the viewport.
     expect(navs).toHaveLength(2);
     for (const nav of navs) {
-      expect(within(nav).getByRole('link', { name: 'Alpha' })).toHaveAttribute('href', '/widgets/alpha');
-      expect(within(nav).getByRole('link', { name: 'Beta' })).toHaveAttribute('href', '/widgets/beta');
-      expect(within(nav).getByRole('link', { name: 'Gamma' })).toHaveAttribute('href', '/widgets/gamma');
+      expect(within(nav).getByRole('link', { name: 'Alpha' })).toHaveAttribute(
+        'href',
+        '/widgets/alpha'
+      );
+      expect(within(nav).getByRole('link', { name: 'Beta' })).toHaveAttribute(
+        'href',
+        '/widgets/beta'
+      );
+      expect(within(nav).getByRole('link', { name: 'Gamma' })).toHaveAttribute(
+        'href',
+        '/widgets/gamma'
+      );
     }
   });
 
@@ -69,16 +85,14 @@ describe('SectionedPageLayout', () => {
 
   it('switches breadcrumb tail when the active route changes', () => {
     const { unmount } = renderAt('/widgets/alpha');
-    expect(within(screen.getByLabelText('Breadcrumb')).getByText('Alpha')).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
+    expect(
+      within(screen.getByLabelText('Breadcrumb')).getByText('Alpha')
+    ).toHaveAttribute('aria-current', 'page');
     unmount();
 
     renderAt('/widgets/gamma');
-    expect(within(screen.getByLabelText('Breadcrumb')).getByText('Gamma')).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
+    expect(
+      within(screen.getByLabelText('Breadcrumb')).getByText('Gamma')
+    ).toHaveAttribute('aria-current', 'page');
   });
 });

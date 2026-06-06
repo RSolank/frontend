@@ -11,9 +11,7 @@ import { UpcomingBillsWidget } from './UpcomingBillsWidget';
 describe('UpcomingBillsWidget', () => {
   test('renders empty state when no upcoming bills', async () => {
     server.use(
-      http.get(`${API_BASE}/recurring/upcoming`, () =>
-        HttpResponse.json([])
-      )
+      http.get(`${API_BASE}/recurring/upcoming`, () => HttpResponse.json([]))
     );
     renderWithProviders(<UpcomingBillsWidget />);
     await waitFor(() =>

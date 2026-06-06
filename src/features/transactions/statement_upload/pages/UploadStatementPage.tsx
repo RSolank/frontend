@@ -107,7 +107,10 @@ export function UploadStatementPage() {
 
   async function handleUpload() {
     if (!file) {
-      setSubmitError({ message: 'Choose a CSV or PDF file first.', parserDetail: null });
+      setSubmitError({
+        message: 'Choose a CSV or PDF file first.',
+        parserDetail: null,
+      });
       return;
     }
     setSubmitError(null);
@@ -149,7 +152,7 @@ export function UploadStatementPage() {
         </h1>
         <Link
           to="/transactions"
-          className="text-sm font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 text-sm font-semibold"
         >
           ← Back to Transactions
         </Link>
@@ -259,7 +262,7 @@ function UploadCard({
               type="file"
               accept=".csv,.pdf"
               onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-              className="mt-2 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-accent-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-accent-700 hover:file:bg-accent-100 dark:text-slate-300 dark:file:bg-accent-950/40 dark:file:text-accent-300 dark:hover:file:bg-accent-950/60"
+              className="file:bg-accent-50 file:text-accent-700 hover:file:bg-accent-100 dark:file:bg-accent-950/40 dark:file:text-accent-300 dark:hover:file:bg-accent-950/60 mt-2 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-semibold dark:text-slate-300"
               disabled={uploading}
               data-testid="statement-file-input"
             />
@@ -278,7 +281,7 @@ function UploadCard({
             type="button"
             onClick={onUpload}
             disabled={!canUpload}
-            className="btn-primary !w-auto inline-flex items-center justify-center gap-1.5"
+            className="btn-primary inline-flex !w-auto items-center justify-center gap-1.5"
             data-testid="statement-upload-submit"
           >
             {uploading ? (
@@ -294,8 +297,8 @@ function UploadCard({
             )}
           </button>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Parsing happens in the background — you can navigate away
-            and we&apos;ll keep you posted via the upload dock.
+            Parsing happens in the background — you can navigate away and
+            we&apos;ll keep you posted via the upload dock.
           </p>
         </div>
       </div>
@@ -341,8 +344,8 @@ function ParserDropdown({
         ))}
       </select>
       <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-        We couldn&apos;t guess this file&apos;s source from its name —
-        pick the bank or service it came from.
+        We couldn&apos;t guess this file&apos;s source from its name — pick the
+        bank or service it came from.
       </span>
     </label>
   );
@@ -358,15 +361,15 @@ function MatchedParserCard({
   return (
     <div
       data-testid="statement-parser-match-card"
-      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent-200 bg-accent-50 px-4 py-3 text-sm dark:border-accent-900/50 dark:bg-accent-950/40"
+      className="border-accent-200 bg-accent-50 dark:border-accent-900/50 dark:bg-accent-950/40 flex flex-wrap items-center justify-between gap-2 rounded-md border px-4 py-3 text-sm"
     >
       <div className="flex items-center gap-3">
         <ParserIcon parserKey={parser.key} size={24} />
         <div className="flex flex-col">
-          <span className="font-semibold text-accent-900 dark:text-accent-200">
+          <span className="text-accent-900 dark:text-accent-200 font-semibold">
             Parser: {parser.label}
           </span>
-          <span className="font-mono text-xs text-accent-700/80 dark:text-accent-300/80">
+          <span className="text-accent-700/80 dark:text-accent-300/80 font-mono text-xs">
             {parser.key}
           </span>
         </div>
@@ -374,7 +377,7 @@ function MatchedParserCard({
       <button
         type="button"
         onClick={onChangeParser}
-        className="text-xs font-semibold text-accent-700 transition-colors hover:text-accent-900 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-300 dark:hover:text-accent-100"
+        className="text-accent-700 hover:text-accent-900 focus-visible:ring-accent-500 dark:text-accent-300 dark:hover:text-accent-100 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none"
         data-testid="statement-parser-change"
       >
         Change parser
@@ -394,7 +397,7 @@ function ErrorPanel({
     <div
       role="alert"
       data-testid="statement-upload-error"
-      className="mt-4 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200"
+      className="border-danger-200 bg-danger-50 text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200 mt-4 rounded-md border px-4 py-3 text-sm"
     >
       <p>{error.message}</p>
       {error.parserDetail && (
@@ -402,7 +405,7 @@ function ErrorPanel({
           type="button"
           onClick={onOpenPicker}
           data-testid="statement-upload-pick-parser"
-          className="mt-2 inline-flex items-center justify-center rounded-md bg-danger-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none"
+          className="bg-danger-600 hover:bg-danger-700 focus-visible:ring-danger-500 mt-2 inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           Pick parser
         </button>
@@ -430,7 +433,7 @@ function JobStatusPanel({
     return (
       <PanelShell>
         <p
-          className="text-sm text-danger-700 dark:text-danger-300"
+          className="text-danger-700 dark:text-danger-300 text-sm"
           data-testid="statement-job-error"
         >
           Couldn&apos;t fetch the job status. Try again in a moment.
@@ -499,7 +502,7 @@ function PanelHeader({
           </h2>
           <p
             data-testid="statement-job-status"
-            className="text-xs uppercase tracking-wide text-slate-500"
+            className="text-xs tracking-wide text-slate-500 uppercase"
           >
             {STATUS_LABEL[status]}
           </p>
@@ -555,18 +558,17 @@ function TerminalBody({
       <>
         <div
           data-testid="statement-job-complete"
-          className="flex items-start gap-2 rounded-md border border-success-200 bg-success-50 p-3 text-sm text-success-800 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-200"
+          className="border-success-200 bg-success-50 text-success-800 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-200 flex items-start gap-2 rounded-md border p-3 text-sm"
         >
           <CheckCircle2 size={18} aria-hidden className="mt-0.5" />
           <div>
             <p className="font-semibold">Upload complete.</p>
             <p>
               Parsed {job.txns_parsed} transaction
-              {job.txns_parsed === 1 ? '' : 's'}; inserted{' '}
-              {job.txns_inserted}.
+              {job.txns_parsed === 1 ? '' : 's'}; inserted {job.txns_inserted}.
             </p>
             {job.parser_used && (
-              <p className="mt-1 text-xs text-success-700/90 dark:text-success-300/80">
+              <p className="text-success-700/90 dark:text-success-300/80 mt-1 text-xs">
                 Parser: <span className="font-mono">{job.parser_used}</span>
                 {job.source_type ? ` · ${job.source_type}` : ''}
               </p>
@@ -595,12 +597,15 @@ function TerminalBody({
     <>
       <div
         data-testid="statement-job-failed"
-        className="flex items-start gap-2 rounded-md border border-danger-200 bg-danger-50 p-3 text-sm text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200"
+        className="border-danger-200 bg-danger-50 text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/40 dark:text-danger-200 flex items-start gap-2 rounded-md border p-3 text-sm"
       >
         <AlertTriangle size={18} aria-hidden className="mt-0.5" />
         <div>
           <p className="font-semibold">Upload failed.</p>
-          <p>{job.error_detail ?? 'Something went wrong while processing the file.'}</p>
+          <p>
+            {job.error_detail ??
+              'Something went wrong while processing the file.'}
+          </p>
         </div>
       </div>
       <PanelFooter>
@@ -617,11 +622,7 @@ function TerminalBody({
 // into the Add modal pre-seeded with one pending UPI identifier
 // (Batch 13 wiring). When the BE didn't surface a specific
 // identifier the CTA still routes to the plain Add flow.
-function RegisterAccountNotice({
-  identifier,
-}: {
-  identifier: string | null;
-}) {
+function RegisterAccountNotice({ identifier }: { identifier: string | null }) {
   const target = identifier
     ? `/settings/bank-accounts?register=${encodeURIComponent(identifier)}`
     : '/settings/bank-accounts';
@@ -629,7 +630,7 @@ function RegisterAccountNotice({
     <div
       data-testid="statement-job-suggest-register-account"
       role="status"
-      className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200"
+      className="border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200 mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs"
     >
       <span>
         {identifier
@@ -639,7 +640,7 @@ function RegisterAccountNotice({
       <Link
         to={target}
         data-testid="statement-job-register-account-cta"
-        className="font-semibold text-warning-900 underline-offset-2 hover:underline dark:text-warning-100"
+        className="text-warning-900 dark:text-warning-100 font-semibold underline-offset-2 hover:underline"
       >
         Register this account →
       </Link>

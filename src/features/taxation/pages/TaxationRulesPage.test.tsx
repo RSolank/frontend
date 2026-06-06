@@ -48,9 +48,7 @@ const fullyCustomized = {
 
 function installListHandler(rules = partiallyCustomized) {
   server.use(
-    http.get(`${API_BASE}/taxation-rules/`, () =>
-      HttpResponse.json(rules)
-    )
+    http.get(`${API_BASE}/taxation-rules/`, () => HttpResponse.json(rules))
   );
 }
 
@@ -123,20 +121,17 @@ describe('TaxationRulesPage', () => {
     let putBody: unknown = null;
     let getCount = 0;
     server.use(
-      http.put(
-        `${API_BASE}/taxation-rules/committed`,
-        async ({ request }) => {
-          putBody = await request.json();
-          return HttpResponse.json({
-            rule: {
-              txn_type: 'committed',
-              tax_rate: 0.075,
-              default_penalty_rate: 0.5,
-              is_default: false,
-            },
-          });
-        }
-      ),
+      http.put(`${API_BASE}/taxation-rules/committed`, async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({
+          rule: {
+            txn_type: 'committed',
+            tax_rate: 0.075,
+            default_penalty_rate: 0.5,
+            is_default: false,
+          },
+        });
+      }),
       // First GET (initial render) → original 5%. Subsequent GETs
       // (after invalidation) → 7.5%. Order matters for the prefill
       // assertion below.
@@ -151,7 +146,9 @@ describe('TaxationRulesPage', () => {
               default_penalty_rate: 0.5,
               is_default: false,
             },
-            ...partiallyCustomized.rules.filter((r) => r.txn_type !== 'committed'),
+            ...partiallyCustomized.rules.filter(
+              (r) => r.txn_type !== 'committed'
+            ),
           ],
         });
       })
@@ -187,7 +184,9 @@ describe('TaxationRulesPage', () => {
       expect(putBody).toEqual({ tax_rate: 0.075, default_penalty_rate: 0.5 });
     });
     await waitFor(() =>
-      expect(screen.getByTestId('rule-card-committed')).toHaveTextContent('7.5%')
+      expect(screen.getByTestId('rule-card-committed')).toHaveTextContent(
+        '7.5%'
+      )
     );
   });
 

@@ -19,12 +19,12 @@ describe('linkUnderline.store', () => {
 
   it('applyLinkUnderline toggles the html class', () => {
     applyLinkUnderline(true);
-    expect(
-      document.documentElement.classList.contains('underline-links')
-    ).toBe(true);
+    expect(document.documentElement.classList.contains('underline-links')).toBe(
+      true
+    );
     applyLinkUnderline(false);
-    expect(
-      document.documentElement.classList.contains('underline-links')
-    ).toBe(false);
+    expect(document.documentElement.classList.contains('underline-links')).toBe(
+      false
+    );
   });
 });

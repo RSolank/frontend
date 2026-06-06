@@ -50,9 +50,7 @@ export function ExpenseTrendChart() {
     // The endpoint may return rows for multiple tags when `tag_id` is
     // unset (it isn't here once constants land); defensively filter.
     if (totalTagId == null) return [];
-    return all
-      .filter((r) => r.tag_id === totalTagId)
-      .slice(0, BUCKETS);
+    return all.filter((r) => r.tag_id === totalTagId).slice(0, BUCKETS);
   }, [query.data, totalTagId]);
 
   if (totalTagId == null) return null;

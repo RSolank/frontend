@@ -60,9 +60,9 @@ describe('EmailChangeForm', () => {
     await waitFor(() =>
       expect(screen.getByTestId('email-change-2fa-code')).toBeInTheDocument()
     );
-    expect(
-      screen.getByRole('alert')
-    ).toHaveTextContent(/two-factor on, enter your TOTP/);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /two-factor on, enter your TOTP/
+    );
   });
 
   it('surfaces 409 (email taken) inline on step 1', async () => {
@@ -76,9 +76,9 @@ describe('EmailChangeForm', () => {
     await fillStep1();
     fireEvent.click(screen.getByTestId('email-change-request-submit'));
 
-    expect(
-      await screen.findByRole('alert')
-    ).toHaveTextContent(/already in use/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /already in use/
+    );
   });
 
   it('treats 409 on confirm as terminal — restarts from step 1', async () => {

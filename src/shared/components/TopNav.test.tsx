@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,14 +99,23 @@ describe('TopNav', () => {
       '/'
     );
     // Dashboard shortcut.
-    expect(within(drawer).getByRole('link', { name: /Dashboard/i }))
-      .toHaveAttribute('href', '/dashboard');
+    expect(
+      within(drawer).getByRole('link', { name: /Dashboard/i })
+    ).toHaveAttribute('href', '/dashboard');
     // MAIN section
     expect(within(drawer).getByText('Main')).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Transactions' })).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Expense Tracker' })).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Tax Tracker' })).toBeInTheDocument();
-    expect(within(drawer).getByRole('link', { name: 'Beneficiaries' })).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('link', { name: 'Transactions' })
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('link', { name: 'Expense Tracker' })
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('link', { name: 'Tax Tracker' })
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('link', { name: 'Beneficiaries' })
+    ).toBeInTheDocument();
     // SETTINGS section — Batch 9 moved all three under /settings/*.
     expect(within(drawer).getByText('Settings')).toBeInTheDocument();
     expect(
@@ -131,7 +146,9 @@ describe('TopNav', () => {
       within(drawer).getByRole('button', { name: /system theme/i })
     ).toBeInTheDocument();
     // Zoom slider.
-    expect(within(drawer).getByRole('slider', { name: /Text size/i })).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('slider', { name: /Text size/i })
+    ).toBeInTheDocument();
     // Reduced motion + Privacy mask toggles (role=switch).
     expect(
       within(drawer).getByRole('switch', { name: /reduce motion/i })
@@ -149,7 +166,9 @@ describe('TopNav', () => {
     expect(
       within(drawer).getByRole('link', { name: 'Account' })
     ).toHaveAttribute('href', '/account/profile');
-    expect(within(drawer).getByRole('button', { name: /Sign Out/i })).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('button', { name: /Sign Out/i })
+    ).toBeInTheDocument();
   });
 
   it('drawer Sign Out calls onLogout and closes', () => {
@@ -188,6 +207,9 @@ describe('TopNav', () => {
   it('Home icon points at /dashboard on desktop', () => {
     setUser({ user_id: 1, email_id: 'a@b.c' });
     renderNav();
-    expect(screen.getByLabelText('Dashboard')).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByLabelText('Dashboard')).toHaveAttribute(
+      'href',
+      '/dashboard'
+    );
   });
 });

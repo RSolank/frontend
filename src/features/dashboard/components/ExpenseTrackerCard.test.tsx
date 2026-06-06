@@ -44,10 +44,25 @@ describe('ExpenseTrackerCard', () => {
   it('renders the rollup, top categories, and a breach chip when over limit', async () => {
     mockStatus({
       month: '2026-05',
-      total_budget: { tag_id: 0, tag_name: 'Total', current_net_expense: 570, limit_amt: 1000 },
+      total_budget: {
+        tag_id: 0,
+        tag_name: 'Total',
+        current_net_expense: 570,
+        limit_amt: 1000,
+      },
       categories: [
-        { tag_id: 1, tag_name: 'Groceries', current_net_expense: 300, limit_amt: 200 },
-        { tag_id: 2, tag_name: 'Transport', current_net_expense: 120, limit_amt: 150 },
+        {
+          tag_id: 1,
+          tag_name: 'Groceries',
+          current_net_expense: 300,
+          limit_amt: 200,
+        },
+        {
+          tag_id: 2,
+          tag_name: 'Transport',
+          current_net_expense: 120,
+          limit_amt: 150,
+        },
         { tag_id: 3, tag_name: 'Misc', current_net_expense: 0, limit_amt: 0 },
       ],
     });
@@ -78,9 +93,19 @@ describe('ExpenseTrackerCard', () => {
   it('shows the month chip (no breach chip) when nothing is over limit', () => {
     mockStatus({
       month: '2026-05',
-      total_budget: { tag_id: 0, tag_name: 'Total', current_net_expense: 50, limit_amt: 1000 },
+      total_budget: {
+        tag_id: 0,
+        tag_name: 'Total',
+        current_net_expense: 50,
+        limit_amt: 1000,
+      },
       categories: [
-        { tag_id: 1, tag_name: 'Groceries', current_net_expense: 50, limit_amt: 200 },
+        {
+          tag_id: 1,
+          tag_name: 'Groceries',
+          current_net_expense: 50,
+          limit_amt: 200,
+        },
       ],
     });
     renderWithProviders(<ExpenseTrackerCard />);

@@ -1,9 +1,6 @@
 import { MoreHorizontal, Wallet } from 'lucide-react';
 
-import {
-  ACCOUNT_TYPE_LABEL,
-  type BankAccount,
-} from '../api/schemas';
+import { ACCOUNT_TYPE_LABEL, type BankAccount } from '../api/schemas';
 
 interface Props {
   account: BankAccount;
@@ -16,7 +13,11 @@ interface Props {
 // edit surface. Identifier chips render inline so the user
 // doesn't have to open the modal to confirm the UPI handles
 // already attached.
-export function BankAccountRow({ account, highlighted = false, onOpenDetail }: Props) {
+export function BankAccountRow({
+  account,
+  highlighted = false,
+  onOpenDetail,
+}: Props) {
   const highlightClass = highlighted ? 'ring-2 ring-accent-500 ring-inset' : '';
   return (
     <li
@@ -35,7 +36,7 @@ export function BankAccountRow({ account, highlighted = false, onOpenDetail }: P
           {account.is_committee_account && (
             <span
               data-testid={`bank-account-committee-badge-${account.uid}`}
-              className="inline-flex items-center rounded-full border border-success-200 bg-success-50 px-2 py-0.5 text-xs font-medium text-success-800 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-200"
+              className="border-success-200 bg-success-50 text-success-800 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-200 inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
             >
               Tax-pot
             </span>
@@ -45,7 +46,7 @@ export function BankAccountRow({ account, highlighted = false, onOpenDetail }: P
           type="button"
           onClick={onOpenDetail}
           aria-label="Open details"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           data-testid={`bank-account-open-${account.uid}`}
         >
           <MoreHorizontal size={16} />
@@ -56,7 +57,7 @@ export function BankAccountRow({ account, highlighted = false, onOpenDetail }: P
           {account.identifiers.map((id) => (
             <li key={id.uid}>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <span className="rounded-sm bg-accent-100 px-1 py-0.5 font-mono text-[10px] uppercase tracking-wide text-accent-700 dark:bg-accent-950/60 dark:text-accent-300">
+                <span className="bg-accent-100 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300 rounded-sm px-1 py-0.5 font-mono text-[10px] tracking-wide uppercase">
                   {id.identifier_type}
                 </span>
                 <span className="font-mono text-slate-700 dark:text-slate-200">

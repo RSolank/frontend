@@ -85,9 +85,7 @@ describe('TransactionsPage', () => {
       timezone: 'Asia/Kolkata',
     });
     server.use(
-      http.get(`${API_BASE}/tags`, () =>
-        HttpResponse.json(tagsResponse)
-      ),
+      http.get(`${API_BASE}/tags`, () => HttpResponse.json(tagsResponse)),
       http.get(`${API_BASE}/metadata/currencies`, () =>
         HttpResponse.json({
           currencies: [
@@ -96,17 +94,13 @@ describe('TransactionsPage', () => {
           ],
         })
       ),
-      http.get(`${API_BASE}/beneficiaries`, () =>
-        HttpResponse.json([])
-      )
+      http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json([]))
     );
   });
 
   function mountWithList(list: object = txnList) {
     server.use(
-      http.get(`${API_BASE}/transactions`, () =>
-        HttpResponse.json(list)
-      )
+      http.get(`${API_BASE}/transactions`, () => HttpResponse.json(list))
     );
     return renderWithProviders(<TransactionsPage />);
   }
@@ -203,9 +197,9 @@ describe('TransactionsPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
     // Pill matches the BE-supplied window. Default fixture has
     // period_type='all' / period_start=null.
-    expect(
-      await screen.findByTestId('merchant-scope-pill')
-    ).toHaveTextContent('All time');
+    expect(await screen.findByTestId('merchant-scope-pill')).toHaveTextContent(
+      'All time'
+    );
   });
 
   it('Merchant view scope pill — formatted month for monthly window', async () => {
@@ -227,9 +221,9 @@ describe('TransactionsPage', () => {
       expect(screen.getByText('Supermarket')).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
-    expect(
-      await screen.findByTestId('merchant-scope-pill')
-    ).toHaveTextContent(/Feb 2026/);
+    expect(await screen.findByTestId('merchant-scope-pill')).toHaveTextContent(
+      /Feb 2026/
+    );
   });
 
   it('Calendar tab renders the calendar grid', async () => {
@@ -314,7 +308,9 @@ describe('TransactionsPage', () => {
     // Set debit-only.
     fireEvent.click(within(sidebar).getByRole('button', { name: 'Debit' }));
     // The filter button gains a (1) badge once we close.
-    fireEvent.click(within(sidebar).getByRole('button', { name: /clear all/i }));
+    fireEvent.click(
+      within(sidebar).getByRole('button', { name: /clear all/i })
+    );
 
     // Done closes the sidebar.
     fireEvent.click(within(sidebar).getByRole('button', { name: 'Done' }));

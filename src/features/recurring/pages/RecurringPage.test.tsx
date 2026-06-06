@@ -50,12 +50,8 @@ const BEN_FIXTURE = [
 
 function withTemplates(rows: RecurringTemplate[]) {
   server.use(
-    http.get(`${API_BASE}/recurring/templates`, () =>
-      HttpResponse.json(rows)
-    ),
-    http.get(`${API_BASE}/beneficiaries`, () =>
-      HttpResponse.json(BEN_FIXTURE)
-    )
+    http.get(`${API_BASE}/recurring/templates`, () => HttpResponse.json(rows)),
+    http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json(BEN_FIXTURE))
   );
 }
 

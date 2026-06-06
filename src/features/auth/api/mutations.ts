@@ -52,8 +52,7 @@ export function isNewDeviceChallenge<T extends object>(
   res: T
 ): res is T & NewDeviceChallenge {
   return (
-    (res as { status?: string }).status ===
-    'new_device_verification_required'
+    (res as { status?: string }).status === 'new_device_verification_required'
   );
 }
 
@@ -136,9 +135,7 @@ export function resetPasswordFinalRequest(
   });
 }
 
-export function revokeSessionRequest(
-  session_id: number
-): Promise<unknown> {
+export function revokeSessionRequest(session_id: number): Promise<unknown> {
   return apiFetch<unknown>(routes.auth.sessionById(session_id), {
     method: 'DELETE',
   });
@@ -171,8 +168,11 @@ export interface ChangeEmailConfirmResponse {
 export function changeEmailConfirmRequest(
   otp: string
 ): Promise<ChangeEmailConfirmResponse> {
-  return apiFetch<ChangeEmailConfirmResponse>(routes.auth.changeEmailConfirm(), {
-    method: 'POST',
-    body: JSON.stringify({ otp }),
-  });
+  return apiFetch<ChangeEmailConfirmResponse>(
+    routes.auth.changeEmailConfirm(),
+    {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    }
+  );
 }

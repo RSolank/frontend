@@ -7,10 +7,7 @@ import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { budgetKeys } from '../api/keys';
-import {
-  useBudgetStatusQuery,
-  type BudgetCategory,
-} from '../api/queries';
+import { useBudgetStatusQuery, type BudgetCategory } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
 import { ExpenseTrendChart } from '../components/ExpenseTrendChart';
@@ -79,7 +76,7 @@ export function ExpenseTrackerPage() {
         <nav className="text-sm text-slate-500 dark:text-slate-400">
           <Link
             to="/dashboard"
-            className="text-accent-600 hover:underline dark:text-accent-300"
+            className="text-accent-600 dark:text-accent-300 hover:underline"
           >
             Dashboard
           </Link>
@@ -92,9 +89,9 @@ export function ExpenseTrackerPage() {
           Expense Tracker
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Monitor monthly spending against per-category budgets. Breaches
-          stack a penalty on top of the base tax rate — see Taxation Rules
-          for the defaults, or override per-budget below.
+          Monitor monthly spending against per-category budgets. Breaches stack
+          a penalty on top of the base tax rate — see Taxation Rules for the
+          defaults, or override per-budget below.
         </p>
       </header>
 
@@ -174,7 +171,10 @@ export function ExpenseTrackerPage() {
             {visibleCategories.length === 0 ? (
               <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 No categorized spending found for{' '}
-                {displayMonth ? formatYearMonth(displayMonth, 'long') : 'this month'}.
+                {displayMonth
+                  ? formatYearMonth(displayMonth, 'long')
+                  : 'this month'}
+                .
               </div>
             ) : (
               <div
@@ -273,7 +273,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {label}
       </dt>
-      <dd className="text-base font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+      <dd className="money text-base font-semibold text-slate-900 tabular-nums dark:text-slate-100">
         {value}
       </dd>
     </div>

@@ -48,7 +48,10 @@ export const adminRoutes: RouteObject[] = [
   { path: '/admin/users/:userId', element: <AdminUserDetailPage /> },
   // T-admin C1 — cemetery audit (post-purge tombstones).
   { path: '/admin/cemetery', element: <AdminCemeteryPage /> },
-  { path: '/admin/cemetery/:deletedUserId', element: <AdminCemeteryDetailPage /> },
+  {
+    path: '/admin/cemetery/:deletedUserId',
+    element: <AdminCemeteryDetailPage />,
+  },
   // T-admin D1 — bill-backfill ops form (FE-only; BE Phase 2.6 shipped
   // the endpoint).
   { path: '/admin/ops/bill-backfill', element: <AdminBillBackfillPage /> },

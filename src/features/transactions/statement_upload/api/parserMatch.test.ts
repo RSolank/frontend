@@ -38,10 +38,10 @@ describe('matchParserByFilename', () => {
   });
 
   test('matches future parsers added to the catalog without code changes', () => {
-    const match = matchParserByFilename(
-      'icici-savings-april.csv',
-      [...HARDCODED_PARSER_CATALOG, ICICI]
-    );
+    const match = matchParserByFilename('icici-savings-april.csv', [
+      ...HARDCODED_PARSER_CATALOG,
+      ICICI,
+    ]);
     expect(match?.key).toBe('icici');
   });
 

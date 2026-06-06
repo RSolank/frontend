@@ -40,12 +40,8 @@ export function VerifyNewDevicePage() {
   const user = useAuthStore((s) => s.user);
 
   const stateIn = (location.state as LocationState | null) ?? {};
-  const [pendingToken, setPendingToken] = useState(
-    stateIn.pending_token ?? ''
-  );
-  const [maskedEmail, setMaskedEmail] = useState(
-    stateIn.masked_email ?? null
-  );
+  const [pendingToken, setPendingToken] = useState(stateIn.pending_token ?? '');
+  const [maskedEmail, setMaskedEmail] = useState(stateIn.masked_email ?? null);
   const [otp, setOtp] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
@@ -108,8 +104,8 @@ export function VerifyNewDevicePage() {
         . Enter it below to finish signing in from this device.
       </p>
       <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
-        Didn&rsquo;t request this sign-in? Use the revoke link in the
-        email — your account stays safe.
+        Didn&rsquo;t request this sign-in? Use the revoke link in the email —
+        your account stays safe.
       </p>
       <form onSubmit={handleSubmit} className="grid gap-3">
         <div>
@@ -136,7 +132,7 @@ export function VerifyNewDevicePage() {
         )}
         {resendStatus && (
           <div
-            className="text-sm font-medium text-success-600 dark:text-success-400"
+            className="text-success-600 dark:text-success-400 text-sm font-medium"
             role="status"
           >
             {resendStatus}
@@ -155,7 +151,7 @@ export function VerifyNewDevicePage() {
             type="button"
             onClick={handleResend}
             disabled={resending || submitting}
-            className="text-sm text-accent-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 dark:text-accent-300"
+            className="text-accent-600 dark:text-accent-300 text-sm underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="verify-device-resend"
           >
             {resending ? 'Sending…' : 'Resend code'}

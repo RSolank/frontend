@@ -11,9 +11,10 @@ import { EditTransactionPage } from './EditTransactionPage';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>(
-    'react-router-dom'
-  );
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -61,12 +62,8 @@ function mountAt(id: string) {
 beforeEach(() => {
   mockNavigate.mockReset();
   server.use(
-    http.get(`${API_BASE}/tags`, () =>
-      HttpResponse.json(mockTags)
-    ),
-    http.get(`${API_BASE}/beneficiaries`, () =>
-      HttpResponse.json([])
-    ),
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json(mockTags)),
+    http.get(`${API_BASE}/beneficiaries`, () => HttpResponse.json([])),
     http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(mockConstants)
     )
@@ -107,13 +104,10 @@ describe('EditTransactionPage', () => {
 
     let patchedBody: unknown = null;
     server.use(
-      http.patch(
-        `${API_BASE}/transactions/1`,
-        async ({ request }) => {
-          patchedBody = await request.json();
-          return HttpResponse.json({ ok: true });
-        }
-      )
+      http.patch(`${API_BASE}/transactions/1`, async ({ request }) => {
+        patchedBody = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
     );
 
     mountAt('1');
@@ -161,13 +155,10 @@ describe('EditTransactionPage', () => {
 
     let patchedBody: unknown = null;
     server.use(
-      http.patch(
-        `${API_BASE}/transactions/2`,
-        async ({ request }) => {
-          patchedBody = await request.json();
-          return HttpResponse.json({ ok: true });
-        }
-      )
+      http.patch(`${API_BASE}/transactions/2`, async ({ request }) => {
+        patchedBody = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
     );
 
     mountAt('2');

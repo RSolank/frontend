@@ -29,8 +29,8 @@ interface LogEntry {
 function NotAvailablePanel() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-        <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+      <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+        <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
           Not available
         </h1>
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -38,7 +38,7 @@ function NotAvailablePanel() {
         </p>
         <Link
           to="/dashboard"
-          className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
         >
           Back to dashboard
         </Link>
@@ -118,7 +118,7 @@ function LogBlock({ entries }: { entries: LogEntry[] }) {
                 {e.periodStart} → {e.periodEnd}
               </span>
             </div>
-            <span className="text-xs text-success-700 dark:text-success-300">
+            <span className="text-success-700 dark:text-success-300 text-xs">
               {e.billIds.length} bill{e.billIds.length === 1 ? '' : 's'}
             </span>
           </li>
@@ -134,9 +134,10 @@ export function AdminBillBackfillPage() {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [status, setStatus] = useState<
-    { tone: 'success' | 'danger'; text: string } | null
-  >(null);
+  const [status, setStatus] = useState<{
+    tone: 'success' | 'danger';
+    text: string;
+  } | null>(null);
   const [log, setLog] = useState<LogEntry[]>([]);
 
   const mutation = useAdminGenerateBillsMutation();
@@ -206,7 +207,7 @@ export function AdminBillBackfillPage() {
       <header>
         <Link
           to="/admin"
-          className="text-xs font-medium text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400"
+          className="hover:text-accent-600 dark:hover:text-accent-400 text-xs font-medium text-slate-500 dark:text-slate-400"
         >
           ← Admin tools
         </Link>
@@ -214,8 +215,8 @@ export function AdminBillBackfillPage() {
           Bill backfill
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Generate consumption-tax bills on behalf of a user for an
-          arbitrary date range. Bypasses the auto-mode guard.
+          Generate consumption-tax bills on behalf of a user for an arbitrary
+          date range. Bypasses the auto-mode guard.
         </p>
       </header>
 
@@ -273,8 +274,8 @@ export function AdminBillBackfillPage() {
               role="status"
               className={
                 status.tone === 'success'
-                  ? 'text-sm text-success-700 dark:text-success-300'
-                  : 'text-sm text-danger-700 dark:text-danger-300'
+                  ? 'text-success-700 dark:text-success-300 text-sm'
+                  : 'text-danger-700 dark:text-danger-300 text-sm'
               }
             >
               {status.text}

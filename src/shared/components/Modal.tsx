@@ -72,7 +72,7 @@ export function Modal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in dark:bg-slate-950/70" />
+        <Dialog.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm dark:bg-slate-950/70" />
         <Dialog.Content
           className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] w-full ${cap} flex-col rounded-t-xl bg-white shadow-xl outline-none sm:top-1/2 sm:right-auto sm:bottom-auto sm:left-1/2 sm:mx-0 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800`}
         >
@@ -93,7 +93,7 @@ export function Modal({
                 <button
                   type="button"
                   aria-label="Close"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 >
                   <X aria-hidden="true" size={18} />
                 </button>

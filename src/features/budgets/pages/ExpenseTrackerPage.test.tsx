@@ -126,7 +126,9 @@ describe('ExpenseTrackerPage', () => {
     // card — it scopes every card on the page.
     const monthSelect = screen.getByTestId('expense-tracker-month-select');
     expect(monthSelect).toBeInTheDocument();
-    expect(within(total).queryByTestId('expense-tracker-month-select')).toBeNull();
+    expect(
+      within(total).queryByTestId('expense-tracker-month-select')
+    ).toBeNull();
 
     // Category cards render (idle filtered out, over-budget status on
     // Dining via the gradient progress bar, Set vs Edit affordance per
@@ -149,13 +151,37 @@ describe('ExpenseTrackerPage', () => {
           ...statusResponse,
           categories: [
             // safe — 50/200 = 25%
-            { ...statusResponse.categories[0]!, tag_id: 101, tag_name: 'Safe Cat', current_net_expense: 50, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 101,
+              tag_name: 'Safe Cat',
+              current_net_expense: 50,
+              limit_amt: 200,
+            },
             // watch — 140/200 = 70%
-            { ...statusResponse.categories[0]!, tag_id: 102, tag_name: 'Watch Cat', current_net_expense: 140, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 102,
+              tag_name: 'Watch Cat',
+              current_net_expense: 140,
+              limit_amt: 200,
+            },
             // near — 180/200 = 90%
-            { ...statusResponse.categories[0]!, tag_id: 103, tag_name: 'Near Cat', current_net_expense: 180, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 103,
+              tag_name: 'Near Cat',
+              current_net_expense: 180,
+              limit_amt: 200,
+            },
             // over — 250/200 = 125%
-            { ...statusResponse.categories[0]!, tag_id: 104, tag_name: 'Over Cat', current_net_expense: 250, limit_amt: 200 },
+            {
+              ...statusResponse.categories[0]!,
+              tag_id: 104,
+              tag_name: 'Over Cat',
+              current_net_expense: 250,
+              limit_amt: 200,
+            },
           ],
         })
       )
@@ -255,9 +281,9 @@ describe('ExpenseTrackerPage', () => {
     ).not.toBeInTheDocument();
 
     // Bubble surfaces the formatted money value.
-    expect(within(dialog).getByTestId('budget-slider-bubble')).toHaveTextContent(
-      '$350.00'
-    );
+    expect(
+      within(dialog).getByTestId('budget-slider-bubble')
+    ).toHaveTextContent('$350.00');
   });
 
   it('Set-budget for a category with no existing limit defaults the slider to the rolling average', async () => {
@@ -373,33 +399,28 @@ describe('ExpenseTrackerPage', () => {
     let postBody: unknown = null;
     let getCount = 0;
     server.use(
-      http.post(
-        `${API_BASE}/budget-limits/`,
-        async ({ request }) => {
-          postBody = await request.json();
-          return HttpResponse.json({
-            budget: {
-              uid: 99,
-              tag_id: 11,
-              tag_name: 'Groceries',
-              budget_period: 'monthly',
-              limit_amt: 425,
-              penalty_rate: 0.075,
-              created_by: 1,
-              created_at: '2026-02-15T12:00:00Z',
-            },
-          });
-        }
-      ),
+      http.post(`${API_BASE}/budget-limits/`, async ({ request }) => {
+        postBody = await request.json();
+        return HttpResponse.json({
+          budget: {
+            uid: 99,
+            tag_id: 11,
+            tag_name: 'Groceries',
+            budget_period: 'monthly',
+            limit_amt: 425,
+            penalty_rate: 0.075,
+            created_by: 1,
+            created_at: '2026-02-15T12:00:00Z',
+          },
+        });
+      }),
       http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
           ...statusResponse,
           categories: statusResponse.categories.map((c) =>
-            c.tag_id === 11
-              ? { ...c, limit_amt: 425, penalty_rate: 0.075 }
-              : c
+            c.tag_id === 11 ? { ...c, limit_amt: 425, penalty_rate: 0.075 } : c
           ),
         });
       })
@@ -464,22 +485,17 @@ describe('ExpenseTrackerPage', () => {
     let deletedTagId: string | null = null;
     let getCount = 0;
     server.use(
-      http.delete(
-        `${API_BASE}/budget-limits/:tagId`,
-        ({ params }) => {
-          deletedTagId = String(params.tagId);
-          return new HttpResponse(null, { status: 204 });
-        }
-      ),
+      http.delete(`${API_BASE}/budget-limits/:tagId`, ({ params }) => {
+        deletedTagId = String(params.tagId);
+        return new HttpResponse(null, { status: 204 });
+      }),
       http.get(`${API_BASE}/budget-limits/status`, () => {
         getCount += 1;
         if (getCount === 1) return HttpResponse.json(statusResponse);
         return HttpResponse.json({
           ...statusResponse,
           categories: statusResponse.categories.map((c) =>
-            c.tag_id === 11
-              ? { ...c, limit_amt: null, penalty_rate: null }
-              : c
+            c.tag_id === 11 ? { ...c, limit_amt: null, penalty_rate: null } : c
           ),
         });
       })
@@ -518,18 +534,15 @@ describe('ExpenseTrackerPage', () => {
   it('Month picker switches the active month query', async () => {
     let secondGetMonth: string | null = null;
     server.use(
-      http.get(
-        `${API_BASE}/budget-limits/status`,
-        ({ request }) => {
-          const url = new URL(request.url);
-          const monthParam = url.searchParams.get('month');
-          if (monthParam) secondGetMonth = monthParam;
-          return HttpResponse.json({
-            ...statusResponse,
-            month: monthParam ?? '2026-02',
-          });
-        }
-      )
+      http.get(`${API_BASE}/budget-limits/status`, ({ request }) => {
+        const url = new URL(request.url);
+        const monthParam = url.searchParams.get('month');
+        if (monthParam) secondGetMonth = monthParam;
+        return HttpResponse.json({
+          ...statusResponse,
+          month: monthParam ?? '2026-02',
+        });
+      })
     );
 
     renderWithProviders(<ExpenseTrackerPage />);

@@ -117,7 +117,9 @@ describe('AdminBillBackfillPage', () => {
     expect(
       await screen.findByText(/Period end must be earlier than today/)
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Generate bills' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Generate bills' })
+    ).toBeDisabled();
   });
 
   it('rejects ranges over 365 days', async () => {
@@ -229,8 +231,6 @@ describe('AdminBillBackfillPage', () => {
     });
     await userEvent.click(confirmBtns[confirmBtns.length - 1]!);
 
-    expect(
-      await screen.findByText('BillPeriodTooRecent')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('BillPeriodTooRecent')).toBeInTheDocument();
   });
 });

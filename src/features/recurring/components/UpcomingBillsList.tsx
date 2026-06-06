@@ -37,19 +37,13 @@ export function UpcomingBillsList({ days }: Props) {
   const bills = upcoming.data ?? [];
   if (bills.length === 0)
     return (
-      <p
-        className="text-sm text-slate-500"
-        data-testid="upcoming-empty"
-      >
+      <p className="text-sm text-slate-500" data-testid="upcoming-empty">
         Nothing forecast in the next {days} days.
       </p>
     );
 
   return (
-    <ul
-      className="flex flex-col gap-2"
-      data-testid="upcoming-list"
-    >
+    <ul className="flex flex-col gap-2" data-testid="upcoming-list">
       {bills.map((bill) => (
         <UpcomingRow
           key={bill.uid}

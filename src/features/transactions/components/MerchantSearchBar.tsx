@@ -178,7 +178,7 @@ export function MerchantSearchBar({
           aria-controls="merchant-search-listbox"
           aria-autocomplete="list"
           aria-activedescendant={activeId}
-          className="form-input !pl-8 !pr-8"
+          className="form-input !pr-8 !pl-8"
         />
         {(draft || beneficiaryId) && (
           <button

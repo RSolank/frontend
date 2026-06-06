@@ -151,7 +151,9 @@ export function RecurringFormDialog({
     [benQuery.data]
   );
 
-  const title = isEditing ? 'Edit recurring template' : 'New recurring template';
+  const title = isEditing
+    ? 'Edit recurring template'
+    : 'New recurring template';
 
   return (
     <Modal
@@ -168,7 +170,7 @@ export function RecurringFormDialog({
             onClick={onRequestRemove}
             title="Remove template"
             aria-label="Remove template"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
+            className="text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <Trash2 size={16} />
           </button>
@@ -187,7 +189,7 @@ export function RecurringFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="inline-flex items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saveLabel(saving, isEditing)}
           </button>
@@ -198,14 +200,14 @@ export function RecurringFormDialog({
         <FormField label="Beneficiary">
           <SearchableSelect
             ariaLabel="Beneficiary"
-            value={form.beneficiary_id == null ? '' : String(form.beneficiary_id)}
+            value={
+              form.beneficiary_id == null ? '' : String(form.beneficiary_id)
+            }
             options={beneficiaryOptions}
             onChange={(v) =>
               setForm({ ...form, beneficiary_id: v === '' ? null : Number(v) })
             }
-            placeholder={
-              benQuery.isLoading ? 'Loading…' : 'Pick a beneficiary'
-            }
+            placeholder={benQuery.isLoading ? 'Loading…' : 'Pick a beneficiary'}
           />
         </FormField>
         <div className="grid grid-cols-2 gap-3">
@@ -272,7 +274,7 @@ export function RecurringFormDialog({
         {error && (
           <p
             role="alert"
-            className="rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-950/40 dark:text-danger-300"
+            className="bg-danger-50 text-danger-700 dark:bg-danger-950/40 dark:text-danger-300 rounded-md px-3 py-2 text-sm"
           >
             {error}
           </p>

@@ -24,10 +24,10 @@
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/consumption-tax` | `pages/TaxTrackerPage.tsx` | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per the rename-labels-not-URLs rule. |
-| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at its canonical URL inside the Settings shell. |
+| Path                       | Component                     | Notes                                                                                                                 |
+| -------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `/consumption-tax`         | `pages/TaxTrackerPage.tsx`    | Lazy-loaded. URL preserved from the pre-refactor; the nav label is "Tax Tracker" per the rename-labels-not-URLs rule. |
+| `/settings/taxation-rules` | `pages/TaxationRulesPage.tsx` | Lazy-loaded. Lives at its canonical URL inside the Settings shell.                                                    |
 
 Routes are exported from
 [`taxation.routes.tsx`](../../src/features/taxation/taxation.routes.tsx)
@@ -141,11 +141,11 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
 
 ## Hooks
 
-| Hook | Purpose |
-|---|---|
-| `useTaxationRulesQuery` | `GET /api/v1/taxation-rules/` → `{ rules[] }`. |
-| `useBillsQuery` | `GET /api/v1/consumption-tax/bills` → `{ bills[] }`. |
-| `useBillQuery(billId)` | Lazy `GET /api/v1/consumption-tax/bills/:id` — only fires when `billId != null`. |
+| Hook                         | Purpose                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useTaxationRulesQuery`      | `GET /api/v1/taxation-rules/` → `{ rules[] }`.                                                                                                                                                    |
+| `useBillsQuery`              | `GET /api/v1/consumption-tax/bills` → `{ bills[] }`.                                                                                                                                              |
+| `useBillQuery(billId)`       | Lazy `GET /api/v1/consumption-tax/bills/:id` — only fires when `billId != null`.                                                                                                                  |
 | `useTrackerCurrentWeekQuery` | **FE-derived** — composes `useBillsQuery` + lazy `useBillQuery(activeAccruingBillId)` and runs `deriveTrackerFromBill` on the result. No standalone tracker endpoint (Phase 2.6 didn't ship one). |
 
 Mutations live in
@@ -180,13 +180,13 @@ Preferences:
 
 ## Tests
 
-| Test file | What it covers |
-|---|---|
-| `pages/TaxationRulesPage.test.tsx` | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert. |
-| `pages/TaxTrackerPage.test.tsx` | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
-| `components/billStatus.test.tsx` | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states. |
-| `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state. |
-| `api/billPeriod.test.ts` | ISO Mon → Sun week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 at the start of Monday, ~1 at the end of Sunday, ~0.5 mid-week. |
+| Test file                                  | What it covers                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages/TaxationRulesPage.test.tsx`         | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert.                                                                                                                                                                                                                                                                              |
+| `pages/TaxTrackerPage.test.tsx`            | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
+| `components/billStatus.test.tsx`           | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states.                                                                                                                                                                                                                                                                                                                                        |
+| `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state.                                                                                                                                                                                                                                                                                                                                                       |
+| `api/billPeriod.test.ts`                   | ISO Mon → Sun week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 at the start of Monday, ~1 at the end of Sunday, ~0.5 mid-week.                                                                                                                                                                                                                                                                  |
 
 ## Responsive design
 

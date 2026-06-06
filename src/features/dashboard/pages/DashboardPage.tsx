@@ -38,8 +38,8 @@ export function DashboardPage() {
           Welcome back{firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Your week at a glance — transactions, budget headroom, and the
-          running tax accrual.
+          Your week at a glance — transactions, budget headroom, and the running
+          tax accrual.
         </p>
       </header>
 

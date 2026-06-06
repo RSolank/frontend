@@ -29,9 +29,10 @@ describe('AccountPrivacyPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Danger zone' })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Accessibility' })
-    ).toHaveAttribute('href', '/account/accessibility');
+    expect(screen.getByRole('link', { name: 'Accessibility' })).toHaveAttribute(
+      'href',
+      '/account/accessibility'
+    );
     expect(screen.getByTestId('reset-zone-trigger')).toBeInTheDocument();
     expect(screen.getByTestId('danger-zone-delete')).toBeInTheDocument();
   });
@@ -63,8 +64,8 @@ describe('AccountPrivacyPage', () => {
     });
     fireEvent.click(screen.getByTestId('danger-zone-confirm'));
 
-    expect(
-      await screen.findByRole('alert')
-    ).toHaveTextContent(/Incorrect password/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Incorrect password/
+    );
   });
 });

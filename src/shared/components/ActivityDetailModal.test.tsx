@@ -46,9 +46,7 @@ describe('ActivityDetailModal', () => {
     );
 
     await waitFor(() => expect(seen).toHaveBeenCalled());
-    expect(seen).toHaveBeenCalledWith(
-      expect.objectContaining({ hard: true })
-    );
+    expect(seen).toHaveBeenCalledWith(expect.objectContaining({ hard: true }));
   });
 
   it('shows a CTA link for subjects with a known route', async () => {
@@ -79,7 +77,9 @@ describe('ActivityDetailModal', () => {
     );
 
     await screen.findByRole('dialog', { name: /Activity detail/i });
-    expect(screen.queryByRole('link', { name: /View|Open|Manage/i })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: /View|Open|Manage/i })
+    ).toBeNull();
   });
 
   it('renders the feed-row summary in the header regardless of subject', async () => {

@@ -184,7 +184,7 @@ export function TwoFactorSection() {
               type="button"
               onClick={() => void handleDisable()}
               disabled={submitting || disablePassword.length === 0}
-              className="inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="bg-danger-600 hover:bg-danger-700 focus-visible:ring-danger-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="2fa-disable-confirm"
             >
               {submitting ? 'Disabling…' : 'Disable 2FA'}
@@ -194,8 +194,8 @@ export function TwoFactorSection() {
       >
         <div className="flex flex-col gap-3 text-sm">
           <p className="text-slate-700 dark:text-slate-200">
-            Re-enter your password to confirm. Your account will sign
-            in with just a password until you re-enable 2FA.
+            Re-enter your password to confirm. Your account will sign in with
+            just a password until you re-enable 2FA.
           </p>
           <label htmlFor="2fa-disable-password" className="form-label">
             Password
@@ -232,9 +232,9 @@ function DisabledIdlePanel({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        Add a second step at sign-in using an authenticator app
-        (Google Authenticator, 1Password, Authy, …). Your password
-        alone won&rsquo;t be enough to access your account.
+        Add a second step at sign-in using an authenticator app (Google
+        Authenticator, 1Password, Authy, …). Your password alone won&rsquo;t be
+        enough to access your account.
       </p>
       <div>
         <button
@@ -257,7 +257,8 @@ function DisabledIdlePanel({
 }
 
 function backupClassFor(exhausted: boolean, low: boolean): string {
-  if (exhausted) return 'text-sm font-medium text-danger-700 dark:text-danger-300';
+  if (exhausted)
+    return 'text-sm font-medium text-danger-700 dark:text-danger-300';
   if (low) return 'text-sm font-medium text-warning-700 dark:text-warning-300';
   return 'text-sm text-slate-500 dark:text-slate-400';
 }
@@ -286,28 +287,25 @@ function EnabledIdlePanel({
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="inline-block h-2 w-2 rounded-full bg-success-500"
+          className="bg-success-500 inline-block h-2 w-2 rounded-full"
         />
         <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
           Two-factor authentication is enabled.
         </p>
       </div>
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        You&rsquo;ll be asked for a 6-digit code from your authenticator
-        every time you sign in. Use a backup code if you lose access
-        to your authenticator.
+        You&rsquo;ll be asked for a 6-digit code from your authenticator every
+        time you sign in. Use a backup code if you lose access to your
+        authenticator.
       </p>
-      <p
-        className={backupClass}
-        data-testid="2fa-backup-codes-remaining"
-      >
+      <p className={backupClass} data-testid="2fa-backup-codes-remaining">
         {backupCopy}
       </p>
       <div>
         <button
           type="button"
           onClick={onDisable}
-          className="rounded-md border border-danger-300 bg-white px-4 py-2 text-sm font-medium text-danger-700 transition-colors hover:bg-danger-50 dark:border-danger-900/60 dark:bg-slate-900 dark:text-danger-300 dark:hover:bg-danger-950/30"
+          className="border-danger-300 text-danger-700 hover:bg-danger-50 dark:border-danger-900/60 dark:text-danger-300 dark:hover:bg-danger-950/30 rounded-md border bg-white px-4 py-2 text-sm font-medium transition-colors dark:bg-slate-900"
           data-testid="2fa-disable-button"
         >
           Disable two-factor authentication
@@ -342,8 +340,8 @@ function EnrollingPanel({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        Add the account to your authenticator app, then enter the
-        first 6-digit code to confirm.
+        Add the account to your authenticator app, then enter the first 6-digit
+        code to confirm.
       </p>
       <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
         <div>
@@ -352,13 +350,13 @@ function EnrollingPanel({
           </div>
           <a
             href={data.provisioning_uri}
-            className="mt-1 inline-block text-sm font-medium text-accent-600 underline underline-offset-2 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-200"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-200 mt-1 inline-block text-sm font-medium underline underline-offset-2"
           >
             Open in authenticator app
           </a>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            On mobile, this opens your default authenticator with the
-            account preloaded. On desktop, copy the secret below.
+            On mobile, this opens your default authenticator with the account
+            preloaded. On desktop, copy the secret below.
           </p>
         </div>
         <div>
@@ -367,7 +365,7 @@ function EnrollingPanel({
           </div>
           <code
             data-testid="2fa-enroll-secret"
-            className="mt-1 block break-all rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-sm tracking-wider text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 block rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-sm tracking-wider break-all text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {data.secret}
           </code>
@@ -444,7 +442,9 @@ function BackupCodesPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const slug = brandName ? `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-` : '';
+    const slug = brandName
+      ? `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-`
+      : '';
     a.download = `${slug}2fa-backup-codes.txt`;
     a.click();
     URL.revokeObjectURL(url);
@@ -452,7 +452,7 @@ function BackupCodesPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-md border border-success-300 bg-success-50 px-3 py-2 text-sm text-success-800 dark:border-success-900/60 dark:bg-success-950/30 dark:text-success-200">
+      <div className="border-success-300 bg-success-50 text-success-800 dark:border-success-900/60 dark:bg-success-950/30 dark:text-success-200 rounded-md border px-3 py-2 text-sm">
         Two-factor authentication is now enabled.
       </div>
       <div>
@@ -460,10 +460,9 @@ function BackupCodesPanel({
           Save your backup codes
         </h3>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Each code can be used once if you lose access to your
-          authenticator app. <strong>We won&rsquo;t show them again</strong> —
-          download a copy or write them down before you leave this
-          page.
+          Each code can be used once if you lose access to your authenticator
+          app. <strong>We won&rsquo;t show them again</strong> — download a copy
+          or write them down before you leave this page.
         </p>
       </div>
       <ul

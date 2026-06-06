@@ -1,9 +1,9 @@
 # Frontend platform upgrade — summary (v1.0)
 
-> The *what* of the v1.0 frontend platform-upgrade work: scope, the
+> The _what_ of the v1.0 frontend platform-upgrade work: scope, the
 > contract changes it wired in from the backend platform upgrade
 > running in parallel, the patterns it established, and the polish it
-> carries into post-deploy. For the chronological *how* — per-batch
+> carries into post-deploy. For the chronological _how_ — per-batch
 > dates, commit SHAs, mid-flight pivots — see [`log.md`](log.md). For
 > UAT-round findings + pre-deploy decisions — see
 > [`uat-and-pre-deploy.md`](uat-and-pre-deploy.md).
@@ -35,24 +35,24 @@ The FE side of each BE platform-upgrade phase landed in a numbered
 batch. Module-level current state lives in
 [`docs/modules/`](../../modules/).
 
-| Domain | BE phases | FE batches | Outcome |
-|---|---|---|---|
-| Auth — preferences SoT | 1.9 | Batch 2 | `useAuth` hydrates `user_preferences` on login/register; preferences moved off the profile DTO. |
-| Auth — devices + rate-limit | 1.8, 1.4 | Batch 3 | `X-Device-Id` mint + send; `Retry-After` envelope + countdown UX; `<AuthErrorNotice>`. |
-| Metadata — timezones BE-sourced | 1.3 | Batch 4 | Retired the `countries-and-timezones` npm dep; `useTimezonesQuery`. |
-| Settings cluster | 1.6, 1.10, 1.12, 1.13, 2.1, 2.8 | Batch 5 + Batch 19 | Sessions list / revoke, ProfileImagePicker + presets, DataExportPanel, EmailChangeForm two-step flow, DangerZone + CancelDeletionPage, ResetZone (data-reset). |
-| Admin — role enum gate | 1.11 + 2.16 | Batch 6 + Batch 18 | `useAdminGateQuery`, `/admin` scaffold, full operator portal (users / detail / bill backfill / cemetery / signal-settings catalog tunables). |
-| Insights / dashboard cluster | 1.7, 2.4 | Batch 7 | Group-by-tag + budget-status field renames, `<ExpenseTrendChart>`, dashboard activity widget (later retired in Batch 18). |
-| Taxation — 5-state bill machine | 2.6 | Batch 8 + Batch 20 UAT | Mark-paid / mark-unpaid, adjustments split, `auto_enabled` toggle. Batch 20 pivoted the current-week tracker to FE-derive from the ACCRUING bill (BE endpoint never shipped). |
-| Auth — 2FA TOTP | 2.7 + 3.0 follow-on | Batch 9 + Batch 20 UAT | `<TwoFactorSection>`, `/verify/2fa` polymorphic login response, `useSecurityStatusQuery` for the auth-domain snapshot. Batch 20 threaded `enroll_token` after the BE moved enrollment staging from DB to JWT. |
-| Auth — new-device OTP | 2.3 | Batch 10 | `<TrustedDeviceList>`, `/verify/new-device` flow, `RevokeDevicePage` public landing. |
-| Recurring | 1.5 + 2.x | Batch 11 | `/recurring` inference page; dashboard `<UpcomingBillsWidget>`. |
-| Statement upload — async | 2.2 | Batch 12 + Batch 20 UAT | 4-step sync pipeline retired; async-job page + Dock + ParserPicker. Batch 20 added the `<StatementProgressRing>`, brand `<ParserIcon>`, auto-redirect on submit, and the post-COMPLETED downstream-cache invalidation sweep (incl. delayed recurring). |
-| Bank accounts | 1.x (carve-out) | Batch 13 | Settings CRUD, identifier sub-resource, tax-pot nudge, manual-txn picker. |
-| BE Phase 2.9-2.11 wireup | 2.9–2.11 | Batch 16 | `/api/v1/*` prefix + "Aevum" rebrand consumed from `/metadata/branding`. |
-| Theme — accent tokens | (Batch-internal) | Batch 17 | `@theme inline` block in `src/index.css` (teal in light, indigo in dark); semantic `success/warning/danger` tokens (theme-stable). |
-| Activity feed — v2 + admin | 2.14, 2.16 | Batch 18 + Batch 20 UAT | Registry-driven engine + per-user signal-settings + admin catalog tunables. Batch 20 added the in-place `<ActivityDetailModal>` + per-subject CTAs + unseen-count badge polish. |
-| Data reset + auth.security split | 2.15 + 3.0 | Batch 19 | `<ResetZone>` + `useSecurityStatusQuery` (auth-domain snapshot OFF `/me`). |
+| Domain                           | BE phases                       | FE batches              | Outcome                                                                                                                                                                                                                                                |
+| -------------------------------- | ------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth — preferences SoT           | 1.9                             | Batch 2                 | `useAuth` hydrates `user_preferences` on login/register; preferences moved off the profile DTO.                                                                                                                                                        |
+| Auth — devices + rate-limit      | 1.8, 1.4                        | Batch 3                 | `X-Device-Id` mint + send; `Retry-After` envelope + countdown UX; `<AuthErrorNotice>`.                                                                                                                                                                 |
+| Metadata — timezones BE-sourced  | 1.3                             | Batch 4                 | Retired the `countries-and-timezones` npm dep; `useTimezonesQuery`.                                                                                                                                                                                    |
+| Settings cluster                 | 1.6, 1.10, 1.12, 1.13, 2.1, 2.8 | Batch 5 + Batch 19      | Sessions list / revoke, ProfileImagePicker + presets, DataExportPanel, EmailChangeForm two-step flow, DangerZone + CancelDeletionPage, ResetZone (data-reset).                                                                                         |
+| Admin — role enum gate           | 1.11 + 2.16                     | Batch 6 + Batch 18      | `useAdminGateQuery`, `/admin` scaffold, full operator portal (users / detail / bill backfill / cemetery / signal-settings catalog tunables).                                                                                                           |
+| Insights / dashboard cluster     | 1.7, 2.4                        | Batch 7                 | Group-by-tag + budget-status field renames, `<ExpenseTrendChart>`, dashboard activity widget (later retired in Batch 18).                                                                                                                              |
+| Taxation — 5-state bill machine  | 2.6                             | Batch 8 + Batch 20 UAT  | Mark-paid / mark-unpaid, adjustments split, `auto_enabled` toggle. Batch 20 pivoted the current-week tracker to FE-derive from the ACCRUING bill (BE endpoint never shipped).                                                                          |
+| Auth — 2FA TOTP                  | 2.7 + 3.0 follow-on             | Batch 9 + Batch 20 UAT  | `<TwoFactorSection>`, `/verify/2fa` polymorphic login response, `useSecurityStatusQuery` for the auth-domain snapshot. Batch 20 threaded `enroll_token` after the BE moved enrollment staging from DB to JWT.                                          |
+| Auth — new-device OTP            | 2.3                             | Batch 10                | `<TrustedDeviceList>`, `/verify/new-device` flow, `RevokeDevicePage` public landing.                                                                                                                                                                   |
+| Recurring                        | 1.5 + 2.x                       | Batch 11                | `/recurring` inference page; dashboard `<UpcomingBillsWidget>`.                                                                                                                                                                                        |
+| Statement upload — async         | 2.2                             | Batch 12 + Batch 20 UAT | 4-step sync pipeline retired; async-job page + Dock + ParserPicker. Batch 20 added the `<StatementProgressRing>`, brand `<ParserIcon>`, auto-redirect on submit, and the post-COMPLETED downstream-cache invalidation sweep (incl. delayed recurring). |
+| Bank accounts                    | 1.x (carve-out)                 | Batch 13                | Settings CRUD, identifier sub-resource, tax-pot nudge, manual-txn picker.                                                                                                                                                                              |
+| BE Phase 2.9-2.11 wireup         | 2.9–2.11                        | Batch 16                | `/api/v1/*` prefix + "Aevum" rebrand consumed from `/metadata/branding`.                                                                                                                                                                               |
+| Theme — accent tokens            | (Batch-internal)                | Batch 17                | `@theme inline` block in `src/index.css` (teal in light, indigo in dark); semantic `success/warning/danger` tokens (theme-stable).                                                                                                                     |
+| Activity feed — v2 + admin       | 2.14, 2.16                      | Batch 18 + Batch 20 UAT | Registry-driven engine + per-user signal-settings + admin catalog tunables. Batch 20 added the in-place `<ActivityDetailModal>` + per-subject CTAs + unseen-count badge polish.                                                                        |
+| Data reset + auth.security split | 2.15 + 3.0                      | Batch 19                | `<ResetZone>` + `useSecurityStatusQuery` (auth-domain snapshot OFF `/me`).                                                                                                                                                                             |
 
 ## Patterns established
 
@@ -94,10 +94,10 @@ twenty batches; the biggest single win was Batch 19's `<TopNavMenus>`
 lazy-chunk extraction (~9 kB initial JS), with Batch 20's idle-
 prefetch sweep keeping the latency invariant. Final at `a963f87`:
 
-| Surface | Size (gzipped) | Budget | Headroom |
-|---|---|---|---|
-| Initial JS | **111.63 kB** | 125 kB | 13.37 kB (89 % of cap) |
-| Initial CSS | **12.64 kB** | 15 kB | 2.36 kB (84 % of cap) |
+| Surface     | Size (gzipped) | Budget | Headroom               |
+| ----------- | -------------- | ------ | ---------------------- |
+| Initial JS  | **111.63 kB**  | 125 kB | 13.37 kB (89 % of cap) |
+| Initial CSS | **12.64 kB**   | 15 kB  | 2.36 kB (84 % of cap)  |
 
 Full per-batch numbers + notes in
 [`docs/performance.md`](../../performance.md) "Post-refactor —

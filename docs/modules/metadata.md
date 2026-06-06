@@ -4,6 +4,7 @@
 > consumed by ~15 files across 6 features (currency symbol for
 > `formatMoney`, the region pickers), so it lives in `shared/` as the
 > cross-cutting reference-data infrastructure it always was:
+>
 > - reference-data queries → [`src/shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts)
 >   (`useCountriesQuery`, `useCurrenciesQuery`, `useTimezonesQuery`)
 > - pickers → [`src/shared/components/`](../../src/shared/components/)
@@ -32,11 +33,11 @@ None — metadata is a supporting feature, not a routed surface.
 [`shared/components/`](../../src/shared/components/) — `CountrySelect.tsx`,
 `CurrencySelect.tsx`, `TimezoneSelect.tsx`
 
-| Component | Purpose |
-|---|---|
-| `CountrySelect.tsx` | Searchable typeahead picker (built on `SearchableSelect`) over the countries list. Options render as `(${country_code}) ${name}` (e.g. `(+91) India`) so the dial-code prefix that drives the phone input is visible at a glance; falls back to just `${name}` when the metadata row lacks a dial code. `onChange(value, country)` exposes the full `CountryOption` so callers sync dial code / currency / timezone in one render. Renders the "Rather not say" sentinel by default; opt-out with `allowPreferNotSay={false}`. Reads from `useCountriesQuery()`, or accepts a pre-loaded `countries={...}` array for pages that already fetched the data. Exports `formatCountryOption(c)` for callers that need the label outside the dropdown. |
-| `CurrencySelect.tsx` | Searchable typeahead picker (built on `SearchableSelect`) over the currencies list. Options render as `${label} (${symbol})` (e.g. `INR - Indian Rupee (₹)`) — the backend `label` already carries the `CODE - Name` shape; the trailing symbol makes the choice unambiguous for users who don't recognise every ISO code. Falls back to just `${label}` when the metadata row's `symbol` is `null`. Exports `formatCurrencyOption(c)` for callers that need the label outside the dropdown. |
-| `TimezoneSelect.tsx` | Three-mode timezone picker. Country known + single tz → read-only display with "Use a different timezone" override. Country known + multiple tzs → country-scoped dropdown sourced from the `CountryOption.timezones` array. Unknown country / explicit override → full IANA list from `useTimezonesQuery()` defaulted to `getBrowserTimezone()`. After BE Phase 1.3 the data comes entirely from the backend — no npm `countries-and-timezones` dependency. |
+| Component            | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CountrySelect.tsx`  | Searchable typeahead picker (built on `SearchableSelect`) over the countries list. Options render as `(${country_code}) ${name}` (e.g. `(+91) India`) so the dial-code prefix that drives the phone input is visible at a glance; falls back to just `${name}` when the metadata row lacks a dial code. `onChange(value, country)` exposes the full `CountryOption` so callers sync dial code / currency / timezone in one render. Renders the "Rather not say" sentinel by default; opt-out with `allowPreferNotSay={false}`. Reads from `useCountriesQuery()`, or accepts a pre-loaded `countries={...}` array for pages that already fetched the data. Exports `formatCountryOption(c)` for callers that need the label outside the dropdown. |
+| `CurrencySelect.tsx` | Searchable typeahead picker (built on `SearchableSelect`) over the currencies list. Options render as `${label} (${symbol})` (e.g. `INR - Indian Rupee (₹)`) — the backend `label` already carries the `CODE - Name` shape; the trailing symbol makes the choice unambiguous for users who don't recognise every ISO code. Falls back to just `${label}` when the metadata row's `symbol` is `null`. Exports `formatCurrencyOption(c)` for callers that need the label outside the dropdown.                                                                                                                                                                                                                                                     |
+| `TimezoneSelect.tsx` | Three-mode timezone picker. Country known + single tz → read-only display with "Use a different timezone" override. Country known + multiple tzs → country-scoped dropdown sourced from the `CountryOption.timezones` array. Unknown country / explicit override → full IANA list from `useTimezonesQuery()` defaulted to `getBrowserTimezone()`. After BE Phase 1.3 the data comes entirely from the backend — no npm `countries-and-timezones` dependency.                                                                                                                                                                                                                                                                                     |
 
 All three use the shared `.form-input` class from `src/index.css`.
 
@@ -45,8 +46,8 @@ All three use the shared `.form-input` class from `src/index.css`.
 Consolidated into one file —
 [`shared/api/referenceData.ts`](../../src/shared/api/referenceData.ts):
 
-| Exports |
-|---|
+| Exports                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `fetchCountries`, `fetchCurrencies`, `fetchTimezones`, `useCountriesQuery`, `useCurrenciesQuery`, `useTimezonesQuery`; types `CountryOption` + `CurrencyOption` + `TimezoneOption`. Cache keys (`referenceDataKeys`) are file-internal — no shared keys constant for downstream consumers. |
 
 The `/api/v1/metadata/constants` endpoint is fetched separately by
@@ -84,11 +85,11 @@ staleness is the only cache control.
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `components/CountrySelect.test.tsx` | Emits `(value, country)` on selection; emits `(_, null)` for the prefer-not-say sentinel; hides the sentinel option when disabled |
-| `components/CurrencySelect.test.tsx` | `${code} (${symbol})` rendering with symbol fallback; `onChange` emits the code; `formatCurrencyOption` is a pure helper |
-| `components/TimezoneSelect.test.tsx` | Read-only / country-scoped / fallback modes |
+| File                                 | Covers                                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `components/CountrySelect.test.tsx`  | Emits `(value, country)` on selection; emits `(_, null)` for the prefer-not-say sentinel; hides the sentinel option when disabled |
+| `components/CurrencySelect.test.tsx` | `${code} (${symbol})` rendering with symbol fallback; `onChange` emits the code; `formatCurrencyOption` is a pure helper          |
+| `components/TimezoneSelect.test.tsx` | Read-only / country-scoped / fallback modes                                                                                       |
 
 `src/test/handlers/metadata.ts` serves the three endpoints with
 sample data; tests override via `server.use(...)` for edge cases.

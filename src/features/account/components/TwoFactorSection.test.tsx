@@ -31,12 +31,8 @@ describe('<TwoFactorSection>', () => {
   it('renders the disabled-idle CTA when 2FA is off', async () => {
     installSecurity(false);
     renderWithProviders(<TwoFactorSection />);
-    expect(
-      await screen.findByTestId('2fa-enable-button')
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('2fa-disable-button')
-    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId('2fa-enable-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('2fa-disable-button')).not.toBeInTheDocument();
   });
 
   it('walks the enrollment flow: enroll → verify-enroll → backup codes', async () => {
@@ -63,20 +59,14 @@ describe('<TwoFactorSection>', () => {
     expect(codes).toHaveLength(10);
     expect(panel).toHaveTextContent('ABCD1234');
 
-    expect(
-      screen.getByTestId('2fa-backup-download')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('2fa-backup-download')).toBeInTheDocument();
   });
 
   it('renders the enabled-idle Disable CTA when 2FA is on', async () => {
     installSecurity(true);
     renderWithProviders(<TwoFactorSection />);
-    expect(
-      await screen.findByTestId('2fa-disable-button')
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('2fa-enable-button')
-    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId('2fa-disable-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('2fa-enable-button')).not.toBeInTheDocument();
   });
 
   it('renders the backup-codes-remaining badge under the enabled state', async () => {
@@ -91,21 +81,17 @@ describe('<TwoFactorSection>', () => {
     installSecurity(true);
     let seenBody: { password?: string } | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/2fa/disable`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as { password: string };
-          return HttpResponse.json({ status: 'ok' });
-        }
-      )
+      http.post(`${API_BASE}/auth/2fa/disable`, async ({ request }) => {
+        seenBody = (await request.json()) as { password: string };
+        return HttpResponse.json({ status: 'ok' });
+      })
     );
 
     renderWithProviders(<TwoFactorSection />);
     fireEvent.click(await screen.findByTestId('2fa-disable-button'));
-    fireEvent.change(
-      await screen.findByTestId('2fa-disable-password'),
-      { target: { value: 'pw' } }
-    );
+    fireEvent.change(await screen.findByTestId('2fa-disable-password'), {
+      target: { value: 'pw' },
+    });
     fireEvent.click(screen.getByTestId('2fa-disable-confirm'));
 
     await waitFor(() => expect(seenBody).toEqual({ password: 'pw' }));

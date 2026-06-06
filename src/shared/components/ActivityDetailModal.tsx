@@ -69,7 +69,7 @@ export function ActivityDetailModal({
           <Link
             to={meta.href}
             onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-md bg-accent-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:bg-accent-500 dark:hover:bg-accent-400"
+            className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 dark:bg-accent-500 dark:hover:bg-accent-400 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             {meta.ctaLabel}
             <ArrowRight aria-hidden="true" size={14} />
@@ -92,7 +92,7 @@ function DetailHeader({ item, timezone }: DetailHeaderProps) {
   const tone = priorityToneClass(item.priority);
   return (
     <div className="mb-4 space-y-1 border-b border-slate-200 pb-3 dark:border-slate-800">
-      <p className={`text-xs font-semibold uppercase tracking-wider ${tone}`}>
+      <p className={`text-xs font-semibold tracking-wider uppercase ${tone}`}>
         {item.event_class === 'alert' ? 'Alert' : 'Notification'}
         <span className="ml-1 text-slate-500 dark:text-slate-400">
           · {item.domain}

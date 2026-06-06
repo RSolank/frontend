@@ -39,7 +39,9 @@ export function TransactionsCard() {
   // to the unbounded fetch so neither half is missed.
   const weekCrossesMonth =
     week.period_start.slice(0, 7) !== week.period_end.slice(0, 7);
-  const activeMonth = weekCrossesMonth ? undefined : week.period_start.slice(0, 7);
+  const activeMonth = weekCrossesMonth
+    ? undefined
+    : week.period_start.slice(0, 7);
 
   const recentQuery = useTransactionsQuery({
     limit: RECENT_LIMIT,
@@ -60,7 +62,9 @@ export function TransactionsCard() {
   const weekDebits = useMemo(() => {
     const all = weekQuery.data?.transactions ?? [];
     return all.filter(
-      (t) => t.txn_date >= week.period_start && t.txn_date <= `${week.period_end}T23:59:59`
+      (t) =>
+        t.txn_date >= week.period_start &&
+        t.txn_date <= `${week.period_end}T23:59:59`
     );
   }, [weekQuery.data, week]);
   const weekTotal = useMemo(
@@ -150,7 +154,7 @@ export function TransactionsCard() {
                 </div>
               </div>
               <span
-                className={`tabular-nums money shrink-0 text-sm font-semibold ${
+                className={`money shrink-0 text-sm font-semibold tabular-nums ${
                   isDebit
                     ? 'text-danger-700 dark:text-danger-300'
                     : 'text-success-700 dark:text-success-300'
@@ -172,7 +176,7 @@ export function TransactionsCard() {
       <div className="mt-3">
         <Link
           to="/transactions?add=true"
-          className="inline-flex w-full items-center justify-center rounded-md border border-accent-200 bg-accent-50 px-3 py-1.5 text-sm font-semibold text-accent-700 hover:border-accent-300 hover:bg-accent-100 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-accent-900 dark:bg-accent-950/50 dark:text-accent-200 dark:hover:bg-accent-950/70"
+          className="border-accent-200 bg-accent-50 text-accent-700 hover:border-accent-300 hover:bg-accent-100 focus-visible:ring-accent-500 dark:border-accent-900 dark:bg-accent-950/50 dark:text-accent-200 dark:hover:bg-accent-950/70 inline-flex w-full items-center justify-center rounded-md border px-3 py-1.5 text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none"
           data-testid="dashboard-transactions-add-cta"
         >
           Add transaction

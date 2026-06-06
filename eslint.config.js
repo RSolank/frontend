@@ -317,16 +317,34 @@ export default [
               from: { type: 'feature', captured: { feature: 'transactions' } },
               allow: [
                 ...featureSelfAllow,
-                { to: { type: 'feature', captured: { feature: 'beneficiaries' } } },
+                {
+                  to: {
+                    type: 'feature',
+                    captured: { feature: 'beneficiaries' },
+                  },
+                },
                 { to: { type: 'feature', captured: { feature: 'tags' } } },
-                { to: { type: 'feature', captured: { feature: 'bankAccounts' } } },
+                {
+                  to: {
+                    type: 'feature',
+                    captured: { feature: 'bankAccounts' },
+                  },
+                },
               ],
             },
             {
-              from: { type: 'feature', captured: { feature: 'categorization' } },
+              from: {
+                type: 'feature',
+                captured: { feature: 'categorization' },
+              },
               allow: [
                 ...featureSelfAllow,
-                { to: { type: 'feature', captured: { feature: 'beneficiaries' } } },
+                {
+                  to: {
+                    type: 'feature',
+                    captured: { feature: 'beneficiaries' },
+                  },
+                },
                 { to: { type: 'feature', captured: { feature: 'tags' } } },
               ],
             },

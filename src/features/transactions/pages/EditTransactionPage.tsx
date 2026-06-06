@@ -48,7 +48,10 @@ interface FlatTag {
   tag_name: string;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
@@ -211,9 +214,9 @@ export function EditTransactionPage({
   // distinct ConfirmDialog steps (create-or-update → update-existing
   // if a rule already exists) driven by a ref-stored resolver so
   // `resolveRuleToLink` keeps its straight-line await flow.
-  const [rulePromptKind, setRulePromptKind] = useState<
-    RulePromptKind | null
-  >(null);
+  const [rulePromptKind, setRulePromptKind] = useState<RulePromptKind | null>(
+    null
+  );
   const ruleResolveRef = useRef<((ok: boolean) => void) | null>(null);
   function promptRule(kind: RulePromptKind): Promise<boolean> {
     return new Promise((resolve) => {

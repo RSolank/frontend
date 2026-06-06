@@ -54,7 +54,7 @@ export function UpcomingBillsWidget() {
         <button
           type="button"
           onClick={() => navigate('/recurring')}
-          className="text-xs font-medium text-accent-600 transition-colors hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           Manage
         </button>
@@ -90,7 +90,10 @@ function UpcomingBody({
 }: BodyProps) {
   if (isLoading)
     return (
-      <p className="text-sm text-slate-500" data-testid="dashboard-upcoming-loading">
+      <p
+        className="text-sm text-slate-500"
+        data-testid="dashboard-upcoming-loading"
+      >
         Loading…
       </p>
     );
@@ -105,7 +108,10 @@ function UpcomingBody({
     );
   return (
     <>
-      <ul className="flex flex-col gap-1.5" data-testid="dashboard-upcoming-list">
+      <ul
+        className="flex flex-col gap-1.5"
+        data-testid="dashboard-upcoming-list"
+      >
         {bills.map((bill) => (
           <UpcomingRow
             key={bill.uid}

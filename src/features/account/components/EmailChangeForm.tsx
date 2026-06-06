@@ -60,7 +60,8 @@ function useEmailChangeForm() {
       setStep({ kind: 'confirm', newEmail });
       setStatus(null);
     },
-    onError: (err: unknown) => setStatus(requestErrorCopy(err, codeRequired, setCodeRequired)),
+    onError: (err: unknown) =>
+      setStatus(requestErrorCopy(err, codeRequired, setCodeRequired)),
   });
 
   const confirm = useMutation({
@@ -134,7 +135,8 @@ function requestErrorCopy(
     }
     return "Couldn't verify — check your password and 2FA code.";
   }
-  if (e.status === 409) return 'That email is already in use by another account.';
+  if (e.status === 409)
+    return 'That email is already in use by another account.';
   if (e.status === 400) return 'The new email is the same as your current one.';
   if (e.status === 429) return 'Too many attempts. Please try again later.';
   return e.detail || e.error || 'Failed to start email change.';
@@ -175,7 +177,8 @@ function confirmErrorCopy(err: unknown): { message: string; restart: boolean } {
 // address; step 2 POSTs that OTP to swap the identity atomically.
 export function EmailChangeForm() {
   const vm = useEmailChangeForm();
-  if (vm.step.kind === 'done') return <DoneStep newEmail={vm.step.newEmail} onReset={vm.reset} />;
+  if (vm.step.kind === 'done')
+    return <DoneStep newEmail={vm.step.newEmail} onReset={vm.reset} />;
   if (vm.step.kind === 'confirm') return <ConfirmStep vm={vm} />;
   return <RequestStep vm={vm} />;
 }
@@ -207,9 +210,9 @@ function RequestStep({ vm }: { vm: VM }) {
       data-testid="email-change-request"
     >
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        We&rsquo;ll email a code to your new address and a heads-up
-        to your current one. Other devices will be signed out after
-        the change goes through.
+        We&rsquo;ll email a code to your new address and a heads-up to your
+        current one. Other devices will be signed out after the change goes
+        through.
       </p>
       <div>
         <label htmlFor="email-change-new" className="form-label">
@@ -281,9 +284,8 @@ function ConfirmStep({ vm }: { vm: VM }) {
       data-testid="email-change-confirm"
     >
       <p className="text-sm text-slate-700 dark:text-slate-200">
-        We sent a code to <strong>{target}</strong>. A security
-        notice also went to your current address. Enter the code
-        below to finish.
+        We sent a code to <strong>{target}</strong>. A security notice also went
+        to your current address. Enter the code below to finish.
       </p>
       <label htmlFor="email-change-otp" className="form-label">
         One-time code
@@ -334,14 +336,14 @@ function DoneStep({
 }) {
   return (
     <div className="grid gap-3" data-testid="email-change-done">
-      <p className="text-sm font-medium text-success-700 dark:text-success-300">
+      <p className="text-success-700 dark:text-success-300 text-sm font-medium">
         Email updated to <strong>{newEmail}</strong>.
       </p>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        Your other devices were signed out as a precaution. This
-        device stays logged in.
+        Your other devices were signed out as a precaution. This device stays
+        logged in.
       </p>
-      <button type="button" onClick={onReset} className="self-start btn-link">
+      <button type="button" onClick={onReset} className="btn-link self-start">
         Change again
       </button>
     </div>

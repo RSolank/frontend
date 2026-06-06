@@ -45,13 +45,17 @@
           var zoom = 1;
           if (raw) {
             var parsed = JSON.parse(raw);
-            if (parsed && parsed.state && typeof parsed.state.zoom === 'number') {
+            if (
+              parsed &&
+              parsed.state &&
+              typeof parsed.state.zoom === 'number'
+            ) {
               zoom = parsed.state.zoom;
             }
           }
           if (zoom < 0.85) zoom = 0.85;
           if (zoom > 1.4) zoom = 1.4;
-          document.documentElement.style.fontSize = (zoom * 16) + 'px';
+          document.documentElement.style.fontSize = zoom * 16 + 'px';
         } catch (e) {
           /* localStorage unavailable — leave the browser default. */
         }

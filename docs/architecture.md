@@ -2,7 +2,7 @@
 
 > Companion to [`CONTRIBUTING.md`](../CONTRIBUTING.md). CONTRIBUTING.md
 > is the source of truth for decisions and conventions; this file
-> describes how those decisions are *wired* in the current code.
+> describes how those decisions are _wired_ in the current code.
 
 ## Module shape
 
@@ -161,7 +161,7 @@ in-page `<header>`, no in-page `<h1>`, no in-page breadcrumb, no
 outer `mx-auto max-w-* px-* my-*` wrapper. The page's first card
 becomes the first element in the main column and its top edge
 aligns with the sidebar's first NavLink top edge — that's the
-visual cue that the sidebar is *of* the content area.
+visual cue that the sidebar is _of_ the content area.
 
 Why this and not the GitHub-style h1-anchored layout (sidebar first
 item aligns with main's `<h1>`)? Two reasons:
@@ -242,8 +242,8 @@ graph.
   `API_BASE = 'http://localhost:4000/api/v1'`, and every MSW
   handler + per-test `server.use(...)` override consumes it as
   `\`${API_BASE}/...\``. The next version cutover is the same
-  two-const flip plus `npm run gen:api` to refresh the generated
-  paths shape in `src/shared/types/api.ts`.
+two-const flip plus `npm run gen:api`to refresh the generated
+paths shape in`src/shared/types/api.ts`.
 - **`X-Device-Id`** is sent on every authenticated request (and on the
   unauthenticated `POST /auth/refresh`) — a stable UUID v4 minted once
   per browser install and persisted to `localStorage["pba.device_id"]`
@@ -257,9 +257,9 @@ graph.
   to the thrown `ApiError`. The auth forms surface a live-ticking
   inline countdown via
   [`shared/hooks/useRetryCountdown`](../src/shared/hooks/useRetryCountdown.ts)
-  + [`features/auth/components/AuthErrorNotice`](../src/features/auth/components/AuthErrorNotice.tsx).
-  Other statuses with `Retry-After` set are out-of-spec for this
-  project and ignored.
+  - [`features/auth/components/AuthErrorNotice`](../src/features/auth/components/AuthErrorNotice.tsx).
+    Other statuses with `Retry-After` set are out-of-spec for this
+    project and ignored.
 - **`ACCOUNT_PENDING_DELETION` 403 interceptor** — `apiFetch` also
   inspects 403 responses for `detail === "ACCOUNT_PENDING_DELETION"`
   (BE Phase 2.1 central lock). On a match it drops the access /

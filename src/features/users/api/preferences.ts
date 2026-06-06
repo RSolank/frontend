@@ -90,7 +90,9 @@ function applyHydratedPreferences(prefs: PreferencesResponse): void {
     typeof prefs.date_format === 'string' &&
     DATE_FORMAT_VALUES.has(prefs.date_format as DateFormatMode)
   ) {
-    useDateFormatStore.getState().setFormat(prefs.date_format as DateFormatMode);
+    useDateFormatStore
+      .getState()
+      .setFormat(prefs.date_format as DateFormatMode);
   }
 
   // number_format

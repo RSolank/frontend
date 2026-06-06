@@ -9,10 +9,7 @@ import { useAdminGateQuery } from './adminGate';
 // sync read on `useAuthStore`, not a network probe of `/admin/ping`.
 // These tests exercise the store-state-to-gate-output mapping.
 
-function setAuthState(partial: {
-  user: AuthUser | null;
-  loading: boolean;
-}) {
+function setAuthState(partial: { user: AuthUser | null; loading: boolean }) {
   act(() => {
     useAuthStore.getState().setUser(partial.user);
     useAuthStore.getState().setLoading(partial.loading);

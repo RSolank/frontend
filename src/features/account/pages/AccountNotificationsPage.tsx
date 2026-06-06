@@ -57,16 +57,16 @@ export function AccountNotificationsPage() {
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Pick which kinds of activity reach your bell. Alerts surface
-          actionable issues; notifications are informational. System-
-          disabled kinds can&apos;t be turned on by you — contact
-          support if you think one should be available.
+          actionable issues; notifications are informational. System- disabled
+          kinds can&apos;t be turned on by you — contact support if you think
+          one should be available.
         </p>
       </header>
 
       {status ? (
         <p
           role="status"
-          className="rounded-md border border-danger-300 bg-danger-50/40 p-3 text-sm text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300"
+          className="border-danger-300 bg-danger-50/40 text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300 rounded-md border p-3 text-sm"
         >
           {status}
         </p>
@@ -74,9 +74,7 @@ export function AccountNotificationsPage() {
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {settings.isLoading || catalog.isLoading ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Loading…
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
         ) : (
           <SignalSettingsEditor
             catalog={catalog.data}

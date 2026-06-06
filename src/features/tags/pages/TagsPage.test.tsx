@@ -40,9 +40,7 @@ const constants = {
 
 beforeEach(() => {
   server.use(
-    http.get(`${API_BASE}/tags`, () =>
-      HttpResponse.json(tagsResponse)
-    ),
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json(tagsResponse)),
     http.get(`${API_BASE}/metadata/constants`, () =>
       HttpResponse.json(constants)
     )

@@ -31,22 +31,17 @@ describe('<VerifyNewDevicePage>', () => {
   it('submits OTP to /new-device/verify and persists tokens on success', async () => {
     let seenBody: Record<string, unknown> | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/new-device/verify`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as Record<string, unknown>;
-          return HttpResponse.json({
-            access_token: 'nd-a',
-            refresh_token: 'nd-r',
-          });
-        }
-      ),
+      http.post(`${API_BASE}/auth/new-device/verify`, async ({ request }) => {
+        seenBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          access_token: 'nd-a',
+          refresh_token: 'nd-r',
+        });
+      }),
       http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({ user: { user_id: 1, email_id: 'a@b' } })
       ),
-      http.get(`${API_BASE}/users/preferences`, () =>
-        HttpResponse.json({})
-      )
+      http.get(`${API_BASE}/users/preferences`, () => HttpResponse.json({}))
     );
 
     renderWithProviders(<VerifyNewDevicePage />, {
@@ -122,9 +117,7 @@ describe('<VerifyNewDevicePage>', () => {
     fireEvent.click(screen.getByTestId('verify-device-resend'));
 
     await waitFor(() =>
-      expect(
-        screen.getByText(/new code is on its way/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/new code is on its way/i)).toBeInTheDocument()
     );
     expect(screen.getByText(/b\*\*\*@example\.com/)).toBeInTheDocument();
   });

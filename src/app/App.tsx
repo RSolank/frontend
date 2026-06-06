@@ -17,9 +17,9 @@ import { AUTHED_PREFETCH } from './idlePrefetchSchedule';
 // imported once the user actually has an active job. Hides itself
 // on /upload-statement (the page renders the same panel inline).
 const StatementUploadDock = lazy(() =>
-  import(
-    '../features/transactions/statement_upload/components/StatementUploadDock'
-  ).then((m) => ({ default: m.StatementUploadDock }))
+  import('../features/transactions/statement_upload/components/StatementUploadDock').then(
+    (m) => ({ default: m.StatementUploadDock })
+  )
 );
 
 // Root layout for every route. AuthInit hydrates the auth store on mount

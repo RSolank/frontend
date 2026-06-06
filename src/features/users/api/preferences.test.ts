@@ -20,9 +20,7 @@ import { hydratePreferences } from './preferences';
 // errors when the store transitions from a prior test's non-default.
 function resetAllStores() {
   server.use(
-    http.patch(`${API_BASE}/users/preferences`, () =>
-      HttpResponse.json({})
-    )
+    http.patch(`${API_BASE}/users/preferences`, () => HttpResponse.json({}))
   );
   usePreferencesStore.getState().reset();
   useDateFormatStore.getState().setFormat('system');
@@ -142,13 +140,10 @@ describe('subscribeToPreferenceStores — auto-PATCH on user-driven setX', () =>
   it('fires PATCH /api/users/preferences with the correct slice when each store changes', async () => {
     const captured: Array<Record<string, unknown>> = [];
     server.use(
-      http.patch(
-        `${API_BASE}/users/preferences`,
-        async ({ request }) => {
-          captured.push((await request.json()) as Record<string, unknown>);
-          return HttpResponse.json({});
-        }
-      )
+      http.patch(`${API_BASE}/users/preferences`, async ({ request }) => {
+        captured.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({});
+      })
     );
 
     useDateFormatStore.getState().setFormat('ymd');

@@ -136,14 +136,14 @@ function CellAmount({
 }) {
   if (debit > 0) {
     return (
-      <span className="money mt-auto text-sm font-bold text-danger-600 dark:text-danger-400">
+      <span className="money text-danger-600 dark:text-danger-400 mt-auto text-sm font-bold">
         -{formatMoney(debit, currencyCode, currencySymbol)}
       </span>
     );
   }
   if (credit > 0) {
     return (
-      <span className="money mt-auto text-sm font-bold text-success-600 dark:text-success-400">
+      <span className="money text-success-600 dark:text-success-400 mt-auto text-sm font-bold">
         +{formatMoney(credit, currencyCode, currencySymbol)}
       </span>
     );
@@ -207,17 +207,21 @@ function CalendarCellButton({
       onClick={onClick}
       onFocus={onFocus}
       tabIndex={tabIndex}
-      aria-label={cellAriaLabel(cell, debit, credit, currencyCode, currencySymbol)}
+      aria-label={cellAriaLabel(
+        cell,
+        debit,
+        credit,
+        currencyCode,
+        currencySymbol
+      )}
       aria-current={cell.isToday ? 'date' : undefined}
-      className={`group flex min-h-[5.5rem] flex-col items-stretch gap-1 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${
+      className={`group focus-visible:ring-accent-500 flex min-h-[5.5rem] flex-col items-stretch gap-1 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none ${
         HEAT_BG[heat]
       } ${
         cell.isToday
-          ? 'ring-2 ring-accent-500 dark:ring-accent-400'
+          ? 'ring-accent-500 dark:ring-accent-400 ring-2'
           : 'ring-1 ring-slate-200 dark:ring-slate-800'
-      } ${
-        dim ? 'opacity-50' : ''
-      } ${className ?? ''}`}
+      } ${dim ? 'opacity-50' : ''} ${className ?? ''}`}
     >
       <span className="flex items-center justify-between text-xs font-semibold">
         <span
@@ -232,7 +236,7 @@ function CalendarCellButton({
         {credit > 0 && (
           <span
             title="Credit on this day"
-            className="inline-flex items-center text-success-600 dark:text-success-400"
+            className="text-success-600 dark:text-success-400 inline-flex items-center"
             aria-hidden="true"
           >
             <TrendingUp size={12} />

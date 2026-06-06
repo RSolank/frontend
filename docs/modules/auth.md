@@ -15,13 +15,13 @@
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/login` | `pages/LoginPage.tsx` | Bears the recovery flow inline via `recovery/components/RecoveryFlow.tsx` |
-| `/register` | `pages/RegisterPage.tsx` | Includes timezone field + locale-driven country default |
-| `/verify/2fa` | `pages/VerifyTwoFactorPage.tsx` | BE Phase 2.7 — TOTP / backup-code entry. Reached via `navigate('/verify/2fa', { state: { pending_token } })` from `useAuth.login` when the BE returns `{status:"two_factor_required"}` and from the recovery flow on the same shape. Submits to `/api/v1/auth/2fa/login-verify` to finalize the session. |
-| `/verify/new-device` | `pages/VerifyNewDevicePage.tsx` | BE Phase 2.3 — OTP entry for an unknown-device login. Reached via `navigate('/verify/new-device', { state: { pending_token, masked_email } })` from `useAuth.login`. Submission delegates to `useAuth.verifyNewDevice`, which chain-routes to `/verify/2fa` when the BE returns a 2FA challenge (device gate is step 1 for 2FA-enabled users) and otherwise persists tokens + navigates to the landing route. Resend button POSTs `/api/v1/auth/new-device/resend` and swaps the in-state `pending_token` with the new one. |
-| `/account/revoke-device?token=…` | `features/account/pages/RevokeDevicePage.tsx` | BE Phase 2.3 — public landing for the one-click revoke link from the new-device intimation email. Auto-fires `POST /api/v1/auth/new-device/revoke {token}` on mount; renders Success / Invalid / Error / no-token panels. Lives in `publicRoutes` (unauthenticated by design — the user is presumed locked out of the device they're revoking). |
+| Path                             | Component                                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`                         | `pages/LoginPage.tsx`                         | Bears the recovery flow inline via `recovery/components/RecoveryFlow.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `/register`                      | `pages/RegisterPage.tsx`                      | Includes timezone field + locale-driven country default                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `/verify/2fa`                    | `pages/VerifyTwoFactorPage.tsx`               | BE Phase 2.7 — TOTP / backup-code entry. Reached via `navigate('/verify/2fa', { state: { pending_token } })` from `useAuth.login` when the BE returns `{status:"two_factor_required"}` and from the recovery flow on the same shape. Submits to `/api/v1/auth/2fa/login-verify` to finalize the session.                                                                                                                                                                                                                    |
+| `/verify/new-device`             | `pages/VerifyNewDevicePage.tsx`               | BE Phase 2.3 — OTP entry for an unknown-device login. Reached via `navigate('/verify/new-device', { state: { pending_token, masked_email } })` from `useAuth.login`. Submission delegates to `useAuth.verifyNewDevice`, which chain-routes to `/verify/2fa` when the BE returns a 2FA challenge (device gate is step 1 for 2FA-enabled users) and otherwise persists tokens + navigates to the landing route. Resend button POSTs `/api/v1/auth/new-device/resend` and swaps the in-state `pending_token` with the new one. |
+| `/account/revoke-device?token=…` | `features/account/pages/RevokeDevicePage.tsx` | BE Phase 2.3 — public landing for the one-click revoke link from the new-device intimation email. Auto-fires `POST /api/v1/auth/new-device/revoke {token}` on mount; renders Success / Invalid / Error / no-token panels. Lives in `publicRoutes` (unauthenticated by design — the user is presumed locked out of the device they're revoking).                                                                                                                                                                             |
 
 Routes are exported from
 [`features/auth/auth.routes.tsx`](../../src/features/auth/auth.routes.tsx)
@@ -53,7 +53,7 @@ carries an `errorElement` that resolves to
   `usePreferencesStore`.
 - `features/auth/state/useAuth.ts` — drop-in replacement for the legacy
   `useAuth()` hook. Returns `{user, constants, loading, error, setError,
-  login, register, logout, refreshUser}` so the other feature batches'
+login, register, logout, refreshUser}` so the other feature batches'
   pages keep working unchanged until their own batch moves them.
 
 ## API
@@ -100,12 +100,12 @@ carries an `errorElement` that resolves to
 - `api/security.ts` — BE Phase 3.0 (`fc22163`, `auth.security-status`)
   account-protection snapshot. `SecurityStatus` shape (`has_recovery`,
   `two_factor_enabled`, `backup_codes_remaining`) + `fetchSecurityStatus`
-  + `useSecurityStatusQuery` (30s `staleTime`). Consumed by Account →
-  Security's `<TwoFactorSection>` (drives the Enable/Disable card +
-  the backup-codes-remaining badge) and `<EmailChangeForm>` (pre-
-  decides whether to render the step-up code field). Keeps the auth-
-  owned `two_factor_enabled` flag off the `/me` profile DTO so the
-  profile/auth domain split stays clean across FE + BE.
+  - `useSecurityStatusQuery` (30s `staleTime`). Consumed by Account →
+    Security's `<TwoFactorSection>` (drives the Enable/Disable card +
+    the backup-codes-remaining badge) and `<EmailChangeForm>` (pre-
+    decides whether to render the step-up code field). Keeps the auth-
+    owned `two_factor_enabled` flag off the `/me` profile DTO so the
+    profile/auth domain split stays clean across FE + BE.
 
 ## Polymorphic login response (BE Phase 2.3 + 2.7)
 
@@ -116,17 +116,17 @@ now return three shapes — all as 200 OK responses, NOT errors:
 2. `{status: "two_factor_required", pending_token}` — BE Phase 2.7
    challenge for 2FA-enabled users.
 3. `{status: "new_device_verification_required", pending_token,
-   masked_email}` — BE Phase 2.3 challenge for unknown-device logins.
+masked_email}` — BE Phase 2.3 challenge for unknown-device logins.
 
 `useAuth.login()` discriminates on `status` via the narrowing
 helpers in `api/mutations.ts` (`isTwoFactorChallenge`,
 `isNewDeviceChallenge`) and routes:
 
-| Discriminator | Routes to | Carries via `location.state` |
-|---|---|---|
-| `two_factor_required` | `/verify/2fa` | `pending_token` |
-| `new_device_verification_required` | `/verify/new-device` | `pending_token` + `masked_email` |
-| (no status) | landing-route preference | tokens persisted, prefs hydrated |
+| Discriminator                      | Routes to                | Carries via `location.state`     |
+| ---------------------------------- | ------------------------ | -------------------------------- |
+| `two_factor_required`              | `/verify/2fa`            | `pending_token`                  |
+| `new_device_verification_required` | `/verify/new-device`     | `pending_token` + `masked_email` |
+| (no status)                        | landing-route preference | tokens persisted, prefs hydrated |
 
 `useAuth.loginVerify2fa(pending_token, code)` finishes the 2FA
 challenge with a POST to `/api/v1/auth/2fa/login-verify` and applies
@@ -172,8 +172,8 @@ and blocks devices after repeated failed logins (BE Phase 1.4,
 - **`<AuthErrorNotice action=… />`** — subscribes to
   `retryAfterSeconds`, runs the value through
   [`useRetryCountdown`](../../src/shared/hooks/useRetryCountdown.ts)
-  for the live tick, and renders "Too many *login* attempts. Please
-  try again in *N* seconds." The same component renders the plain
+  for the live tick, and renders "Too many _login_ attempts. Please
+  try again in _N_ seconds." The same component renders the plain
   `error` string when `retryAfterSeconds` is null, so every auth form
   has one error surface.
 - **`formatRetryAfter`** in `useRetryCountdown.ts` picks the coarsest
@@ -182,7 +182,7 @@ and blocks devices after repeated failed logins (BE Phase 1.4,
 
 This is the only rate-limit-aware surface in the app today; for
 non-auth 429s the apiClient still attaches `retryAfterSeconds` to the
-thrown error so callers *can* handle it, but no other feature renders
+thrown error so callers _can_ handle it, but no other feature renders
 the countdown — failed-query screens use their generic error path.
 
 ## User-preferences hydration

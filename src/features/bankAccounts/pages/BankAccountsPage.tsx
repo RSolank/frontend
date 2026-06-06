@@ -80,7 +80,7 @@ export function BankAccountsPage() {
             setRegisterSeed('');
             setAdding(true);
           }}
-          className="inline-flex items-center gap-1 rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none"
+          className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
           data-testid="bank-account-add"
         >
           <Plus size={16} aria-hidden />
@@ -149,10 +149,7 @@ function Body({
 }) {
   if (loading)
     return (
-      <p
-        className="text-sm text-slate-500"
-        data-testid="bank-accounts-loading"
-      >
+      <p className="text-sm text-slate-500" data-testid="bank-accounts-loading">
         Loading bank accounts…
       </p>
     );
@@ -162,8 +159,8 @@ function Body({
         className="rounded-md border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
         data-testid="bank-accounts-empty"
       >
-        No bank accounts yet. Add one to enable auto-attribution from
-        statement uploads and to designate a tax-pot account.
+        No bank accounts yet. Add one to enable auto-attribution from statement
+        uploads and to designate a tax-pot account.
       </p>
     );
   return (

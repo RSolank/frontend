@@ -333,17 +333,17 @@ longer sends them.
 The wire shape is `GET / PATCH /api/v1/users/preferences` returning a
 flat object with these keys:
 
-| Key | Type | Store on frontend |
-|---|---|---|
-| `currency` | ISO code string | `usePreferencesStore.currency` |
-| `timezone` | IANA tz string | `usePreferencesStore.timezone` |
-| `date_format` | `system \| dmy \| mdy \| ymd \| dmonth` | `useDateFormatStore.format` |
-| `number_format` | `system \| comma-dot \| dot-comma \| space-comma \| indian \| plain` | `useNumberFormatStore.format` |
-| `landing_route` | `/dashboard \| /transactions \| /budgets \| /consumption-tax` | `useLandingRouteStore.route` |
-| `default_txn_kind` | `debit \| credit` | `useDefaultTxnKindStore.kind` |
-| `underline_links` | boolean | `useLinkUnderlineStore.underline` |
-| `focus_ring_always` | boolean | `useFocusRingStore.alwaysVisible` |
-| `auto_enabled` | boolean | `useTaxModeStore.enabled` |
+| Key                 | Type                                                                 | Store on frontend                 |
+| ------------------- | -------------------------------------------------------------------- | --------------------------------- |
+| `currency`          | ISO code string                                                      | `usePreferencesStore.currency`    |
+| `timezone`          | IANA tz string                                                       | `usePreferencesStore.timezone`    |
+| `date_format`       | `system \| dmy \| mdy \| ymd \| dmonth`                              | `useDateFormatStore.format`       |
+| `number_format`     | `system \| comma-dot \| dot-comma \| space-comma \| indian \| plain` | `useNumberFormatStore.format`     |
+| `landing_route`     | `/dashboard \| /transactions \| /budgets \| /consumption-tax`        | `useLandingRouteStore.route`      |
+| `default_txn_kind`  | `debit \| credit`                                                    | `useDefaultTxnKindStore.kind`     |
+| `underline_links`   | boolean                                                              | `useLinkUnderlineStore.underline` |
+| `focus_ring_always` | boolean                                                              | `useFocusRingStore.alwaysVisible` |
+| `auto_enabled`      | boolean                                                              | `useTaxModeStore.enabled`         |
 
 PATCH accepts a partial body — sync side-effects always send a single
 field at a time.
@@ -368,13 +368,14 @@ field at a time.
   Preferences page's Save handler (not by a subscriber), because
   that's the only writer.
 
-**Dependency-direction rule** — the preference *stores* live in
+**Dependency-direction rule** — the preference _stores_ live in
 `shared/state/` (a typed store with no API dependency); the hydrate
-+ subscribe layer lives in `features/users/api/preferences.ts` and
-imports from them. The 6 selector / toggle components in
-`shared/components/` keep using the raw store setters — the
-subscriber pattern means no `features/` import sneaks into
-`shared/components/`.
+
+- subscribe layer lives in `features/users/api/preferences.ts` and
+  imports from them. The 6 selector / toggle components in
+  `shared/components/` keep using the raw store setters — the
+  subscriber pattern means no `features/` import sneaks into
+  `shared/components/`.
 
 **Rules every batch must follow:**
 
@@ -422,7 +423,7 @@ When a component accumulates state + effects + handlers, **extract a
 from the component. Split distinct field-groups, list rows, and overlays
 into their own presentational sub-components. This is the canonical move for
 keeping a component under the §3 complexity / `max-lines` gates — reach for it
-*before* a suppression.
+_before_ a suppression.
 
 This is the pattern used throughout the codebase — e.g. `useRegisterForm`,
 `useAddTransactionForm`, `useGenerateBills`, `useAccountSecurity`,

@@ -66,9 +66,7 @@ describe('TaxPotNudge', () => {
 
   test('dismiss button persists the dismissed flag', async () => {
     server.use(
-      http.get(`${API_BASE}/bank-accounts/`, () =>
-        HttpResponse.json([])
-      )
+      http.get(`${API_BASE}/bank-accounts/`, () => HttpResponse.json([]))
     );
     renderWithProviders(<TaxPotNudge />);
     await waitFor(() =>

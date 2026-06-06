@@ -24,7 +24,10 @@ interface ApiErrorShape {
 function sortTagsById(nodes: TagNode[]): TagNode[] {
   return [...nodes]
     .sort((a, b) => a.tag_id - b.tag_id)
-    .map((n) => ({ ...n, children: n.children ? sortTagsById(n.children) : [] }));
+    .map((n) => ({
+      ...n,
+      children: n.children ? sortTagsById(n.children) : [],
+    }));
 }
 
 interface FlatTag {
@@ -36,7 +39,10 @@ interface FlatTag {
   aliases: string[];
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({
       tag_id: n.tag_id,
@@ -88,8 +94,10 @@ function TagRowLabel({
       aria-label={expandToggleLabel(hasChildren, isExpanded)}
       aria-expanded={hasChildren ? isExpanded : undefined}
       disabled={!hasChildren}
-      className={`flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-sm text-left transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none ${
-        hasChildren ? 'cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40' : 'cursor-default'
+      className={`focus-visible:ring-accent-500 flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-sm text-left transition-colors focus-visible:ring-2 focus-visible:outline-none ${
+        hasChildren
+          ? 'cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40'
+          : 'cursor-default'
       } disabled:opacity-100`}
       style={{ paddingLeft: `${level * 1.5}rem` }}
     >
@@ -165,7 +173,7 @@ function TagRowActions({
               ? 'View — system tags allow alias edits only'
               : 'View / edit'
           }
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <MoreHorizontal aria-hidden size={16} />
         </button>
@@ -200,9 +208,7 @@ function TagRow({
     tag.tag_id === constants?.CONSUMPTION_TAX_TAG_ID;
 
   const stripeClass =
-    level % 2 === 0
-      ? 'bg-transparent'
-      : 'bg-slate-50 dark:bg-slate-900/40';
+    level % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-900/40';
   const highlightClass =
     highlightTagId === tag.tag_id
       ? 'bg-accent-50/60 ring-2 ring-accent-500 ring-inset dark:bg-accent-950/30'
@@ -378,8 +384,8 @@ export function TagsPage() {
           and tag types). Custom categories and subcategories can be added
           below.{' '}
           <strong className="text-slate-700 dark:text-slate-200">
-            Aliases help the auto-categorization engine to tag your
-            transactions correctly.
+            Aliases help the auto-categorization engine to tag your transactions
+            correctly.
           </strong>
         </p>
 

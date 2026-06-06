@@ -24,16 +24,16 @@ export function TaxPotNudge() {
     <section
       role="status"
       data-testid="tax-pot-nudge-banner"
-      className="mb-4 flex items-start justify-between gap-3 rounded-md border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200"
+      className="border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200 mb-4 flex items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm"
     >
       <div className="flex items-start gap-2">
         <Info size={18} aria-hidden className="mt-0.5" />
         <div>
           <p className="font-semibold">Designate a tax-pot account</p>
           <p className="mt-1">
-            Mark one of your accounts as the tax-pot. Self-transfers to
-            its identifiers will auto-acquire the consumption-tax-paid
-            tag, so the tracker reconciles without manual tagging.
+            Mark one of your accounts as the tax-pot. Self-transfers to its
+            identifiers will auto-acquire the consumption-tax-paid tag, so the
+            tracker reconciles without manual tagging.
           </p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export function TaxPotNudge() {
         onClick={dismiss}
         aria-label="Dismiss nudge"
         title="Dismiss"
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-warning-700 transition-colors hover:bg-warning-100 hover:text-warning-900 focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:outline-none dark:text-warning-300 dark:hover:bg-warning-950/60 dark:hover:text-warning-100"
+        className="text-warning-700 hover:bg-warning-100 hover:text-warning-900 focus-visible:ring-warning-500 dark:text-warning-300 dark:hover:bg-warning-950/60 dark:hover:text-warning-100 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
         data-testid="tax-pot-nudge-dismiss"
       >
         <X size={14} />

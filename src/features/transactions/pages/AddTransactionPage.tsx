@@ -41,7 +41,10 @@ interface FlatTag {
   tag_name: string;
 }
 
-function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag[] {
+function flattenTags(
+  nodes: TagNode[] | undefined,
+  out: FlatTag[] = []
+): FlatTag[] {
   for (const n of nodes ?? []) {
     out.push({ tag_id: n.tag_id, tag_name: n.tag_name });
     flattenTags(n.children, out);
@@ -346,138 +349,136 @@ export function AddTransactionPage({
       {error && <div className="form-error mb-3">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-          <BeneficiarySearch
-            value={beneficiaryName}
-            beneficiaryId={beneficiaryId}
-            beneficiaries={beneficiaries}
-            onChange={(name, id) => {
-              setBeneficiaryName(name);
-              setBeneficiaryId(id);
-            }}
-            onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
+        <BeneficiarySearch
+          value={beneficiaryName}
+          beneficiaryId={beneficiaryId}
+          beneficiaries={beneficiaries}
+          onChange={(name, id) => {
+            setBeneficiaryName(name);
+            setBeneficiaryId(id);
+          }}
+          onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
+          required
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="amount" className="form-label">
+              Amount
+            </label>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label htmlFor="debit_credit" className="form-label">
+              Type
+            </label>
+            <select
+              id="debit_credit"
+              name="debit_credit"
+              value={debitCredit}
+              onChange={(e) =>
+                setDebitCredit(e.target.value as 'debit' | 'credit')
+              }
+              className="form-input"
+            >
+              <option value="debit">Debit</option>
+              <option value="credit">Credit</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="txn_date" className="form-label">
+            Date
+          </label>
+          <DateField
+            id="txn_date"
+            name="txn_date"
+            value={txnDate}
+            onChange={setTxnDate}
             required
           />
+        </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="amount" className="form-label">
-                Amount
-              </label>
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="debit_credit" className="form-label">
-                Type
-              </label>
-              <select
-                id="debit_credit"
-                name="debit_credit"
-                value={debitCredit}
-                onChange={(e) =>
-                  setDebitCredit(e.target.value as 'debit' | 'credit')
-                }
-                className="form-input"
-              >
-                <option value="debit">Debit</option>
-                <option value="credit">Credit</option>
-              </select>
-            </div>
-          </div>
+        <TagSelector
+          tags={tags}
+          selectedTagIds={tagIds}
+          miscellaneousTagId={
+            constants?.MISCELLANEOUS_TAG_ID as number | undefined
+          }
+          totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
+          onAdd={handleAddTag}
+          onRemove={handleRemoveTag}
+          onRequestAddTag={() => setCreateTagOpen(true)}
+        />
 
-          <div>
-            <label htmlFor="txn_date" className="form-label">
-              Date
-            </label>
-            <DateField
-              id="txn_date"
-              name="txn_date"
-              value={txnDate}
-              onChange={setTxnDate}
-              required
-            />
-          </div>
+        <BankAccountField
+          id="bank-account-picker-add"
+          label="Bank account"
+          value={bankAccountId}
+          onChange={setBankAccountId}
+        />
 
-          <TagSelector
-            tags={tags}
-            selectedTagIds={tagIds}
-            miscellaneousTagId={constants?.MISCELLANEOUS_TAG_ID as number | undefined}
-            totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
-            onAdd={handleAddTag}
-            onRemove={handleRemoveTag}
-            onRequestAddTag={() => setCreateTagOpen(true)}
+        <div>
+          <label htmlFor="notes" className="form-label">
+            Notes
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            className="form-input resize-y"
           />
+        </div>
 
-          <BankAccountField
-            id="bank-account-picker-add"
-            label="Bank account"
-            value={bankAccountId}
-            onChange={setBankAccountId}
-          />
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+          <button type="submit" disabled={submitting} className="btn-primary">
+            {submitting ? 'Creating...' : 'Create Transaction'}
+          </button>
+          <button
+            type="button"
+            onClick={dismiss}
+            className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
 
-          <div>
-            <label htmlFor="notes" className="form-label">
-              Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="form-input resize-y"
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary"
-            >
-              {submitting ? 'Creating...' : 'Create Transaction'}
-            </button>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-
-        <BeneficiaryFormDialog
-          open={createBeneficiaryOpen}
-          onClose={() => setCreateBeneficiaryOpen(false)}
-          onSaved={handleBeneficiaryCreated}
-          initialName={beneficiaryName}
-        />
-        <TagFormDialog
-          open={createTagOpen}
-          onClose={() => setCreateTagOpen(false)}
-          onSaved={handleTagCreated}
-          flatTags={tags}
-        />
-        <ConfirmDialog
-          open={confirmRuleOpen}
-          title="Create categorization rule?"
-          message="Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
-          confirmLabel="Create rule"
-          cancelLabel="Skip"
-          intent="primary"
-          onConfirm={() => decideRule(true)}
-          onClose={() => decideRule(false)}
-        />
-      </>
+      <BeneficiaryFormDialog
+        open={createBeneficiaryOpen}
+        onClose={() => setCreateBeneficiaryOpen(false)}
+        onSaved={handleBeneficiaryCreated}
+        initialName={beneficiaryName}
+      />
+      <TagFormDialog
+        open={createTagOpen}
+        onClose={() => setCreateTagOpen(false)}
+        onSaved={handleTagCreated}
+        flatTags={tags}
+      />
+      <ConfirmDialog
+        open={confirmRuleOpen}
+        title="Create categorization rule?"
+        message="Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
+        confirmLabel="Create rule"
+        cancelLabel="Skip"
+        intent="primary"
+        onConfirm={() => decideRule(true)}
+        onClose={() => decideRule(false)}
+      />
+    </>
   );
 
   if (embedded) return body;

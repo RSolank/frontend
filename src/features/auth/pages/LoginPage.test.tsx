@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +18,9 @@ import { LoginPage } from './LoginPage';
 
 vi.mock('react-router-dom', async () => {
   const actual =
-    await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return {
     ...actual,
     useNavigate: () => vi.fn(),

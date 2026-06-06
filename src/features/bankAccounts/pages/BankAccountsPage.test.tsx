@@ -25,9 +25,7 @@ function fixture(overrides: Partial<BankAccount> = {}): BankAccount {
 
 function withAccounts(rows: BankAccount[]) {
   server.use(
-    http.get(`${API_BASE}/bank-accounts/`, () =>
-      HttpResponse.json(rows)
-    )
+    http.get(`${API_BASE}/bank-accounts/`, () => HttpResponse.json(rows))
   );
 }
 
@@ -48,15 +46,21 @@ describe('BankAccountsPage', () => {
         label: 'ICICI tax-pot',
         account_type: 'SAVINGS',
         is_committee_account: true,
-        identifiers: [{ uid: 99, identifier: 'tax@upi', identifier_type: 'UPI' }],
+        identifiers: [
+          { uid: 99, identifier: 'tax@upi', identifier_type: 'UPI' },
+        ],
       }),
     ]);
     renderWithProviders(<BankAccountsPage />);
     await waitFor(() =>
       expect(screen.getByTestId('bank-account-row-1')).toBeInTheDocument()
     );
-    expect(screen.getByTestId('bank-account-row-2')).toHaveTextContent('ICICI tax-pot');
-    expect(screen.getByTestId('bank-account-committee-badge-2')).toBeInTheDocument();
+    expect(screen.getByTestId('bank-account-row-2')).toHaveTextContent(
+      'ICICI tax-pot'
+    );
+    expect(
+      screen.getByTestId('bank-account-committee-badge-2')
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('bank-account-committee-badge-1')).toBeNull();
     expect(screen.getByText('tax@upi')).toBeInTheDocument();
   });

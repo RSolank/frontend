@@ -329,7 +329,7 @@ html.dark {
   .form-input {
     @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors;
     @apply placeholder:text-slate-400;
-    @apply focus:border-accent-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500;
+    @apply focus:border-accent-500 focus-visible:ring-accent-500 focus:outline-none focus-visible:ring-2;
     @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
     @apply read-only:bg-slate-100 read-only:text-slate-700;
     @apply dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500;
@@ -339,7 +339,7 @@ html.dark {
   }
 
   .form-error {
-    @apply text-sm text-danger-600 dark:text-danger-400;
+    @apply text-danger-600 dark:text-danger-400 text-sm;
   }
 
   /*
@@ -351,20 +351,20 @@ html.dark {
    * accent token flips per theme (teal in light, indigo in dark).
    */
   .btn-primary {
-    @apply inline-flex w-full items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
+    @apply bg-accent-600 inline-flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
     @apply hover:bg-accent-700;
-    @apply focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none;
-    @apply disabled:cursor-not-allowed disabled:bg-accent-400 disabled:shadow-none;
+    @apply focus-visible:ring-accent-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:bg-accent-400 disabled:cursor-not-allowed disabled:shadow-none;
     @apply dark:bg-accent-500 dark:hover:bg-accent-400;
     @apply dark:disabled:bg-accent-900 dark:disabled:text-accent-300;
     @apply dark:focus-visible:ring-offset-slate-950;
   }
 
   .btn-link {
-    @apply inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium text-accent-600 transition-colors;
+    @apply text-accent-600 inline-flex w-full items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors;
     @apply hover:bg-accent-50 hover:text-accent-700;
-    @apply focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none;
-    @apply disabled:cursor-not-allowed disabled:text-accent-300;
+    @apply focus-visible:ring-accent-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply disabled:text-accent-300 disabled:cursor-not-allowed;
     @apply dark:text-accent-400 dark:hover:bg-accent-950/40 dark:hover:text-accent-300;
     @apply dark:focus-visible:ring-offset-slate-950;
   }

@@ -34,7 +34,11 @@ export function CurrentWeekTracker() {
   );
 
   if (isLoading) {
-    return <CardShell><CardBody copy="Loading…" /></CardShell>;
+    return (
+      <CardShell>
+        <CardBody copy="Loading…" />
+      </CardShell>
+    );
   }
 
   // BE error or no in-progress bill yet → friendly empty state.
@@ -152,7 +156,7 @@ function Stat({ label, value, accent, muted }: StatProps) {
         {label}
       </div>
       <div
-        className={`mt-0.5 text-base font-semibold tabular-nums money ${statValueClass(
+        className={`money mt-0.5 text-base font-semibold tabular-nums ${statValueClass(
           accent,
           muted
         )}`}
@@ -173,7 +177,7 @@ function WeekProgress({ fraction }: { fraction: number }) {
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className="h-full bg-accent-500 transition-[width] duration-300"
+          className="bg-accent-500 h-full transition-[width] duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -207,7 +211,7 @@ function PerTagBreakdown({
                 {p.txn_type}
               </span>
             </div>
-            <span className="tabular-nums text-sm text-slate-900 money dark:text-slate-100">
+            <span className="money text-sm text-slate-900 tabular-nums dark:text-slate-100">
               {money(p.tax_amount + p.penalty)}
             </span>
           </li>

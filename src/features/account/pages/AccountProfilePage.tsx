@@ -223,7 +223,7 @@ export function AccountProfilePage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-success-600 dark:text-success-400">
+              <span className="text-success-600 dark:text-success-400 text-sm font-medium">
                 Saved
               </span>
             )}

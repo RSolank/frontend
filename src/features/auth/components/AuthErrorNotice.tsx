@@ -36,8 +36,13 @@ export function AuthErrorNotice({
 
   if (remaining !== null && remaining > 0) {
     return (
-      <div className="form-error mb-2" role="alert" data-testid="auth-rate-limit">
-        Too many {action} attempts. Please try again {formatRetryAfter(remaining)}.
+      <div
+        className="form-error mb-2"
+        role="alert"
+        data-testid="auth-rate-limit"
+      >
+        Too many {action} attempts. Please try again{' '}
+        {formatRetryAfter(remaining)}.
       </div>
     );
   }

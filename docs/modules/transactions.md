@@ -30,12 +30,12 @@
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
-| `/transactions` | `pages/TransactionsPage.tsx` | List + merchant + calendar views, filters, paging. Hosts Add / Edit / Delete as modals (see "Modal-first CRUD on the list" below). Lazy-loaded. |
-| `/add-transaction` | `AddRedirect` (in `transactions.routes.tsx`) | Legacy alias — redirects to `/transactions?add=true`. The page module mounts inline inside the modal. |
-| `/transactions/:id/edit` | `EditRedirect` (in `transactions.routes.tsx`) | Legacy alias — redirects to `/transactions?edit=<id>`. Edit modal mounts the same `EditTransactionPage` component with `embedded`. Statement-sourced rows still restrict editable fields to `notes` + `tag_ids`. |
-| `/upload-statement` | `statement_upload/pages/UploadStatementPage.tsx` | Async upload + job-poll surface (file picker → 202 → progress states → COMPLETE/FAILED card). Lazy-loaded. |
+| Path                     | Component                                        | Notes                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/transactions`          | `pages/TransactionsPage.tsx`                     | List + merchant + calendar views, filters, paging. Hosts Add / Edit / Delete as modals (see "Modal-first CRUD on the list" below). Lazy-loaded.                                                                  |
+| `/add-transaction`       | `AddRedirect` (in `transactions.routes.tsx`)     | Legacy alias — redirects to `/transactions?add=true`. The page module mounts inline inside the modal.                                                                                                            |
+| `/transactions/:id/edit` | `EditRedirect` (in `transactions.routes.tsx`)    | Legacy alias — redirects to `/transactions?edit=<id>`. Edit modal mounts the same `EditTransactionPage` component with `embedded`. Statement-sourced rows still restrict editable fields to `notes` + `tag_ids`. |
+| `/upload-statement`      | `statement_upload/pages/UploadStatementPage.tsx` | Async upload + job-poll surface (file picker → 202 → progress states → COMPLETE/FAILED card). Lazy-loaded.                                                                                                       |
 
 Routes are exported from
 [`features/transactions/transactions.routes.tsx`](../../src/features/transactions/transactions.routes.tsx)
@@ -45,9 +45,9 @@ and composed into the root router by `src/app/routes.tsx`
 ## Components
 
 - `components/BeneficiarySearch.tsx` — type-ahead picker shared by Add
-  + Edit. Emits `(name, id)` so the parent can null the id when the
-  user types a name that doesn't match any existing beneficiary
-  (backend creates a fresh row).
+  - Edit. Emits `(name, id)` so the parent can null the id when the
+    user types a name that doesn't match any existing beneficiary
+    (backend creates a fresh row).
 - `components/TagSelector.tsx` — search input + chip rail shared by
   Add + Edit. Dumb component; the miscellaneous-tag rules (drop misc
   when a real tag is added, re-add misc when the last tag is removed)
@@ -67,7 +67,7 @@ and composed into the root router by `src/app/routes.tsx`
   [`<StatementProgressRing>`](../../src/features/transactions/statement_upload/components/StatementProgressRing.tsx)
   — circular progress driven by the 8-state `JobStage` enum
   (`queued → parsing → attributing → staging → mapping_beneficiaries
-  → categorizing → computing_tax → done`) so the user sees the parse
+→ categorizing → computing_tax → done`) so the user sees the parse
   advance even while navigating other pages. Hides on
   `/upload-statement` (the page renders the same content inline) and
   auto-clears 6s after `COMPLETED`; `FAILED` states persist until the
@@ -130,48 +130,48 @@ a future polish, not in scope here.
 
 [`api/`](../../src/features/transactions/api/)
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `transactionKeys` (`all`, `lists()`, `list(params)`, `detail(id)`), `TransactionListParams` |
-| `schemas.ts` | `transactionFormSchema` (Zod), `TransactionFormInput`, `TransactionCreatePayload`, `TransactionUpdatePayload`, `TransactionDTO`, `TransactionListResponse`, `MerchantGroup`, `SingleTransactionResponse` |
-| `queries.ts` | `fetchTransactions`, `fetchTransaction`, `useTransactionsQuery` |
-| `mutations.ts` | `createTransactionRequest`, `updateTransactionRequest`, `deleteTransactionRequest` |
+| File           | Exports                                                                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keys.ts`      | `transactionKeys` (`all`, `lists()`, `list(params)`, `detail(id)`), `TransactionListParams`                                                                                                              |
+| `schemas.ts`   | `transactionFormSchema` (Zod), `TransactionFormInput`, `TransactionCreatePayload`, `TransactionUpdatePayload`, `TransactionDTO`, `TransactionListResponse`, `MerchantGroup`, `SingleTransactionResponse` |
+| `queries.ts`   | `fetchTransactions`, `fetchTransaction`, `useTransactionsQuery`                                                                                                                                          |
+| `mutations.ts` | `createTransactionRequest`, `updateTransactionRequest`, `deleteTransactionRequest`                                                                                                                       |
 
 The async statement-upload API lives at
 [`statement_upload/api/`](../../src/features/transactions/statement_upload/api/):
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `statementUploadKeys` (`all`, `job(id)`, `parsers()`) |
-| `schemas.ts` | `JobStatus`, `TERMINAL_JOB_STATUSES`, `isTerminalStatus`, `UploadAcceptedResponse`, `JobStatusResponse`, `ParserOption`, `HARDCODED_PARSER_CATALOG`, `NoParserDetectedDetail`, `extractNoParserDetail` |
-| `queries.ts` | `fetchJobStatus`, `useJobStatusQuery(jobId)` (2s adaptive poll; `staleTime: Infinity` once terminal), `fetchParserCatalog`, `useParserCatalogQuery()` (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`) |
-| `mutations.ts` | `uploadStatementJobRequest(file, parserOverride?)` (POST 202 + `{job_id}`; appends `parser_override` to FormData when set), `manualTagTransactionRequest(txnId, tagIds)` (re-tag statement-imported rows) |
+| File             | Exports                                                                                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keys.ts`        | `statementUploadKeys` (`all`, `job(id)`, `parsers()`)                                                                                                                                                                |
+| `schemas.ts`     | `JobStatus`, `TERMINAL_JOB_STATUSES`, `isTerminalStatus`, `UploadAcceptedResponse`, `JobStatusResponse`, `ParserOption`, `HARDCODED_PARSER_CATALOG`, `NoParserDetectedDetail`, `extractNoParserDetail`               |
+| `queries.ts`     | `fetchJobStatus`, `useJobStatusQuery(jobId)` (2s adaptive poll; `staleTime: Infinity` once terminal), `fetchParserCatalog`, `useParserCatalogQuery()` (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`)          |
+| `mutations.ts`   | `uploadStatementJobRequest(file, parserOverride?)` (POST 202 + `{job_id}`; appends `parser_override` to FormData when set), `manualTagTransactionRequest(txnId, tagIds)` (re-tag statement-imported rows)            |
 | `parserMatch.ts` | `matchParserByFilename(filename, catalog)` — pure predictor matching the filename stem against each parser's `key` / `source_type` / first label word; tie-break by registration order (mirrors BE `detect_parser`). |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/v1/transactions` | TransactionsPage (with filter / sort / paging params) |
-| `GET /api/v1/transactions/:id` | EditTransactionPage load |
-| `POST /api/v1/transactions[?rule_id=…]` | AddTransactionPage |
-| `PATCH /api/v1/transactions/:id[?rule_id=…]` | EditTransactionPage |
-| `DELETE /api/v1/transactions/:id` | TransactionsPage row action menu |
-| `POST /api/v1/statement-uploads` | UploadStatementPage submit (sends `parser_override` form field) |
-| `GET /api/v1/statement-uploads/{job_id}` | UploadStatementPage + StatementUploadDock poll |
-| `GET /api/v1/statement-uploads/parsers` | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
-| `POST /api/v1/transactions/:id/manual-tags` | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow) |
-| `GET /api/v1/categorization-rules` | EditTransactionPage tag-changed flow |
-| `POST /api/v1/categorization-rules` | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
-| `PUT /api/v1/categorization-rules/:uid` | EditTransactionPage update-existing-rule path |
-| `GET /api/v1/tags` | All pages — flat tag list for chips + search dropdowns |
-| `GET /api/v1/metadata/constants` | Add / Edit — Misc + Total tag IDs for the chip rules |
+| Method + path                                | Used by                                                                                                                       |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/transactions`                   | TransactionsPage (with filter / sort / paging params)                                                                         |
+| `GET /api/v1/transactions/:id`               | EditTransactionPage load                                                                                                      |
+| `POST /api/v1/transactions[?rule_id=…]`      | AddTransactionPage                                                                                                            |
+| `PATCH /api/v1/transactions/:id[?rule_id=…]` | EditTransactionPage                                                                                                           |
+| `DELETE /api/v1/transactions/:id`            | TransactionsPage row action menu                                                                                              |
+| `POST /api/v1/statement-uploads`             | UploadStatementPage submit (sends `parser_override` form field)                                                               |
+| `GET /api/v1/statement-uploads/{job_id}`     | UploadStatementPage + StatementUploadDock poll                                                                                |
+| `GET /api/v1/statement-uploads/parsers`      | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
+| `POST /api/v1/transactions/:id/manual-tags`  | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow)                         |
+| `GET /api/v1/categorization-rules`           | EditTransactionPage tag-changed flow                                                                                          |
+| `POST /api/v1/categorization-rules`          | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
+| `PUT /api/v1/categorization-rules/:uid`      | EditTransactionPage update-existing-rule path                                                                                 |
+| `GET /api/v1/tags`                           | All pages — flat tag list for chips + search dropdowns                                                                        |
+| `GET /api/v1/metadata/constants`             | Add / Edit — Misc + Total tag IDs for the chip rules                                                                          |
 
 ## Responsive
 
 Per [`docs/conventions.md`](../conventions.md):
 
-- TransactionsPage table scrolls *inside its card*
+- TransactionsPage table scrolls _inside its card_
   (`overflow-x-auto` on the wrapper + `min-w-[36rem]` on the
   `<table>`); `body` never overflows on phone widths even with five
   data columns.
@@ -231,14 +231,14 @@ date defaults respect the user's tz (per the §5 contract).
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `pages/TransactionsPage.test.tsx` | List render, dropdown gating by source, pagination, merchant view + Details filter, delete-flow via MSW DELETE handler |
-| `pages/AddTransactionPage.test.tsx` | Field rendering, end-to-end POST body shape + navigate, error display on 500 |
-| `pages/EditTransactionPage.test.tsx` | Not-found render, manual edit + PATCH body, statement-source field restrictions, misc → real-tag replacement |
-| `statement_upload/pages/UploadStatementPage.test.tsx` | Async-job lifecycle (file picker → 202 → poll → COMPLETE/FAILED card), 409 duplicate inline error, 422 + `available_parsers` opens picker modal, `suggest_register_account` notice + CTA href, filename-match → match-card render, no-match → inline dropdown forces explicit pick, `Change parser` overrides match, upload POST sends `parser_override` in FormData. |
-| `statement_upload/components/StatementUploadDock.test.tsx` | No-render without active job; hides on `/upload-statement`; renders PARSING with file name + status; FAILED + dismiss clears the store. |
-| `statement_upload/api/parserMatch.test.ts` | Filename-match catalog matching (PhonePe / future parsers / case-insensitivity / first-label-word fallback); generic-filename returns null; first-registered tie-break; extension-strip false-positive guard. `ParserPickerModal` itself has no dedicated test file — exercised indirectly via UploadStatementPage tests. |
+| File                                                       | Covers                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages/TransactionsPage.test.tsx`                          | List render, dropdown gating by source, pagination, merchant view + Details filter, delete-flow via MSW DELETE handler                                                                                                                                                                                                                                                |
+| `pages/AddTransactionPage.test.tsx`                        | Field rendering, end-to-end POST body shape + navigate, error display on 500                                                                                                                                                                                                                                                                                          |
+| `pages/EditTransactionPage.test.tsx`                       | Not-found render, manual edit + PATCH body, statement-source field restrictions, misc → real-tag replacement                                                                                                                                                                                                                                                          |
+| `statement_upload/pages/UploadStatementPage.test.tsx`      | Async-job lifecycle (file picker → 202 → poll → COMPLETE/FAILED card), 409 duplicate inline error, 422 + `available_parsers` opens picker modal, `suggest_register_account` notice + CTA href, filename-match → match-card render, no-match → inline dropdown forces explicit pick, `Change parser` overrides match, upload POST sends `parser_override` in FormData. |
+| `statement_upload/components/StatementUploadDock.test.tsx` | No-render without active job; hides on `/upload-statement`; renders PARSING with file name + status; FAILED + dismiss clears the store.                                                                                                                                                                                                                               |
+| `statement_upload/api/parserMatch.test.ts`                 | Filename-match catalog matching (PhonePe / future parsers / case-insensitivity / first-label-word fallback); generic-filename returns null; first-registered tie-break; extension-strip false-positive guard. `ParserPickerModal` itself has no dedicated test file — exercised indirectly via UploadStatementPage tests.                                             |
 
 **MSW handlers.** The root `transactions` resource still registers
 per-test via `server.use(...)` — no permissive `transactions.ts`
@@ -372,16 +372,16 @@ The shared hook is at `shared/hooks/useIntersectionObserver.ts`
 
 ### URL state mapping
 
-| URL key | Meaning |
-|---|---|
-| `?view=list\|merchant\|calendar` | Primary view |
-| `?type=debit\|credit` | Type filter |
-| `?tag=<id>` | Tag filter |
-| `?month=YYYY-MM` | Month dropdown (List + Merchant) |
-| `?beneficiary=<id>` | Merchant search |
-| `?sort=<field>&order=asc\|desc` | Sort spec |
-| `?day=YYYY-MM-DD` | Calendar day flyout |
-| `?add=true`, `?edit=<id>` | Modal state (existing) |
+| URL key                          | Meaning                          |
+| -------------------------------- | -------------------------------- |
+| `?view=list\|merchant\|calendar` | Primary view                     |
+| `?type=debit\|credit`            | Type filter                      |
+| `?tag=<id>`                      | Tag filter                       |
+| `?month=YYYY-MM`                 | Month dropdown (List + Merchant) |
+| `?beneficiary=<id>`              | Merchant search                  |
+| `?sort=<field>&order=asc\|desc`  | Sort spec                        |
+| `?day=YYYY-MM-DD`                | Calendar day flyout              |
+| `?add=true`, `?edit=<id>`        | Modal state (existing)           |
 
 Sort defaults vary by view: List + Calendar default to
 `date desc`; Merchant defaults to `net_expense desc`. The URL omits
@@ -422,10 +422,11 @@ the responsive shape (edge slide-in vs centered card) is materially
 different. URL-state synced via `useUrlValueModal('day')` →
 `/transactions?day=YYYY-MM-DD` is shareable and survives reload.
 The panel lists every transaction on the selected day with totals
-+ a "+ Add transaction for this day" CTA. When clicked, the iso
-date is captured into local state, the panel closes, and the
-existing add modal opens with the day pre-filled via a new
-`defaultDate` prop on `AddTransactionPage`.
+
+- a "+ Add transaction for this day" CTA. When clicked, the iso
+  date is captured into local state, the panel closes, and the
+  existing add modal opens with the day pre-filled via a new
+  `defaultDate` prop on `AddTransactionPage`.
 
 **Editing from the panel** — clicking a row's Edit link closes the
 side panel and opens the existing `?edit=<id>` modal. Same flow as

@@ -168,9 +168,7 @@ export function BankAccountFormDialog({
   }, [open]);
 
   const canSave =
-    form.label.trim().length > 0 &&
-    !saving &&
-    (!isEditing || isDirty);
+    form.label.trim().length > 0 && !saving && (!isEditing || isDirty);
 
   async function handleAddIdentifier() {
     const value = identifierInput.trim();
@@ -245,7 +243,7 @@ export function BankAccountFormDialog({
             onClick={onRequestRemove}
             title="Remove account"
             aria-label="Remove account"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40"
+            className="text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <Trash2 size={16} />
           </button>
@@ -264,7 +262,7 @@ export function BankAccountFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="inline-flex items-center justify-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="bank-account-save"
           >
             {saveLabel(saving, isEditing)}
@@ -346,9 +344,7 @@ function BankAccountFormBody({
       </FormField>
       <CommitteeCheckbox
         checked={form.is_committee_account}
-        onChange={(next) =>
-          setForm({ ...form, is_committee_account: next })
-        }
+        onChange={(next) => setForm({ ...form, is_committee_account: next })}
       />
       <IdentifiersFieldset
         isEditing={isEditing}
@@ -371,7 +367,7 @@ function BankAccountFormBody({
       {error && (
         <p
           role="alert"
-          className="rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-700 dark:bg-danger-950/40 dark:text-danger-300"
+          className="bg-danger-50 text-danger-700 dark:bg-danger-950/40 dark:text-danger-300 rounded-md px-3 py-2 text-sm"
           data-testid="bank-account-form-error"
         >
           {error}
@@ -389,7 +385,10 @@ function CommitteeCheckbox({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-2 text-sm" htmlFor="bank-account-committee">
+    <label
+      className="flex items-start gap-2 text-sm"
+      htmlFor="bank-account-committee"
+    >
       <input
         id="bank-account-committee"
         type="checkbox"
@@ -404,9 +403,9 @@ function CommitteeCheckbox({
           Tax-pot account
         </span>
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          Self-transfers to this account&apos;s identifiers auto-acquire
-          the consumption-tax-paid tag. Only one account can be the
-          tax-pot at a time — turning this on demotes the previous one.
+          Self-transfers to this account&apos;s identifiers auto-acquire the
+          consumption-tax-paid tag. Only one account can be the tax-pot at a
+          time — turning this on demotes the previous one.
         </span>
       </span>
     </label>
@@ -438,7 +437,7 @@ function IdentifiersFieldset({
 }: IdentifiersFieldsetProps) {
   return (
     <fieldset className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 dark:border-slate-800">
-      <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <legend className="px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
         Identifiers
       </legend>
       <IdentifierChips
@@ -466,7 +465,7 @@ function IdentifiersFieldset({
           type="button"
           onClick={onAddIdentifier}
           disabled={identifierInput.trim().length === 0 || identifierBusy}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid="bank-account-identifier-add"
         >
           <Plus size={14} aria-hidden />

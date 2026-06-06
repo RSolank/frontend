@@ -36,12 +36,16 @@ export function SettingsDropdown({
   onOpenChange,
 }: SettingsDropdownProps) {
   return (
-    <DropdownMenu.Root modal={false} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+    <DropdownMenu.Root
+      modal={false}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
+    >
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
           aria-label="Settings"
-          className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+          className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
         >
           <Settings aria-hidden="true" size={20} />
           <ChevronDown aria-hidden="true" size={14} />
@@ -57,7 +61,7 @@ export function SettingsDropdown({
             <DropdownMenu.Item key={link.to} asChild>
               <Link
                 to={link.to}
-                className="block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
+                className="data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300 block rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none dark:text-slate-200"
               >
                 {link.label}
               </Link>
@@ -94,13 +98,17 @@ export function UserDropdown({
   const { data: isAdmin = false } = useAdminGateQuery();
 
   return (
-    <DropdownMenu.Root modal={false} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+    <DropdownMenu.Root
+      modal={false}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
+    >
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
           aria-label="Account menu"
           title={email}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-accent-300 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+          className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
         >
           <ProfileImage
             profileImageUrl={user.profile_image_url ?? null}
@@ -126,7 +134,7 @@ export function UserDropdown({
           <DropdownMenu.Item asChild>
             <Link
               to="/account/profile"
-              className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
+              className="data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300 flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none dark:text-slate-200"
             >
               <UserRound aria-hidden="true" size={14} />
               Account
@@ -137,7 +145,7 @@ export function UserDropdown({
               <Link
                 to="/admin"
                 data-testid="topnav-admin-link"
-                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
+                className="data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300 flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-slate-700 no-underline outline-none dark:text-slate-200"
               >
                 <Settings aria-hidden="true" size={14} />
                 Admin tools
@@ -148,7 +156,7 @@ export function UserDropdown({
             <button
               type="button"
               onClick={() => void onLogout()}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:text-slate-200 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300"
+              className="data-[highlighted]:bg-accent-50 data-[highlighted]:text-accent-700 dark:data-[highlighted]:bg-accent-950/40 dark:data-[highlighted]:text-accent-300 flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-slate-700 outline-none dark:text-slate-200"
             >
               <LogOut aria-hidden="true" size={14} />
               Sign Out

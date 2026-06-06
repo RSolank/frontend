@@ -5,11 +5,7 @@ import { Modal } from '../../../shared/components/Modal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatBillDate } from '../api/billPeriod';
-import {
-  useBillQuery,
-  type BillDetail,
-  type BillItem,
-} from '../api/queries';
+import { useBillQuery, type BillDetail, type BillItem } from '../api/queries';
 
 import { BillStatusPill, isPayable, isUnpayable } from './billStatus';
 
@@ -191,7 +187,7 @@ function BillDetailFooter({
         <button
           type="button"
           onClick={() => onMarkUnpaid(bill.bill_id)}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-danger-300 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-danger-800 dark:hover:text-danger-300"
+          className="hover:border-danger-300 hover:text-danger-700 focus-visible:ring-danger-500 dark:hover:border-danger-800 dark:hover:text-danger-300 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           data-testid="bill-modal-mark-unpaid"
         >
           Reopen
@@ -244,7 +240,7 @@ function BillHeaderStrip({
       {showProgress && (
         <div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
           <div
-            className="h-full bg-success-500 dark:bg-success-400"
+            className="bg-success-500 dark:bg-success-400 h-full"
             style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
           />
         </div>
@@ -266,7 +262,7 @@ function TotalsRow({
         <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Total amount
         </div>
-        <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+        <div className="money mt-0.5 text-lg font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(bill.amount)}
         </div>
       </div>
@@ -274,7 +270,7 @@ function TotalsRow({
         <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Tax total
         </div>
-        <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+        <div className="money mt-0.5 text-lg font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(bill.totals?.tax_total)}
         </div>
       </div>
@@ -282,7 +278,7 @@ function TotalsRow({
         <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Penalty total
         </div>
-        <div className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 money dark:text-slate-100">
+        <div className="money mt-0.5 text-lg font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(bill.totals?.penalty_total)}
         </div>
       </div>
@@ -346,7 +342,7 @@ function PenaltyBreakdown({
                 {a.count} txn{a.count === 1 ? '' : 's'}
               </span>
             </div>
-            <span className="tabular-nums text-sm font-semibold text-slate-900 money dark:text-slate-100">
+            <span className="money text-sm font-semibold text-slate-900 tabular-nums dark:text-slate-100">
               {money(a.penalty)}
             </span>
           </li>
@@ -380,9 +376,9 @@ function ItemsTable({
         Transactions on this bill
       </h4>
       <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
-        <table className="min-w-[52rem] w-full text-sm">
+        <table className="w-full min-w-[52rem] text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800/60">
-            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wide dark:text-slate-400">
+            <tr className="text-left text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Beneficiary</th>
               <th className="px-3 py-2">Type</th>
@@ -409,13 +405,13 @@ function ItemsTable({
                 <td className="px-3 py-2 text-slate-600 capitalize dark:text-slate-300">
                   {it.txn_type}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900 money dark:text-slate-100">
+                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
                   {it.amount != null ? money(it.amount) : '—'}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900 money dark:text-slate-100">
+                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
                   {money(it.tax_amount)}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900 money dark:text-slate-100">
+                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
                   {money(it.penalty)}
                 </td>
                 <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
@@ -430,7 +426,7 @@ function ItemsTable({
                         onClick={() => onViewTransaction(it.txn_id as number)}
                         aria-label="View / edit transaction"
                         title="View / edit transaction"
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="focus-visible:ring-accent-500 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                       >
                         <MoreHorizontal aria-hidden size={16} />
                       </button>
@@ -462,17 +458,17 @@ function AdjustmentsTable({
 }) {
   return (
     <section data-testid="bill-adjustments">
-      <h4 className="mb-2 text-sm font-semibold text-warning-700 dark:text-warning-300">
+      <h4 className="text-warning-700 dark:text-warning-300 mb-2 text-sm font-semibold">
         Adjustments (from past bills)
       </h4>
       <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-        Edits to transactions from past finalized bills land here as
-        corrections — the original bill isn&apos;t mutated.
+        Edits to transactions from past finalized bills land here as corrections
+        — the original bill isn&apos;t mutated.
       </p>
-      <div className="overflow-x-auto rounded-md border border-warning-200 dark:border-warning-900/40">
-        <table className="min-w-[44rem] w-full text-sm">
+      <div className="border-warning-200 dark:border-warning-900/40 overflow-x-auto rounded-md border">
+        <table className="w-full min-w-[44rem] text-sm">
           <thead className="bg-warning-50 dark:bg-warning-950/30">
-            <tr className="text-left text-xs font-semibold text-warning-800 uppercase tracking-wide dark:text-warning-200">
+            <tr className="text-warning-800 dark:text-warning-200 text-left text-xs font-semibold tracking-wide uppercase">
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Source bill</th>
               <th className="px-3 py-2">Type</th>
@@ -480,9 +476,11 @@ function AdjustmentsTable({
               <th className="px-3 py-2 text-right">Penalty delta</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-warning-100 dark:divide-warning-900/40">
+          <tbody className="divide-warning-100 dark:divide-warning-900/40 divide-y">
             {items.map((it, idx) => (
-              <tr key={`adj-${it.txn_id ?? idx}-${it.adjustment_for_bill_id ?? 0}`}>
+              <tr
+                key={`adj-${it.txn_id ?? idx}-${it.adjustment_for_bill_id ?? 0}`}
+              >
                 <td className="px-3 py-2 whitespace-nowrap text-slate-700 dark:text-slate-200">
                   {formatBillDate(it.date, timezone)}
                 </td>
@@ -494,10 +492,10 @@ function AdjustmentsTable({
                 <td className="px-3 py-2 text-slate-600 capitalize dark:text-slate-300">
                   {it.txn_type}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900 money dark:text-slate-100">
+                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
                   {money(it.tax_amount)}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-slate-900 money dark:text-slate-100">
+                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
                   {money(it.penalty)}
                 </td>
               </tr>

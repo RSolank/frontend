@@ -37,7 +37,7 @@ function CemeteryTable({
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
+        <thead className="bg-slate-50 text-xs tracking-wider text-slate-500 uppercase dark:bg-slate-950/40 dark:text-slate-400">
           <tr>
             <th className="px-4 py-2 text-left font-medium">Email</th>
             <th className="px-4 py-2 text-left font-medium">Deleted</th>
@@ -60,17 +60,19 @@ function CemeteryTable({
           {rows.map((r) => (
             <tr
               key={r.deleted_user_id}
-              className="cursor-pointer text-slate-700 hover:bg-accent-50/60 dark:text-slate-300 dark:hover:bg-accent-950/30"
+              className="hover:bg-accent-50/60 dark:hover:bg-accent-950/30 cursor-pointer text-slate-700 dark:text-slate-300"
             >
               <td className="px-4 py-2">
                 <Link
                   to={`/admin/cemetery/${r.deleted_user_id}`}
-                  className="text-accent-600 hover:underline dark:text-accent-400"
+                  className="text-accent-600 dark:text-accent-400 hover:underline"
                 >
                   {r.email ?? '(no email)'}
                 </Link>
               </td>
-              <td className="px-4 py-2">{dateOrDash(r.deleted_at, operatorTz)}</td>
+              <td className="px-4 py-2">
+                {dateOrDash(r.deleted_at, operatorTz)}
+              </td>
               <td className="px-4 py-2">{r.country ?? '—'}</td>
               <td className="px-4 py-2 text-right tabular-nums">
                 {r.committee_bill_replicas_count}
@@ -122,8 +124,8 @@ export function AdminCemeteryPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-          <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+          <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
             Not available
           </h1>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -131,7 +133,7 @@ export function AdminCemeteryPage() {
           </p>
           <Link
             to="/dashboard"
-            className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
           >
             Back to dashboard
           </Link>
@@ -147,7 +149,7 @@ export function AdminCemeteryPage() {
       <header className="mb-4">
         <Link
           to="/admin"
-          className="text-xs font-medium text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400"
+          className="hover:text-accent-600 dark:hover:text-accent-400 text-xs font-medium text-slate-500 dark:text-slate-400"
         >
           ← Admin tools
         </Link>
@@ -155,8 +157,8 @@ export function AdminCemeteryPage() {
           Cemetery
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Post-deletion audit trail. Soft-delete grace already
-          elapsed; email is the only retained PII.
+          Post-deletion audit trail. Soft-delete grace already elapsed; email is
+          the only retained PII.
         </p>
       </header>
 
@@ -190,12 +192,14 @@ export function AdminCemeteryPage() {
           />
         </label>
         {isFetching && !isFetchingNextPage ? (
-          <span className="text-xs text-slate-500 dark:text-slate-400">Loading…</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Loading…
+          </span>
         ) : null}
       </div>
 
       {error ? (
-        <div className="rounded-md border border-danger-300 bg-danger-50/40 p-4 text-sm text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300 rounded-md border p-4 text-sm">
           Failed to load cemetery. Try refreshing.
         </div>
       ) : null}

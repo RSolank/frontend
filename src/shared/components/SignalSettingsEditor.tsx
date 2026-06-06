@@ -96,7 +96,7 @@ export function SignalSettingsEditor({
     <div className="space-y-5">
       {Array.from(grouped.entries()).map(([domain, entries]) => (
         <section key={domain} aria-label={domainLabel(domain)}>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h3 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             {domainLabel(domain)}
           </h3>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -138,8 +138,7 @@ function SignalRow({
   // User-side cannot toggle a system-disabled kind — the BE filter
   // would still strip those events. Admin-side keeps the toggle
   // active so the admin can override per-target-user.
-  const lockedByUserView =
-    viewerRole === 'user' && !entry.system_enabled;
+  const lockedByUserView = viewerRole === 'user' && !entry.system_enabled;
   return (
     <li className="py-3">
       <div className="flex items-center justify-between gap-3">
@@ -164,7 +163,7 @@ function SignalRow({
             checked={enabled}
             disabled={busy || lockedByUserView}
             onChange={(e) => onToggle(entry.kind, e.target.checked)}
-            className="h-4 w-4 cursor-pointer rounded border-slate-300 text-accent-600 focus:ring-accent-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+            className="text-accent-600 focus:ring-accent-500 h-4 w-4 cursor-pointer rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
           />
         </label>
       </div>
@@ -183,7 +182,7 @@ interface AdminTuneRowProps {
 function AdminTuneRow({ entry, onTune }: AdminTuneRowProps) {
   return (
     <details className="mt-2">
-      <summary className="cursor-pointer text-xs text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400">
+      <summary className="hover:text-accent-600 dark:hover:text-accent-400 cursor-pointer text-xs text-slate-500 dark:text-slate-400">
         Advanced tuning (system-wide)
       </summary>
       <div className="mt-2 flex flex-wrap items-end gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/40">
@@ -212,7 +211,7 @@ function AdminTuneRow({ entry, onTune }: AdminTuneRowProps) {
                 onTune(entry.kind, { rank_order: v });
               }
             }}
-            className="form-input !py-1 w-24 text-xs"
+            className="form-input w-24 !py-1 text-xs"
           />
         </label>
         <label className="inline-flex items-center gap-2 text-xs">
@@ -222,7 +221,7 @@ function AdminTuneRow({ entry, onTune }: AdminTuneRowProps) {
             onChange={(e) =>
               onTune(entry.kind, { system_enabled: e.target.checked })
             }
-            className="h-4 w-4 cursor-pointer rounded border-slate-300 text-accent-600 focus:ring-accent-500 dark:border-slate-700"
+            className="text-accent-600 focus:ring-accent-500 h-4 w-4 cursor-pointer rounded border-slate-300 dark:border-slate-700"
           />
           <span className="text-slate-700 dark:text-slate-300">
             System enabled

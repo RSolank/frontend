@@ -93,7 +93,8 @@ const populatedBudgetStatus = {
 // hand-typing dates that might fall outside the rolling boundary.
 function dayInWeek(offset: number): string {
   const [y, m, d] = WEEK_START.split('-').map(Number);
-  const noonUtc = Date.UTC(y as number, (m as number) - 1, d as number, 12) +
+  const noonUtc =
+    Date.UTC(y as number, (m as number) - 1, d as number, 12) +
     offset * 86_400_000;
   return new Date(noonUtc).toISOString();
 }
@@ -162,8 +163,20 @@ const populatedTracker = {
   projected_tax: 30,
   projected_penalty: 6,
   per_tag: [
-    { tag_id: 12, tag_name: 'Dining', txn_type: 'discretionary', tax_amount: 7, penalty: 2.5 },
-    { tag_id: 11, tag_name: 'Groceries', txn_type: 'essential', tax_amount: 5.5, penalty: 0 },
+    {
+      tag_id: 12,
+      tag_name: 'Dining',
+      txn_type: 'discretionary',
+      tax_amount: 7,
+      penalty: 2.5,
+    },
+    {
+      tag_id: 11,
+      tag_name: 'Groceries',
+      txn_type: 'essential',
+      tax_amount: 5.5,
+      penalty: 0,
+    },
   ],
 };
 
@@ -380,9 +393,8 @@ describe('DashboardPage', () => {
       // `features/taxation/api/queries.ts`). So the exact $-amount
       // floats with wall-clock day-of-week. Assert the slot rendered
       // with *some* dollar value rather than pinning a specific one.
-      const projectedText = within(card)
-        .getByTestId('dashboard-tax-projected')
-        .textContent ?? '';
+      const projectedText =
+        within(card).getByTestId('dashboard-tax-projected').textContent ?? '';
       expect(projectedText).toMatch(/\$\d+\.\d{2}/);
       // Top contributors list renders the two per_tag rows.
       const list = within(card).getByTestId('dashboard-tax-contributors');
@@ -393,7 +405,9 @@ describe('DashboardPage', () => {
     it('Secondary breach alerts widget renders only when there are breaches', async () => {
       renderWithProviders(<DashboardPage />);
       await waitFor(() =>
-        expect(screen.getByTestId('dashboard-breach-alerts')).toBeInTheDocument()
+        expect(
+          screen.getByTestId('dashboard-breach-alerts')
+        ).toBeInTheDocument()
       );
       const alerts = screen.getByTestId('dashboard-breach-alerts');
       // Dining is +$50 over its $200 limit.

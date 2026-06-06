@@ -2,9 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
-import {
-  createCategorizationRule,
-} from '../../beneficiaries/api/mutations';
+import { createCategorizationRule } from '../../beneficiaries/api/mutations';
 import {
   fetchBeneficiaries,
   type Beneficiary,
@@ -473,7 +471,7 @@ export function CategorizationRuleFormDialog({
               onClick={onRequestDelete}
               aria-label="Delete rule"
               title="Delete rule"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
+              className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
               <Trash2 aria-hidden size={16} />
             </button>
@@ -506,7 +504,9 @@ export function CategorizationRuleFormDialog({
             conflict={f.beneficiaryConflict}
             onSearchChange={f.handleBeneficiarySearchChange}
             onFocus={() => f.setBSearchFocused(true)}
-            onBlur={() => window.setTimeout(() => f.setBSearchFocused(false), 200)}
+            onBlur={() =>
+              window.setTimeout(() => f.setBSearchFocused(false), 200)
+            }
             onSelect={f.selectBeneficiaryById}
             onAddNew={() => {
               f.setCreateBeneficiaryOpen(true);
@@ -644,7 +644,7 @@ function BeneficiaryPicker({
           <button
             type="button"
             onMouseDown={onAddNew}
-            className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
+            className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
           >
             <span aria-hidden="true">＋</span>
             Add new beneficiary
@@ -661,7 +661,7 @@ function BeneficiaryPicker({
                 aria-selected={selectedId === b.uid}
                 tabIndex={0}
                 onMouseDown={() => onSelect(b.uid, b.name)}
-                className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-accent-50 dark:text-slate-200 dark:hover:bg-accent-950/40"
+                className="hover:bg-accent-50 dark:hover:bg-accent-950/40 cursor-pointer px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
               >
                 {b.name}
                 {b.aliases?.length > 0 && (
@@ -741,7 +741,7 @@ function TagPicker({
               <button
                 type="button"
                 onMouseDown={onAddNew}
-                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
+                className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
               >
                 <span aria-hidden="true">＋</span>
                 Add new tag
@@ -756,7 +756,7 @@ function TagPicker({
                     key={t.tag_id}
                     type="button"
                     onMouseDown={() => onPickTag(String(t.tag_id))}
-                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-accent-50 dark:text-slate-200 dark:hover:bg-accent-950/40"
+                    className="hover:bg-accent-50 dark:hover:bg-accent-950/40 block w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200"
                   >
                     {formatTagAssignment(t.tag_id, tags)}
                   </button>
@@ -782,14 +782,14 @@ function TagPicker({
               <span key={tid} className={`${chipBase} ${chipColor}`}>
                 {formatTagAssignment(tid, tags)}
                 {isPrimary ? (
-                  <span className="rounded-sm bg-success-700 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
+                  <span className="bg-success-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
                     Primary
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => onPromoteTag(tid)}
-                    className="rounded-sm bg-accent-600 px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase hover:bg-accent-700"
+                    className="bg-accent-600 hover:bg-accent-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase"
                   >
                     Set Primary
                   </button>

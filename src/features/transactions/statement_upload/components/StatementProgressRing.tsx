@@ -24,10 +24,7 @@ function fillToneClass(status: JobStatus): string {
   return 'text-accent-500 dark:text-accent-400';
 }
 
-function stageProgress(
-  status: JobStatus,
-  stage: JobStage | undefined
-): number {
+function stageProgress(status: JobStatus, stage: JobStage | undefined): number {
   if (status === 'COMPLETED') return 1;
   if (status === 'FAILED') {
     // Show the partial fill up to where it died so the failure has

@@ -58,7 +58,7 @@ function KeyValue({
 }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      <dt className="text-xs tracking-wider text-slate-500 uppercase dark:text-slate-400">
         {label}
       </dt>
       <dd className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">
@@ -127,7 +127,7 @@ function BillReplicasTable({
         Showing up to 10 rows. Full data is in the cemetery tables (SQL only).
       </p>
       <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <thead className="text-xs tracking-wider text-slate-500 uppercase dark:text-slate-400">
           <tr>
             <th className="py-2 pr-3 text-left font-medium">Bill ID</th>
             <th className="py-2 pr-3 text-left font-medium">Period</th>
@@ -142,7 +142,9 @@ function BillReplicasTable({
               key={b.original_bill_id}
               className="text-slate-700 dark:text-slate-300"
             >
-              <td className="py-2 pr-3 font-mono text-xs">{b.original_bill_id}</td>
+              <td className="py-2 pr-3 font-mono text-xs">
+                {b.original_bill_id}
+              </td>
               <td className="py-2 pr-3">
                 {formatPeriod(b.period_start, b.period_end, tz)}
               </td>
@@ -182,7 +184,7 @@ function ExpenseReplicasTable({
         Showing up to 10 rows. Full data is in the cemetery tables (SQL only).
       </p>
       <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <thead className="text-xs tracking-wider text-slate-500 uppercase dark:text-slate-400">
           <tr>
             <th className="py-2 pr-3 text-left font-medium">Period</th>
             <th className="py-2 pr-3 text-left font-medium">Type</th>
@@ -201,7 +203,9 @@ function ExpenseReplicasTable({
                 {formatPeriod(r.period_start, r.period_end, tz)}
               </td>
               <td className="py-2 pr-3">{r.period_type}</td>
-              <td className="py-2 pr-3 text-right tabular-nums">{r.total_count}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">
+                {r.total_count}
+              </td>
               <td className="py-2 pr-3 text-right tabular-nums">
                 {formatMoney(r.total_debit, cur, null)}
               </td>
@@ -224,12 +228,12 @@ function NotFoundPanel() {
           Headstone not found
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          No cemetery record with that ID. It may have been pre-cemetery
-          (the soft-delete grace window) or never existed.
+          No cemetery record with that ID. It may have been pre-cemetery (the
+          soft-delete grace window) or never existed.
         </p>
         <Link
           to="/admin/cemetery"
-          className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
         >
           ← Back to cemetery
         </Link>
@@ -241,8 +245,8 @@ function NotFoundPanel() {
 function NotAvailablePanel() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-        <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+      <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+        <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
           Not available
         </h1>
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -288,7 +292,7 @@ export function AdminCemeteryDetailPage() {
   if (error || !data) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="rounded-md border border-danger-300 bg-danger-50/40 p-4 text-sm text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300 rounded-md border p-4 text-sm">
           Failed to load headstone.
         </div>
       </div>
@@ -300,7 +304,7 @@ export function AdminCemeteryDetailPage() {
       <header>
         <Link
           to="/admin/cemetery"
-          className="text-xs font-medium text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400"
+          className="hover:text-accent-600 dark:hover:text-accent-400 text-xs font-medium text-slate-500 dark:text-slate-400"
         >
           ← Back to cemetery
         </Link>

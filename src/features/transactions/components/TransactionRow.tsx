@@ -61,7 +61,7 @@ export function TransactionRow({
     <li
       className={`group flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60 ${
         highlighted
-          ? 'bg-accent-50/60 ring-2 ring-accent-500 ring-inset dark:bg-accent-950/30'
+          ? 'bg-accent-50/60 ring-accent-500 dark:bg-accent-950/30 ring-2 ring-inset'
           : ''
       }`}
     >
@@ -115,7 +115,7 @@ export function TransactionRow({
           onClick={() => onOpen(txn.txn_id)}
           aria-label="View / edit transaction"
           title="View / edit"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="focus-visible:ring-accent-500 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <MoreHorizontal aria-hidden size={16} />
         </button>

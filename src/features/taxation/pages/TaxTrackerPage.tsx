@@ -79,9 +79,10 @@ export function TaxTrackerPage() {
   // Two confirm flows in flight: mark-paid (most common) and
   // mark-unpaid (the undo path). One `useState` covers both because
   // the dialog is single-instance — `mode` decides copy + handler.
-  const [confirmBill, setConfirmBill] = useState<
-    { bill_id: number; mode: 'paid' | 'unpaid' } | null
-  >(null);
+  const [confirmBill, setConfirmBill] = useState<{
+    bill_id: number;
+    mode: 'paid' | 'unpaid';
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -143,8 +144,8 @@ export function TaxTrackerPage() {
     if (bills.length === 0) {
       return (
         <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          No bills yet. Use <strong>Generate / refresh bills</strong>{' '}
-          above to generate bills for a past week.
+          No bills yet. Use <strong>Generate / refresh bills</strong> above to
+          generate bills for a past week.
         </div>
       );
     }
@@ -175,7 +176,7 @@ export function TaxTrackerPage() {
           <nav className="text-sm text-slate-500 dark:text-slate-400">
             <Link
               to="/dashboard"
-              className="text-accent-600 hover:underline dark:text-accent-300"
+              className="text-accent-600 dark:text-accent-300 hover:underline"
             >
               Dashboard
             </Link>
@@ -188,9 +189,8 @@ export function TaxTrackerPage() {
             Tax Tracker
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Watch tax accrue in the in-progress week, review penalty
-            breakdowns on finalized bills, and generate bills for past
-            weeks.
+            Watch tax accrue in the in-progress week, review penalty breakdowns
+            on finalized bills, and generate bills for past weeks.
           </p>
         </div>
         <button
@@ -312,7 +312,7 @@ function BillRow({
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <BillStatusPill status={bill.status} />
-          <span className="tabular-nums money">{money(total)}</span>
+          <span className="money tabular-nums">{money(total)}</span>
           {showProgress && (
             <span className="text-xs text-slate-500 dark:text-slate-400">
               · <span className="money tabular-nums">{money(paid)}</span> paid
@@ -322,7 +322,7 @@ function BillRow({
         {showProgress && (
           <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
-              className="h-full bg-success-500 dark:bg-success-400"
+              className="bg-success-500 dark:bg-success-400 h-full"
               style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
             />
           </div>
@@ -332,7 +332,7 @@ function BillRow({
         <button
           type="button"
           onClick={() => onView(bill.bill_id)}
-          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-accent-300 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-accent-700 dark:hover:text-accent-300"
+          className="hover:border-accent-300 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:border-accent-700 dark:hover:text-accent-300 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
         >
           View
         </button>
@@ -350,7 +350,7 @@ function BillRow({
           <button
             type="button"
             onClick={() => onMarkUnpaid(bill.bill_id)}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-danger-300 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-danger-800 dark:hover:text-danger-300"
+            className="hover:border-danger-300 hover:text-danger-700 focus-visible:ring-danger-500 dark:hover:border-danger-800 dark:hover:text-danger-300 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             data-testid={`bill-mark-unpaid-${bill.bill_id}`}
           >
             Reopen

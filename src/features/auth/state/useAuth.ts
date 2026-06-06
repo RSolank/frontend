@@ -231,12 +231,11 @@ export function useAuth() {
     } catch (err) {
       const e = err as ApiErrorShape;
       if (applyRetryAfter(e, 'registration', setError) === null) {
-        const msg =
-          Array.isArray(e.detail)
-            ? e.detail.map((d) => d.msg || d.loc?.join('.')).join(', ')
-            : (e.detail as string | undefined) ||
-              e.error ||
-              'Registration failed';
+        const msg = Array.isArray(e.detail)
+          ? e.detail.map((d) => d.msg || d.loc?.join('.')).join(', ')
+          : (e.detail as string | undefined) ||
+            e.error ||
+            'Registration failed';
         setError(msg);
       }
       throw err;

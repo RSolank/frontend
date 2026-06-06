@@ -26,18 +26,18 @@ npm run dev        # Vite dev server on :5173
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Dev server (`:5173`) |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Serve the production build |
-| `npm test` | Vitest run (happy-dom), coverage-free for speed |
-| `npm run coverage` | Vitest run with v8 coverage → `coverage/` |
-| `npm run typecheck` | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`) |
-| `npm run lint` | ESLint (gate: 0 errors / 0 warnings) |
-| `npm run format` / `format:check` | Prettier |
-| `npm run size` | `size-limit` bundle budgets |
-| `npm run gen:api` | Regenerate `src/shared/types/api.ts` from the backend OpenAPI schema |
+| Command                           | What it does                                                         |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`                     | Dev server (`:5173`)                                                 |
+| `npm run build`                   | Production build to `dist/`                                          |
+| `npm run preview`                 | Serve the production build                                           |
+| `npm test`                        | Vitest run (happy-dom), coverage-free for speed                      |
+| `npm run coverage`                | Vitest run with v8 coverage → `coverage/`                            |
+| `npm run typecheck`               | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`)                 |
+| `npm run lint`                    | ESLint (gate: 0 errors / 0 warnings)                                 |
+| `npm run format` / `format:check` | Prettier                                                             |
+| `npm run size`                    | `size-limit` bundle budgets                                          |
+| `npm run gen:api`                 | Regenerate `src/shared/types/api.ts` from the backend OpenAPI schema |
 
 ## Architecture
 

@@ -20,7 +20,9 @@ afterEach(() => {
 
 describe('StatementUploadDock', () => {
   test('renders nothing without an active job', () => {
-    renderWithProviders(<StatementUploadDock />, { initialEntries: ['/dashboard'] });
+    renderWithProviders(<StatementUploadDock />, {
+      initialEntries: ['/dashboard'],
+    });
     expect(screen.queryByTestId('statement-upload-dock')).toBeNull();
   });
 
@@ -54,10 +56,14 @@ describe('StatementUploadDock', () => {
       )
     );
     useStatementUploadJobStore.getState().setActiveJobId(22);
-    renderWithProviders(<StatementUploadDock />, { initialEntries: ['/dashboard'] });
+    renderWithProviders(<StatementUploadDock />, {
+      initialEntries: ['/dashboard'],
+    });
     // Wait for the file name to appear — that only happens once the
     // poll resolves with real data, past the initial isLoading branch.
-    await waitFor(() => expect(screen.getByText('bank.csv')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('bank.csv')).toBeInTheDocument()
+    );
     expect(screen.getByText('Parsing…')).toBeInTheDocument();
   });
 
@@ -83,7 +89,9 @@ describe('StatementUploadDock', () => {
       )
     );
     useStatementUploadJobStore.getState().setActiveJobId(33);
-    renderWithProviders(<StatementUploadDock />, { initialEntries: ['/dashboard'] });
+    renderWithProviders(<StatementUploadDock />, {
+      initialEntries: ['/dashboard'],
+    });
     await waitFor(() =>
       expect(
         screen.getByTestId('statement-upload-dock-failed')

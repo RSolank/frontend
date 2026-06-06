@@ -9,13 +9,10 @@ export function updateTaxationRuleRequest(
   txnType: string,
   payload: TaxationRuleFormInput
 ): Promise<{ rule: TaxationRule }> {
-  return apiFetch<{ rule: TaxationRule }>(
-    routes.taxation.ruleByType(txnType),
-    {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    }
-  );
+  return apiFetch<{ rule: TaxationRule }>(routes.taxation.ruleByType(txnType), {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
 // POST /api/consumption-tax/bills/generate — returns the IDs of any
@@ -23,13 +20,10 @@ export function updateTaxationRuleRequest(
 export function generateBillsRequest(
   payload: BillGenerateInput
 ): Promise<{ bill_ids: number[] }> {
-  return apiFetch<{ bill_ids: number[] }>(
-    routes.taxation.billGenerate(),
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }
-  );
+  return apiFetch<{ bill_ids: number[] }>(routes.taxation.billGenerate(), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 // BE Phase 2.6 — `pay_bill` removed; replaced by mark-paid / mark-unpaid

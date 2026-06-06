@@ -95,9 +95,7 @@ export function emptyBankAccountForm(
   };
 }
 
-export function bankAccountToForm(
-  account: BankAccount
-): BankAccountFormInput {
+export function bankAccountToForm(account: BankAccount): BankAccountFormInput {
   return {
     label: account.label,
     account_type: account.account_type,

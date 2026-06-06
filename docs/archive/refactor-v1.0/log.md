@@ -1,8 +1,8 @@
 # Frontend feature-architecture refactor — log (v1.0)
 
-> The *how* of the v1.0 frontend refactor: the chronological record of every
+> The _how_ of the v1.0 frontend refactor: the chronological record of every
 > named-batch commit, with dates, commit SHAs, mid-flight pivots, and the
-> handoff notes that carried context between sessions. For the durable *what*
+> handoff notes that carried context between sessions. For the durable _what_
 > — goal, locked decisions, final shape, conventions, deferred follow-ups —
 > see [`summary.md`](summary.md).
 
@@ -123,8 +123,8 @@ no letter scheme, no renumbering of pushed history.
   accessibility stores + sidebar polish.**
 - **`9c63442` (05-28) — Batch 9.1: polish + Help + Indian-number grouping.**
 - **`02fd7b3` (05-28) — Batch 9.5: ExpenseTracker anomaly badges + Dashboard
-  week-by-category.** *(`9.2/9.3/9.4` were a reserved-and-unused gap — a
-  window held for any 9.x polish that might surface; none did.)*
+  week-by-category.** _(`9.2/9.3/9.4` were a reserved-and-unused gap — a
+  window held for any 9.x polish that might surface; none did.)_
 - **`2efc4d5` (05-29) — Batch 9.6: Calendar view + filter overhaul.** **Locked
   three project-wide conventions:** ISO Mon–Sun weeks (in the user's
   timezone), the DetailModal pattern, and `SearchableSelect` for large
@@ -132,10 +132,10 @@ no letter scheme, no renumbering of pushed history.
 - **`2d8ed84` (05-29) — Batch 9.8: cross-feature convention enforcement +
   DetailModal seamless transition + folded audits.** Reaffirmed the
   seamless read→edit transition (form always rendered, `readOnly` inputs +
-  locked-field banner). *(`9.7`, recurring-transactions UI, was **dropped**
+  locked-field banner). _(`9.7`, recurring-transactions UI, was **dropped**
   here to the post-refactor backlog — it gated on backend `T-recurring`, and
   keeping it would have coupled the refactor's critical path to backend
-  timing.)*
+  timing.)_
 
 ## 2026-05-30 → 05-31 — Batch 10 expands into a 10.x ship-it series
 
@@ -162,7 +162,7 @@ was established.
   `src/pages` deleted.
 - **`6fccb28` — 10.7: feature-boundary groundwork.** `metadata` dissolved into
   `shared/` (`shared/api/referenceData.ts` + `shared/components/{Country,
-  Currency,Timezone}Select`); `hydratePreferences` moved to
+Currency,Timezone}Select`); `hydratePreferences` moved to
   `features/users/api/`; `eslint-plugin-boundaries` adopted at warn.
 - **`a59a251` — 10.8: safe lint remediation.**
 - **`eff4d30` — 10.9: enforce feature boundaries** at **error** with 9
@@ -246,19 +246,19 @@ focused post-refactor exercise; no config was changed. Recorded here so a
 future session can execute it confidently rather than re-investigating. This is
 distinct from the public-barrel refinement noted above.
 
-**Why it exists.** `eslint-plugin-boundaries@6.0.2` emits three *stderr*
+**Why it exists.** `eslint-plugin-boundaries@6.0.2` emits three _stderr_
 deprecation warnings against the current `eslint.config.js` (not counted lint
 problems — the config works correctly as-is): (1) the `boundaries/element-types`
 rule name is deprecated in favour of `boundaries/dependencies`; (2) the legacy
 tuple-with-captures selector syntax; (3) the legacy `${...}` template syntax in
 favour of `{{...}}`. The payoff is purely cosmetic (silence the noise +
 future-proof for v7). The risk is asymmetric: a mis-translated selector can
-make a rule match *nothing*, so lint goes green because the boundary is
+make a rule match _nothing_, so lint goes green because the boundary is
 **silently de-enforced**, not because it's satisfied — hence the deferral and
 the mandatory probe below.
 
 **Resolved schema** (from the installed type defs): `ElementTypesRule` and
-`DependenciesRule` are the *same shape* — only the rule name changed.
+`DependenciesRule` are the _same shape_ — only the rule name changed.
 Plain-string selectors (`'shared'`, `'app'`, `'feature'`, `'feature-api'`) are
 **not** deprecated. The deprecated form is the tuple
 `[type, capturesObj]` → replace with an object `{ type, <capture> }`. Legacy
@@ -266,6 +266,7 @@ Plain-string selectors (`'shared'`, `'app'`, `'feature'`, `'feature-api'`) are
 
 **Exact translation of the current config** (the `boundaries/element-types`
 block):
+
 - Rename the rule key `boundaries/element-types` → `boundaries/dependencies`.
 - `default: 'disallow'` and the `rules: [...]` array structure: unchanged.
 - Plain-string selectors stay verbatim.

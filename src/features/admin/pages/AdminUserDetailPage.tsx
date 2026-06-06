@@ -46,7 +46,7 @@ function NotFoundPanel() {
         </p>
         <Link
           to="/admin/users"
-          className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
         >
           ← Back to user list
         </Link>
@@ -58,8 +58,8 @@ function NotFoundPanel() {
 function NotAvailablePanel() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-        <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+      <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+        <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
           Not available
         </h1>
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -67,7 +67,7 @@ function NotAvailablePanel() {
         </p>
         <Link
           to="/dashboard"
-          className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
         >
           Back to dashboard
         </Link>
@@ -128,7 +128,7 @@ function KeyValue({
 }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      <dt className="text-xs tracking-wider text-slate-500 uppercase dark:text-slate-400">
         {label}
       </dt>
       <dd className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">
@@ -165,20 +165,12 @@ function IdentitySection({ user }: { user: AdminUserDetail }) {
 function statusTone(user: AdminUserDetail) {
   if (user.cemetery_status || user.deleted_at)
     return { tone: 'danger' as const, label: 'Pending deletion' };
-  if (user.disabled_at)
-    return { tone: 'danger' as const, label: 'Disabled' };
-  if (user.locked_until)
-    return { tone: 'warning' as const, label: 'Locked' };
+  if (user.disabled_at) return { tone: 'danger' as const, label: 'Disabled' };
+  if (user.locked_until) return { tone: 'warning' as const, label: 'Locked' };
   return { tone: 'success' as const, label: 'Active' };
 }
 
-function StatusSection({
-  user,
-  tz,
-}: {
-  user: AdminUserDetail;
-  tz: string;
-}) {
+function StatusSection({ user, tz }: { user: AdminUserDetail; tz: string }) {
   const status = statusTone(user);
   return (
     <Section title="Status">
@@ -198,13 +190,9 @@ function StatusSection({
           {formatDate(user.registered_at, tz, { dateStyle: 'medium' })}
         </KeyValue>
         <KeyValue label="Last active">
-          {user.last_active_at
-            ? formatDateTime(user.last_active_at, tz)
-            : '—'}
+          {user.last_active_at ? formatDateTime(user.last_active_at, tz) : '—'}
         </KeyValue>
-        <KeyValue label="Lock until">
-          {user.locked_until ?? '—'}
-        </KeyValue>
+        <KeyValue label="Lock until">{user.locked_until ?? '—'}</KeyValue>
         {user.disabled_at ? (
           <KeyValue label="Disabled since">
             {formatDateTime(user.disabled_at, tz)}
@@ -236,7 +224,7 @@ function SessionsSection({
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-            <thead className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <thead className="text-xs tracking-wider text-slate-500 uppercase dark:text-slate-400">
               <tr>
                 <th className="py-2 pr-3 text-left font-medium">Device</th>
                 <th className="py-2 pr-3 text-left font-medium">IP</th>
@@ -247,11 +235,20 @@ function SessionsSection({
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {rows.map((s) => (
-                <tr key={s.session_id} className="text-slate-700 dark:text-slate-300">
+                <tr
+                  key={s.session_id}
+                  className="text-slate-700 dark:text-slate-300"
+                >
                   <td className="py-2 pr-3">{s.device_summary || '—'}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{s.ip_address}</td>
-                  <td className="py-2 pr-3">{formatDateTime(s.created_at, tz)}</td>
-                  <td className="py-2 pr-3">{formatDateTime(s.expires_at, tz)}</td>
+                  <td className="py-2 pr-3 font-mono text-xs">
+                    {s.ip_address}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {formatDateTime(s.created_at, tz)}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {formatDateTime(s.expires_at, tz)}
+                  </td>
                   <td className="py-2 pr-3">
                     {s.is_locked ? (
                       <StatusChip tone="danger">locked</StatusChip>
@@ -269,13 +266,7 @@ function SessionsSection({
   );
 }
 
-function DevicesSection({
-  rows,
-  tz,
-}: {
-  rows: AdminDeviceRow[];
-  tz: string;
-}) {
+function DevicesSection({ rows, tz }: { rows: AdminDeviceRow[]; tz: string }) {
   return (
     <Section title="Known devices">
       {rows.length === 0 ? (
@@ -366,9 +357,10 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
   const [lockOpen, setLockOpen] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [forceLogoutOpen, setForceLogoutOpen] = useState(false);
-  const [status, setStatus] = useState<
-    { tone: 'success' | 'danger'; text: string } | null
-  >(null);
+  const [status, setStatus] = useState<{
+    tone: 'success' | 'danger';
+    text: string;
+  } | null>(null);
 
   function doLock(reason: string | undefined) {
     lockMutation.mutate(reason, {
@@ -377,7 +369,10 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
         setStatus({ tone: 'success', text: 'Account locked.' });
       },
       onError: (err) =>
-        setStatus({ tone: 'danger', text: apiErrorMessage(err, 'Lock failed.') }),
+        setStatus({
+          tone: 'danger',
+          text: apiErrorMessage(err, 'Lock failed.'),
+        }),
     });
   }
 
@@ -388,7 +383,10 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
         setStatus({ tone: 'success', text: 'Account unlocked.' });
       },
       onError: (err) =>
-        setStatus({ tone: 'danger', text: apiErrorMessage(err, 'Unlock failed.') }),
+        setStatus({
+          tone: 'danger',
+          text: apiErrorMessage(err, 'Unlock failed.'),
+        }),
     });
   }
 
@@ -423,7 +421,7 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
         <button
           type="button"
           onClick={() => setLockOpen(true)}
-          className="inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none"
+          className="bg-danger-600 hover:bg-danger-700 focus-visible:ring-danger-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           Lock account
         </button>
@@ -432,7 +430,7 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
         type="button"
         onClick={() => setForceLogoutOpen(true)}
         disabled={user.session_count === 0}
-        className="inline-flex items-center justify-center rounded-md border border-danger-300 bg-white px-4 py-2 text-sm font-semibold text-danger-700 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-danger-900/60 dark:bg-slate-900 dark:text-danger-300 dark:hover:bg-danger-950/40"
+        className="border-danger-300 text-danger-700 hover:bg-danger-50 dark:border-danger-900/60 dark:text-danger-300 dark:hover:bg-danger-950/40 inline-flex items-center justify-center rounded-md border bg-white px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-900"
       >
         Force logout all sessions
       </button>
@@ -441,8 +439,8 @@ function ActionBar({ user }: { user: AdminUserDetail }) {
           role="status"
           className={
             status.tone === 'success'
-              ? 'text-sm text-success-700 dark:text-success-300'
-              : 'text-sm text-danger-700 dark:text-danger-300'
+              ? 'text-success-700 dark:text-success-300 text-sm'
+              : 'text-danger-700 dark:text-danger-300 text-sm'
           }
         >
           {status.text}
@@ -486,9 +484,7 @@ function StatsSection({ stats }: { stats: AdminUserDetail['stats'] }) {
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <KeyValue label="Transactions">{stats.total_transactions}</KeyValue>
         <KeyValue label="Budgets">{stats.total_budgets}</KeyValue>
-        <KeyValue label="Beneficiaries">
-          {stats.total_beneficiaries}
-        </KeyValue>
+        <KeyValue label="Beneficiaries">{stats.total_beneficiaries}</KeyValue>
         <KeyValue label="Active recurring">{stats.active_recurring}</KeyValue>
       </dl>
     </Section>
@@ -536,22 +532,20 @@ function SignalSettingsSection({ userId }: { userId: number }) {
   return (
     <Section title="Signal settings">
       <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
-        Toggle which feed kinds reach this user. System-wide tunables
-        (priority / rank / platform enable) live under each row&apos;s
-        advanced disclosure.
+        Toggle which feed kinds reach this user. System-wide tunables (priority
+        / rank / platform enable) live under each row&apos;s advanced
+        disclosure.
       </p>
       {status ? (
         <p
           role="status"
-          className="mb-3 text-sm text-danger-700 dark:text-danger-300"
+          className="text-danger-700 dark:text-danger-300 mb-3 text-sm"
         >
           {status}
         </p>
       ) : null}
       {settings.isLoading || catalog.isLoading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Loading…
-        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
       ) : (
         <SignalSettingsEditor
           catalog={catalog.data}
@@ -608,7 +602,7 @@ export function AdminUserDetailPage() {
   if (error || !data) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="rounded-md border border-danger-300 bg-danger-50/40 p-4 text-sm text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300 rounded-md border p-4 text-sm">
           Failed to load user.
         </div>
       </div>
@@ -620,7 +614,7 @@ export function AdminUserDetailPage() {
       <header>
         <Link
           to="/admin/users"
-          className="text-xs font-medium text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400"
+          className="hover:text-accent-600 dark:hover:text-accent-400 text-xs font-medium text-slate-500 dark:text-slate-400"
         >
           ← Back to user list
         </Link>

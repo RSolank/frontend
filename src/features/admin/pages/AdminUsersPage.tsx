@@ -5,10 +5,7 @@ import { useAdminGateQuery } from '../../../shared/api/adminGate';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
-import {
-  useAdminUsersInfiniteQuery,
-  type AdminUserRow,
-} from '../api/users';
+import { useAdminUsersInfiniteQuery, type AdminUserRow } from '../api/users';
 
 // User inventory — T-admin A2. Sectioned list backed by the cursor-
 // paginated `GET /api/v1/admin/users` endpoint. Search + soft-delete
@@ -49,8 +46,7 @@ const TONE_CLASSES: Record<StatusChip['tone'], string> = {
     'bg-warning-100 text-warning-800 dark:bg-warning-950/40 dark:text-warning-300',
   danger:
     'bg-danger-100 text-danger-800 dark:bg-danger-950/40 dark:text-danger-300',
-  neutral:
-    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 function StatusBadge({ chip }: { chip: StatusChip }) {
@@ -82,7 +78,7 @@ function UserTable({ rows, isLoading, emptyHint, operatorTz }: UserTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
+        <thead className="bg-slate-50 text-xs tracking-wider text-slate-500 uppercase dark:bg-slate-950/40 dark:text-slate-400">
           <tr>
             <th scope="col" className="px-4 py-2 text-left font-medium">
               Email
@@ -124,12 +120,12 @@ function UserTable({ rows, isLoading, emptyHint, operatorTz }: UserTableProps) {
           {rows.map((u) => (
             <tr
               key={u.user_id}
-              className="cursor-pointer text-slate-700 hover:bg-accent-50/60 dark:text-slate-300 dark:hover:bg-accent-950/30"
+              className="hover:bg-accent-50/60 dark:hover:bg-accent-950/30 cursor-pointer text-slate-700 dark:text-slate-300"
             >
               <td className="px-4 py-2">
                 <Link
                   to={`/admin/users/${u.user_id}`}
-                  className="text-accent-600 hover:underline dark:text-accent-400"
+                  className="text-accent-600 dark:text-accent-400 hover:underline"
                 >
                   {u.email}
                 </Link>
@@ -137,7 +133,7 @@ function UserTable({ rows, isLoading, emptyHint, operatorTz }: UserTableProps) {
               <td className="px-4 py-2">{u.full_name}</td>
               <td className="px-4 py-2">
                 {u.role === 'admin' ? (
-                  <span className="inline-flex items-center rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800 dark:bg-accent-950/40 dark:text-accent-300">
+                  <span className="bg-accent-100 text-accent-800 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
                     admin
                   </span>
                 ) : (
@@ -146,19 +142,29 @@ function UserTable({ rows, isLoading, emptyHint, operatorTz }: UserTableProps) {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2">{dateOrDash(u.registered_at, operatorTz)}</td>
-              <td className="px-4 py-2">{dateOrDash(u.last_active_at, operatorTz)}</td>
+              <td className="px-4 py-2">
+                {dateOrDash(u.registered_at, operatorTz)}
+              </td>
+              <td className="px-4 py-2">
+                {dateOrDash(u.last_active_at, operatorTz)}
+              </td>
               <td className="px-4 py-2">
                 <StatusBadge chip={deriveStatus(u)} />
               </td>
               <td className="px-4 py-2 text-xs">
                 {u.two_factor_enabled ? (
-                  <span className="text-success-700 dark:text-success-400">on</span>
+                  <span className="text-success-700 dark:text-success-400">
+                    on
+                  </span>
                 ) : (
-                  <span className="text-slate-400 dark:text-slate-500">off</span>
+                  <span className="text-slate-400 dark:text-slate-500">
+                    off
+                  </span>
                 )}
               </td>
-              <td className="px-4 py-2 text-right tabular-nums">{u.session_count}</td>
+              <td className="px-4 py-2 text-right tabular-nums">
+                {u.session_count}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -198,8 +204,8 @@ export function AdminUsersPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-          <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+          <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
             Not available
           </h1>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -207,7 +213,7 @@ export function AdminUsersPage() {
           </p>
           <Link
             to="/dashboard"
-            className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
           >
             Back to dashboard
           </Link>
@@ -224,7 +230,7 @@ export function AdminUsersPage() {
         <div>
           <Link
             to="/admin"
-            className="text-xs font-medium text-slate-500 hover:text-accent-600 dark:text-slate-400 dark:hover:text-accent-400"
+            className="hover:text-accent-600 dark:hover:text-accent-400 text-xs font-medium text-slate-500 dark:text-slate-400"
           >
             ← Admin tools
           </Link>
@@ -262,7 +268,7 @@ export function AdminUsersPage() {
       </div>
 
       {error ? (
-        <div className="rounded-md border border-danger-300 bg-danger-50/40 p-4 text-sm text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 text-danger-700 dark:border-danger-900/60 dark:bg-danger-950/20 dark:text-danger-300 rounded-md border p-4 text-sm">
           Failed to load users. Try refreshing.
         </div>
       ) : null}

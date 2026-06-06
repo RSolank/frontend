@@ -71,21 +71,18 @@ describe('SessionList', () => {
       http.get(`${API_BASE}/auth/sessions`, () =>
         HttpResponse.json(FIXTURE_SESSIONS)
       ),
-      http.delete(
-        `${API_BASE}/auth/sessions/:sessionId`,
-        ({ params }) => {
-          deletedId = Number(params.sessionId);
-          // Subsequent fetch returns the trimmed list.
-          server.use(
-            http.get(`${API_BASE}/auth/sessions`, () =>
-              HttpResponse.json(
-                FIXTURE_SESSIONS.filter((s) => s.session_id !== deletedId)
-              )
+      http.delete(`${API_BASE}/auth/sessions/:sessionId`, ({ params }) => {
+        deletedId = Number(params.sessionId);
+        // Subsequent fetch returns the trimmed list.
+        server.use(
+          http.get(`${API_BASE}/auth/sessions`, () =>
+            HttpResponse.json(
+              FIXTURE_SESSIONS.filter((s) => s.session_id !== deletedId)
             )
-          );
-          return new HttpResponse(null, { status: 204 });
-        }
-      )
+          )
+        );
+        return new HttpResponse(null, { status: 204 });
+      })
     );
 
     renderWithProviders(<SessionList />);
@@ -94,9 +91,7 @@ describe('SessionList', () => {
     fireEvent.click(screen.getByTestId('revoke-session-2'));
 
     // Confirm dialog ("Revoke this session?") opens.
-    expect(
-      await screen.findByText('Revoke this session?')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Revoke this session?')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
 
     await waitFor(() => {
@@ -121,16 +116,12 @@ describe('SessionList', () => {
     await screen.findByTestId('revoke-session-1');
     fireEvent.click(screen.getByTestId('revoke-session-1'));
 
-    expect(
-      await screen.findByText('Revoke this device?')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Revoke this device?')).toBeInTheDocument();
   });
 
   it('renders an empty-state message when there are no sessions', async () => {
     // Default handler returns `[]`.
     renderWithProviders(<SessionList />);
-    expect(
-      await screen.findByText(/No active sessions/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/No active sessions/i)).toBeInTheDocument();
   });
 });

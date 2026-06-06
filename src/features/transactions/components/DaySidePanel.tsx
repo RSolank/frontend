@@ -87,7 +87,7 @@ export function DaySidePanel({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in dark:bg-slate-950/60" />
+        <Dialog.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm dark:bg-slate-950/60" />
         <Dialog.Content
           // Side panel: right edge on ≥ sm, bottom-sheet on < sm.
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-xl bg-white shadow-xl outline-none sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-md sm:rounded-none sm:rounded-l-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800"
@@ -102,14 +102,15 @@ export function DaySidePanel({
                   {transactions.length}{' '}
                   {transactions.length === 1 ? 'transaction' : 'transactions'}
                   {' · '}
-                  <span className="money font-medium text-danger-600 dark:text-danger-400">
+                  <span className="money text-danger-600 dark:text-danger-400 font-medium">
                     -{formatMoney(debitTotal, currencyCode, currencySymbol)}
                   </span>
                   {creditTotal > 0 && (
                     <>
                       {' · '}
-                      <span className="money font-medium text-success-600 dark:text-success-400">
-                        +{formatMoney(creditTotal, currencyCode, currencySymbol)}
+                      <span className="money text-success-600 dark:text-success-400 font-medium">
+                        +
+                        {formatMoney(creditTotal, currencyCode, currencySymbol)}
                       </span>
                     </>
                   )}
@@ -125,7 +126,7 @@ export function DaySidePanel({
               <button
                 type="button"
                 aria-label="Close"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X aria-hidden size={18} />
               </button>
@@ -203,7 +204,7 @@ export function DaySidePanel({
                         <button
                           type="button"
                           onClick={() => onEdit(t.txn_id)}
-                          className="text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+                          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-semibold"
                         >
                           Edit
                         </button>

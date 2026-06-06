@@ -81,9 +81,7 @@ function installHandlers() {
     // the deleted route.
     http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
-        currencies: [
-          { code: 'USD', label: 'USD - US Dollar', symbol: '$' },
-        ],
+        currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
     )
   );
@@ -110,7 +108,9 @@ describe('TaxTrackerPage', () => {
     // dd/Mon/yyyy default per the 2026-05-26 lock.
     expect(billed).toHaveTextContent('15/Feb/2026');
     expect(billed).toHaveTextContent('21/Feb/2026');
-    expect(within(billed).getByTestId('bill-status-BILLED')).toBeInTheDocument();
+    expect(
+      within(billed).getByTestId('bill-status-BILLED')
+    ).toBeInTheDocument();
     expect(billed).toHaveTextContent('$87.50');
 
     // Action cluster: View + Mark paid on the same line for BILLED bills.
@@ -229,27 +229,25 @@ describe('TaxTrackerPage', () => {
 
   it('renders adjustment rows in a separate section in the detail modal', async () => {
     server.use(
-      http.get(
-        `${API_BASE}/consumption-tax/bills/101`,
-        () =>
-          HttpResponse.json({
-            ...billDetailResponse,
-            items: [
-              ...billDetailResponse.items,
-              {
-                txn_id: null,
-                date: '2026-02-20',
-                beneficiary: null,
-                txn_type: 'discretionary',
-                amount: null,
-                debit_credit: null,
-                tax_amount: 5.0,
-                penalty: 1.0,
-                is_adjustment: true,
-                adjustment_for_bill_id: 95,
-              },
-            ],
-          })
+      http.get(`${API_BASE}/consumption-tax/bills/101`, () =>
+        HttpResponse.json({
+          ...billDetailResponse,
+          items: [
+            ...billDetailResponse.items,
+            {
+              txn_id: null,
+              date: '2026-02-20',
+              beneficiary: null,
+              txn_type: 'discretionary',
+              amount: null,
+              debit_credit: null,
+              tax_amount: 5.0,
+              penalty: 1.0,
+              is_adjustment: true,
+              adjustment_for_bill_id: 95,
+            },
+          ],
+        })
       )
     );
 

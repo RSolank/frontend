@@ -151,7 +151,6 @@ function coerceParserOption(raw: unknown): ParserOption | null {
   return {
     key: r.key,
     label: typeof r.label === 'string' ? r.label : r.key,
-    source_type:
-      typeof r.source_type === 'string' ? r.source_type : r.key,
+    source_type: typeof r.source_type === 'string' ? r.source_type : r.key,
   };
 }

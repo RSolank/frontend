@@ -121,7 +121,7 @@ export function StatementUploadDock() {
             )
           }
           data-testid="statement-upload-dock-suggest-account"
-          className="text-left text-xs font-semibold text-warning-700 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:outline-none dark:text-warning-300"
+          className="text-warning-700 focus-visible:ring-warning-500 dark:text-warning-300 text-left text-xs font-semibold underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:outline-none"
         >
           Register this account →
         </button>
@@ -140,7 +140,7 @@ function DockShell({ children }: { children: React.ReactNode }) {
     <aside
       data-testid="statement-upload-dock"
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-40 flex w-72 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900"
+      className="fixed right-4 bottom-4 z-40 flex w-72 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900"
     >
       {children}
     </aside>
@@ -160,7 +160,7 @@ function DockBody({
 }) {
   if (status === 'COMPLETED')
     return (
-      <p className="flex items-center gap-1.5 text-xs text-success-700 dark:text-success-300">
+      <p className="text-success-700 dark:text-success-300 flex items-center gap-1.5 text-xs">
         <CheckCircle2 size={14} aria-hidden />
         Inserted {txnsInserted ?? 0} transactions.
       </p>
@@ -169,7 +169,7 @@ function DockBody({
     return (
       <p
         data-testid="statement-upload-dock-failed"
-        className="flex items-start gap-1.5 text-xs text-danger-700 dark:text-danger-300"
+        className="text-danger-700 dark:text-danger-300 flex items-start gap-1.5 text-xs"
       >
         <StatementProgressRing status={status} stage={stage} size={14} />
         <span>Upload failed{errorDetail ? `: ${errorDetail}` : '.'}</span>
@@ -208,7 +208,7 @@ function DockActions({
       <button
         type="button"
         onClick={onView}
-        className="text-xs font-medium text-accent-600 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-accent-400 dark:hover:text-accent-300"
+        className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
         data-testid="statement-upload-dock-open"
       >
         View
@@ -218,7 +218,7 @@ function DockActions({
         onClick={onDismiss}
         title={isTerminalStatus(status) ? 'Clear' : 'Hide'}
         aria-label={isTerminalStatus(status) ? 'Clear' : 'Hide'}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="focus-visible:ring-accent-500 inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         data-testid="statement-upload-dock-dismiss"
       >
         <X size={14} />

@@ -29,8 +29,8 @@ or modify."
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
+| Path         | Component                 | Notes                                                                                        |
+| ------------ | ------------------------- | -------------------------------------------------------------------------------------------- |
 | `/recurring` | `pages/RecurringPage.tsx` | Lazy-loaded. Two tabs (Templates / Upcoming-30d), inference-first bucketing under Templates. |
 
 Routes are exported from
@@ -40,11 +40,11 @@ by `protectedRoutes()` like every authenticated surface).
 
 ## Status semantics (BE 3-state machine)
 
-| BE value | UI label | Meaning | Confirm action available? |
-|---|---|---|---|
-| `candidate` | **Detected** | Worker spotted the pattern; user has never confirmed. | ✅ (PATCH `status: 'locked'`) |
-| `review` | **Needs attention** | Anomaly streak (missed or amount-drifted bills) crossed the worker's threshold; engine wants user acknowledgement. | ✅ |
-| `locked` | **Confirmed** | User-confirmed or user-authored. Worker forecasts + reconciles but never mutates fields. | — |
+| BE value    | UI label            | Meaning                                                                                                            | Confirm action available?     |
+| ----------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| `candidate` | **Detected**        | Worker spotted the pattern; user has never confirmed.                                                              | ✅ (PATCH `status: 'locked'`) |
+| `review`    | **Needs attention** | Anomaly streak (missed or amount-drifted bills) crossed the worker's threshold; engine wants user acknowledgement. | ✅                            |
+| `locked`    | **Confirmed**       | User-confirmed or user-authored. Worker forecasts + reconciles but never mutates fields.                           | —                             |
 
 `active` + status together gate forecasting: only
 `active=true AND status in {locked, review}` produces bills. The
@@ -53,32 +53,32 @@ soft-dismissed by DELETE, recoverable via PATCH `active: true`.
 
 ## Components
 
-| File | Purpose |
-|---|---|
-| `pages/RecurringPage.tsx` | Two-tab management surface. Templates tab buckets by status (Needs attention → Detected → Confirmed → Inactive); Upcoming tab renders the 30-day forecast list. "+ Add manually" in the header opens `RecurringFormDialog`. |
-| `components/RecurringTemplateRow.tsx` | One row per template — direction icon + name + status chip + Inactive chip + amount / cadence / next-due / occurrence count + Confirm / Edit / Dismiss actions. Confirm is hidden on `locked` rows. |
-| `components/RecurringStatusChip.tsx` | Maps BE statuses to user-facing labels with tone-appropriate Tailwind classes (slate / amber / emerald). Title-attribute tooltip exposes the inference framing for power users. |
-| `components/RecurringFormDialog.tsx` | Add + edit dialog. View-model hook (`useRecurringForm`) owns dirtiness + save flow. SearchableSelect for beneficiary; cadence-aware day-of-week / day-of-month anchor field. Trash button in the header per the Remove-in-edit convention. `confirmOnDirty` guards stray closes. |
-| `components/CadenceAnchorField.tsx` | Cadence-driven calendar-anchor input: WEEKLY → day-of-week dropdown (ISO 0=Mon … 6=Sun); MONTHLY/YEARLY → day-of-month number input. |
-| `components/UpcomingBillsList.tsx` | Shared list view for the page's Upcoming tab. Pulls `useRecurringUpcomingQuery(days)`, joins to `useBeneficiariesQuery()` for names, renders one row per bill with debit/credit sign + amount + due date. |
+| File                                  | Purpose                                                                                                                                                                                                                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages/RecurringPage.tsx`             | Two-tab management surface. Templates tab buckets by status (Needs attention → Detected → Confirmed → Inactive); Upcoming tab renders the 30-day forecast list. "+ Add manually" in the header opens `RecurringFormDialog`.                                                      |
+| `components/RecurringTemplateRow.tsx` | One row per template — direction icon + name + status chip + Inactive chip + amount / cadence / next-due / occurrence count + Confirm / Edit / Dismiss actions. Confirm is hidden on `locked` rows.                                                                              |
+| `components/RecurringStatusChip.tsx`  | Maps BE statuses to user-facing labels with tone-appropriate Tailwind classes (slate / amber / emerald). Title-attribute tooltip exposes the inference framing for power users.                                                                                                  |
+| `components/RecurringFormDialog.tsx`  | Add + edit dialog. View-model hook (`useRecurringForm`) owns dirtiness + save flow. SearchableSelect for beneficiary; cadence-aware day-of-week / day-of-month anchor field. Trash button in the header per the Remove-in-edit convention. `confirmOnDirty` guards stray closes. |
+| `components/CadenceAnchorField.tsx`   | Cadence-driven calendar-anchor input: WEEKLY → day-of-week dropdown (ISO 0=Mon … 6=Sun); MONTHLY/YEARLY → day-of-month number input.                                                                                                                                             |
+| `components/UpcomingBillsList.tsx`    | Shared list view for the page's Upcoming tab. Pulls `useRecurringUpcomingQuery(days)`, joins to `useBeneficiariesQuery()` for names, renders one row per bill with debit/credit sign + amount + due date.                                                                        |
 
 ## API + cache
 
-| Hook | BE endpoint | Stale | Notes |
-|---|---|---|---|
-| `useRecurringTemplatesQuery()` | `GET /api/v1/recurring/templates` | 60s | Returns every template owned by the user (active + inactive, all statuses). |
-| `useRecurringUpcomingQuery(days)` | `GET /api/v1/recurring/upcoming?days=N` | 60s | BE clamps `days ≤ 90`. Pending bill rows in the window; `matched_txn_id` null until reconciliation. |
-| `useRecurringHistoryQuery(days)` | `GET /api/v1/recurring/history?days=N` | 60s | BE clamps `days ≤ 30`. Settled bills with their reconciled txn id. Exported but not yet consumed in a surface. |
+| Hook                              | BE endpoint                             | Stale | Notes                                                                                                          |
+| --------------------------------- | --------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| `useRecurringTemplatesQuery()`    | `GET /api/v1/recurring/templates`       | 60s   | Returns every template owned by the user (active + inactive, all statuses).                                    |
+| `useRecurringUpcomingQuery(days)` | `GET /api/v1/recurring/upcoming?days=N` | 60s   | BE clamps `days ≤ 90`. Pending bill rows in the window; `matched_txn_id` null until reconciliation.            |
+| `useRecurringHistoryQuery(days)`  | `GET /api/v1/recurring/history?days=N`  | 60s   | BE clamps `days ≤ 30`. Settled bills with their reconciled txn id. Exported but not yet consumed in a surface. |
 
 Mutations are bare request functions (no `useMutation` wrappers in
 this batch); the page invalidates `recurringKeys.all` after every
 write so templates + upcoming + history refresh together.
 
-| Function | BE endpoint | Notes |
-|---|---|---|
-| `createRecurringTemplateRequest(payload)` | `POST /api/v1/recurring/templates` | User-authored template (born `locked`). |
-| `updateRecurringTemplateRequest(uid, patch)` | `PATCH /api/v1/recurring/templates/{uid}` | Touching ANY field transfers `created_by` to the user; `status: 'locked'` is the Confirm action. |
-| `deleteRecurringTemplateRequest(uid)` | `DELETE /api/v1/recurring/templates/{uid}` | Soft-deactivate. Bills cascade. |
+| Function                                     | BE endpoint                                | Notes                                                                                            |
+| -------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `createRecurringTemplateRequest(payload)`    | `POST /api/v1/recurring/templates`         | User-authored template (born `locked`).                                                          |
+| `updateRecurringTemplateRequest(uid, patch)` | `PATCH /api/v1/recurring/templates/{uid}`  | Touching ANY field transfers `created_by` to the user; `status: 'locked'` is the Confirm action. |
+| `deleteRecurringTemplateRequest(uid)`        | `DELETE /api/v1/recurring/templates/{uid}` | Soft-deactivate. Bills cascade.                                                                  |
 
 ## Wire DTOs
 
@@ -137,8 +137,8 @@ interface RecurringBill {
 
 ## Tests
 
-| File | Coverage |
-|---|---|
-| `api/schemas.test.ts` | `templateToForm` round-trip; `formToCreatePayload` cadence-anchor drop-not-applicable (WEEKLY → drops day_of_month; MONTHLY → drops day_of_week); missing-beneficiary / non-positive-amount nulls; tolerance / interval omission when invalid. |
-| `pages/RecurringPage.test.tsx` | Empty state; bucket ordering (Needs attention → Detected → Confirmed); Confirm button hidden on locked rows; tab toggle swaps to upcoming-empty. |
-| `components/RecurringStatusChip.test.tsx` | Label mapping per status (candidate → Detected, review → Needs attention, locked → Confirmed). |
+| File                                      | Coverage                                                                                                                                                                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/schemas.test.ts`                     | `templateToForm` round-trip; `formToCreatePayload` cadence-anchor drop-not-applicable (WEEKLY → drops day_of_month; MONTHLY → drops day_of_week); missing-beneficiary / non-positive-amount nulls; tolerance / interval omission when invalid. |
+| `pages/RecurringPage.test.tsx`            | Empty state; bucket ordering (Needs attention → Detected → Confirmed); Confirm button hidden on locked rows; tab toggle swaps to upcoming-empty.                                                                                               |
+| `components/RecurringStatusChip.test.tsx` | Label mapping per status (candidate → Detected, review → Needs attention, locked → Confirmed).                                                                                                                                                 |

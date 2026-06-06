@@ -28,17 +28,17 @@ export function AdminLandingPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-          <h1 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+        <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+          <h1 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
             Not available
           </h1>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
-            The admin portal is only available to operators. If you
-            think you should have access, contact support.
+            The admin portal is only available to operators. If you think you
+            should have access, contact support.
           </p>
           <Link
             to="/dashboard"
-            className="mt-3 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-3 inline-flex text-sm font-medium"
           >
             Back to dashboard
           </Link>
@@ -54,9 +54,8 @@ export function AdminLandingPage() {
           Admin tools
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Operator-only surface. Backend admin endpoints land in
-          later phases; until then this page is a scaffold confirming
-          the access gate works.
+          Operator-only surface. Backend admin endpoints land in later phases;
+          until then this page is a scaffold confirming the access gate works.
         </p>
       </header>
 
@@ -74,8 +73,8 @@ export function AdminLandingPage() {
             role: &quot;admin&quot;
           </code>{' '}
           for your account. Non-admin callers see the &ldquo;Not
-          available&rdquo; panel instead — the user-dropdown link is
-          gated on the same flag.
+          available&rdquo; panel instead — the user-dropdown link is gated on
+          the same flag.
         </p>
       </div>
 
@@ -87,21 +86,21 @@ export function AdminLandingPage() {
           <li>
             <Link
               to="/admin/users"
-              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 font-medium"
             >
               User list + search
             </Link>
             <span className="text-slate-500 dark:text-slate-400">
               {' '}
-              — paginated inventory of every non-SYSTEM account.
-              Click a user to view sessions/devices/activity and
-              lock or force-logout the account.
+              — paginated inventory of every non-SYSTEM account. Click a user to
+              view sessions/devices/activity and lock or force-logout the
+              account.
             </span>
           </li>
           <li>
             <Link
               to="/admin/cemetery"
-              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 font-medium"
             >
               Cemetery audit
             </Link>
@@ -113,14 +112,14 @@ export function AdminLandingPage() {
           <li>
             <Link
               to="/admin/ops/bill-backfill"
-              className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+              className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 font-medium"
             >
               Bill backfill
             </Link>
             <span className="text-slate-500 dark:text-slate-400">
               {' '}
-              — generate consumption-tax bills for a user over an
-              arbitrary date range (bypasses the auto-mode guard).
+              — generate consumption-tax bills for a user over an arbitrary date
+              range (bypasses the auto-mode guard).
             </span>
           </li>
         </ul>

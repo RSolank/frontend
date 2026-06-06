@@ -172,15 +172,17 @@ export function TaxationRuleFormDialog({
   // Title = entity identifier per the locked convention. Add flow
   // gets a "New …" prefix so the user sees the operation context.
   const title = isEditing
-    ? editingRule.txn_type.charAt(0).toUpperCase() + editingRule.txn_type.slice(1)
+    ? editingRule.txn_type.charAt(0).toUpperCase() +
+      editingRule.txn_type.slice(1)
     : 'New taxation rule';
 
   // Add mode with multiple available types renders a picker; Edit
   // mode (and Add with a single available type) renders a locked
   // input that surfaces the banner on click.
   const showPicker = !isEditing && availableTypes.length > 1;
-  const fixedTypeLabel =
-    isEditing ? editingRule.txn_type : (availableTypes[0] ?? '');
+  const fixedTypeLabel = isEditing
+    ? editingRule.txn_type
+    : (availableTypes[0] ?? '');
 
   // Single button — text + behaviour switch on isDirty. Save lives
   // alongside it as the primary action and enables once dirty.
@@ -247,7 +249,7 @@ export function TaxationRuleFormDialog({
               onClick={() => setLockedReason(TXN_TYPE_LOCK_REASON)}
               aria-label="Transaction type (read-only)"
               data-testid="rule-form-fixed-type"
-              className="form-input cursor-not-allowed capitalize bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+              className="form-input cursor-not-allowed bg-slate-50 text-slate-700 capitalize dark:bg-slate-800/60 dark:text-slate-200"
             />
           )}
         </label>

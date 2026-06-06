@@ -1,7 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useCountriesQuery, type CountryOption } from '../../../shared/api/referenceData';
+import {
+  useCountriesQuery,
+  type CountryOption,
+} from '../../../shared/api/referenceData';
 import {
   CountrySelect,
   COUNTRY_PREFER_NOT_SAY,
@@ -39,7 +42,8 @@ export function AccountPreferencesPage() {
   const queryClient = useQueryClient();
   const { data: countries = [] } = useCountriesQuery();
   const { data: meData, isLoading: meLoading } = useCurrentUserQuery();
-  const { data: prefsData, isLoading: prefsLoading } = useUserPreferencesQuery();
+  const { data: prefsData, isLoading: prefsLoading } =
+    useUserPreferencesQuery();
   const user = meData?.user;
   const isLoading = meLoading || prefsLoading;
 
@@ -188,10 +192,9 @@ export function AccountPreferencesPage() {
               alwaysFullList
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Pick any IANA timezone — independent of your country.
-              Defaults to the country&rsquo;s primary zone but
-              won&rsquo;t change automatically when you switch
-              country.
+              Pick any IANA timezone — independent of your country. Defaults to
+              the country&rsquo;s primary zone but won&rsquo;t change
+              automatically when you switch country.
             </p>
           </div>
           {error && <div className="form-error">{error}</div>}
@@ -200,7 +203,7 @@ export function AccountPreferencesPage() {
               Save
             </button>
             {saved && (
-              <span className="text-sm font-medium text-success-600 dark:text-success-400">
+              <span className="text-success-600 dark:text-success-400 text-sm font-medium">
                 Saved
               </span>
             )}
@@ -214,16 +217,16 @@ export function AccountPreferencesPage() {
         </div>
         <DefaultTxnKindSelect />
         <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          Date format, number format, and the default landing route
-          after login also live under{' '}
+          Date format, number format, and the default landing route after login
+          also live under{' '}
           <a
             href="/account/accessibility"
             className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
           >
             Accessibility
           </a>
-          . All defaults persist to this browser only — cross-device
-          sync is queued as a backend follow-up.
+          . All defaults persist to this browser only — cross-device sync is
+          queued as a backend follow-up.
         </p>
       </div>
 

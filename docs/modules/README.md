@@ -37,7 +37,7 @@ readers should be able to open the page on either side and map it
   security, privacy, accessibility, preferences, notifications) —
   six sections, shared sidebar.
 - [`settings.md`](settings.md) — settings layout shell + breadcrumb
-  + sidebar.
+  - sidebar.
 - [`admin.md`](admin.md) — operator-only `/admin/*` surface
   (T-admin A1–E1: users list + detail, lock/unlock, force-logout,
   cemetery audit, bill backfill, signal controls).

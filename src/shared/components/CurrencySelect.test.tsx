@@ -3,10 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '../../test/renderWithProviders';
 
-import {
-  CurrencySelect,
-  formatCurrencyOption,
-} from './CurrencySelect';
+import { CurrencySelect, formatCurrencyOption } from './CurrencySelect';
 
 const CURRENCIES = [
   { code: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },

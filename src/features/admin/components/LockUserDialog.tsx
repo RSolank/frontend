@@ -58,7 +58,7 @@ export function LockUserDialog({
             type="button"
             disabled={busy}
             onClick={() => void onConfirm(trimmed || undefined)}
-            className="inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-danger-600 hover:bg-danger-700 focus-visible:ring-danger-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? 'Locking…' : 'Lock account'}
           </button>
@@ -66,14 +66,14 @@ export function LockUserDialog({
       }
     >
       <p className="text-sm text-slate-700 dark:text-slate-200">
-        Lock <span className="font-medium">{userLabel}</span>? They will
-        be unable to sign in, refresh sessions, or recover via password
-        reset until an operator unlocks the account.
+        Lock <span className="font-medium">{userLabel}</span>? They will be
+        unable to sign in, refresh sessions, or recover via password reset until
+        an operator unlocks the account.
       </p>
       <div className="mt-3">
         <label
           htmlFor="admin-lock-reason"
-          className="form-label text-xs uppercase tracking-wider"
+          className="form-label text-xs tracking-wider uppercase"
         >
           Reason (optional, internal audit only)
         </label>
@@ -92,7 +92,7 @@ export function LockUserDialog({
         </p>
       </div>
       {errorMessage ? (
-        <p className="mt-3 text-sm text-danger-700 dark:text-danger-300">
+        <p className="text-danger-700 dark:text-danger-300 mt-3 text-sm">
           {errorMessage}
         </p>
       ) : null}

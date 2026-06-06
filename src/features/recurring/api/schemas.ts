@@ -199,7 +199,11 @@ export function formToCreatePayload(
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (!form.next_due_date) return null;
 
-  const interval = intInRange(form.cadence_interval, 1, Number.MAX_SAFE_INTEGER);
+  const interval = intInRange(
+    form.cadence_interval,
+    1,
+    Number.MAX_SAFE_INTEGER
+  );
   const tol = floatInRange(form.amount_tolerance, 0, 1);
 
   return {

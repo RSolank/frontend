@@ -168,7 +168,7 @@ export function AccountSecurityPage() {
             <div
               className={
                 passwordStatus.includes('successfully')
-                  ? 'text-sm font-medium text-success-600 dark:text-success-400'
+                  ? 'text-success-600 dark:text-success-400 text-sm font-medium'
                   : 'form-error'
               }
             >
@@ -183,10 +183,10 @@ export function AccountSecurityPage() {
           Security question
         </h2>
         <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
-          Configuring a security question helps you recover your account if
-          you forget your password. Setting a new question will{' '}
-          <strong>replace</strong> any previous choice. Answers are hashed
-          and stored securely.
+          Configuring a security question helps you recover your account if you
+          forget your password. Setting a new question will{' '}
+          <strong>replace</strong> any previous choice. Answers are hashed and
+          stored securely.
         </p>
 
         {recoveryQuestions.length > 0 && (
@@ -244,15 +244,13 @@ export function AccountSecurityPage() {
           </div>
 
           <button type="submit" className="btn-primary !w-auto">
-            {recoveryQuestions.length > 0
-              ? 'Update question'
-              : 'Save question'}
+            {recoveryQuestions.length > 0 ? 'Update question' : 'Save question'}
           </button>
           {recoveryStatus && (
             <div
               className={
                 recoveryStatus.includes('successfully')
-                  ? 'text-sm font-medium text-success-600 dark:text-success-400'
+                  ? 'text-success-600 dark:text-success-400 text-sm font-medium'
                   : 'form-error'
               }
             >
@@ -282,9 +280,9 @@ export function AccountSecurityPage() {
         </h2>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
           Devices currently signed in to your account. Revoke any you
-          don&rsquo;t recognise — the affected device will be signed
-          out immediately. Backend enforces a 5-session cap; new
-          sign-ins evict the oldest device.
+          don&rsquo;t recognise — the affected device will be signed out
+          immediately. Backend enforces a 5-session cap; new sign-ins evict the
+          oldest device.
         </p>
         <SessionList />
       </div>
@@ -294,10 +292,10 @@ export function AccountSecurityPage() {
           Trusted devices
         </h2>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Devices that have cleared the new-device email-OTP gate.
-          Forget any you don&rsquo;t recognise — that device&rsquo;s
-          next sign-in will require an emailed code, and its active
-          session (if any) ends immediately.
+          Devices that have cleared the new-device email-OTP gate. Forget any
+          you don&rsquo;t recognise — that device&rsquo;s next sign-in will
+          require an emailed code, and its active session (if any) ends
+          immediately.
         </p>
         <TrustedDeviceList />
       </div>

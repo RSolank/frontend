@@ -38,7 +38,10 @@ export const authHandlers = [
     HttpResponse.json({ reset_token: 'msw-reset-token' })
   ),
   http.post(`${API_BASE}/auth/reset-password-final`, () =>
-    HttpResponse.json({ access_token: 'msw-access', refresh_token: 'msw-refresh' })
+    HttpResponse.json({
+      access_token: 'msw-access',
+      refresh_token: 'msw-refresh',
+    })
   ),
   http.post(`${API_BASE}/auth/change-password`, () =>
     HttpResponse.json({ status: 'ok' })
@@ -137,9 +140,7 @@ export const authHandlers = [
     `${API_BASE}/auth/new-device/revoke`,
     () => new HttpResponse(null, { status: 204 })
   ),
-  http.get(`${API_BASE}/auth/devices`, () =>
-    HttpResponse.json([])
-  ),
+  http.get(`${API_BASE}/auth/devices`, () => HttpResponse.json([])),
   http.delete(
     `${API_BASE}/auth/devices/:uid`,
     () => new HttpResponse(null, { status: 204 })

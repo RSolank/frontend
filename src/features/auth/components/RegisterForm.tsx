@@ -463,7 +463,8 @@ export function RegisterForm({
           type="submit"
           disabled={
             submitting ||
-            (form.password.length > 0 && !validatePassword(form.password).isValid)
+            (form.password.length > 0 &&
+              !validatePassword(form.password).isValid)
           }
           className="btn-primary mt-4"
         >

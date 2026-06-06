@@ -38,9 +38,7 @@ beforeEach(() => {
     http.get(`${API_BASE}/categorization-rules`, () =>
       HttpResponse.json({ rules: [] })
     ),
-    http.get(`${API_BASE}/tags`, () =>
-      HttpResponse.json({ tags: [] })
-    )
+    http.get(`${API_BASE}/tags`, () => HttpResponse.json({ tags: [] }))
   );
 });
 
@@ -82,27 +80,21 @@ describe('BeneficiariesPage', () => {
   it('creates merchant with alias chips after uniqueness check', async () => {
     const postSpy = vi.fn();
     server.use(
-      http.get(
-        `${API_BASE}/beneficiaries/check-alias`,
-        ({ request }) => {
-          const url = new URL(request.url);
-          const alias = url.searchParams.get('alias') ?? '';
-          return HttpResponse.json({ alias, unique: alias === 'EKART' });
-        }
-      ),
-      http.post(
-        `${API_BASE}/beneficiaries`,
-        async ({ request }) => {
-          const body = (await request.json()) as Record<string, unknown>;
-          postSpy(body);
-          return HttpResponse.json({
-            uid: 99,
-            name: 'New Store',
-            aliases: ['EKART'],
-            beneficiary_type: 'merchant',
-          });
-        }
-      )
+      http.get(`${API_BASE}/beneficiaries/check-alias`, ({ request }) => {
+        const url = new URL(request.url);
+        const alias = url.searchParams.get('alias') ?? '';
+        return HttpResponse.json({ alias, unique: alias === 'EKART' });
+      }),
+      http.post(`${API_BASE}/beneficiaries`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        postSpy(body);
+        return HttpResponse.json({
+          uid: 99,
+          name: 'New Store',
+          aliases: ['EKART'],
+          beneficiary_type: 'merchant',
+        });
+      })
     );
 
     renderWithProviders(<BeneficiariesPage />);

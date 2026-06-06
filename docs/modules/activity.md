@@ -6,8 +6,8 @@
 > Lives **shared/-side** at
 > [`src/shared/api/activity*`](../../src/shared/api/) +
 > [`src/shared/components/Activity*`](../../src/shared/components/)
-> +
-> [`src/shared/components/SignalSettingsEditor.tsx`](../../src/shared/components/SignalSettingsEditor.tsx).
+>
+> - [`src/shared/components/SignalSettingsEditor.tsx`](../../src/shared/components/SignalSettingsEditor.tsx).
 
 ## Purpose
 
@@ -36,13 +36,13 @@
 Lives across three FE consumers; the contract is one BE-side
 endpoint set:
 
-| Surface | What it renders | Owner |
-|---|---|---|
-| **TopNav bell** — [`shared/components/ActivityBell.tsx`](../../src/shared/components/ActivityBell.tsx) | Lazy-loaded modal trigger. Badge counts UNSEEN items across both classes with a "5+" cap. Lives on every authenticated page. | App shell |
-| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx) | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs). Capped at 10 items total, with the split between sections driven by BE rank order. Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click — row click now opens **`<ActivityDetailModal>` in place** (Batch 20 UAT, `0791964`) rather than full-page deep-linking, with per-subject CTAs surfaced inside. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell |
-| **Activity detail modal** — [`shared/components/ActivityDetailModal.tsx`](../../src/shared/components/ActivityDetailModal.tsx) | In-place expansion of a single activity row. Hosts the per-subject CTAs derived from [`shared/utils/activitySubject.ts`](../../src/shared/utils/activitySubject.ts) (`subjectMeta()` maps each `subject_type` → CTA label + deep-link target). Replaces the prior full-page-navigation pattern so users stay in the feed context. | App shell |
-| **User Notifications tab** — [`features/account/pages/AccountNotificationsPage.tsx`](../../src/features/account/pages/AccountNotificationsPage.tsx) | Per-kind enable/disable for the user's own feed. Renders the shared `<SignalSettingsEditor viewerRole="user">`. | [account.md](account.md) § Notifications |
-| **Admin user-detail signal section** — `<SignalSettingsSection>` in [`features/admin/pages/AdminUserDetailPage.tsx`](../../src/features/admin/pages/AdminUserDetailPage.tsx) | Per-user disable for the admin'd account + system-wide catalog tunables (priority / rank_order / system_enabled). Renders the shared `<SignalSettingsEditor viewerRole="admin">` with `onTune` wired. | [admin.md](admin.md) § Pages |
+| Surface                                                                                                                                                                      | What it renders                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Owner                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **TopNav bell** — [`shared/components/ActivityBell.tsx`](../../src/shared/components/ActivityBell.tsx)                                                                       | Lazy-loaded modal trigger. Badge counts UNSEEN items across both classes with a "5+" cap. Lives on every authenticated page.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | App shell                                |
+| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx)                                                     | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs). Capped at 10 items total, with the split between sections driven by BE rank order. Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click — row click now opens **`<ActivityDetailModal>` in place** (Batch 20 UAT, `0791964`) rather than full-page deep-linking, with per-subject CTAs surfaced inside. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell                                |
+| **Activity detail modal** — [`shared/components/ActivityDetailModal.tsx`](../../src/shared/components/ActivityDetailModal.tsx)                                               | In-place expansion of a single activity row. Hosts the per-subject CTAs derived from [`shared/utils/activitySubject.ts`](../../src/shared/utils/activitySubject.ts) (`subjectMeta()` maps each `subject_type` → CTA label + deep-link target). Replaces the prior full-page-navigation pattern so users stay in the feed context.                                                                                                                                                                                                                                                                       | App shell                                |
+| **User Notifications tab** — [`features/account/pages/AccountNotificationsPage.tsx`](../../src/features/account/pages/AccountNotificationsPage.tsx)                          | Per-kind enable/disable for the user's own feed. Renders the shared `<SignalSettingsEditor viewerRole="user">`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [account.md](account.md) § Notifications |
+| **Admin user-detail signal section** — `<SignalSettingsSection>` in [`features/admin/pages/AdminUserDetailPage.tsx`](../../src/features/admin/pages/AdminUserDetailPage.tsx) | Per-user disable for the admin'd account + system-wide catalog tunables (priority / rank_order / system_enabled). Renders the shared `<SignalSettingsEditor viewerRole="admin">` with `onTune` wired.                                                                                                                                                                                                                                                                                                                                                                                                   | [admin.md](admin.md) § Pages             |
 
 ## Components
 
@@ -134,24 +134,24 @@ applies.
 
 [`shared/api/activity*`](../../src/shared/api/):
 
-| File | Exports |
-|---|---|
-| `activityKeys.ts` | `activityKeys` — `all`, `feed(limit)`, `catalog()`, `signalSettings()`, `adminUserSignalSettings(userId)` |
-| `activityFeed.ts` | `ActivityFeedItem` shape, `ActivitySeenRef` + `ActivitySeenRequest`, `fetchActivityFeed`, `markActivitySeen`, `itemsToSeenRefs`, `useActivityFeedQuery(limit, enabled)`, `useUserSignalSettingsQuery(enabled)`, plus the user-side signal-settings GET / PUT helpers |
-| `activityCatalog.ts` | `CatalogEntry` + `CatalogResponse` types, `useActivityCatalogQuery`, `buildEventClassIndex(catalog)` (Map<kind, event_class>) |
+| File                 | Exports                                                                                                                                                                                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activityKeys.ts`    | `activityKeys` — `all`, `feed(limit)`, `catalog()`, `signalSettings()`, `adminUserSignalSettings(userId)`                                                                                                                                                            |
+| `activityFeed.ts`    | `ActivityFeedItem` shape, `ActivitySeenRef` + `ActivitySeenRequest`, `fetchActivityFeed`, `markActivitySeen`, `itemsToSeenRefs`, `useActivityFeedQuery(limit, enabled)`, `useUserSignalSettingsQuery(enabled)`, plus the user-side signal-settings GET / PUT helpers |
+| `activityCatalog.ts` | `CatalogEntry` + `CatalogResponse` types, `useActivityCatalogQuery`, `buildEventClassIndex(catalog)` (Map<kind, event_class>)                                                                                                                                        |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/v1/activity?limit=N` | Activity feed modal — list of items, server-ordered |
-| `POST /api/v1/activity/seen` | Soft + hard acks (body shape below) |
-| `GET /api/v1/activity/catalog` | Activity feed modal (event_class split) + SignalSettingsEditor (kind list + domain grouping) |
-| `GET /api/v1/activity/signal-settings` | Account → Notifications |
-| `PUT /api/v1/activity/signal-settings` | Account → Notifications toggle |
-| `GET /api/v1/admin/users/{id}/signal-settings` | Admin user-detail signal section |
-| `PUT /api/v1/admin/users/{id}/signal-settings` | Admin user-detail per-user toggle |
-| `PUT /api/v1/admin/signal-catalog/{kind}` | Admin user-detail catalog tuning |
+| Method + path                                  | Used by                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `GET /api/v1/activity?limit=N`                 | Activity feed modal — list of items, server-ordered                                          |
+| `POST /api/v1/activity/seen`                   | Soft + hard acks (body shape below)                                                          |
+| `GET /api/v1/activity/catalog`                 | Activity feed modal (event_class split) + SignalSettingsEditor (kind list + domain grouping) |
+| `GET /api/v1/activity/signal-settings`         | Account → Notifications                                                                      |
+| `PUT /api/v1/activity/signal-settings`         | Account → Notifications toggle                                                               |
+| `GET /api/v1/admin/users/{id}/signal-settings` | Admin user-detail signal section                                                             |
+| `PUT /api/v1/admin/users/{id}/signal-settings` | Admin user-detail per-user toggle                                                            |
+| `PUT /api/v1/admin/signal-catalog/{kind}`      | Admin user-detail catalog tuning                                                             |
 
 ### `/activity/seen` body shape (BE Phase 2.14)
 
@@ -197,7 +197,7 @@ interface ActivitySeenRequest {
 - **Account → Notifications** consumes the user-side signal-settings
   via the shared editor. See [account.md § Notifications](account.md).
 - **Admin user-detail** consumes the admin-side signal-settings
-  + catalog tunables via the same shared editor.
+  - catalog tunables via the same shared editor.
 - **Admin user-detail recent activity** reads the BE's
   per-user activity feed via the A3 detail payload's
   `recent_activity: ActivityItemOut[]` field; no separate
@@ -205,11 +205,11 @@ interface ActivitySeenRequest {
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `shared/components/SignalSettingsEditor.test.tsx` | Kind grouping by domain + label derivation, disabled-list check state, onToggle fires `(kind, enabled)`, user-side cannot toggle `system_enabled=false`, admin-side keeps interactive + AdminTuneRow disclosure, empty-state |
-| `features/account/pages/AccountNotificationsPage.test.tsx` | Catalog + disabled list render, toggle PUTs `{kind, enabled}`, "System off" badge + disabled toggle |
-| `features/admin/pages/AdminUserDetailPage.test.tsx` (signal section) | Section renders, toggles fire admin PUT, AdminTuneRow surfaces priority / rank / system_enabled |
+| File                                                                 | Covers                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared/components/SignalSettingsEditor.test.tsx`                    | Kind grouping by domain + label derivation, disabled-list check state, onToggle fires `(kind, enabled)`, user-side cannot toggle `system_enabled=false`, admin-side keeps interactive + AdminTuneRow disclosure, empty-state |
+| `features/account/pages/AccountNotificationsPage.test.tsx`           | Catalog + disabled list render, toggle PUTs `{kind, enabled}`, "System off" badge + disabled toggle                                                                                                                          |
+| `features/admin/pages/AdminUserDetailPage.test.tsx` (signal section) | Section renders, toggles fire admin PUT, AdminTuneRow surfaces priority / rank / system_enabled                                                                                                                              |
 
 Dedicated bell + modal + detail-modal test files landed alongside
 the notifications-flow rebuild (Batch 20 UAT, `0791964`):
@@ -222,10 +222,10 @@ bell mount.
 
 ## History
 
-| BE phase | Commit | What |
-|---|---|---|
-| **2.4** | `77cffb3` | Activity feed v1 — endpoint + signals + soft/hard ack. FE wired in Platform Batch 7. |
-| **2.14** | `ab840be` | Activity engine v2 (registry-driven), per-user signal-settings table + user routes, seen-shape contract change to `{refs, hard}`. |
-| **2.16** | `7b0e24b` | Admin operator layer (per-user signal-settings + catalog tunables). T-admin Phase. |
-| **FE Platform Batch 18** | `bb900e1` | Dashboard widget removed, TopNav bell + lazy modal landed, `/account/notifications` tab added, `<SignalSettingsEditor>` extracted to shared/, seen-shape drift fixed. |
+| BE phase                     | Commit    | What                                                                                                                                                                                                |
+| ---------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **2.4**                      | `77cffb3` | Activity feed v1 — endpoint + signals + soft/hard ack. FE wired in Platform Batch 7.                                                                                                                |
+| **2.14**                     | `ab840be` | Activity engine v2 (registry-driven), per-user signal-settings table + user routes, seen-shape contract change to `{refs, hard}`.                                                                   |
+| **2.16**                     | `7b0e24b` | Admin operator layer (per-user signal-settings + catalog tunables). T-admin Phase.                                                                                                                  |
+| **FE Platform Batch 18**     | `bb900e1` | Dashboard widget removed, TopNav bell + lazy modal landed, `/account/notifications` tab added, `<SignalSettingsEditor>` extracted to shared/, seen-shape drift fixed.                               |
 | **FE Platform Batch 20 UAT** | `0791964` | Notifications-flow rebuild — unseen-count badge wired through, in-place `<ActivityDetailModal>`, per-subject CTA via `activitySubject.ts`. Dedicated test files for Bell + FeedModal + DetailModal. |

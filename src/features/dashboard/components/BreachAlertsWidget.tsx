@@ -41,13 +41,13 @@ export function BreachAlertsWidget() {
   return (
     <section
       data-testid="dashboard-breach-alerts"
-      className="rounded-lg border border-danger-300 bg-danger-50 p-3 shadow-sm dark:border-danger-800/60 dark:bg-danger-950/30"
+      className="border-danger-300 bg-danger-50 dark:border-danger-800/60 dark:bg-danger-950/30 rounded-lg border p-3 shadow-sm"
     >
       <header className="mb-2 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-danger-800 dark:text-danger-200">
+        <h3 className="text-danger-800 dark:text-danger-200 text-sm font-semibold">
           Budget breaches
         </h3>
-        <span className="text-xs font-medium text-danger-700 dark:text-danger-300">
+        <span className="text-danger-700 dark:text-danger-300 text-xs font-medium">
           {breached.length} this month
         </span>
       </header>
@@ -62,10 +62,10 @@ export function BreachAlertsWidget() {
               className="flex items-center justify-between gap-2 text-xs"
               data-testid={`dashboard-breach-${c.tag_id}`}
             >
-              <span className="truncate font-medium text-danger-900 dark:text-danger-100">
+              <span className="text-danger-900 dark:text-danger-100 truncate font-medium">
                 {c.tag_name}
               </span>
-              <span className="shrink-0 tabular-nums text-danger-800 money dark:text-danger-200">
+              <span className="text-danger-800 money dark:text-danger-200 shrink-0 tabular-nums">
                 +{money(over)} over
               </span>
             </li>
@@ -74,7 +74,7 @@ export function BreachAlertsWidget() {
       </ul>
       <Link
         to="/budgets"
-        className="mt-2 inline-block text-xs font-semibold text-danger-800 hover:underline dark:text-danger-200"
+        className="text-danger-800 dark:text-danger-200 mt-2 inline-block text-xs font-semibold hover:underline"
       >
         Review budgets →
       </Link>

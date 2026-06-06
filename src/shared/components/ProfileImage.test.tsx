@@ -41,9 +41,7 @@ describe('ProfileImage', () => {
   });
 
   it('falls back to the first char of email when no names are set', () => {
-    render(
-      <ProfileImage profileImageUrl={null} email="zed@example.test" />
-    );
+    render(<ProfileImage profileImageUrl={null} email="zed@example.test" />);
     expect(screen.getByTestId('profile-image-monogram').textContent).toBe('Z');
   });
 

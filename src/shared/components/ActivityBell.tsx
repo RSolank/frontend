@@ -70,13 +70,13 @@ export function ActivityBell({ enabled }: ActivityBellProps) {
         }
         title="Recent activity"
         onClick={handleOpen}
-        className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+        className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
       >
         <Bell aria-hidden="true" size={20} />
         {badge ? (
           <span
             aria-hidden="true"
-            className="absolute top-1 right-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger-600 px-1 text-[10px] font-semibold leading-none text-white"
+            className="bg-danger-600 absolute top-1 right-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold text-white"
           >
             {badge}
           </span>

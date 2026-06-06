@@ -9,8 +9,7 @@ import { API_BASE } from '../baseUrl';
 export const expenseTrackerHandlers = [
   http.get(`${API_BASE}/expense-tracker/`, ({ request }) => {
     const url = new URL(request.url);
-    const period_type =
-      url.searchParams.get('period_type') ?? 'monthly';
+    const period_type = url.searchParams.get('period_type') ?? 'monthly';
     return HttpResponse.json({
       period_type,
       returned_count: 0,

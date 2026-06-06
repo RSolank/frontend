@@ -69,21 +69,21 @@ export function ResetZone() {
   }
 
   return (
-    <div className="rounded-xl border border-warning-300 bg-warning-50/40 p-6 dark:border-warning-900/60 dark:bg-warning-950/20">
-      <h2 className="text-lg font-semibold text-warning-700 dark:text-warning-300">
+    <div className="border-warning-300 bg-warning-50/40 dark:border-warning-900/60 dark:bg-warning-950/20 rounded-xl border p-6">
+      <h2 className="text-warning-700 dark:text-warning-300 text-lg font-semibold">
         Reset zone
       </h2>
       <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
         Wipe all your data and start fresh — your{' '}
-        <strong>account, login, and preferences</strong> stay.
-        Transactions, budgets, tags, beneficiaries, recurring
-        templates, statement uploads, and bills are removed.
+        <strong>account, login, and preferences</strong> stay. Transactions,
+        budgets, tags, beneficiaries, recurring templates, statement uploads,
+        and bills are removed.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={handleOpen}
-          className="inline-flex items-center justify-center rounded-md bg-warning-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning-700 focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:outline-none"
+          className="bg-warning-600 hover:bg-warning-700 focus-visible:ring-warning-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
           data-testid="reset-zone-trigger"
         >
           Reset my data…
@@ -92,7 +92,7 @@ export function ResetZone() {
           <span
             role="status"
             data-testid="reset-zone-status"
-            className="text-sm text-success-700 dark:text-success-300"
+            className="text-success-700 dark:text-success-300 text-sm"
           >
             {status}
           </span>
@@ -118,7 +118,7 @@ export function ResetZone() {
               type="submit"
               form="reset-zone-form"
               disabled={mutation.isPending || !password}
-              className="inline-flex items-center justify-center rounded-md bg-warning-600 px-4 py-2 text-sm font-semibold text-white hover:bg-warning-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="bg-warning-600 hover:bg-warning-700 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="reset-zone-confirm"
             >
               {mutation.isPending ? 'Resetting…' : 'Reset my data'}
@@ -126,14 +126,18 @@ export function ResetZone() {
           </>
         }
       >
-        <form id="reset-zone-form" onSubmit={handleSubmit} className="grid gap-3">
+        <form
+          id="reset-zone-form"
+          onSubmit={handleSubmit}
+          className="grid gap-3"
+        >
           <p className="text-sm text-slate-700 dark:text-slate-200">
-            Re-enter your password to confirm. This wipes every
-            transaction, budget, tag, beneficiary, recurring
-            template, statement upload, and bill from your account.
-            Your account, login, and preferences are kept.
+            Re-enter your password to confirm. This wipes every transaction,
+            budget, tag, beneficiary, recurring template, statement upload, and
+            bill from your account. Your account, login, and preferences are
+            kept.
           </p>
-          <p className="text-sm font-medium text-warning-700 dark:text-warning-300">
+          <p className="text-warning-700 dark:text-warning-300 text-sm font-medium">
             This action cannot be undone.
           </p>
           <label htmlFor="reset-zone-password" className="form-label">

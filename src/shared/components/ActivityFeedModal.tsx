@@ -112,7 +112,7 @@ export function ActivityFeedModal({ open, onClose }: ActivityFeedModalProps) {
           <Link
             to="/account/notifications"
             onClick={onClose}
-            className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 text-sm font-medium"
           >
             Manage notifications →
           </Link>
@@ -205,11 +205,16 @@ interface FeedSectionProps {
   onItemClick: (item: ActivityFeedItem) => void;
 }
 
-function FeedSection({ heading, items, timezone, onItemClick }: FeedSectionProps) {
+function FeedSection({
+  heading,
+  items,
+  timezone,
+  onItemClick,
+}: FeedSectionProps) {
   const now = useTickingNow(60_000);
   return (
     <section aria-label={heading}>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      <h3 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
         {heading}
       </h3>
       <ul className="space-y-1">
@@ -245,7 +250,10 @@ function ActivityRow({ item, now, timezone, onActivate }: ActivityRowProps) {
         className="group flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none dark:hover:bg-slate-800 dark:focus-visible:bg-slate-800"
         data-event-uid={item.uid}
       >
-        <Icon aria-hidden="true" className={`mt-0.5 h-4 w-4 flex-shrink-0 ${tone}`} />
+        <Icon
+          aria-hidden="true"
+          className={`mt-0.5 h-4 w-4 flex-shrink-0 ${tone}`}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium text-slate-800 dark:text-slate-100">
             {item.summary}

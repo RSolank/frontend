@@ -1,10 +1,7 @@
 import { useState } from 'react';
 
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
-import {
-  useAdminUsersInfiniteQuery,
-  type AdminUserRow,
-} from '../api/users';
+import { useAdminUsersInfiniteQuery, type AdminUserRow } from '../api/users';
 
 // Server-driven typeahead user picker. Built locally for the admin
 // bill-backfill form (D1) — SearchableSelect requires a pre-loaded
@@ -54,7 +51,7 @@ export function AdminUserPicker({
             onChange(null);
             setRawQuery('');
           }}
-          className="ml-auto text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 ml-auto text-xs font-medium"
         >
           Change
         </button>
@@ -113,7 +110,7 @@ export function AdminUserPicker({
                   setOpen(false);
                   setRawQuery('');
                 }}
-                className="flex w-full flex-col items-start px-3 py-2 text-left text-sm text-slate-700 hover:bg-accent-50/60 dark:text-slate-300 dark:hover:bg-accent-950/30"
+                className="hover:bg-accent-50/60 dark:hover:bg-accent-950/30 flex w-full flex-col items-start px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300"
               >
                 <span className="font-medium text-slate-900 dark:text-slate-100">
                   {row.full_name}

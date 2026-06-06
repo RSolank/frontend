@@ -10,15 +10,12 @@ import { AliasChipsInput } from './AliasChipsInput';
 describe('AliasChipsInput', () => {
   beforeEach(() => {
     server.use(
-      http.get(
-        `${API_BASE}/beneficiaries/check-alias`,
-        ({ request }) => {
-          const url = new URL(request.url);
-          const alias = url.searchParams.get('alias') ?? '';
-          const unique = alias === 'EKART';
-          return HttpResponse.json({ alias, unique });
-        }
-      )
+      http.get(`${API_BASE}/beneficiaries/check-alias`, ({ request }) => {
+        const url = new URL(request.url);
+        const alias = url.searchParams.get('alias') ?? '';
+        const unique = alias === 'EKART';
+        return HttpResponse.json({ alias, unique });
+      })
     );
   });
 

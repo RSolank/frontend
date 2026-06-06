@@ -18,8 +18,8 @@
 
 ## Pages
 
-| Path | Component | Notes |
-|---|---|---|
+| Path                   | Component            | Notes                                                                   |
+| ---------------------- | -------------------- | ----------------------------------------------------------------------- |
 | `/settings/categories` | `pages/TagsPage.tsx` | Mounted by the settings shell. Add / update / delete tags. Lazy-loaded. |
 
 The TagsPage is registered by
@@ -50,7 +50,7 @@ Per [`docs/conventions.md`](../conventions.md):
   `flex-wrap items-start gap-3` so the title block, back link, and
   Add Tag button reflow gracefully at phone widths.
 - Each tag row uses `flex-wrap items-start ... sm:flex-nowrap
-  sm:items-center` with `min-w-0` on the content area: below `sm`
+sm:items-center` with `min-w-0` on the content area: below `sm`
   the Update / Delete buttons stack underneath the content, and
   long alias chip rows wrap inside the card instead of pushing
   the row past it.
@@ -68,21 +68,21 @@ component subscribed to the tag tree refreshes after a tag change.
 
 [`api/`](../../src/features/tags/api/)
 
-| File | Exports |
-|---|---|
-| `keys.ts` | `tagKeys` — `all`, `list()` |
-| `schemas.ts` | `tagFormSchema` (Zod), `TagFormInput`, `TagPayload`, `tagFormToPayload(form)` |
-| `queries.ts` | `fetchTags`, `fetchTagConstants`, `useTagsQuery`, `TagNode`, `TagConstants` |
-| `mutations.ts` | `createTagRequest`, `updateTagRequest`, `deleteTagRequest` |
+| File           | Exports                                                                       |
+| -------------- | ----------------------------------------------------------------------------- |
+| `keys.ts`      | `tagKeys` — `all`, `list()`                                                   |
+| `schemas.ts`   | `tagFormSchema` (Zod), `TagFormInput`, `TagPayload`, `tagFormToPayload(form)` |
+| `queries.ts`   | `fetchTags`, `fetchTagConstants`, `useTagsQuery`, `TagNode`, `TagConstants`   |
+| `mutations.ts` | `createTagRequest`, `updateTagRequest`, `deleteTagRequest`                    |
 
 Endpoints touched:
 
-| Method + path | Used by |
-|---|---|
-| `GET /api/v1/tags` | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesPage` |
-| `POST /api/v1/tags` | TagsPage create form |
-| `PATCH /api/v1/tags/:id` | TagsPage update form |
-| `DELETE /api/v1/tags/:id` | TagsPage delete action |
+| Method + path                    | Used by                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tags`               | `useTagsQuery` (TagsPage), `BeneficiaryFormFields` category dropdown, `CategorizationRulesPage`   |
+| `POST /api/v1/tags`              | TagsPage create form                                                                              |
+| `PATCH /api/v1/tags/:id`         | TagsPage update form                                                                              |
+| `DELETE /api/v1/tags/:id`        | TagsPage delete action                                                                            |
 | `GET /api/v1/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, etc. for read-only row decisions |
 
 ## Cross-feature seams
@@ -99,8 +99,8 @@ Endpoints touched:
 
 ## Tests
 
-| File | Covers |
-|---|---|
+| File                      | Covers                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
 | `pages/TagsPage.test.tsx` | Tag list renders + alias chips, system-tag indicator surfaces, POST body shape on Create Tag |
 
 MSW handlers for `/api/v1/tags` + `/api/v1/metadata/constants` live in the

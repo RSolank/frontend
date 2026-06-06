@@ -22,7 +22,7 @@ export function MotionToggle() {
         aria-checked={reducedMotion}
         aria-label="Reduce motion"
         onClick={toggle}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-900 ${
+        className={`focus-visible:ring-accent-500 relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-900 ${
           reducedMotion
             ? 'bg-accent-600 dark:bg-accent-500'
             : 'bg-slate-300 dark:bg-slate-600'

@@ -28,8 +28,9 @@ export function RecurringPage() {
   const [tab, setTab] = useState<TabKey>('templates');
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<RecurringTemplate | null>(null);
-  const [confirmDelete, setConfirmDelete] =
-    useState<RecurringTemplate | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<RecurringTemplate | null>(
+    null
+  );
   const highlight = useRowHighlight<string>();
 
   const queryClient = useQueryClient();
@@ -43,9 +44,10 @@ export function RecurringPage() {
     return m;
   }, [benData]);
 
-  const buckets = useMemo(() => bucketTemplates(templates.data ?? []), [
-    templates.data,
-  ]);
+  const buckets = useMemo(
+    () => bucketTemplates(templates.data ?? []),
+    [templates.data]
+  );
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: recurringKeys.all });
@@ -72,15 +74,15 @@ export function RecurringPage() {
             Recurring
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Patterns we&apos;ve detected in your transactions. Confirm
-            the ones that should keep forecasting, edit anything that
-            shifted, or dismiss what no longer applies.
+            Patterns we&apos;ve detected in your transactions. Confirm the ones
+            that should keep forecasting, edit anything that shifted, or dismiss
+            what no longer applies.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid="recurring-add"
         >
           <Plus size={16} aria-hidden />
@@ -214,11 +216,11 @@ function TabButton({
       data-testid={testid}
       aria-current={active ? 'page' : undefined}
       className={[
-        'border-b-2 -mb-px px-4 py-2 text-sm font-medium transition-colors',
+        '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
         active
           ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
-          : 'border-transparent text-slate-600 hover:text-accent-700 dark:text-slate-300 dark:hover:text-accent-300',
-        'focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none rounded-sm',
+          : 'hover:text-accent-700 dark:hover:text-accent-300 border-transparent text-slate-600 dark:text-slate-300',
+        'focus-visible:ring-accent-500 rounded-sm focus-visible:ring-2 focus-visible:outline-none',
       ].join(' ')}
     >
       {label}
@@ -229,7 +231,10 @@ function TabButton({
 interface TemplatesViewProps {
   loading: boolean;
   buckets: TemplatesBuckets;
-  benById: Map<number, NonNullable<ReturnType<typeof useBeneficiariesQuery>['data']>[number]>;
+  benById: Map<
+    number,
+    NonNullable<ReturnType<typeof useBeneficiariesQuery>['data']>[number]
+  >;
   highlightId: string | null;
   onConfirm: (t: RecurringTemplate) => void;
   onEdit: (t: RecurringTemplate) => void;
@@ -267,9 +272,8 @@ function TemplatesView({
         data-testid="recurring-empty"
         className="rounded-md border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
       >
-        Nothing detected yet. Once the engine spots a recurring pattern
-        across a few of your transactions, it will surface here for
-        confirmation.
+        Nothing detected yet. Once the engine spots a recurring pattern across a
+        few of your transactions, it will surface here for confirmation.
       </p>
     );
 

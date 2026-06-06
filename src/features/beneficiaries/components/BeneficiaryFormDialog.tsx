@@ -108,7 +108,10 @@ function useBeneficiaryForm({
     setSaving(true);
     try {
       const saved = isEditing
-        ? await updateBeneficiaryRequest(String(beneficiary.uid), formToPayload(form))
+        ? await updateBeneficiaryRequest(
+            String(beneficiary.uid),
+            formToPayload(form)
+          )
         : await createBeneficiaryRequest(formToPayload(form));
       onSaved(saved);
       // Row-highlight on the parent surfaces the saved state; close
@@ -192,7 +195,7 @@ export function BeneficiaryFormDialog({
             disabled={saving}
             aria-label="Remove beneficiary"
             title="Remove beneficiary"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-danger-600 transition-colors hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300"
+            className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="beneficiary-form-remove"
           >
             <Trash2 aria-hidden size={16} />
@@ -206,7 +209,7 @@ export function BeneficiaryFormDialog({
               type="button"
               onClick={onRequestMerge}
               disabled={saving}
-              className="mr-auto rounded-md border border-warning-300 bg-warning-50 px-4 py-2 text-sm font-semibold text-warning-800 transition-colors hover:bg-warning-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60"
+              className="border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 mr-auto rounded-md border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               Merge…
             </button>

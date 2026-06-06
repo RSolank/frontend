@@ -23,11 +23,7 @@ function fixture(overrides: Partial<BankAccount> = {}): BankAccount {
   };
 }
 
-function NoopHarness({
-  initial,
-}: {
-  initial: number | null;
-}) {
+function NoopHarness({ initial }: { initial: number | null }) {
   return (
     <BankAccountField
       id="bank-account-picker-test"
@@ -41,9 +37,7 @@ function NoopHarness({
 describe('BankAccountField', () => {
   test('renders nothing when the user has no accounts', async () => {
     server.use(
-      http.get(`${API_BASE}/bank-accounts/`, () =>
-        HttpResponse.json([])
-      )
+      http.get(`${API_BASE}/bank-accounts/`, () => HttpResponse.json([]))
     );
     renderWithProviders(<NoopHarness initial={null} />);
     // Wait for the query to settle, then assert the field is absent.
@@ -96,7 +90,10 @@ describe('BankAccountField', () => {
     await waitFor(() =>
       expect(screen.getByTestId('bank-account-picker')).toBeInTheDocument()
     );
-    await userEvent.selectOptions(screen.getByTestId('bank-account-picker'), '7');
+    await userEvent.selectOptions(
+      screen.getByTestId('bank-account-picker'),
+      '7'
+    );
     expect(last).toBe(7);
   });
 });

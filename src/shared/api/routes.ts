@@ -118,8 +118,7 @@ export const routes = {
     // BE T-admin B2 — force-logout: locks every active session,
     // idempotent (0 when no active sessions); does NOT lock the
     // account itself (pair with /lock for a full eject).
-    userSessions: (userId: number) =>
-      `${V}/admin/users/${userId}/sessions`,
+    userSessions: (userId: number) => `${V}/admin/users/${userId}/sessions`,
     // BE T-admin E1 (Phase 2.16) — admin operator layer over the
     // activity per-user signal-settings + the system catalog.
     // GET/PUT user-signal-settings = toggle a kind for a target
@@ -244,10 +243,8 @@ export const routes = {
     byId: (uid: number | string) => `${V}/bank-accounts/${uid}`,
     identifiers: (uid: number | string) =>
       `${V}/bank-accounts/${uid}/identifiers`,
-    identifierById: (
-      uid: number | string,
-      identifierUid: number | string
-    ) => `${V}/bank-accounts/${uid}/identifiers/${identifierUid}`,
+    identifierById: (uid: number | string, identifierUid: number | string) =>
+      `${V}/bank-accounts/${uid}/identifiers/${identifierUid}`,
   },
 
   // BE Phase 1.5 — recurring-transaction inference engine. The worker

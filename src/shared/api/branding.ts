@@ -46,8 +46,7 @@ function readCachedBrand(): BrandingResponse {
       tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
       description:
         typeof parsed.description === 'string' ? parsed.description : '',
-      logo_url:
-        typeof parsed.logo_url === 'string' ? parsed.logo_url : null,
+      logo_url: typeof parsed.logo_url === 'string' ? parsed.logo_url : null,
     };
   } catch {
     return NEUTRAL_PLACEHOLDER;

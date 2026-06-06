@@ -128,10 +128,9 @@ describe('AdminCemeteryPage', () => {
 
     const search = screen.getByRole('searchbox');
     await userEvent.type(search, 'ab');
-    await waitFor(
-      () => expect(recorded.length).toBe(initialCount),
-      { timeout: 600 }
-    );
+    await waitFor(() => expect(recorded.length).toBe(initialCount), {
+      timeout: 600,
+    });
 
     await userEvent.type(search, 'c');
     await waitFor(() => {

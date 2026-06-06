@@ -25,7 +25,10 @@ export interface CalendarCell {
   weekday: number; // 0 = Mon … 6 = Sun
 }
 
-function ymdInTz(date: Date, tz: string): { year: number; month: number; day: number } {
+function ymdInTz(
+  date: Date,
+  tz: string
+): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
     year: 'numeric',

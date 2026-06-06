@@ -101,14 +101,14 @@ and re-skin it later.
     `sm` — the owning feature picks what reads better for its data.
     Tables should never force `body` to scroll horizontally.
   - **Header / navigation collapse rules** — non-essential elements
-    (e.g. "Hello, *firstname*" greeting, breadcrumbs) get
+    (e.g. "Hello, _firstname_" greeting, breadcrumbs) get
     `hidden sm:inline` / `hidden md:flex` so the icon row stays
     uncrowded on narrow screens. Don't ship a hamburger pattern until
     a screen genuinely needs it.
   - **Per-surface responsibility** — check every surface you build at
     `sm` (375 px), `md` (768 px), and a desktop width before shipping it.
-  - **Effort tiers by surface density.** The *check* is always per
-    batch; the *implementation work* scales with what the feature
+  - **Effort tiers by surface density.** The _check_ is always per
+    batch; the _implementation work_ scales with what the feature
     actually contains:
     - **Form / list / chip surfaces** (auth pages, profile, tags,
       beneficiaries, settings): usually a 5-minute viewport smoke
@@ -118,7 +118,7 @@ and re-skin it later.
     - **Table, grid, multi-step, and dense surfaces** (transactions
       list, statement upload, taxation bills, budget grids,
       Dashboard, statement-parse review tables): require deliberate
-      responsive design *upfront* — pick the degradation strategy
+      responsive design _upfront_ — pick the degradation strategy
       (horizontal-scroll-inside-card, card-stack, column-hide) before
       writing the markup, not after. Tables don't degrade naturally;
       retrofitting is painful.
@@ -145,8 +145,8 @@ and re-skin it later.
     controls, and back-button semantics. The modal is an additional
     entry path, not a replacement.
   - **Don't use a modal for primary-content surfaces** (dashboards,
-    list views, detail pages). Modals are for *secondary, focused
-    actions* — anything that would also work as "open in a new tab"
+    list views, detail pages). Modals are for _secondary, focused
+    actions_ — anything that would also work as "open in a new tab"
     belongs on a route, not in a modal.
 - **Loading and empty states** are first-class. Skeletons for any list
   fetch > 200 ms (per §8); thoughtful empty states with a clear next
@@ -237,7 +237,7 @@ and any future surface meeting both conditions.
 **Apply only when both invariants hold:**
 
 1. There is a finite list of candidate values to choose from.
-2. The user is allowed to *add* new values to that same list.
+2. The user is allowed to _add_ new values to that same list.
 
 If a field only searches a fixed catalog (country / currency /
 timezone — the user can pick, not add), use a plain `<select>` or
@@ -264,20 +264,20 @@ case.
   source list** and, for single-select, **auto-selects** the new
   entry; for multi-select, **auto-appends** it.
 - **Selection-state rendering depends on cardinality:**
-  - **Single-select:** the chosen value lives *inside* the search
+  - **Single-select:** the chosen value lives _inside_ the search
     input — pick replaces the search text with the value's label;
     the dropdown closes; the parent is responsible for caching the
     chosen id alongside the visible name. No chip rail.
     Reference: `BeneficiarySearch`.
   - **Multi-select:** every pick appends a chip to a rail rendered
-    *below* the input. Chips carry a `×` remove button. Already-
+    _below_ the input. Chips carry a `×` remove button. Already-
     selected ids are filtered out of the dropdown so the same
     value can't be re-picked.
     Reference: `TagSelector`, categorization-rules tag picker.
   - **Feature-specific chip enrichment** (e.g. "Primary" badge +
     "Set Primary" buttons on categorization-rule tag chips, alias
     bracket display on beneficiary chips) is allowed on top of the
-    multi-select base. It's a *layer over* the pattern, not a
+    multi-select base. It's a _layer over_ the pattern, not a
     deviation from it.
 - **Type-then-create flow:** if the user types a name not in the
   list, the Add CTA stays at top of the dropdown. Optionally
@@ -335,21 +335,21 @@ ordinary entry in `options[]`.
 
 **Decision matrix for current pickers:**
 
-| Surface | Convention | Reason |
-|---|---|---|
-| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create) | Data-driven, user can add |
-| Tag picker on Add Tx | `SearchableList` (pick-or-create, multi) | Data-driven, user can add |
-| Tag dropdown in Filter Sidebar | `SearchableSelect` | Data-driven, often > 15 |
-| Beneficiary category (Beneficiary form) | `SearchableSelect` | Data-driven, ~25+ tags in the default seed |
-| Merchant search bar (Transactions filter row) | bespoke (per-feature `MerchantSearchBar`) | Filter-row chrome, not a sidebar dropdown |
-| Country picker (Register, Profile) | `SearchableSelect` | 250 items |
-| Currency picker (Profile, Preferences) | `SearchableSelect` | 170 items |
-| Timezone picker (Register, Profile) | bespoke `TimezoneSelect` (country-narrowing + `SearchableSelect` fallback) | Specialised filter cascade; full IANA fallback is searchable per the >15-items rule |
-| Bank-account picker (Add / Edit transaction) | plain `<select>` | Per-user count is bounded (≤ ~5 in practice); the "user-extendable" trigger doesn't fire because users don't accumulate accounts past a visual-scan threshold. Documented carve-out. |
-| Month dropdown (Transactions filter) | plain `<select>` | Sequential, 25 items, native jump works |
-| Type filter (debit/credit/all) | pill toggle | 3 items — toggle, not dropdown |
-| Sort field / direction (Filter Sidebar) | plain `<select>` | ≤ 4 items, fixed |
-| Date format / number format pickers | plain `<select>` | ≤ 10 items, semantic groups |
+| Surface                                           | Convention                                                                 | Reason                                                                                                                                                                               |
+| ------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create)                                          | Data-driven, user can add                                                                                                                                                            |
+| Tag picker on Add Tx                              | `SearchableList` (pick-or-create, multi)                                   | Data-driven, user can add                                                                                                                                                            |
+| Tag dropdown in Filter Sidebar                    | `SearchableSelect`                                                         | Data-driven, often > 15                                                                                                                                                              |
+| Beneficiary category (Beneficiary form)           | `SearchableSelect`                                                         | Data-driven, ~25+ tags in the default seed                                                                                                                                           |
+| Merchant search bar (Transactions filter row)     | bespoke (per-feature `MerchantSearchBar`)                                  | Filter-row chrome, not a sidebar dropdown                                                                                                                                            |
+| Country picker (Register, Profile)                | `SearchableSelect`                                                         | 250 items                                                                                                                                                                            |
+| Currency picker (Profile, Preferences)            | `SearchableSelect`                                                         | 170 items                                                                                                                                                                            |
+| Timezone picker (Register, Profile)               | bespoke `TimezoneSelect` (country-narrowing + `SearchableSelect` fallback) | Specialised filter cascade; full IANA fallback is searchable per the >15-items rule                                                                                                  |
+| Bank-account picker (Add / Edit transaction)      | plain `<select>`                                                           | Per-user count is bounded (≤ ~5 in practice); the "user-extendable" trigger doesn't fire because users don't accumulate accounts past a visual-scan threshold. Documented carve-out. |
+| Month dropdown (Transactions filter)              | plain `<select>`                                                           | Sequential, 25 items, native jump works                                                                                                                                              |
+| Type filter (debit/credit/all)                    | pill toggle                                                                | 3 items — toggle, not dropdown                                                                                                                                                       |
+| Sort field / direction (Filter Sidebar)           | plain `<select>`                                                           | ≤ 4 items, fixed                                                                                                                                                                     |
+| Date format / number format pickers               | plain `<select>`                                                           | ≤ 10 items, semantic groups                                                                                                                                                          |
 
 **Anti-patterns to avoid:**
 
@@ -489,17 +489,17 @@ crowding the Cancel / Save footer.
 
 **Where the convention applies:**
 
-| Modal | Status | Notes |
-|---|---|---|
-| `BudgetFormDialog` | ✅ | Modal is the primary delete surface (no row-level delete on the cards). |
-| `BeneficiaryFormDialog` | ✅ | Row + modal both available. |
-| `TagFormDialog` | ✅ | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`). |
-| Transactions edit modal | ✅ | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate). |
-| `RecurringFormDialog` | ✅ | Modal is the primary delete surface — soft-deactivate via DELETE on the template uid. |
-| `BankAccountFormDialog` | ✅ | Modal is the primary delete surface — hard-delete; statement-upload identifier matches stop working (warning copy in the ConfirmDialog). |
-| `CategorizationRuleFormDialog` | ✅ | Header Trash for user rules; hidden when `isUserRule` is false. |
-| `TaxationRuleFormDialog` | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete". |
-| `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete. |
+| Modal                                                                              | Status  | Notes                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `BudgetFormDialog`                                                                 | ✅      | Modal is the primary delete surface (no row-level delete on the cards).                                                                  |
+| `BeneficiaryFormDialog`                                                            | ✅      | Row + modal both available.                                                                                                              |
+| `TagFormDialog`                                                                    | ✅      | Row + modal. Hidden when `editingTag` is a system tag (`created_by === null` or `=== SYSTEM_USER_ID`).                                   |
+| Transactions edit modal                                                            | ✅      | Gated on `editingTxn.source === 'manual'` — statement-imported txns can't be deleted (matches the row-dropdown gate).                    |
+| `RecurringFormDialog`                                                              | ✅      | Modal is the primary delete surface — soft-deactivate via DELETE on the template uid.                                                    |
+| `BankAccountFormDialog`                                                            | ✅      | Modal is the primary delete surface — hard-delete; statement-upload identifier matches stop working (warning copy in the ConfirmDialog). |
+| `CategorizationRuleFormDialog`                                                     | ✅      | Header Trash for user rules; hidden when `isUserRule` is false.                                                                          |
+| `TaxationRuleFormDialog`                                                           | ❌ skip | Canonical 4 txn_types are system rows; "customize vs fall back to default" is the model, not "delete".                                   |
+| `BillDetailDialog`, `GenerateBillsDialog`, `MergeBeneficiariesDialog`, `AuthModal` | ❌ skip | View-only or action surfaces; nothing to delete.                                                                                         |
 
 **Shared infra:** `shared/components/Modal.tsx` exposes a
 `headerActions?: React.ReactNode` slot rendered between the title
@@ -583,7 +583,7 @@ schedules:
 - `ANON_PREFETCH` — used by `app/pages/Home.tsx` for the anonymous
   landing page. Warms `AuthModal` after 2 s.
 
-**Exemptions** — surfaces that need to load *immediately* on a
+**Exemptions** — surfaces that need to load _immediately_ on a
 user action skip the schedule and force-prefetch on mount of the
 relevant page. Example:
 [`UploadStatementPage`](../../src/features/transactions/statement_upload/pages/UploadStatementPage.tsx)
@@ -626,13 +626,13 @@ app — they look similar but persist and surface differently:
   row (§5 above); follow the user across devices. Hydrated at boot
   by `hydratePreferences()`, and every user-driven `setX()` fires
   a PATCH side-effect via `subscribeToPreferenceStores()`. The
-  full SoT set is: currency, timezone, date_format, number_format,
+  full SoT set is: currency, timezone, date*format, number_format,
   landing_route, default_txn_kind, underline_links,
   focus_ring_always, auto_enabled (the taxation auto-finalize toggle
   added in BE Phase 2.6 — Decision 26). **Note:** underline-links and focus-ring-
-  always *are* a11y flags by behaviour (they affect contrast /
+  always \_are* a11y flags by behaviour (they affect contrast /
   visible focus) but live in Preferences because the right value
-  is a property of the *user*, not the *device* — a user who needs
+  is a property of the _user_, not the _device_ — a user who needs
   a visible focus ring on their laptop needs it on their phone
   too. Surfaced on the account surface — currency / timezone /
   country on `/account/preferences`, the rest on
@@ -691,4 +691,3 @@ convention change is one file. `fractionOfWeekElapsed` and
 `period_end` when matching backend payload shape) — never
 `mondayStart` / `sundayEnd`. The labels stay neutral so the next
 convention change (if any) doesn't require a rename sweep.
-

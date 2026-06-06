@@ -145,147 +145,146 @@ export function TopNav({ onLogout }: TopNavProps) {
 
   return (
     <>
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="flex h-16 w-full items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
-        {/*
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="flex h-16 w-full items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
+          {/*
           Mobile (<lg) top-bar contract:
           [☰] ............................ [👤▾]
           Brand / Home icon / Theme toggle / Settings dropdown all live
           inside the drawer per the 2026-05-26 follow-up plan.
         */}
 
-        {/* Hamburger — visible on <lg, auth-only */}
-        {user && (
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:hidden dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
-          >
-            <Menu aria-hidden="true" size={22} />
-          </button>
-        )}
+          {/* Hamburger — visible on <lg, auth-only */}
+          {user && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation"
+              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden dark:text-slate-300"
+            >
+              <Menu aria-hidden="true" size={22} />
+            </button>
+          )}
 
-        {/* Desktop-only Home icon — → /dashboard. */}
-        {user && (
-          <Link
-            to="/dashboard"
-            aria-label="Dashboard"
-            title="Dashboard"
-            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
-          >
-            <Home aria-hidden="true" size={20} />
-          </Link>
-        )}
+          {/* Desktop-only Home icon — → /dashboard. */}
+          {user && (
+            <Link
+              to="/dashboard"
+              aria-label="Dashboard"
+              title="Dashboard"
+              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+            >
+              <Home aria-hidden="true" size={20} />
+            </Link>
+          )}
 
-        {/*
+          {/*
           Brand — → /. Visibility:
             - Always on ≥lg.
             - On <lg, only when UNauthenticated (otherwise the drawer
               header carries the brand; authed mobile top bar is just
               hamburger + user per the 2026-05-26 spec).
         */}
-        <Link
-          to="/"
-          aria-label={brandName}
-          className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-accent-700 no-underline transition-colors hover:text-accent-800 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-accent-300 dark:hover:text-accent-200`}
-        >
-          <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={22} />
-          <span className="hidden text-base font-semibold tracking-tight sm:inline">
-            {brandName}
-          </span>
-        </Link>
-
-        {/* Desktop main-feature links */}
-        {user && (
-          <nav
-            aria-label="Main"
-            className="ml-6 hidden items-center gap-1 lg:flex"
+          <Link
+            to="/"
+            aria-label={brandName}
+            className={`${user ? 'hidden' : 'inline-flex'} text-accent-700 hover:text-accent-800 focus-visible:ring-accent-500 dark:text-accent-300 dark:hover:text-accent-200 items-center gap-2 rounded-md px-1 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex`}
           >
-            {MAIN_LINKS.map((link) => (
-              <NavLink key={link.to} to={link.to} className={mainLinkClass}>
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
+            <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={22} />
+            <span className="hidden text-base font-semibold tracking-tight sm:inline">
+              {brandName}
+            </span>
+          </Link>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          {/*
+          {/* Desktop main-feature links */}
+          {user && (
+            <nav
+              aria-label="Main"
+              className="ml-6 hidden items-center gap-1 lg:flex"
+            >
+              {MAIN_LINKS.map((link) => (
+                <NavLink key={link.to} to={link.to} className={mainLinkClass}>
+                  {link.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            {/*
             UNauthenticated users on every viewport get just the
             ThemeToggle cycler — there's no drawer / popover to anchor
             against, and the landing page should still let visitors
             switch theme.
           */}
-          {!user && <ThemeToggle />}
+            {!user && <ThemeToggle />}
 
-          {/*
+            {/*
             Authenticated, desktop-only: a single AccessibilityPopover
             that consolidates theme / text-size / reduced-motion /
             privacy. Mobile users get the same four controls inline in
             the drawer under the "Accessibility" section.
           */}
-          {user && (
-            <div className="hidden lg:inline-flex">
-              <AccessibilityPopover />
-            </div>
-          )}
+            {user && (
+              <div className="hidden lg:inline-flex">
+                <AccessibilityPopover />
+              </div>
+            )}
 
-          {/*
+            {/*
             Activity bell — desktop only. Click opens a lazy-loaded
             modal with the BE-ranked feed split into Alerts then
             Notifications by event_class. Badge counts current feed
             items capped at "5+". See ActivityBell.tsx for the
             soft/hard-ack discipline.
           */}
-          {user && <ActivityBell enabled={Boolean(user)} />}
+            {user && <ActivityBell enabled={Boolean(user)} />}
 
-          {/*
+            {/*
             Help / docs entry-point. Desktop-only — mobile users reach
             the same page via the drawer's footer (placeholder; future
             iteration). Repoint the `to` when a real docs surface
             ships.
           */}
-          {user && (
-            <Link
-              to="/help"
-              aria-label="Help"
-              title="Help"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
-            >
-              <HelpCircle aria-hidden="true" size={20} />
-            </Link>
-          )}
+            {user && (
+              <Link
+                to="/help"
+                aria-label="Help"
+                title="Help"
+                className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+              >
+                <HelpCircle aria-hidden="true" size={20} />
+              </Link>
+            )}
 
-          {user && (
-            <>
-              {/* Settings dropdown — desktop only. Lazy-loaded Radix
+            {user && (
+              <>
+                {/* Settings dropdown — desktop only. Lazy-loaded Radix
                   surface; stub button covers the click target. */}
-              <SettingsMenuLazy />
+                <SettingsMenuLazy />
 
-              {/* User dropdown — both viewports. Mirrors Profile + Sign
+                {/* User dropdown — both viewports. Mirrors Profile + Sign
                   Out into a 1-tap-from-the-avatar surface even though
                   the same actions are also in the mobile drawer. */}
-              <UserMenuLazy user={user} onLogout={onLogout} />
-            </>
-          )}
+                <UserMenuLazy user={user} onLogout={onLogout} />
+              </>
+            )}
+          </div>
         </div>
-      </div>
-
-    </header>
-    {/*
+      </header>
+      {/*
       Drawer is a sibling of <header>, not a child. The header carries
       `backdrop-blur-sm` which creates a containing block for any
       position:fixed descendant — putting the drawer inside the header
       would anchor `fixed inset-0` to the 4rem-tall header instead of
       the viewport, hiding everything below the brand on scroll.
     */}
-    {drawerOpen && user && (
-      <MobileDrawer
-        onClose={() => setDrawerOpen(false)}
-        onLogout={onLogout}
-      />
-    )}
+      {drawerOpen && user && (
+        <MobileDrawer
+          onClose={() => setDrawerOpen(false)}
+          onLogout={onLogout}
+        />
+      )}
     </>
   );
 }
@@ -341,7 +340,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             to="/"
             onClick={onClose}
             aria-label={brandName}
-            className="inline-flex items-center gap-2 text-accent-700 no-underline dark:text-accent-300"
+            className="text-accent-700 dark:text-accent-300 inline-flex items-center gap-2 no-underline"
           >
             <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={20} />
             <span className="text-base font-semibold">{brandName}</span>
@@ -381,7 +380,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           */}
           <Link
             to="/account/accessibility"
-            className="flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+            className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400"
           >
             <span>Accessibility</span>
             <ChevronRight aria-hidden="true" size={14} />
@@ -405,10 +404,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             <UserRound aria-hidden="true" size={16} className="mr-2" />
             Account
           </Link>
-          <Link
-            to="/help"
-            className={drawerLinkClass({ isActive: false })}
-          >
+          <Link to="/help" className={drawerLinkClass({ isActive: false })}>
             <HelpCircle aria-hidden="true" size={16} className="mr-2" />
             Help
           </Link>
@@ -418,7 +414,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
               onClose();
               void onLogout();
             }}
-            className="flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+            className="hover:bg-accent-50 hover:text-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors dark:text-slate-200"
           >
             <LogOut aria-hidden="true" size={16} className="mr-2" />
             Sign Out
@@ -468,7 +464,7 @@ function SettingsMenuLazy() {
         type="button"
         aria-label="Settings"
         onClick={() => setOpened(true)}
-        className="hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-slate-300 dark:hover:bg-accent-950/40 dark:hover:text-accent-300"
+        className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
       >
         <Settings aria-hidden="true" size={20} />
         <ChevronDown aria-hidden="true" size={14} />
@@ -502,7 +498,7 @@ function UserMenuLazy({ user, onLogout }: UserMenuLazyProps) {
         aria-label="Account menu"
         title={email}
         onClick={() => setOpened(true)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 hover:ring-accent-300 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+        className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
       >
         <ProfileImage
           profileImageUrl={user.profile_image_url ?? null}

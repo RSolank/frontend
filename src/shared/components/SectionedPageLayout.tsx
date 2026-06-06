@@ -23,9 +23,7 @@ interface SectionedPageLayoutProps {
 }
 
 function matchSection(pathname: string, section: SectionSpec): boolean {
-  return (
-    pathname === section.path || pathname.startsWith(`${section.path}/`)
-  );
+  return pathname === section.path || pathname.startsWith(`${section.path}/`);
 }
 
 export function SectionedPageLayout({
@@ -43,7 +41,7 @@ export function SectionedPageLayout({
           <li>
             <Link
               to={rootHref}
-              className="rounded-sm no-underline transition-colors hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:hover:text-accent-300"
+              className="hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:text-accent-300 rounded-sm no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
               {rootLabel}
             </Link>
@@ -71,7 +69,7 @@ export function SectionedPageLayout({
       */}
       <nav
         aria-label={`${rootLabel} sections`}
-        className="lg:hidden -mx-3 mb-4 overflow-x-auto px-3 sm:-mx-6 sm:px-6"
+        className="-mx-3 mb-4 overflow-x-auto px-3 sm:-mx-6 sm:px-6 lg:hidden"
       >
         <ul className="flex min-w-max gap-1 border-b border-slate-200 dark:border-slate-800">
           {sections.map((s) => (
@@ -90,7 +88,7 @@ export function SectionedPageLayout({
           in view as the content area scrolls. top-20 = header (h-16)
           + 1rem breathing room.
         */}
-        <aside className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
           <nav aria-label={`${rootLabel} sections`}>
             <ul className="flex flex-col gap-1">
               {sections.map((s) => (

@@ -86,8 +86,6 @@ describe('AccountNotificationsPage', () => {
     renderWithProviders(<AccountNotificationsPage />);
 
     expect(await screen.findByText('System off')).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/Enable Deprecated Kind/)
-    ).toBeDisabled();
+    expect(screen.getByLabelText(/Enable Deprecated Kind/)).toBeDisabled();
   });
 });

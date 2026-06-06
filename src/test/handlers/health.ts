@@ -6,7 +6,5 @@ import { API_BASE } from '../baseUrl';
 // src/App.smoke.test.tsx. Feature batches add their own handlers under
 // src/test/handlers/<feature>.ts and compose them in handlers/index.ts.
 export const healthHandlers = [
-  http.get(`${API_BASE}/health`, () =>
-    HttpResponse.json({ status: 'ok' })
-  ),
+  http.get(`${API_BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
 ];

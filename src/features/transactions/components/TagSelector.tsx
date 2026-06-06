@@ -48,9 +48,7 @@ export function TagSelector({
     ) {
       return false;
     }
-    return (
-      !search || t.tag_name.toLowerCase().includes(search.toLowerCase())
-    );
+    return !search || t.tag_name.toLowerCase().includes(search.toLowerCase());
   });
 
   return (
@@ -71,12 +69,12 @@ export function TagSelector({
           autoComplete="off"
         />
         {focused && (
-          <div className="absolute left-0 right-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
+          <div className="absolute right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
             {onRequestAddTag && (
               <button
                 type="button"
                 onMouseDown={onRequestAddTag}
-                className="flex w-full items-center gap-1.5 border-b border-slate-200 bg-accent-50/40 px-3 py-2 text-left text-sm font-semibold text-accent-700 hover:bg-accent-100 dark:border-slate-700 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50"
+                className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
               >
                 <span aria-hidden="true">＋</span>
                 Add new tag
@@ -110,7 +108,7 @@ export function TagSelector({
           return (
             <span
               key={tid}
-              className="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2.5 py-0.5 text-sm font-medium text-accent-700 dark:bg-accent-950/40 dark:text-accent-300"
+              className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium"
             >
               {tag?.tag_name ?? `Tag ${tid}`}
               <button

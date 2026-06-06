@@ -23,14 +23,19 @@ export function lockAdminUser(args: {
 }): Promise<AdminAccountStatusResponse> {
   const body: { reason?: string } = {};
   if (args.reason) body.reason = args.reason;
-  return apiFetch<AdminAccountStatusResponse>(routes.admin.userLock(args.userId), {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
-  });
+  return apiFetch<AdminAccountStatusResponse>(
+    routes.admin.userLock(args.userId),
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 }
 
-export function unlockAdminUser(userId: number): Promise<AdminAccountStatusResponse> {
+export function unlockAdminUser(
+  userId: number
+): Promise<AdminAccountStatusResponse> {
   return apiFetch<AdminAccountStatusResponse>(routes.admin.userUnlock(userId), {
     method: 'PATCH',
   });
@@ -50,7 +55,8 @@ export function forceLogoutAdminUser(
 export function useLockAdminUserMutation(userId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (reason: string | undefined) => lockAdminUser({ userId, reason }),
+    mutationFn: (reason: string | undefined) =>
+      lockAdminUser({ userId, reason }),
     onSuccess: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: adminKeys.userDetail(userId) }),

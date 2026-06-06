@@ -21,29 +21,26 @@ describe('<VerifyTwoFactorPage>', () => {
       initialEntries: ['/verify/2fa'],
     });
     // Navigate replaces the entry; the form never renders.
-    expect(screen.queryByTestId('verify-2fa-code-input')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('verify-2fa-code-input')
+    ).not.toBeInTheDocument();
   });
 
   it('submits the code to /2fa/login-verify and persists tokens on success', async () => {
     clearAuth();
     let seenBody: Record<string, unknown> | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/2fa/login-verify`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as Record<string, unknown>;
-          return HttpResponse.json({
-            access_token: 'verified-a',
-            refresh_token: 'verified-r',
-          });
-        }
-      ),
+      http.post(`${API_BASE}/auth/2fa/login-verify`, async ({ request }) => {
+        seenBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          access_token: 'verified-a',
+          refresh_token: 'verified-r',
+        });
+      }),
       http.get(`${API_BASE}/users/me`, () =>
         HttpResponse.json({ user: { user_id: 1, email_id: 'a@b' } })
       ),
-      http.get(`${API_BASE}/users/preferences`, () =>
-        HttpResponse.json({})
-      )
+      http.get(`${API_BASE}/users/preferences`, () => HttpResponse.json({}))
     );
 
     renderWithProviders(<VerifyTwoFactorPage />, {

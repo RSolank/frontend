@@ -16,12 +16,12 @@ describe('privacy.store', () => {
 
   it('applyPrivacyMask toggles the html class', () => {
     applyPrivacyMask(true);
-    expect(
-      document.documentElement.classList.contains('mask-amounts')
-    ).toBe(true);
+    expect(document.documentElement.classList.contains('mask-amounts')).toBe(
+      true
+    );
     applyPrivacyMask(false);
-    expect(
-      document.documentElement.classList.contains('mask-amounts')
-    ).toBe(false);
+    expect(document.documentElement.classList.contains('mask-amounts')).toBe(
+      false
+    );
   });
 });

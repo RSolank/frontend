@@ -37,7 +37,11 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
 
 export function renderWithProviders(
   ui: ReactElement,
-  { client = makeClient(), initialEntries, ...options }: RenderWithProvidersOptions = {}
+  {
+    client = makeClient(),
+    initialEntries,
+    ...options
+  }: RenderWithProvidersOptions = {}
 ) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (

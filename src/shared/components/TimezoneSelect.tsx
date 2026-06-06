@@ -1,9 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import {
-  useCountriesQuery,
-  useTimezonesQuery,
-} from '../api/referenceData';
+import { useCountriesQuery, useTimezonesQuery } from '../api/referenceData';
 import {
   formatTimezoneOption,
   getBrowserTimezone,

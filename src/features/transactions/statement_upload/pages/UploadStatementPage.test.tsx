@@ -95,18 +95,15 @@ describe('UploadStatementPage', () => {
   test('upload sends parser_override in the FormData', async () => {
     let receivedOverride: string | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/statement-uploads`,
-        async ({ request }) => {
-          const fd = await request.formData();
-          const val = fd.get('parser_override');
-          receivedOverride = typeof val === 'string' ? val : null;
-          return HttpResponse.json(
-            { job_id: 99, status: 'PROCESSING' },
-            { status: 202 }
-          );
-        }
-      ),
+      http.post(`${API_BASE}/statement-uploads`, async ({ request }) => {
+        const fd = await request.formData();
+        const val = fd.get('parser_override');
+        receivedOverride = typeof val === 'string' ? val : null;
+        return HttpResponse.json(
+          { job_id: 99, status: 'PROCESSING' },
+          { status: 202 }
+        );
+      }),
       http.get(`${API_BASE}/statement-uploads/99`, () =>
         HttpResponse.json({
           job_id: 99,
@@ -166,8 +163,16 @@ describe('UploadStatementPage', () => {
             detail: {
               message: 'No parser detected',
               available_parsers: [
-                { key: 'phonepe', label: 'PhonePe statement (PDF)', source_type: 'phonepe' },
-                { key: 'csv', label: 'Generic CSV statement', source_type: 'csv' },
+                {
+                  key: 'phonepe',
+                  label: 'PhonePe statement (PDF)',
+                  source_type: 'phonepe',
+                },
+                {
+                  key: 'csv',
+                  label: 'Generic CSV statement',
+                  source_type: 'csv',
+                },
               ],
             },
           },
@@ -182,7 +187,9 @@ describe('UploadStatementPage', () => {
     );
     await userEvent.click(screen.getByTestId('statement-upload-submit'));
     await waitFor(() =>
-      expect(screen.getByTestId('statement-upload-pick-parser')).toBeInTheDocument()
+      expect(
+        screen.getByTestId('statement-upload-pick-parser')
+      ).toBeInTheDocument()
     );
     await userEvent.click(screen.getByTestId('statement-upload-pick-parser'));
     expect(screen.getByTestId('parser-picker-list')).toBeInTheDocument();
@@ -227,10 +234,7 @@ describe('UploadStatementPage', () => {
     // the detected identifier as the ?register= deep-link param.
     expect(
       screen.getByTestId('statement-job-register-account-cta')
-    ).toHaveAttribute(
-      'href',
-      '/settings/bank-accounts?register=user%40upi'
-    );
+    ).toHaveAttribute('href', '/settings/bank-accounts?register=user%40upi');
   });
 
   test('FAILED status renders error_detail + Try again', async () => {
@@ -266,8 +270,6 @@ describe('UploadStatementPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('statement-job-failed')).toBeInTheDocument()
     );
-    expect(
-      screen.getByText(/PDF was password-protected/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/PDF was password-protected/i)).toBeInTheDocument();
   });
 });

@@ -17,5 +17,4 @@ export const taxationKeys = {
   billsList: () => [...taxationKeys.bills(), 'list'] as const,
   billDetail: (billId: number) =>
     [...taxationKeys.bills(), 'detail', billId] as const,
-
 } as const;

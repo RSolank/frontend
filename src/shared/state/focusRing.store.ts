@@ -37,8 +37,5 @@ export const useFocusRingStore = create<FocusRingState>()(
 
 export function applyFocusRing(alwaysVisible: boolean): void {
   if (typeof document === 'undefined') return;
-  document.documentElement.classList.toggle(
-    'focus-always',
-    alwaysVisible
-  );
+  document.documentElement.classList.toggle('focus-always', alwaysVisible);
 }

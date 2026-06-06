@@ -22,13 +22,10 @@ describe('<RevokeDevicePage>', () => {
   it('auto-fires the POST and renders Success on 204', async () => {
     let seenBody: { token?: string } | null = null;
     server.use(
-      http.post(
-        `${API_BASE}/auth/new-device/revoke`,
-        async ({ request }) => {
-          seenBody = (await request.json()) as { token: string };
-          return new HttpResponse(null, { status: 204 });
-        }
-      )
+      http.post(`${API_BASE}/auth/new-device/revoke`, async ({ request }) => {
+        seenBody = (await request.json()) as { token: string };
+        return new HttpResponse(null, { status: 204 });
+      })
     );
 
     renderWithProviders(<RevokeDevicePage />, {

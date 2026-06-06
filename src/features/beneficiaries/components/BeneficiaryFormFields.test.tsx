@@ -4,7 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchTags } from '../../tags/api/queries';
 import { fetchCategorizationRules, fetchRelationships } from '../api/queries';
-import { emptyBeneficiaryForm, type BeneficiaryFormInput } from '../api/schemas';
+import {
+  emptyBeneficiaryForm,
+  type BeneficiaryFormInput,
+} from '../api/schemas';
 
 import { BeneficiaryFormFields } from './BeneficiaryFormFields';
 
@@ -51,17 +54,23 @@ describe('BeneficiaryFormFields', () => {
   it('renders merchant fields and hides system-only tags from the category list', async () => {
     render(<Harness initialType="merchant" />);
     expect(screen.getByLabelText('Category')).toBeInTheDocument();
-    expect(screen.getByLabelText('Contact (phone or website)')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Contact (phone or website)')
+    ).toBeInTheDocument();
     // The category picker is a SearchableSelect — options only render
     // once the combobox gains focus. Wait for the tags fetch to land
     // first, then open the dropdown to inspect the option list.
     await waitFor(() => expect(mockTags).toHaveBeenCalled());
     fireEvent.focus(screen.getByRole('combobox', { name: 'Category' }));
     await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('option', { name: 'Groceries' })
+      ).toBeInTheDocument()
     );
     // tag_id 1 (Total) is system-only and must not be offered.
-    expect(screen.queryByRole('option', { name: 'Total' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Total' })
+    ).not.toBeInTheDocument();
   });
 
   it('selecting a category surfaces it as an assigned-tag chip', async () => {

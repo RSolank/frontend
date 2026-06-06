@@ -143,7 +143,7 @@ function CardHeader({
           <h3
             className={`truncate font-semibold ${
               emphasis
-                ? 'text-lg text-accent-800 dark:text-accent-100'
+                ? 'text-accent-800 dark:text-accent-100 text-lg'
                 : 'text-base text-slate-900 dark:text-slate-100'
             }`}
           >
@@ -156,7 +156,7 @@ function CardHeader({
             </span>
           )}
           {isOver && (
-            <span className="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-700 dark:bg-danger-950/60 dark:text-danger-200">
+            <span className="bg-danger-100 text-danger-700 dark:bg-danger-950/60 dark:text-danger-200 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold">
               Over budget
             </span>
           )}
@@ -169,7 +169,7 @@ function CardHeader({
         aria-label={`${hasLimit ? 'View / edit' : 'Set'} budget for ${category.tag_name}`}
         title={hasLimit ? 'View / edit budget' : 'Set budget'}
         data-testid={`budget-card-edit-${category.tag_id}`}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
       >
         <MoreHorizontal aria-hidden size={16} />
       </button>
@@ -310,9 +310,7 @@ interface AnomalyDescriptor {
   title: string;
 }
 
-function classifyAnomaly(
-  category: BudgetCategory
-): AnomalyDescriptor | null {
+function classifyAnomaly(category: BudgetCategory): AnomalyDescriptor | null {
   const current = category.current_net_expense ?? 0;
   const avg = category.avg_net_expense ?? 0;
   const max = category.max_net_expense ?? 0;
@@ -410,9 +408,7 @@ function ProgressBar({
         <span className={`font-medium tabular-nums ${style.text}`}>
           {percent.toFixed(0)}% used
         </span>
-        <span className={`font-semibold ${style.text}`}>
-          {style.label}
-        </span>
+        <span className={`font-semibold ${style.text}`}>{style.label}</span>
       </div>
     </div>
   );

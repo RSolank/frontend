@@ -46,7 +46,7 @@ export function LockedFieldBanner({
     <div
       role="status"
       data-testid="locked-field-banner"
-      className="mb-3 rounded-md border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200"
+      className="border-warning-200 bg-warning-50 text-warning-800 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-200 mb-3 rounded-md border px-3 py-2 text-xs"
     >
       {reason}
     </div>

@@ -18,7 +18,9 @@ describe('MerchantSearchBar', () => {
   it('opens the dropdown on focus and lists beneficiaries', async () => {
     render(<MerchantSearchBar beneficiaryId="" onChange={() => {}} />);
     fireEvent.focus(screen.getByRole('combobox', { name: 'Search merchant' }));
-    expect(await screen.findByRole('option', { name: 'Amazon' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', { name: 'Amazon' })
+    ).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Netflix' })).toBeInTheDocument();
   });
 
@@ -43,9 +45,8 @@ describe('MerchantSearchBar', () => {
   it('marks the active beneficiary via aria-selected', async () => {
     render(<MerchantSearchBar beneficiaryId="1" onChange={() => {}} />);
     fireEvent.focus(screen.getByRole('combobox', { name: 'Search merchant' }));
-    expect(await screen.findByRole('option', { name: 'Amazon' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(
+      await screen.findByRole('option', { name: 'Amazon' })
+    ).toHaveAttribute('aria-selected', 'true');
   });
 });

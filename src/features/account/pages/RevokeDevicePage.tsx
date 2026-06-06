@@ -84,14 +84,13 @@ function NoTokenContent() {
         Revoke a device
       </h1>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-        This page is reached from the one-click revoke link in the
-        new-device sign-in email we send when you sign in from an
-        unfamiliar device. Open that email and tap the revoke link to
-        forget the device.
+        This page is reached from the one-click revoke link in the new-device
+        sign-in email we send when you sign in from an unfamiliar device. Open
+        that email and tap the revoke link to forget the device.
       </p>
       <Link
         to="/"
-        className="mt-4 inline-flex text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+        className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 mt-4 inline-flex text-sm font-medium"
       >
         Back to home
       </Link>
@@ -102,16 +101,15 @@ function NoTokenContent() {
 function Success() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-success-700 dark:text-success-300">
+      <h1 className="text-success-700 dark:text-success-300 text-xl font-semibold">
         Device revoked
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-        That device has been signed out and will need to verify again
-        on its next sign-in. If you didn&rsquo;t authorize this
-        sign-in, also{' '}
+        That device has been signed out and will need to verify again on its
+        next sign-in. If you didn&rsquo;t authorize this sign-in, also{' '}
         <Link
           to="/login"
-          className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 font-medium"
         >
           change your password
         </Link>{' '}
@@ -124,17 +122,16 @@ function Success() {
 function Invalid() {
   return (
     <>
-      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
+      <h1 className="text-danger-700 dark:text-danger-300 text-xl font-semibold">
         Link expired or invalid
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-        This revoke link is no longer valid. Revoke links are
-        single-use and expire after the device verifies, becomes
-        trusted, or is already revoked. Sign in from a trusted device
-        and manage your devices under{' '}
+        This revoke link is no longer valid. Revoke links are single-use and
+        expire after the device verifies, becomes trusted, or is already
+        revoked. Sign in from a trusted device and manage your devices under{' '}
         <Link
           to="/account/security"
-          className="font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300 font-medium"
         >
           Account → Security
         </Link>
@@ -147,7 +144,7 @@ function Invalid() {
 function ErrorPanel({ message }: { message: string }) {
   return (
     <>
-      <h1 className="text-xl font-semibold text-danger-700 dark:text-danger-300">
+      <h1 className="text-danger-700 dark:text-danger-300 text-xl font-semibold">
         Something went wrong
       </h1>
       <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">

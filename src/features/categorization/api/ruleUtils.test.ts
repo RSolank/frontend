@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { TagNode } from '../../tags/api/queries';
 
-import {
-  buildRuleName,
-  flattenTags,
-  formatTagAssignment,
-} from './ruleUtils';
+import { buildRuleName, flattenTags, formatTagAssignment } from './ruleUtils';
 
 const tree: TagNode[] = [
   {

@@ -1,5 +1,9 @@
 import { lazy } from 'react';
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  Navigate,
+  type RouteObject,
+} from 'react-router-dom';
 
 import { accountRoutes } from '../features/account/account.routes';
 import { adminRoutes } from '../features/admin/admin.routes';

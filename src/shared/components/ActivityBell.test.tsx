@@ -115,9 +115,7 @@ describe('ActivityBell', () => {
     await waitFor(() => {
       expect(screen.queryByText('1')).toBeNull();
     });
-    expect(useActivityLastSeenStore.getState().lastSeenAt).toBeGreaterThan(
-      NOW
-    );
+    expect(useActivityLastSeenStore.getState().lastSeenAt).toBeGreaterThan(NOW);
   });
 
   it('does not fetch the feed when disabled (no badge ever)', () => {

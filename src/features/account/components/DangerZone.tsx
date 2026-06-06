@@ -73,21 +73,20 @@ export function DangerZone() {
   }
 
   return (
-    <div className="rounded-xl border border-danger-300 bg-danger-50/40 p-6 dark:border-danger-900/60 dark:bg-danger-950/20">
-      <h2 className="text-lg font-semibold text-danger-700 dark:text-danger-300">
+    <div className="border-danger-300 bg-danger-50/40 dark:border-danger-900/60 dark:bg-danger-950/20 rounded-xl border p-6">
+      <h2 className="text-danger-700 dark:text-danger-300 text-lg font-semibold">
         Danger zone
       </h2>
       <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
         Schedule your account for deletion. You&rsquo;ll have{' '}
-        <strong>14 days</strong> to cancel from the link we&rsquo;ll
-        email you. After that, your data is permanently removed —
-        bills and taxation records are anonymised so committee
-        history stays intact.
+        <strong>14 days</strong> to cancel from the link we&rsquo;ll email you.
+        After that, your data is permanently removed — bills and taxation
+        records are anonymised so committee history stays intact.
       </p>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:outline-none"
+        className="bg-danger-600 hover:bg-danger-700 focus-visible:ring-danger-500 mt-4 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
         data-testid="danger-zone-delete"
       >
         Delete account…
@@ -112,7 +111,7 @@ export function DangerZone() {
               type="submit"
               form="delete-account-form"
               disabled={mutation.isPending || !password}
-              className="inline-flex items-center justify-center rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white hover:bg-danger-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="bg-danger-600 hover:bg-danger-700 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="danger-zone-confirm"
             >
               {mutation.isPending ? 'Scheduling…' : 'Schedule deletion'}
@@ -120,11 +119,14 @@ export function DangerZone() {
           </>
         }
       >
-        <form id="delete-account-form" onSubmit={handleSubmit} className="grid gap-3">
+        <form
+          id="delete-account-form"
+          onSubmit={handleSubmit}
+          className="grid gap-3"
+        >
           <p className="text-sm text-slate-700 dark:text-slate-200">
-            Re-enter your password to confirm. You can cancel the
-            deletion any time in the next 14 days via the link
-            we&rsquo;ll email you.
+            Re-enter your password to confirm. You can cancel the deletion any
+            time in the next 14 days via the link we&rsquo;ll email you.
           </p>
           <label htmlFor="danger-zone-password" className="form-label">
             Password

@@ -18,12 +18,12 @@ describe('motion.store', () => {
 
   it('applyMotion toggles the html class', () => {
     applyMotion(true);
-    expect(
-      document.documentElement.classList.contains('reduce-motion')
-    ).toBe(true);
+    expect(document.documentElement.classList.contains('reduce-motion')).toBe(
+      true
+    );
     applyMotion(false);
-    expect(
-      document.documentElement.classList.contains('reduce-motion')
-    ).toBe(false);
+    expect(document.documentElement.classList.contains('reduce-motion')).toBe(
+      false
+    );
   });
 });

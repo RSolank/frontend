@@ -16,12 +16,12 @@ describe('focusRing.store', () => {
 
   it('applyFocusRing toggles the html class', () => {
     applyFocusRing(true);
-    expect(
-      document.documentElement.classList.contains('focus-always')
-    ).toBe(true);
+    expect(document.documentElement.classList.contains('focus-always')).toBe(
+      true
+    );
     applyFocusRing(false);
-    expect(
-      document.documentElement.classList.contains('focus-always')
-    ).toBe(false);
+    expect(document.documentElement.classList.contains('focus-always')).toBe(
+      false
+    );
   });
 });

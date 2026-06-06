@@ -65,7 +65,12 @@ describe('<ExpenseTrendChart>', () => {
         MISCELLANEOUS_TAG_ID: 2,
         CONSUMPTION_TAX_TAG_ID: 3,
         TAXABLE_TXN_TYPES: ['debit'],
-        VALID_TAG_TYPES: ['essential', 'discretionary', 'committed', 'exempted'],
+        VALID_TAG_TYPES: [
+          'essential',
+          'discretionary',
+          'committed',
+          'exempted',
+        ],
         VALID_TXN_TYPES: ['debit', 'credit'],
         RELATIONSHIP_TYPES: ['friend', 'family'],
       },

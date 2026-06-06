@@ -287,10 +287,18 @@ function ChoiceStep({ onChooseQuestion, onChooseOtp }: ChoiceStepProps) {
       <p style={{ margin: 0 }} className="text-slate-700 dark:text-slate-300">
         How would you like to verify your identity?
       </p>
-      <button type="button" onClick={onChooseQuestion} className={CHOICE_BUTTON_CLASS}>
+      <button
+        type="button"
+        onClick={onChooseQuestion}
+        className={CHOICE_BUTTON_CLASS}
+      >
         Security question
       </button>
-      <button type="button" onClick={onChooseOtp} className={CHOICE_BUTTON_CLASS}>
+      <button
+        type="button"
+        onClick={onChooseOtp}
+        className={CHOICE_BUTTON_CLASS}
+      >
         OTP (One-time password)
       </button>
     </div>
@@ -319,7 +327,9 @@ function QuestionStep({
       <form onSubmit={onSubmit}>
         <div style={{ marginBottom: '0.75rem' }}>
           <span className="form-label">Security question</span>
-          <div style={{ marginBottom: 4, color: '#374151', fontWeight: 'bold' }}>
+          <div
+            style={{ marginBottom: 4, color: '#374151', fontWeight: 'bold' }}
+          >
             {question}
           </div>
         </div>
@@ -372,7 +382,13 @@ function OtpStep({
   return (
     <form onSubmit={onSubmit}>
       <div style={{ marginBottom: '0.75rem' }}>
-        <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            color: '#6b7280',
+            marginBottom: '0.5rem',
+          }}
+        >
           A 6-digit code has been sent to {email}.
         </p>
         <label htmlFor="recovery-otp" className="form-label">
