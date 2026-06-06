@@ -16,11 +16,23 @@ import { routes } from './routes';
 // until the network resolves (typically one tick on dev, ~100ms
 // on prod). Browser handles logo-image caching automatically — the
 // URL is from `<MEDIA_URL_PREFIX>/...`, served by the BE.
+// Deploy-host capability flags. **Always present** on the wire as
+// of BE Phase 3.2 (`92fb2ba`) — both inner flags are always-emitted
+// booleans. The outer field is kept optional on the FE type only
+// to absorb a localStorage cache from a pre-3.2 visit; the hook in
+// `shared/api/capabilities.ts` defaults the missing-object case to
+// all-enabled.
+export interface BrandingCapabilities {
+  profile_image_uploads_enabled: boolean;
+  statement_upload_enabled: boolean;
+}
+
 export interface BrandingResponse {
   name: string;
   tagline: string;
   description: string;
   logo_url?: string | null;
+  capabilities?: BrandingCapabilities | null;
 }
 
 const BRAND_CACHE_KEY = 'pba.brand';
@@ -41,12 +53,28 @@ function readCachedBrand(): BrandingResponse {
     const raw = localStorage.getItem(BRAND_CACHE_KEY);
     if (!raw) return NEUTRAL_PLACEHOLDER;
     const parsed = JSON.parse(raw) as Partial<BrandingResponse>;
+    // BE Phase 3.2 emits `capabilities` always; a pre-3.2 cached
+    // blob may lack the field. Defaults backfill missing inner
+    // booleans to `true` (all features enabled) so the FE never
+    // mid-renders an "undefined → disabled" UI.
+    const capabilities =
+      parsed.capabilities && typeof parsed.capabilities === 'object'
+        ? {
+            profile_image_uploads_enabled:
+              (parsed.capabilities as Partial<BrandingCapabilities>)
+                .profile_image_uploads_enabled ?? true,
+            statement_upload_enabled:
+              (parsed.capabilities as Partial<BrandingCapabilities>)
+                .statement_upload_enabled ?? true,
+          }
+        : undefined;
     return {
       name: typeof parsed.name === 'string' ? parsed.name : '',
       tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
       description:
         typeof parsed.description === 'string' ? parsed.description : '',
       logo_url: typeof parsed.logo_url === 'string' ? parsed.logo_url : null,
+      capabilities,
     };
   } catch {
     return NEUTRAL_PLACEHOLDER;

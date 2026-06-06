@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useCapabilities } from '../../../shared/api/capabilities';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver';
@@ -545,6 +546,9 @@ function TransactionsToolbar({
   onBeneficiaryChange,
   onOpenFilters,
 }: TransactionsToolbarProps) {
+  // Statement-upload safety valve — BE may disable on resource-
+  // constrained deploys. Defaults open until BE ships the flag.
+  const { statement_upload_enabled: importEnabled } = useCapabilities();
   return (
     <>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:mb-8">
@@ -560,13 +564,15 @@ function TransactionsToolbar({
           <button type="button" onClick={onAdd} className="btn-primary !w-auto">
             + Add Transaction
           </button>
-          <Link
-            to="/upload-statement"
-            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <FileUp aria-hidden="true" size={16} />
-            Import Statement
-          </Link>
+          {importEnabled && (
+            <Link
+              to="/upload-statement"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 no-underline transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <FileUp aria-hidden="true" size={16} />
+              Import Statement
+            </Link>
+          )}
         </div>
       </header>
 

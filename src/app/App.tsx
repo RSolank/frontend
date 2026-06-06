@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { AuthInit } from '../features/auth/components/AuthInit';
 import { useAuth } from '../features/auth/state/useAuth';
 import { useBrandingQuery } from '../shared/api/branding';
+import { ServiceWakingNotice } from '../shared/components/ServiceWakingNotice';
 import { TopNav } from '../shared/components/TopNav';
 import { useDateFormatStore } from '../shared/state/dateFormat.store';
 import { useNumberFormatStore } from '../shared/state/numberFormat.store';
@@ -74,6 +75,8 @@ export function App() {
           <StatementUploadDock />
         </Suspense>
       )}
+      {/* Render free-tier cold-boot cue. Auto-hides on any response. */}
+      <ServiceWakingNotice />
     </div>
   );
 }

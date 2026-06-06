@@ -101,6 +101,26 @@ Full detail:
 - [`docs/testing.md`](docs/testing.md) — Vitest + MSW + coverage.
 - [`docs/performance.md`](docs/performance.md) — bundle budgets.
 
+## Deployment
+
+Static-site deploy via [`render.yaml`](render.yaml). The backend
+deploys independently as a sibling Render service; `VITE_API_URL`
+(set in the Render dashboard, **no trailing slash**) points at it.
+SPA fallback for hard-refreshes on deep routes ships in
+[`public/_redirects`](public/_redirects); `render.yaml` carries the
+same rewrite belt-and-suspenders.
+
+The BE serves a `capabilities` object on `/api/v1/metadata/branding`
+that can disable individual features per deployment (e.g. profile-
+image uploads need persistent disk; statement parsing is CPU-heavy).
+The FE gating + per-feature `feature_disabled` error handler live in
+[`src/shared/api/capabilities.ts`](src/shared/api/capabilities.ts);
+see [`docs/archive/platform-upgrade-v1.0/uat-and-pre-deploy.md`](docs/archive/platform-upgrade-v1.0/uat-and-pre-deploy.md)
+for the design rationale. Free-tier services sleep after 15 min
+idle; the bottom-left
+[`<ServiceWakingNotice>`](src/shared/components/ServiceWakingNotice.tsx)
+covers the ~30 s cold-boot so users don't think the app is broken.
+
 ## Archives
 
 - [`docs/archive/refactor-v1.0/`](docs/archive/refactor-v1.0/) — the

@@ -1,0 +1,5 @@
+# SPA fallback for static hosts (Render). Any path that isn't a
+# real asset under dist/ falls through to index.html so React Router
+# can resolve client-side. Without this, hard-refreshing /transactions
+# (or any deep route) returns a 404 on the static host.
+/*  /index.html  200

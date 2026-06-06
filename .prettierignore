@@ -3,4 +3,5 @@ dist
 coverage
 package-lock.json
 public/mockServiceWorker.js
+public/_redirects
 src/shared/types/api.ts

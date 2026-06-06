@@ -2,6 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
 import {
+  featureDisabledMessage,
+  getFeatureDisabled,
+  useCapabilities,
+} from '../../../shared/api/capabilities';
+import {
   ProfileImage,
   profileImageSrc,
 } from '../../../shared/components/ProfileImage';
@@ -47,6 +52,11 @@ export function ProfileImagePicker({
   const [status, setStatus] = useState<string | null>(null);
   const { data: presets = [], isLoading: presetsLoading } =
     useProfileImagePresetsQuery();
+  // Deploy-host capability gate — Render free tier has no persistent
+  // disk, so uploads are disabled there. Initials + presets remain
+  // available; only the Upload tier hides. Defaults open until BE
+  // ships the flag (see `shared/api/capabilities.ts`).
+  const { profile_image_uploads_enabled: uploadsEnabled } = useCapabilities();
 
   // Propagate the new `profile_image_url` to BOTH the /me query
   // cache (read by AccountProfilePage) and the auth store (read by
@@ -78,6 +88,11 @@ export function ProfileImagePicker({
       setStatus('Profile picture uploaded.');
     },
     onError: (err: unknown) => {
+      const disabled = getFeatureDisabled(err);
+      if (disabled) {
+        setStatus(featureDisabledMessage(disabled.feature));
+        return;
+      }
       const e = err as ApiErrorShape & { status?: number };
       if (e.status === 413) {
         setStatus('Image is over the 2 MB limit. Try a smaller file.');
@@ -124,15 +139,17 @@ export function ProfileImagePicker({
           alt="Profile picture preview"
         />
         <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={busy}
-            className="btn-primary !w-auto"
-            data-testid="profile-image-upload"
-          >
-            Upload picture
-          </button>
+          {uploadsEnabled && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              className="btn-primary !w-auto"
+              data-testid="profile-image-upload"
+            >
+              Upload picture
+            </button>
+          )}
           {profileImageUrl && (
             <button
               type="button"

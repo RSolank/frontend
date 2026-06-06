@@ -1,0 +1,52 @@
+# Render deploy blueprint — FE static site (Aevum frontend).
+#
+# Apply via the Render dashboard's "Blueprint" flow pointing at the
+# `frontend/` submodule's root directory. The BE service has its own
+# blueprint under `backend/` (separate submodule, separate deploy).
+#
+# After first apply:
+# - set VITE_API_URL in the dashboard to the deployed BE service URL
+#   (e.g. https://aevum-backend.onrender.com — no trailing slash;
+#   see README "Getting started").
+# - free-tier services sleep after 15 min idle; the FE-side
+#   `<ServiceWakingNotice>` covers the ~30 s cold-boot UX.
+services:
+  - type: web
+    name: aevum-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    # SPA fallback. Vite's `appType: 'spa'` only governs the dev
+    # server; the static host needs its own rewrite. We also ship
+    # `public/_redirects` as a belt-and-suspenders fallback for
+    # hosts that read that file (Netlify-compatible).
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Security headers. These are conservative defaults — tighten
+    # CSP once we audit which third-party hosts the app actually
+    # talks to in prod (simpleicons.org CDN for parser brand icons,
+    # Render BE origin for /api/v1/*).
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+    envVars:
+      - key: VITE_API_URL
+        sync: false # set per-environment in the Render dashboard
+    # Prevent the auto-detected `pullRequestPreviewsEnabled: true`
+    # default; the FE submodule's PR workflow lives elsewhere and
+    # would generate noisy preview deploys on every backend-coupled
+    # PR otherwise.
+    pullRequestPreviewsEnabled: false

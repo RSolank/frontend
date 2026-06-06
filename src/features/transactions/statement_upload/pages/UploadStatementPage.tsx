@@ -8,6 +8,10 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import {
+  featureDisabledMessage,
+  getFeatureDisabled,
+} from '../../../../shared/api/capabilities';
 import { useStatementUploadJobStore } from '../../../../shared/state/statementUploadJob.store';
 import { prefetchOnIdle } from '../../../../shared/utils/prefetchOnIdle';
 import { uploadStatementJobRequest } from '../api/mutations';
@@ -204,6 +208,16 @@ export function UploadStatementPage() {
 // catalog so the picker modal can pre-seed from the user's last
 // pick.
 function toPendingError(err: unknown): PendingError {
+  // BE Phase 3.2 feature-disabled (403 with object detail) — check
+  // FIRST so the deep-link / stale-tab path lands on a friendly
+  // message instead of generic "Upload failed".
+  const disabled = getFeatureDisabled(err);
+  if (disabled) {
+    return {
+      message: featureDisabledMessage(disabled.feature),
+      parserDetail: null,
+    };
+  }
   const e = err as ApiErrorShape;
   if (e.status === 409) {
     return {
