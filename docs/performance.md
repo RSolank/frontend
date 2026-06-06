@@ -455,13 +455,24 @@ merge to main. Numbers are pre-deploy; the size budget is the same
 | Platform FE Batch 11 (`recurring.templates`, L) | 124.27 kB | 0 kB | Fourth L-batch — first new feature module since the refactor. Entire `features/recurring/` (page + 5 components + 4 API files) ships in its own lazy chunk via `recurring.routes.tsx`. The dashboard `<UpcomingBillsWidget>` is eager-imported into `DashboardPage` (which is itself lazy) so it rides the dashboard chunk. The widget's row markup is inlined rather than re-using `features/recurring/components/UpcomingBillsList` — the eslint boundaries rule restricts dashboard to other features' `api/` surface only, and 30 lines of duplication is cheaper than promoting the list to `shared/`. Dashboard secondary-widget grid flipped from `lg:grid-cols-3` to `sm:grid-cols-2 xl:grid-cols-4` to accommodate the 4th tile cleanly. CSS unchanged at 12.17 kB gz. |
 | Platform FE Batch 12 (`statement-upload.async`, L) | 124.27 kB | 0 kB | Fifth L-batch — fixed a regression rather than wiring new BE. The legacy 4-step synchronous pipeline (`/upload-statement` + map-beneficiaries + categorize + finalize) was retired BE-side at Phase 2.2, so the FE was 404'ing on every upload. New `features/transactions/statement_upload/api/` (5 files incl. `parserMatch.ts`) + the rewritten `UploadStatementPage` + the new `<ParserPickerModal>` all ride the transactions lazy chunk. The new `<StatementUploadDock>` is **explicitly gated** at the App-shell boundary — `activeJobId !== null && <Suspense><lazy dock /></Suspense>` — so the dock chunk only loads while a job is in flight; cold loads pay nothing. The `useStatementUploadJobStore` Zustand slice + `persist` middleware is the only eager add and is tree-shake-amortised across the dock and the page. Parser-selector wiring (catalog query, filename matcher, picker modal) added zero to the initial chunk — all of it sits inside the transactions lazy chunk and was offset by the matching tightening of the upload card. CSS unchanged at 12.17 kB gz. |
 | Platform FE Batch 13 (`bank-accounts.crud`, XL) | 124.27 kB | 0 kB | Sixth and final L/XL batch. New top-level feature module `features/bankAccounts/` (10 files: 4 api + 6 components + 1 state + 1 page) entirely lazy via the settings shell. The `BankAccountField` mounted on AddTransaction / EditTransaction rides the transactions lazy chunk; the field's internal `useBankAccountsQuery` call shares the React-Query cache with the settings page so a user who hits both surfaces in one session pays the fetch once. The `TaxPotNudge` reads the query from inside the component rather than the page parent so the settings shell pays nothing until a user lands on `/settings/bank-accounts`. Statement-upload upgrade (`RegisterAccountNotice` → deep-link CTA) added a few characters of href computation to the existing component — zero new code paths in the initial graph. CSS unchanged at 12.17 kB gz. |
+| Platform FE Batch 14 (doc audit fix-forward + API_BASE extraction) | ~124 kB | ~0 kB | Mechanical fix-forward batch. API_BASE was extracted to a `test/baseUrl` helper for the MSW handler default; non-runtime change to app code. |
+| Platform FE Batch 15 (convention-adherence audit + fix-forward) | ~124 kB | ~0 kB | Pattern-conformance sweep across the new platform-upgrade features — no new modules, no bundle delta. |
+| Platform FE Batch 16 (BE Phase 2.9-2.11 wireup — `/api/v1` prefix + Aevum brand) | ~124 kB | ~0 kB | Wire-shape changes only (route registry repointed, branding query consumed). Tree-shake neutral. |
+| Platform FE Batch 17 (theme-aware accent + semantic color tokens) | ~124 kB | ~0 kB | `@theme inline` block in `src/index.css` + per-surface token migration. Pure CSS-variable indirection; no JS delta. |
+| Platform FE Batch 18 (T-admin operator portal + activity-feed refresh) | ~124 kB | ~0 kB | Admin pages are fully lazy via the existing admin chunk; the new activity-feed surfaces ship in `shared/` lazy paths. |
+| Platform FE Batch 19 (data-reset + auth.security-status + budgets.created_at + TopNav lazy + doc sweep) | **~115 kB** | **~ −9 kB** | The biggest win since the refactor — `TopNav` user/settings menu cluster was extracted to a `<TopNavMenus>` lazy chunk; the bell/modal cluster already lazy; the initial paint now only carries the brand header + nav skeleton. |
+| Platform FE Batch 20 UAT (`a963f87` — branding + notifications + statement-upload + idle-prefetch + 2FA + tax-tracker + spending-trend + txn group_by) | **111.63 kB** | **−3.4 kB** | Idle-prefetch sweep (`shared/utils/prefetchOnIdle.ts` + `useIdlePrefetch`) makes the `<TopNavMenus>` warm 2 s after authed mount, so the click latency is gone without the chunk re-entering first paint. Notifications-flow rebuild added an in-place `<ActivityDetailModal>` in the existing shared lazy graph. Statement-upload UX adds `<StatementProgressRing>` + `<ParserIcon>` — both ride the statement-upload lazy chunk. Tax-tracker FE-derive **removed** the never-shipped `/tracker/current-week` query path entirely; the page now composes from the existing bills queries. CSS to 12.64 kB gz (+0.47 kB). |
 
-**Bundle-budget posture wrapping up.** Headroom holds at 0.73 kB
-after Batch 13 — six consecutive L/XL batches without an
-initial-bundle regression. The platform-upgrade FE work is
-complete; **only the BE handoff items** (parser_override on
-statement-upload, GET /parsers, bank_account_id on transaction
-schemas) remain. **Open polish:** QR rendering on the 2FA
-enrollment flow. The AccessibilityPanel pattern (extract eager
-imports into a lazy chunk consumed by both eager + lazy callers)
-is a documented escape hatch.
+**Bundle-budget posture at deploy.** Initial JS **111.63 kB gz**
+(budget 125 kB, **13.37 kB headroom — 89 % of cap**). Initial CSS
+**12.64 kB gz** (budget 15 kB, **2.36 kB headroom — 84 % of cap**).
+Both gates green via `npm run size`. Last measured at `a963f87`
+on 2026-06-06.
+
+**Open polish carried into post-deploy:**
+
+- QR rendering on the 2FA enrollment flow.
+- Wiring `npm run size` into CI as a hard gate (currently local-only).
+- DRY the four duplicated `VITE_API_URL ?? 'http://localhost:4000'`
+  fallback sites to a single `shared/api/baseUrl.ts`.
+- Lighthouse audit pass + scores recorded here.

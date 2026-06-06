@@ -14,14 +14,19 @@
   optional "create a categorization rule from this tag + beneficiary
   pair" prompt.
 - Run the async statement-upload pipeline (BE Phase 2.2,
-  `ac4ad00`): POST a file → 202 with `{job_id}` → poll
-  `GET /statement-uploads/{job_id}` for status until the job
-  hits `COMPLETE` or `FAILED`. The FE owns parser-class
+  `ac4ad00`): POST a file → 202 with `{job_id}`. The page
+  **redirects to `/dashboard` immediately on submit** (Batch 20
+  UAT, `bf1b9be`); the in-flight job lives on in the bottom-right
+  Dock from any page. Poll `GET /statement-uploads/{job_id}` until
+  the job reaches `COMPLETED` or `FAILED`. The FE owns parser-class
   selection (filename match + a picker modal); the chosen class
   is sent as `parser_override` so the BE skips its own detection,
   with internal failover to detection if parsing with the chosen
   class fails. Bank-account auto-attribution + categorization
-  run in the background task.
+  run in the background task; **the recurring engine also runs
+  post-completion on the same job** (BE-side service reuse, not a
+  new stage) — the FE Dock fires a delayed cache invalidation to
+  pick that up.
 
 ## Pages
 
@@ -57,11 +62,23 @@ and composed into the root router by `src/app/routes.tsx`
 - `statement_upload/components/StatementUploadDock.tsx` — fixed
   bottom-right widget mounted from the app shell when the
   `useStatementUploadJobStore` reports an active job id. Polls
-  `GET /statement-uploads/{job_id}` and surfaces the in-flight
-  status to users who navigate away from `/upload-statement`
-  while the parse is still running. Hides on `/upload-statement`
-  (the page renders the same content inline) and auto-clears on
-  COMPLETE; FAILED states persist until the user dismisses them.
+  `GET /statement-uploads/{job_id}` (2s adaptive) and surfaces the
+  in-flight status. Hosts a
+  [`<StatementProgressRing>`](../../src/features/transactions/statement_upload/components/StatementProgressRing.tsx)
+  — circular progress driven by the 8-state `JobStage` enum
+  (`queued → parsing → attributing → staging → mapping_beneficiaries
+  → categorizing → computing_tax → done`) so the user sees the parse
+  advance even while navigating other pages. Hides on
+  `/upload-statement` (the page renders the same content inline) and
+  auto-clears 6s after `COMPLETED`; `FAILED` states persist until the
+  user dismisses them. **On COMPLETED**, the dock fires a downstream
+  cache-invalidation sweep: transactions / taxation / dashboard
+  invalidate immediately; recurring + upcoming-bills invalidate again
+  on a 5-second delay to catch the BE's piggy-backed recurring-engine
+  run (BE reuses the service on the same `job_id` post-parse — see
+  [`categorization.md`](categorization.md)). The Dock chunk is
+  force-prefetched on `UploadStatementPage` mount so the bottom-right
+  surface is instantly visible after submit.
 - `statement_upload/components/ParserPickerModal.tsx` — radio-
   list modal listing the parser catalog. Opens from the
   "Change parser" link on the matched-parser card and from the
@@ -70,6 +87,11 @@ and composed into the root router by `src/app/routes.tsx`
   next upload. The match-card is rendered inline inside
   `UploadStatementPage`'s `<UploadCard>` (small, feature-private,
   not exported).
+- `statement_upload/components/ParserIcon.tsx` — UPI-brand icon
+  for parser rows. Maps the parser registry key to a simpleicons.org
+  CDN URL (PhonePe / Paytm / Google Pay — CC0 licensed, no bundled
+  assets). Generic CSV / unknown parsers fall through to a neutral
+  file-icon glyph.
 - Cross-feature embeds (Batch 13): the Add and Edit transaction
   forms mount
   [`bankAccounts/components/BankAccountField`](../../src/features/bankAccounts/components/BankAccountField.tsx) —
@@ -267,6 +289,28 @@ All three are sibling views — List and Calendar are visualizations,
 Merchant is a server-side `group_by` aggregation. The earlier "List
 View / Merchant View" inner toggle is gone; Merchant
 is a top-level peer.
+
+### Merchant view scope pill
+
+BE `9c00ecd` (Batch 20 UAT, `b3abfee`) changed the grouped read default
+when no `month`/`period`/`date` filter is set — `GET /transactions?group_by=merchant|tag`
+now aggregates **all-time** instead of silently scoping to the current
+month (the motivating bug: backdated imports left the merchant view
+empty despite the trackers being populated). The grouped response
+envelope carries the active window:
+
+- `period_type: 'weekly' | 'monthly' | 'all'`
+- `period_start: string | null` (null for the all-time window)
+
+The merchant view header renders a `<span data-testid="merchant-scope-pill">`
+next to the merchant count showing the BE-supplied window — "All time",
+`formatYearMonth(period_start)` ("Feb 2026"), or a weekly range
+("Feb 9 → Feb 15"). The empty-state copy is scope-aware:
+"No merchants across your history yet." (all-time) vs "No merchants
+for Feb 2026." (monthly). Both `period_type` + `period_start` are
+optional fields on `TransactionListResponse` in `api/schemas.ts`; the
+auto-generated `GroupedTransactionsResponse` in `shared/types/api.ts`
+carries the union typing.
 
 ### Filter sidebar
 

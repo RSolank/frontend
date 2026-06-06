@@ -10,7 +10,12 @@ historical continuity.)
 
 The backend is a separate FastAPI service (sibling `backend/` submodule).
 This app talks to it over `/api/v1/*`; `VITE_API_URL` overrides the base
-(default `http://localhost:4000`).
+(default `http://localhost:4000`). **The override must not carry a
+trailing slash** — request URLs are built by simple concatenation
+(`${BASE_URL}${path}` where `path` starts with `/api/v1/...`), so a
+trailing slash produces a double-slashed URL. Example: set
+`VITE_API_URL=https://api.aevum.example.com`, not
+`https://api.aevum.example.com/`.
 
 ## Getting started
 
@@ -75,6 +80,11 @@ Key conventions:
   snapshot). Mirrors the backend's screaming-architecture split — see
   [`docs/modules/auth.md`](docs/modules/auth.md) and
   [`docs/modules/account.md`](docs/modules/account.md).
+- **Idle-time prefetch** — click-gated chunks (TopNav menus, lazy
+  modals, route chunks) warm via `prefetchOnIdle(fn, delayMs)` after
+  the user lands, staggered 2–8 s by most-clicked-first. Trades a
+  slightly hotter idle window for zero click latency. See
+  [`docs/conventions.md` §Idle-time prefetch](docs/conventions.md#idle-time-prefetch).
 
 Full detail:
 
@@ -90,3 +100,14 @@ Full detail:
   user/admin signal-settings) that lives in `shared/`.
 - [`docs/testing.md`](docs/testing.md) — Vitest + MSW + coverage.
 - [`docs/performance.md`](docs/performance.md) — bundle budgets.
+
+## Archives
+
+- [`docs/archive/refactor-v1.0/`](docs/archive/refactor-v1.0/) — the
+  feature-architecture refactor that reshaped `src/` into the current
+  feature-based layout (2026-05-24 → 2026-05-31).
+- [`docs/archive/platform-upgrade-v1.0/`](docs/archive/platform-upgrade-v1.0/)
+  — the platform upgrade that wired BE Phases 1.1–2.16 + 3.0 into the
+  FE and shipped the deploy-ready frontend (2026-05-31 → 2026-06-06).
+  Three docs: `summary.md` (what landed), `log.md` (per-batch history),
+  `uat-and-pre-deploy.md` (UAT findings + pre-deploy decisions).

@@ -16,6 +16,7 @@
 - [**DetailModal**](#detailmodal-canonical-view--edit-surface) — the canonical view + edit surface for CRUD features.
 - [**Modal-header destructive actions**](#modal-header-destructive-actions-remove-in-edit) — the Remove-in-edit convention.
 - [**Row highlight on save**](#row-highlight-on-save) — post-save feedback on the originating list.
+- [**Idle-time prefetch**](#idle-time-prefetch) — warm click-gated chunks during the browser idle window.
 - [**Accessibility vs Preferences**](#accessibility-vs-preferences) — device a11y toggle vs backend-persisted preference.
 - [**Week convention**](#week-convention) — ISO Mon→Sun, app-wide.
 
@@ -546,6 +547,61 @@ implementations: `BeneficiariesPage`, `TagsPage`,
 specific variant that also handles group rebucket-and-expand on
 top of the base highlight; it predates the shared hook and is
 left in place.)
+
+## Idle-time prefetch
+
+Locked Platform FE Batch 20 UAT (`aca6817`). **Click-gated chunks
+that gate first-paint behind a lazy boundary should warm during
+the browser's idle window after the user lands.** Sub-page surfaces
+the user hasn't clicked yet — TopNav submenus, Accessibility
+panel, lazy modals, route chunks for the most-clicked paths —
+shouldn't block first paint, but they also shouldn't pay the
+load-on-click latency every time.
+
+**Shared hook + helper:**
+
+- [`shared/utils/prefetchOnIdle.ts → prefetchOnIdle(fn, delayMs)`](../../src/shared/utils/prefetchOnIdle.ts)
+  schedules `fn` (which returns a dynamic `import(...)`) for
+  `requestIdleCallback` after `delayMs`, with `setTimeout`
+  fallback for browsers without RIC. WeakSet-memoized — the same
+  `fn` won't run twice across re-mounts.
+- `useIdlePrefetch(entries: PrefetchEntry[], enabled: boolean)`
+  takes a list of `{ delay, importer, label }` and registers each
+  via `prefetchOnIdle`. Cleanup on unmount cancels still-pending
+  timers (the loaded chunks stay cached).
+
+**Schedule lives in `app/`, not `shared/`** — the eslint
+`boundaries` rule blocks `shared/ → features/` imports, but the
+schedule needs to dynamic-import feature pages. Two canonical
+schedules:
+
+- [`app/idlePrefetchSchedule.ts → AUTHED_PREFETCH`](../../src/app/idlePrefetchSchedule.ts)
+  — used by `App.tsx` once `useAuthStore.user` is set. Stagger 2–8 s
+  (most-clicked first): TopNav menus (2 s), Transactions (2.5 s),
+  ExpenseTracker (3 s), TaxTracker (3.5 s), ActivityFeedModal +
+  AccessibilityPanel (4 s), … through the long tail.
+- `ANON_PREFETCH` — used by `app/pages/Home.tsx` for the anonymous
+  landing page. Warms `AuthModal` after 2 s.
+
+**Exemptions** — surfaces that need to load *immediately* on a
+user action skip the schedule and force-prefetch on mount of the
+relevant page. Example:
+[`UploadStatementPage`](../../src/features/transactions/statement_upload/pages/UploadStatementPage.tsx)
+prefetches `StatementUploadDock` on mount so the bottom-right dock
+is visible the instant the user submits and the page navigates
+away.
+
+**When NOT to add a chunk to the schedule:**
+
+- Chunks loaded by 99% of users in the first 5 s anyway (the
+  dashboard route — eagerly imported, not lazy).
+- Chunks gated by domain-specific state the user might never
+  enter (Admin portal — only mounted for SYSTEM-role accounts;
+  the route lazy-imports naturally, no idle warm needed).
+
+The schedule is the budget — adding a row makes it longer for
+everyone. Add only when usage data (or a UAT round) flags a
+specific click-gated chunk as slow.
 
 ## Accessibility vs Preferences
 

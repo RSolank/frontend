@@ -82,6 +82,15 @@ carries an `errorElement` that resolves to
 - `api/twoFactor.ts` — BE Phase 2.7 TOTP wrappers
   (`enrollTwoFactorRequest`, `verifyEnrollTwoFactorRequest`,
   `disableTwoFactorRequest`, `loginVerifyTwoFactorRequest`).
+  **BE refactor (Batch 20 UAT, `b6675df`):** `/2fa/enroll` no
+  longer persists the staged secret to
+  `user_auth.two_factor_secret`. Response now carries a JWT
+  `enroll_token: string` that wraps the encrypted secret;
+  `verifyEnrollTwoFactorRequest(enroll_token, code)` posts both
+  to `/2fa/verify-enroll`. Eliminates the half-enrolled DB row
+  that the previous flow could leave behind on abandonment.
+  `<TwoFactorSection>` threads the token through the QR-scan
+  flow state.
 - `api/newDevice.ts` — BE Phase 2.3 new-device-OTP wrappers
   (`verifyNewDeviceRequest`, `resendNewDeviceOtpRequest`,
   `revokeNewDeviceRequest`, `fetchKnownDevices`,

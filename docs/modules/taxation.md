@@ -36,18 +36,37 @@ and composed into the root router by `src/app/routes.tsx`
 
 ## Tax Tracker (current-week card)
 
-The current-week tracker card calls
-`GET /api/v1/consumption-tax/tracker/current-week` for:
+**FE-derived from the ACCRUING bill** (Platform FE Batch 20 UAT,
+`2be7b2c`). A standalone
+`GET /api/v1/consumption-tax/tracker/current-week` endpoint was scoped
+during BE Phase 2.6 planning but **never shipped** — Phase 2.6 (`e7c05aa`)
+delivered only the bill routes. Since the taxation engine already
+maintains an incremental real-time ledger via the ACCRUING bill (every
+mutation flushes through `recalc_for_txns`), the FE composes the
+tracker locally from data the engine already exposes:
 
-- `running_tax` / `running_penalty` — sum of tax / penalty accrued for
-  in-progress week's transactions.
-- `projected_tax` / `projected_penalty` — backend-supplied or
-  client-derived linear projection.
-- `per_tag[]` — top contributing tags for the in-progress week.
+1. Read the bills list (`useBillsQuery`) and pick the ACCRUING bill
+   for the active ISO week (Mon→Sun in the user's tz).
+2. Read its detail (`useBillQuery(accruing.bill_id)`) — items +
+   allocations + adjustments — the source of truth for what's accrued
+   this week.
+3. `deriveTrackerFromBill(bill)` reduces over items into:
+   - `running_tax` / `running_penalty` — sums from real (non-adjustment) items.
+   - `projected_tax` / `projected_penalty` — linear extrapolation via
+     `fractionOfWeekElapsed(...)`.
+   - `per_tag[]` — `foldInto(map, delta)` aggregates per-tag spend ranked
+     descending.
+4. **Three terminal states** distinguished cleanly:
+   - **No ACCRUING bill yet** → "No tax accrued for this week yet."
+     (zero-accrual happy path; no error tone).
+   - **Bills query error** → same empty-state copy (engine isn't
+     reachable, but we don't surface a scary error on a card the user
+     hasn't asked for explicitly).
+   - **Bill resolves but items empty** → same.
 
-The endpoint shipped in BE Phase 2.6 (`e7c05aa`); the 404 / 501 path is
-kept as a defensive fallback so accounts with zero accrual still render
-a friendly empty state with the active week label rather than an error.
+No new BE work is needed for this card. Three downstream readers
+(tracker card + bill list + bill detail dialog) now all share the
+same query cache for the active ACCRUING bill — a single fetch.
 
 Bill detail modal (`components/BillDetailDialog.tsx`):
 
@@ -92,8 +111,10 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   Mon→Sun range. Disables weeks ending at-or-after the
   precedingWeekStart (which can't yet be billed).
 - `components/CurrentWeekTracker.tsx` — running-tax card with status
-  stats, a week-progress bar, and a top-5 per-tag breakdown. Falls
-  back to a "pending" empty state when the endpoint 404s.
+  stats, a week-progress bar, and a top-5 per-tag breakdown. Distinguishes
+  `isLoading` / `isError` / no-ACCRUING-bill states; renders
+  "No tax accrued for this week yet." in the error/empty cases (see the
+  Tax Tracker section above for the FE-derive contract).
 - `components/BillDetailDialog.tsx` — `<Modal size="xl">` wrapper for
   the bill detail surfaces. Items table renders **Date / Beneficiary
   / Type / Amount / Tax / Penalty / Penalty tag**. BE Phase 2.6
@@ -125,7 +146,7 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
 | `useTaxationRulesQuery` | `GET /api/v1/taxation-rules/` → `{ rules[] }`. |
 | `useBillsQuery` | `GET /api/v1/consumption-tax/bills` → `{ bills[] }`. |
 | `useBillQuery(billId)` | Lazy `GET /api/v1/consumption-tax/bills/:id` — only fires when `billId != null`. |
-| `useTrackerCurrentWeekQuery` | `GET /api/v1/consumption-tax/tracker/current-week` — swallows 404 / 501 (returns `null`) so the page renders the pending empty state instead of erroring. Refetches every 5 minutes. |
+| `useTrackerCurrentWeekQuery` | **FE-derived** — composes `useBillsQuery` + lazy `useBillQuery(activeAccruingBillId)` and runs `deriveTrackerFromBill` on the result. No standalone tracker endpoint (Phase 2.6 didn't ship one). |
 
 Mutations live in
 [`api/mutations.ts`](../../src/features/taxation/api/mutations.ts) —
@@ -141,7 +162,7 @@ Read endpoints consumed (under `/api`):
 - `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
 - `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
 - `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
-- `GET /api/v1/consumption-tax/tracker/current-week` → see Backend handoff (scaffold, may 404 today).
+- (no standalone tracker endpoint — see Tax Tracker section for the FE-derive contract.)
 
 Write endpoints consumed:
 
@@ -195,12 +216,6 @@ expect it to reset on reload.
 
 ## Future polish (queued)
 
-- Drop the client-side projection fallback — BE Phase 2.6 ships
-  `projected_tax` / `projected_penalty` on the tracker payload, but
-  the tracker still falls back to
-  `safeDivide(runningTax, fractionOfWeekElapsed(...))` when those
-  fields are `0`. Once the ledger reliably emits non-zero
-  projections mid-week we can delete the fallback.
 - Bill-detail download — a CSV/PDF export action for accountants.
   Not yet implemented; flag if requested.
 - **User-preferred date-format override.** Bill dates

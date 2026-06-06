@@ -61,9 +61,12 @@ A "Profile picture" card at the top of the page hosts the
 [`<ProfileImagePicker>`](../../src/features/account/components/ProfileImagePicker.tsx)
 — preview + Upload + Remove + a 4/6-col grid of geometric presets
 backed by BE Phase 1.13's `/api/v1/users/profile-image-presets`. Each
-mutation invalidates `userKeys.me()` so the new `profile_image_url`
-propagates instantly to the TopNav avatar (which goes through the
-shared `<ProfileImage>` primitive in `shared/components/`).
+mutation calls `syncMe()` (Batch 20 UAT, `a89cf94`) which refetches
+`/me`, primes both the auth store and the `userKeys.me()` query
+cache, and propagates the new `profile_image_url` instantly to the
+TopNav avatar (the shared `<ProfileImage>` primitive in
+`shared/components/`). Replaces a plain `invalidateQueries()` that
+left a one-render staleness gap.
 
 A "Your account at a glance" stats card
 ([`<UserStatsCard>`](../../src/features/account/components/UserStatsCard.tsx))
@@ -121,11 +124,16 @@ by a `FlowState` discriminator:
    the auth domain — never on `/me` — so the profile/auth split
    stays clean across FE + BE.
 2. **enrolling** — `/2fa/enroll` returned a staged secret +
-   provisioning URI. The panel shows the base32 secret prominently
-   for manual authenticator entry and an `otpauth://` deep link
-   that mobile authenticators register. (A proper QR render is
-   queued as polish — adding a QR library now would punch the §3
-   ceiling.) Submitting a 6-digit code POSTs `/2fa/verify-enroll`.
+   provisioning URI + a JWT `enroll_token` (Batch 20 UAT, BE
+   refactor `b6675df`: secret no longer persists to `user_auth`
+   at /enroll — the token wraps the encrypted secret instead).
+   The panel shows the base32 secret prominently for manual
+   authenticator entry and an `otpauth://` deep link that mobile
+   authenticators register. (A proper QR render is queued as
+   polish — adding a QR library now would punch the §3 ceiling.)
+   Submitting a 6-digit code POSTs `{enroll_token, code}` to
+   `/2fa/verify-enroll`; the token is the BE's source of truth
+   for which secret to commit on success.
 3. **showing-backup-codes** — verify-enroll returned 10 one-time
    backup codes. Panel renders them in a 2- / 3-column grid + a
    Download button (text-file blob). Code visibility is one-shot;

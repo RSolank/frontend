@@ -184,6 +184,10 @@ npx vitest run src/features/auth/pages/LoginPage.test.tsx   # single file
 ```
 
 `VITE_API_URL` overrides the API base (default `http://localhost:4000`).
+**Must not carry a trailing slash** — URLs are concatenated as
+`${BASE_URL}${path}` where `path` starts with `/api/v1/...`, so a
+trailing slash double-slashes the URL. Set
+`VITE_API_URL=https://api.aevum.example.com`, not `…/`.
 
 ### Code-quality gates (strict enforcement)
 

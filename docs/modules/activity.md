@@ -39,7 +39,8 @@ endpoint set:
 | Surface | What it renders | Owner |
 |---|---|---|
 | **TopNav bell** — [`shared/components/ActivityBell.tsx`](../../src/shared/components/ActivityBell.tsx) | Lazy-loaded modal trigger. Badge counts UNSEEN items across both classes with a "5+" cap. Lives on every authenticated page. | App shell |
-| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx) | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs). Capped at 10 items total, with the split between sections driven by BE rank order. Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click + deep-link nav. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell |
+| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx) | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs). Capped at 10 items total, with the split between sections driven by BE rank order. Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click — row click now opens **`<ActivityDetailModal>` in place** (Batch 20 UAT, `0791964`) rather than full-page deep-linking, with per-subject CTAs surfaced inside. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell |
+| **Activity detail modal** — [`shared/components/ActivityDetailModal.tsx`](../../src/shared/components/ActivityDetailModal.tsx) | In-place expansion of a single activity row. Hosts the per-subject CTAs derived from [`shared/utils/activitySubject.ts`](../../src/shared/utils/activitySubject.ts) (`subjectMeta()` maps each `subject_type` → CTA label + deep-link target). Replaces the prior full-page-navigation pattern so users stay in the feed context. | App shell |
 | **User Notifications tab** — [`features/account/pages/AccountNotificationsPage.tsx`](../../src/features/account/pages/AccountNotificationsPage.tsx) | Per-kind enable/disable for the user's own feed. Renders the shared `<SignalSettingsEditor viewerRole="user">`. | [account.md](account.md) § Notifications |
 | **Admin user-detail signal section** — `<SignalSettingsSection>` in [`features/admin/pages/AdminUserDetailPage.tsx`](../../src/features/admin/pages/AdminUserDetailPage.tsx) | Per-user disable for the admin'd account + system-wide catalog tunables (priority / rank_order / system_enabled). Renders the shared `<SignalSettingsEditor viewerRole="admin">` with `onTune` wired. | [admin.md](admin.md) § Pages |
 
@@ -82,10 +83,12 @@ are empty.
   `POST /activity/seen {refs, hard: false}` call with
   per-`event_id` dedupe via a module-level `SEEN_THIS_SESSION`
   set. BE dedupes per cycle too — fire-and-forget is fine.
-- **Hard-ack** fires on row click before the deep-link
-  navigation (`POST /activity/seen {refs, hard: true}`). Removes
-  the row from the BE's UNSEEN set; the next bell render
-  reflects the new count.
+- **Hard-ack** fires on row click before the `<ActivityDetailModal>`
+  opens (`POST /activity/seen {refs, hard: true}`). Removes the
+  row from the BE's UNSEEN set; the next bell render reflects
+  the new count. The row's CTA (if any) is then surfaced inside
+  the detail modal — opening the row IS the acknowledgement; the
+  user picks the action from there.
 
 `ModalBody` is a separate component to avoid nested ternaries
 (sonarjs rule).
@@ -208,13 +211,14 @@ interface ActivitySeenRequest {
 | `features/account/pages/AccountNotificationsPage.test.tsx` | Catalog + disabled list render, toggle PUTs `{kind, enabled}`, "System off" badge + disabled toggle |
 | `features/admin/pages/AdminUserDetailPage.test.tsx` (signal section) | Section renders, toggles fire admin PUT, AdminTuneRow surfaces priority / rank / system_enabled |
 
-The bell + modal aren't covered by a dedicated test file today —
-their behavior is exercised indirectly through TopNav-level tests
-(`shared/components/TopNav.test.tsx`). A focused
-`ActivityBell.test.tsx` / `ActivityFeedModal.test.tsx` pair is on
-the deferred polish list (see
-[`.scratch/dashboard-review-followup.md`](../../.scratch/dashboard-review-followup.md) —
-the per-card activity-enrichment review session).
+Dedicated bell + modal + detail-modal test files landed alongside
+the notifications-flow rebuild (Batch 20 UAT, `0791964`):
+`shared/components/ActivityBell.test.tsx`,
+`ActivityFeedModal.test.tsx`, `ActivityDetailModal.test.tsx`. They
+cover badge counting + cap, lazy-import on first click, in-place
+detail expansion, and per-subject CTA wiring. The TopNav-level
+tests (`shared/components/TopNav.test.tsx`) continue to assert the
+bell mount.
 
 ## History
 
@@ -224,3 +228,4 @@ the per-card activity-enrichment review session).
 | **2.14** | `ab840be` | Activity engine v2 (registry-driven), per-user signal-settings table + user routes, seen-shape contract change to `{refs, hard}`. |
 | **2.16** | `7b0e24b` | Admin operator layer (per-user signal-settings + catalog tunables). T-admin Phase. |
 | **FE Platform Batch 18** | `bb900e1` | Dashboard widget removed, TopNav bell + lazy modal landed, `/account/notifications` tab added, `<SignalSettingsEditor>` extracted to shared/, seen-shape drift fixed. |
+| **FE Platform Batch 20 UAT** | `0791964` | Notifications-flow rebuild — unseen-count badge wired through, in-place `<ActivityDetailModal>`, per-subject CTA via `activitySubject.ts`. Dedicated test files for Bell + FeedModal + DetailModal. |
