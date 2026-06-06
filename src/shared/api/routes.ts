@@ -283,6 +283,10 @@ export const routes = {
       `${V}/consumption-tax/bills/${billId}/mark-paid`,
     billMarkUnpaid: (billId: number | string) =>
       `${V}/consumption-tax/bills/${billId}/mark-unpaid`,
-    trackerCurrentWeek: () => `${V}/consumption-tax/tracker/current-week`,
+    // `tracker/current-week` was never shipped on the BE; FE
+    // derives the in-progress week from the ACCRUING bill via
+    // `useTrackerCurrentWeekQuery` in
+    // `features/taxation/api/queries.ts`. Route intentionally
+    // removed 2026-06-06.
   },
 } as const;

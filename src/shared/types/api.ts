@@ -3035,13 +3035,16 @@ export interface components {
         GroupedTransactionsResponse: {
             /** @description 'tag' or 'merchant' */
             group_by: components["schemas"]["GroupBy"];
-            /** @description 'weekly' or 'monthly' */
-            period_type: components["schemas"]["PeriodType"];
+            /**
+             * Period Type
+             * @description 'weekly', 'monthly', or 'all'
+             */
+            period_type: string;
             /**
              * Period Start
-             * @description Bucket start date (YYYY-MM-DD)
+             * @description Bucket start (YYYY-MM-DD); null for the all-time window
              */
-            period_start: string;
+            period_start?: string | null;
             /** Groups */
             groups: components["schemas"]["TransactionGroup"][];
             /** Limit */
@@ -3928,12 +3931,19 @@ export interface components {
          *     of the same shared secret: the URI is what the frontend renders as a QR
          *     code; ``secret`` is the manual-entry fallback. Both are shown only at
          *     enrollment and never returned again.
+         *
+         *     ``enroll_token`` is a short-lived signed token carrying the *encrypted* staged
+         *     secret (stateless staging — nothing is persisted until confirmation). The FE
+         *     holds it across the QR-scan step and passes it back to ``verify-enroll``. On
+         *     cancel the FE simply drops it — no server call needed; it expires on its own.
          */
         TwoFactorEnrollResponse: {
             /** Secret */
             secret: string;
             /** Provisioning Uri */
             provisioning_uri: string;
+            /** Enroll Token */
+            enroll_token: string;
         };
         /**
          * TwoFactorEnrollResult
@@ -3953,6 +3963,8 @@ export interface components {
         };
         /** TwoFactorVerifyEnrollRequest */
         TwoFactorVerifyEnrollRequest: {
+            /** Enroll Token */
+            enroll_token: string;
             /** Code */
             code: string;
         };

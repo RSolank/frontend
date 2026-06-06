@@ -213,8 +213,8 @@ their behavior is exercised indirectly through TopNav-level tests
 (`shared/components/TopNav.test.tsx`). A focused
 `ActivityBell.test.tsx` / `ActivityFeedModal.test.tsx` pair is on
 the deferred polish list (see
-[task-admin.md](../../.scratch/task-admin.md) Follow-ups —
-post-Admin Dashboard review session).
+[`.scratch/dashboard-review-followup.md`](../../.scratch/dashboard-review-followup.md) —
+the per-card activity-enrichment review session).
 
 ## History
 

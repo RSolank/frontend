@@ -37,7 +37,8 @@ describe('StatementUploadDock', () => {
       http.get(`${API_BASE}/statement-uploads/22`, () =>
         HttpResponse.json({
           job_id: 22,
-          status: 'PARSING',
+          status: 'PROCESSING',
+          stage: 'parsing',
           file_name: 'bank.csv',
           parser_used: null,
           source_type: null,
@@ -66,6 +67,7 @@ describe('StatementUploadDock', () => {
         HttpResponse.json({
           job_id: 33,
           status: 'FAILED',
+          stage: 'parsing',
           file_name: 'broken.pdf',
           parser_used: null,
           source_type: null,

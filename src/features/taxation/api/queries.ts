@@ -144,8 +144,10 @@ export function useBillQuery(billId: number | null) {
 
 // --- Tax Tracker — current-week running tax ---------------------------------
 
-// Shape for `GET /api/consumption-tax/tracker/current-week` (shipped
-// BE Phase 2.6, `e7c05aa` — see `task-platform.md → taxation.tracker-current-week`).
+// Shape returned by `useTrackerCurrentWeekQuery`. Historically this
+// was the wire payload for `GET /api/consumption-tax/tracker/current-week`,
+// but that BE endpoint was never shipped — the FE now derives the
+// shape from the ACCRUING bill (see the hook below).
 // Period boundaries are ISO Mon → Sun in the user's timezone.
 export interface PerTagContribution {
   tag_id: number;
@@ -174,18 +176,108 @@ export interface TrackerCurrentWeekResponse {
   is_estimate: boolean;
 }
 
-export function fetchTrackerCurrentWeek(): Promise<TrackerCurrentWeekResponse> {
-  return apiFetch<TrackerCurrentWeekResponse>(
-    routes.taxation.trackerCurrentWeek()
-  );
+// **FE-side derivation (2026-06-06):** the previously-spec'd
+// `GET /api/v1/consumption-tax/tracker/current-week` was never
+// shipped by BE despite the coord doc marking Phase 2.6 as LANDED;
+// every call 404'd, callers showed a permanent "Loading…" state.
+// The taxation engine already maintains the in-progress week as the
+// ACCRUING bill, so the FE composes `useBillsQuery` (to find the
+// ACCRUING row) + `useBillQuery` (its items/totals) and reshapes
+// them into the tracker view. Three callers — `CurrentWeekTracker`,
+// `TaxTrackerCard`, `WeekSummaryWidget` — keep their existing
+// `{data, isLoading, isError}` destructure; `data === null` means
+// "no in-progress bill yet" (treat as zero state).
+export function useTrackerCurrentWeekQuery(): {
+  data: TrackerCurrentWeekResponse | null;
+  isLoading: boolean;
+  isError: boolean;
+} {
+  const billsQuery = useBillsQuery();
+  const accruing =
+    billsQuery.data?.bills.find((b) => b.status === 'ACCRUING') ?? null;
+  const billDetailQuery = useBillQuery(accruing?.bill_id ?? null);
+
+  const data: TrackerCurrentWeekResponse | null =
+    accruing && billDetailQuery.data
+      ? deriveTrackerFromBill(billDetailQuery.data)
+      : null;
+
+  return {
+    data,
+    isLoading:
+      billsQuery.isLoading ||
+      (accruing !== null && billDetailQuery.isLoading),
+    isError: billsQuery.isError || billDetailQuery.isError,
+  };
 }
 
-export function useTrackerCurrentWeekQuery() {
-  return useQuery({
-    queryKey: taxationKeys.trackerCurrentWeek(),
-    queryFn: fetchTrackerCurrentWeek,
-    // Refresh every 5 min — the running tax accrues as new txns land.
-    staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
-  });
+function deriveTrackerFromBill(bill: BillDetail): TrackerCurrentWeekResponse {
+  // Adjustment items (`is_adjustment=true`) are tax-system artifacts
+  // from edits to past BILLED-or-later bills (Decision 23) — exclude
+  // them so a late-arriving correction doesn't pollute the
+  // in-progress week's running totals + per-tag attribution.
+  const items = (bill.items ?? []).filter((i) => !i.is_adjustment);
+  const running_tax = bill.totals?.tax_total ?? 0;
+  const running_penalty = bill.totals?.penalty_total ?? 0;
+
+  // Aggregate per-tag. Penalty rows carry their own `penalty_tag_id`
+  // distinct from the originating spend's `tag_id`, so a breached-
+  // budget penalty surfaces under the penalty tag (e.g. "Penalty —
+  // Discretionary") rather than the over-spent category.
+  const byTag = new Map<number, PerTagContribution>();
+  for (const item of items) {
+    if (item.tax_amount) {
+      foldInto(byTag, {
+        tag_id: item.tag_id ?? 0,
+        tag_name: item.tag_name ?? 'Uncategorized',
+        txn_type: item.txn_type,
+        tax_amount: item.tax_amount,
+        penalty: 0,
+      });
+    }
+    if (item.penalty) {
+      foldInto(byTag, {
+        tag_id: item.penalty_tag_id ?? item.tag_id ?? 0,
+        tag_name:
+          item.penalty_tag_name ?? item.tag_name ?? 'Uncategorized',
+        txn_type: item.txn_type,
+        tax_amount: 0,
+        penalty: item.penalty,
+      });
+    }
+  }
+  const per_tag = Array.from(byTag.values())
+    .sort(
+      (a, b) =>
+        b.tax_amount + b.penalty - (a.tax_amount + a.penalty)
+    )
+    .slice(0, 10);
+
+  return {
+    period_start: bill.period_start,
+    period_end: bill.period_end,
+    running_tax,
+    running_penalty,
+    // Projection columns are derived presentationally (linear by
+    // elapsed-week fraction) inside CurrentWeekTracker — leave them
+    // zero here so callers that need the raw running totals aren't
+    // confused by inflated estimates.
+    projected_tax: 0,
+    projected_penalty: 0,
+    per_tag,
+    is_estimate: false,
+  };
+}
+
+function foldInto(
+  byTag: Map<number, PerTagContribution>,
+  delta: PerTagContribution
+) {
+  const existing = byTag.get(delta.tag_id);
+  if (existing) {
+    existing.tax_amount += delta.tax_amount;
+    existing.penalty += delta.penalty;
+    return;
+  }
+  byTag.set(delta.tag_id, { ...delta });
 }

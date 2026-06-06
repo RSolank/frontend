@@ -8,32 +8,33 @@ import { server } from '../../../test/server';
 
 import { SessionList } from './SessionList';
 
-const FIXTURE_SESSIONS = {
-  sessions: [
-    {
-      session_id: 1,
-      ip_address: '203.0.113.5',
-      device_data:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0',
-      known_device_uid: 'uid-current',
-      is_current: true,
-      created_at: '2026-05-31T10:00:00Z',
-      last_modified: '2026-06-01T08:15:00Z',
-      expires_at: '2026-07-01T08:15:00Z',
-    },
-    {
-      session_id: 2,
-      ip_address: '198.51.100.42',
-      device_data:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
-      known_device_uid: 'uid-iphone',
-      is_current: false,
-      created_at: '2026-05-29T09:00:00Z',
-      last_modified: '2026-05-30T19:30:00Z',
-      expires_at: '2026-06-29T19:30:00Z',
-    },
-  ],
-};
+// BE returns a bare `list[SessionInfo]` — wrapping in `{sessions: [...]}`
+// here is the bug that masked the empty-Security-tab issue caught
+// during E2E 2026-06-05.
+const FIXTURE_SESSIONS = [
+  {
+    session_id: 1,
+    ip_address: '203.0.113.5',
+    device_data:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0',
+    known_device_uid: 'uid-current',
+    is_current: true,
+    created_at: '2026-05-31T10:00:00Z',
+    last_modified: '2026-06-01T08:15:00Z',
+    expires_at: '2026-07-01T08:15:00Z',
+  },
+  {
+    session_id: 2,
+    ip_address: '198.51.100.42',
+    device_data:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
+    known_device_uid: 'uid-iphone',
+    is_current: false,
+    created_at: '2026-05-29T09:00:00Z',
+    last_modified: '2026-05-30T19:30:00Z',
+    expires_at: '2026-06-29T19:30:00Z',
+  },
+];
 
 describe('SessionList', () => {
   beforeEach(() => {
@@ -77,11 +78,9 @@ describe('SessionList', () => {
           // Subsequent fetch returns the trimmed list.
           server.use(
             http.get(`${API_BASE}/auth/sessions`, () =>
-              HttpResponse.json({
-                sessions: FIXTURE_SESSIONS.sessions.filter(
-                  (s) => s.session_id !== deletedId
-                ),
-              })
+              HttpResponse.json(
+                FIXTURE_SESSIONS.filter((s) => s.session_id !== deletedId)
+              )
             )
           );
           return new HttpResponse(null, { status: 204 });
@@ -128,7 +127,7 @@ describe('SessionList', () => {
   });
 
   it('renders an empty-state message when there are no sessions', async () => {
-    // Default handler returns `{ sessions: [] }`.
+    // Default handler returns `[]`.
     renderWithProviders(<SessionList />);
     expect(
       await screen.findByText(/No active sessions/i)

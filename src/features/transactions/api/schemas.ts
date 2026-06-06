@@ -56,9 +56,27 @@ export interface TransactionDTO {
   tag_ids: number[];
 }
 
+// BE returns one of two response shapes off the same path:
+//   - flat:    {transactions, returned_count, limit, offset}            ← `TransactionListResponse`
+//   - grouped: {groups, period_type, period_start?, returned_count, ...} ← `GroupedTransactionsResponse`
+// (see backend/app/modules/transactions/transaction_schemas.py). We
+// model both as one optional-fields interface for ergonomic consumer
+// code; consumers branch on `groups` vs `transactions`.
+//
+// BE 2026-06-06 update (`9c00ecd`): the grouped read now defaults to
+// **all-time aggregation** when no `month`/`period`/`date` is given —
+// previously it scoped to the current month, which made the merchant
+// view show empty for backdated imports despite the trackers being
+// populated. The new envelope therefore carries:
+//   - `period_type: 'weekly' | 'monthly' | 'all'` — `'all'` is the
+//     no-window case (sum of every monthly bucket).
+//   - `period_start: string | null` — bucket start date for
+//     `weekly`/`monthly`; `null` for the all-time window.
 export interface TransactionListResponse {
   transactions?: TransactionDTO[];
   groups?: MerchantGroup[];
+  period_type?: 'weekly' | 'monthly' | 'all' | string;
+  period_start?: string | null;
   returned_count: number;
 }
 

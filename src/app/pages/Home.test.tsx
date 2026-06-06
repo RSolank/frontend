@@ -13,14 +13,18 @@ vi.mock('../../features/auth/state/useAuth', () => ({
 const mockUseAuth = vi.mocked(useAuth);
 
 describe('HomePage', () => {
-  it('renders the unauthenticated CTAs when no user', () => {
+  it('renders the unauthenticated CTAs when no user', async () => {
     // HomePage only reads `user`; cast the partial to the full hook shape.
     mockUseAuth.mockReturnValue({ user: null } as ReturnType<typeof useAuth>);
 
     renderWithProviders(<HomePage />);
 
+    // Eyebrow text is the BE-supplied brand tagline (MSW default
+    // returns "Future begins today" per src/test/handlers/metadata.ts).
+    // `findBy` waits for the branding query to resolve since there's
+    // no hardcoded synchronous fallback.
     expect(
-      screen.getByText(/Smart budgeting for future you/i)
+      await screen.findByText(/Future begins today/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Register/i })).toBeInTheDocument();

@@ -20,18 +20,20 @@ export interface SessionInfo {
   expires_at: string;
 }
 
-interface SessionsResponse {
-  sessions?: SessionInfo[];
-}
-
-export function fetchSessions(): Promise<SessionsResponse> {
-  return apiFetch<SessionsResponse>(routes.auth.sessions());
+// BE returns a bare `list[SessionInfo]` (see
+// `backend/app/modules/auth/auth_routes.py` —
+// `response_model=list[SessionInfo]`). The previous wrapper
+// `{sessions?: [...]}` always resolved to `undefined.sessions ?? []`,
+// which is why the Security tab showed no active sessions even when
+// the user was signed in (caught during E2E 2026-06-05).
+export function fetchSessions(): Promise<SessionInfo[]> {
+  return apiFetch<SessionInfo[]>(routes.auth.sessions());
 }
 
 export function useSessionsQuery(enabled = true) {
   return useQuery({
     queryKey: authKeys.sessions(),
-    queryFn: async () => (await fetchSessions()).sessions ?? [],
+    queryFn: fetchSessions,
     enabled,
     // Sessions change when the user revokes, logs in elsewhere, or a
     // device expires. Short staleTime so re-mounts pull fresh data;

@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useStatementUploadJobStore } from '../../../../shared/state/statementUploadJob.store';
+import { prefetchOnIdle } from '../../../../shared/utils/prefetchOnIdle';
 import { uploadStatementJobRequest } from '../api/mutations';
 import { matchParserByFilename } from '../api/parserMatch';
 import { useJobStatusQuery, useParserCatalogQuery } from '../api/queries';
@@ -16,11 +17,14 @@ import {
   extractNoParserDetail,
   HARDCODED_PARSER_CATALOG,
   isTerminalStatus,
+  type JobStage,
   type JobStatus,
   type NoParserDetectedDetail,
   type ParserOption,
 } from '../api/schemas';
+import { ParserIcon } from '../components/ParserIcon';
 import { ParserPickerModal } from '../components/ParserPickerModal';
+import { StatementProgressRing } from '../components/StatementProgressRing';
 
 interface ApiErrorShape {
   detail?: unknown;
@@ -92,6 +96,15 @@ export function UploadStatementPage() {
     setOverrideKey(null);
   }, [file]);
 
+  // Force-prefetch the global StatementUploadDock chunk as soon as
+  // the user lands on the upload page — the TopNav idle schedule
+  // also warms it, but a user who reaches /upload-statement within
+  // the first ~5s of session start would otherwise pay the chunk
+  // fetch on submit. Zero delay; idempotent module-level memo.
+  useEffect(() => {
+    return prefetchOnIdle(() => import('../components/StatementUploadDock'), 0);
+  }, []);
+
   async function handleUpload() {
     if (!file) {
       setSubmitError({ message: 'Choose a CSV or PDF file first.', parserDetail: null });
@@ -102,6 +115,13 @@ export function UploadStatementPage() {
     try {
       const accepted = await uploadStatementJobRequest(file, effectiveKey);
       setActiveJobId(accepted.job_id);
+      // Hand the user back to the dashboard so the import doesn't
+      // pin them to this page; the global StatementUploadDock
+      // (mounted in `app/App.tsx`) picks up the active id and
+      // surfaces the progress ring + status copy bottom-right.
+      // The dock auto-clears on COMPLETED and persists on FAILED so
+      // the user can still come back here via "View" if needed.
+      navigate('/dashboard');
     } catch (err) {
       setSubmitError(toPendingError(err));
     } finally {
@@ -340,13 +360,16 @@ function MatchedParserCard({
       data-testid="statement-parser-match-card"
       className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-accent-200 bg-accent-50 px-4 py-3 text-sm dark:border-accent-900/50 dark:bg-accent-950/40"
     >
-      <div className="flex flex-col">
-        <span className="font-semibold text-accent-900 dark:text-accent-200">
-          Parser: {parser.label}
-        </span>
-        <span className="font-mono text-xs text-accent-700/80 dark:text-accent-300/80">
-          {parser.key}
-        </span>
+      <div className="flex items-center gap-3">
+        <ParserIcon parserKey={parser.key} size={24} />
+        <div className="flex flex-col">
+          <span className="font-semibold text-accent-900 dark:text-accent-200">
+            Parser: {parser.label}
+          </span>
+          <span className="font-mono text-xs text-accent-700/80 dark:text-accent-300/80">
+            {parser.key}
+          </span>
+        </div>
       </div>
       <button
         type="button"
@@ -421,8 +444,8 @@ function JobStatusPanel({
   if (isLoading || !job)
     return (
       <PanelShell>
-        <PanelHeader status="PENDING" />
-        <ProgressBody status="PENDING" />
+        <PanelHeader status="PROCESSING" />
+        <ProgressBody status="PROCESSING" stage="queued" />
       </PanelShell>
     );
 
@@ -436,7 +459,7 @@ function JobStatusPanel({
           onViewTransactions={onViewTransactions}
         />
       ) : (
-        <ProgressBody status={job.status} />
+        <ProgressBody status={job.status} stage={job.stage} />
       )}
     </PanelShell>
   );
@@ -487,26 +510,34 @@ function PanelHeader({
 }
 
 const STATUS_LABEL: Record<JobStatus, string> = {
-  PENDING: 'Queued',
-  PARSING: 'Parsing',
-  CATEGORIZING: 'Categorizing',
-  COMPLETE: 'Complete',
+  PROCESSING: 'Processing',
+  COMPLETED: 'Complete',
   FAILED: 'Failed',
 };
 
-function ProgressBody({ status }: { status: JobStatus }) {
+function ProgressBody({
+  status,
+  stage,
+}: {
+  status: JobStatus;
+  stage: JobStage | undefined;
+}) {
   return (
     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-      <Loader2 size={16} className="animate-spin text-accent-500" aria-hidden />
-      <span>{progressCopy(status)}</span>
+      <StatementProgressRing status={status} stage={stage} size={20} />
+      <span>{progressCopy(stage)}</span>
     </div>
   );
 }
 
-function progressCopy(status: JobStatus): string {
-  if (status === 'PENDING') return 'Queued — picking it up now.';
-  if (status === 'PARSING') return 'Parsing the file…';
-  if (status === 'CATEGORIZING') return 'Categorizing transactions…';
+function progressCopy(stage: JobStage | undefined): string {
+  if (stage === 'queued') return 'Queued — picking it up now.';
+  if (stage === 'parsing') return 'Parsing the file…';
+  if (stage === 'attributing') return 'Attributing accounts…';
+  if (stage === 'staging') return 'Staging transactions…';
+  if (stage === 'mapping_beneficiaries') return 'Mapping payees…';
+  if (stage === 'categorizing') return 'Categorizing transactions…';
+  if (stage === 'computing_tax') return 'Computing tax…';
   return 'Working…';
 }
 
@@ -519,7 +550,7 @@ function TerminalBody({
   onStartOver: () => void;
   onViewTransactions: () => void;
 }) {
-  if (job.status === 'COMPLETE')
+  if (job.status === 'COMPLETED')
     return (
       <>
         <div

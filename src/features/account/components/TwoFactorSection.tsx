@@ -77,10 +77,17 @@ export function TwoFactorSection() {
 
   async function handleVerifyEnroll(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Only reachable from the `enrolling` panel — the enroll_token
+    // lives in the flow state captured at `/2fa/enroll` time and
+    // rides back to `/2fa/verify-enroll` here.
+    if (flow.kind !== 'enrolling') return;
     setError(null);
     setSubmitting(true);
     try {
-      const res = await verifyEnrollTwoFactorRequest(code.trim());
+      const res = await verifyEnrollTwoFactorRequest(
+        flow.data.enroll_token,
+        code.trim()
+      );
       setCode('');
       setFlow({ kind: 'showing-backup-codes', codes: res.backup_codes });
       await refetchSecurity();
@@ -419,11 +426,15 @@ function BackupCodesPanel({
   onDone: () => void;
 }) {
   // Brand identity is reactive: when the BE rebrands, the downloaded
-  // file header reflects the new product name on the next page load.
-  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
+  // file header + filename reflect the new product name on the next
+  // page load. No hardcoded fallback — the file header reads "Backup
+  // codes" without a brand prefix on the rare first-ever-load case
+  // before the branding query resolves.
+  const brandName = useBrandingQuery().data?.name ?? '';
   function handleDownload() {
+    const headerPrefix = brandName ? `${brandName} — ` : '';
     const content = [
-      `# ${brandName} — two-factor backup codes`,
+      `# ${headerPrefix}two-factor backup codes`,
       '# Each code is single-use. Store these somewhere safe.',
       '',
       ...codes,
@@ -433,7 +444,8 @@ function BackupCodesPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'personal-budget-2fa-backup-codes.txt';
+    const slug = brandName ? `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-` : '';
+    a.download = `${slug}2fa-backup-codes.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }

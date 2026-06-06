@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/state/useAuth';
 import { useBrandingQuery } from '../../shared/api/branding';
+import {
+  useIdlePrefetch,
+  type PrefetchEntry,
+} from '../../shared/utils/prefetchOnIdle';
 
 // Lazy-load the AuthModal so the (~30 KB) `countries-and-timezones`
 // bundle stays in the auth chunk rather than first-paint. Home is
@@ -14,13 +18,34 @@ const AuthModal = lazy(() =>
   }))
 );
 
+// Anonymous landing prefetch — the only click-gated chunk for a
+// visitor is the AuthModal (Sign in / Register CTAs). Warm it 2s in
+// so the modal opens instantly. Authenticated visitors get TopNav's
+// authed schedule instead; the gate below makes this a no-op once
+// the user is signed in.
+const ANON_PREFETCH: readonly PrefetchEntry[] = [
+  {
+    load: () => import('../../features/auth/components/AuthModal'),
+    delayMs: 2_000,
+  },
+];
+
 // Landing page. CTAs open the AuthModal (preferred entry path) but
 // /login and /register routes remain available for deep links and
 // password-manager autofill — see CONTRIBUTING.md §6 "Modal pattern".
 export function HomePage() {
   const { user } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
-  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
+
+  // Warm the AuthModal chunk for unauthenticated visitors so the Sign
+  // in / Register clicks open the modal without a network round-trip.
+  useIdlePrefetch(ANON_PREFETCH, !user);
+  // BE Phase 2.11 — single-source brand identity. Empty strings on
+  // first-ever visit; localStorage cache replays the last-seen brand
+  // on repeat visits. See `shared/api/branding.ts`.
+  const brand = useBrandingQuery().data;
+  const brandTagline = brand?.tagline ?? '';
+  const brandDescription = brand?.description ?? '';
 
   // No auto-redirect — authenticated visitors see the landing copy and
   // a single "Go to dashboard" CTA. The Home icon in TopNav is the
@@ -31,19 +56,26 @@ export function HomePage() {
 
       <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr,1fr] lg:items-center">
         <div>
-          <div className="mb-3 inline-flex items-center rounded-full bg-accent-50 px-3 py-1 text-xs font-semibold tracking-wider text-accent-700 uppercase dark:bg-accent-950/40 dark:text-accent-300">
-            Smart budgeting for future you
-          </div>
+          {brandTagline ? (
+            <div className="mb-3 inline-flex items-center rounded-full bg-accent-50 px-3 py-1 text-xs font-semibold tracking-wider text-accent-700 uppercase dark:bg-accent-950/40 dark:text-accent-300">
+              {brandTagline}
+            </div>
+          ) : null}
 
           <h1 className="mb-3 text-4xl leading-tight font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
             See every dollar with{' '}
             <span className="text-accent-700 dark:text-accent-400">clarity</span>.
           </h1>
 
+          {brandDescription ? (
+            <p className="mb-3 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
+              {brandDescription}
+            </p>
+          ) : null}
+
           <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            {brandName} keeps your spending, tags, and future tax in one clean
-            dashboard. Sign in to pick up where you left off, or create a free
-            account to get started in minutes.
+            Sign in to pick up where you left off, or create a free account to
+            get started in minutes.
           </p>
 
           <div className="mb-3 flex flex-wrap gap-3">

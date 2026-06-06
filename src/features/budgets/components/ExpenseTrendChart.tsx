@@ -18,13 +18,19 @@ import type { ExpenseTrendRow } from '../../dashboard/api/schemas';
 const BUCKETS = 6;
 const PERIOD_TYPE = 'monthly' as const;
 
-// SVG paint constants — sized for a max-w-5xl page card. Width is set to
-// the SVG's viewBox; CSS scales it to 100% of the container.
-const VIEW_WIDTH = 600;
-const VIEW_HEIGHT = 140;
-const BAR_GAP = 12;
-const TOP_PADDING = 8;
-const BOTTOM_PADDING = 28;
+// SVG paint constants — sized for a max-w-6xl page card.
+// `preserveAspectRatio="none"` stretches the viewBox to the
+// rendered container, so the viewBox aspect should sit close to
+// the rendered aspect or text will smear (the 600×300 setup in
+// 5f8035e looked horizontally-squashed for exactly that reason —
+// container ~3.5:1, viewBox 2:1). Targeting ~3.7:1 here matches a
+// max-w-6xl × h-72 container, with the chart CSS height (below)
+// as the lever the user actually adjusts.
+const VIEW_WIDTH = 900;
+const VIEW_HEIGHT = 240;
+const BAR_GAP = 16;
+const TOP_PADDING = 12;
+const BOTTOM_PADDING = 36;
 
 export function ExpenseTrendChart() {
   const constants = useAuthStore((s) => s.constants);
@@ -118,7 +124,7 @@ function TrendSvg({ rows, money }: TrendSvgProps) {
       aria-label="Six-month spending trend"
       viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
       preserveAspectRatio="none"
-      className="h-32 w-full"
+      className="h-64 w-full sm:h-72 lg:h-80"
     >
       {rows.map((r, i) => {
         const value = Math.max(0, r.net_expense);
@@ -141,9 +147,9 @@ function TrendSvg({ rows, money }: TrendSvgProps) {
             />
             <text
               x={x + barWidth / 2}
-              y={VIEW_HEIGHT - 12}
+              y={VIEW_HEIGHT - 14}
               textAnchor="middle"
-              className="fill-slate-500 text-[11px] dark:fill-slate-400"
+              className="fill-slate-500 text-[12px] dark:fill-slate-400"
             >
               {monthLabel}
             </text>

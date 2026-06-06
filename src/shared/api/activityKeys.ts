@@ -5,6 +5,10 @@
 
 export const activityKeys = {
   all: ['activity'] as const,
+  // Prefix used to invalidate every feed query regardless of `limit`
+  // (callers may instantiate the hook with different limits across
+  // surfaces — the bell uses 10, future surfaces may use more).
+  feedAll: () => [...activityKeys.all, 'feed'] as const,
   feed: (limit: number) => [...activityKeys.all, 'feed', limit] as const,
   catalog: () => [...activityKeys.all, 'catalog'] as const,
   // The user's own disabled-kinds list (drives Notifications tab).

@@ -13,7 +13,7 @@ import {
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
-import { useBrandingQuery } from '../api/branding';
+import { resolveBrandLogoUrl, useBrandingQuery } from '../api/branding';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
@@ -59,14 +59,52 @@ const MAIN_LINKS: NavLinkSpec[] = [
 ];
 
 // Settings — Radix DropdownMenu on ≥lg, SETTINGS section in the drawer.
-// All three live under the /settings/* shell as of Batch 9; legacy
+// All four live under the /settings/* shell as of Batch 9; legacy
 // /categories and /categorization-rules redirect to their /settings/*
-// counterparts (see features/settings/settings.routes.tsx).
+// counterparts (see features/settings/settings.routes.tsx). Bank
+// Accounts was added 2026-06-05 when the live route turned out to be
+// unreachable from the TopNav.
 const SETTINGS_LINKS: NavLinkSpec[] = [
   { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/categorization-rules', label: 'Categorization Rules' },
   { to: '/settings/taxation-rules', label: 'Taxation Rules' },
+  { to: '/settings/bank-accounts', label: 'Bank Accounts' },
 ];
+
+// Brand mark — renders the BE-served logo `<img>` when `logoSrc` is
+// set; falls back to the Wallet lucide icon (the legacy visual mark)
+// otherwise. `onError` swaps back to the icon if the image fails to
+// load — so a 404 or transient network glitch doesn't blank the
+// brand spot. The image is cached by the browser (same `/media/...`
+// host as profile images); no app-side caching needed.
+function BrandMark({
+  logoSrc,
+  brandName,
+  size,
+}: {
+  logoSrc: string | null;
+  brandName: string;
+  size: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!logoSrc || failed) {
+    return <Wallet aria-hidden="true" size={size} />;
+  }
+  return (
+    // jsx-a11y/no-noninteractive-element-interactions: onError isn't
+    // user interaction — it's the standard load-failure callback.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+    <img
+      src={logoSrc}
+      alt={brandName}
+      width={size}
+      height={size}
+      onError={() => setFailed(true)}
+      className="shrink-0 object-contain"
+      style={{ width: size, height: size }}
+    />
+  );
+}
 
 function mainLinkClass({ isActive }: { isActive: boolean }): string {
   return [
@@ -92,9 +130,13 @@ export function TopNav({ onLogout }: TopNavProps) {
   const user = useAuthStore((s) => s.user);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-  // BE Phase 2.11 — single-source brand identity. Fallback baked
-  // into the query (placeholderData) so first paint never blanks.
-  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
+  // BE Phase 2.11 — single-source brand identity. No hardcoded
+  // fallback; `useBrandingQuery` returns the localStorage-cached
+  // brand on repeat visits and a neutral empty placeholder on the
+  // first-ever visit. See `shared/api/branding.ts`.
+  const brand = useBrandingQuery().data;
+  const brandName = brand?.name ?? '';
+  const brandLogoSrc = resolveBrandLogoUrl(brand?.logo_url);
 
   // Close the mobile drawer on any route change.
   useEffect(() => {
@@ -148,7 +190,7 @@ export function TopNav({ onLogout }: TopNavProps) {
           aria-label={brandName}
           className={`${user ? 'hidden' : 'inline-flex'} items-center gap-2 rounded-md px-1 text-accent-700 no-underline transition-colors hover:text-accent-800 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none lg:inline-flex dark:text-accent-300 dark:hover:text-accent-200`}
         >
-          <Wallet aria-hidden="true" size={22} />
+          <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={22} />
           <span className="hidden text-base font-semibold tracking-tight sm:inline">
             {brandName}
           </span>
@@ -262,7 +304,9 @@ interface MobileDrawerProps {
 // scrolls. Routing semantics are still announced via aria-label on
 // the role="dialog" wrapper, so no semantic loss.
 function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
-  const brandName = useBrandingQuery().data?.name ?? 'Aevum';
+  const brand = useBrandingQuery().data;
+  const brandName = brand?.name ?? '';
+  const brandLogoSrc = resolveBrandLogoUrl(brand?.logo_url);
   // Escape closes the drawer — the keyboard equivalent of the scrim
   // click + the explicit Close button. Bound while the drawer is mounted.
   useEffect(() => {
@@ -299,7 +343,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             aria-label={brandName}
             className="inline-flex items-center gap-2 text-accent-700 no-underline dark:text-accent-300"
           >
-            <Wallet aria-hidden="true" size={20} />
+            <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={20} />
             <span className="text-base font-semibold">{brandName}</span>
           </Link>
           <button

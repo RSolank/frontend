@@ -9,8 +9,8 @@ import {
   RefreshCw,
   UserX,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import {
   buildEventClassIndex,
@@ -28,6 +28,15 @@ import { formatRelativeTime } from '../utils/dateUtils';
 
 import { Modal } from './Modal';
 
+// Lazy-load the detail modal so its dependency graph (taxation +
+// beneficiaries + statement-upload query hooks) doesn't ride the
+// feed modal's chunk.
+const ActivityDetailModal = lazy(() =>
+  import('./ActivityDetailModal').then((m) => ({
+    default: m.ActivityDetailModal,
+  }))
+);
+
 // Activity feed modal — TopNav bell trigger.
 //
 // Rendering rule: ONE fetch (limit=10), preserve BE rank order, split
@@ -37,15 +46,30 @@ import { Modal } from './Modal';
 // BE owns ranking + retention + decay; FE never re-sorts or filters
 // (server-side disable is the SoT for visibility).
 //
-// Soft-ack fires once when the modal opens, batched across all
-// currently-visible items in BOTH sections. Hard-ack on row click +
-// deep-link navigation per subject_type. Module-level dedupe set
-// (`SEEN_THIS_SESSION`) ensures we don't re-fire soft for the same
-// event ref in the same SPA session.
+// Click flow (2026-06-05 spec):
+//   - Soft-ack fires once on modal open (`useSoftAckOnOpen`) so the
+//     BE bumps `last_seen_at` for everything visible. Module-level
+//     `SEEN_THIS_SESSION` dedupes against re-fires for the same refs
+//     in the same SPA session.
+//   - Row click opens a stacked `ActivityDetailModal` IN PLACE — the
+//     feed modal stays mounted underneath; closing the detail returns
+//     the user to the feed. The detail modal fires the hard-ack on
+//     mount (which invalidates the feed query and the row drops out
+//     of the next fetch).
+//
+// The bell badge (TopNav) is independent of the feed contents — it
+// counts items whose `refreshed_at > lastSeenAt`, so opening the bell
+// once is enough to clear it (see `useActivityLastSeenStore`).
 
 const FEED_LIMIT = 10;
 
 const SEEN_THIS_SESSION = new Set<string>();
+
+// Test hook — reset between tests so the module-level dedupe doesn't
+// leak refKeys across runs. Not part of any production code path.
+export function __resetSeenThisSession() {
+  SEEN_THIS_SESSION.clear();
+}
 
 function refKey(item: ActivityFeedItem): string {
   return `${item.kind}::${item.subject_type}::${item.subject_id}`;
@@ -60,7 +84,7 @@ export function ActivityFeedModal({ open, onClose }: ActivityFeedModalProps) {
   const feed = useActivityFeedQuery(FEED_LIMIT, open);
   const catalog = useActivityCatalogQuery(open);
   const timezone = usePreferencesStore((s) => s.timezone);
-  const navigate = useNavigate();
+  const [selected, setSelected] = useState<ActivityFeedItem | null>(null);
 
   const { alerts, notifications } = useMemo(() => {
     const items = feed.data?.items ?? [];
@@ -77,47 +101,42 @@ export function ActivityFeedModal({ open, onClose }: ActivityFeedModalProps) {
 
   useSoftAckOnOpen(open, feed.data?.items ?? []);
 
-  function handleItemClick(item: ActivityFeedItem) {
-    void markActivitySeen({
-      refs: [
-        {
-          kind: item.kind,
-          subject_type: item.subject_type,
-          subject_id: item.subject_id,
-        },
-      ],
-      hard: true,
-    }).catch(() => undefined);
-    const target = deepLinkFor(item);
-    onClose();
-    if (target) navigate(target);
-  }
-
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Recent activity"
-      size="md"
-      footer={
-        <Link
-          to="/account/notifications"
-          onClick={onClose}
-          className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
-        >
-          Manage notifications →
-        </Link>
-      }
-    >
-      <ModalBody
-        loading={feed.isLoading || catalog.isLoading}
-        error={feed.isError}
-        alerts={alerts}
-        notifications={notifications}
-        timezone={timezone}
-        onItemClick={handleItemClick}
-      />
-    </Modal>
+    <>
+      <Modal
+        open={open}
+        onClose={onClose}
+        title="Recent activity"
+        size="md"
+        footer={
+          <Link
+            to="/account/notifications"
+            onClick={onClose}
+            className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+          >
+            Manage notifications →
+          </Link>
+        }
+      >
+        <ModalBody
+          loading={feed.isLoading || catalog.isLoading}
+          error={feed.isError}
+          alerts={alerts}
+          notifications={notifications}
+          timezone={timezone}
+          onItemClick={setSelected}
+        />
+      </Modal>
+      {selected ? (
+        <Suspense fallback={null}>
+          <ActivityDetailModal
+            item={selected}
+            open={selected !== null}
+            onClose={() => setSelected(null)}
+          />
+        </Suspense>
+      ) : null}
+    </>
   );
 }
 
@@ -251,16 +270,6 @@ function iconForKind(kind: string) {
   if (kind.startsWith('recurring_')) return RefreshCw;
   if (kind === 'account_deletion_grace_reminder') return UserX;
   return Bell;
-}
-
-function deepLinkFor(item: ActivityFeedItem): string | null {
-  if (item.subject_type === 'bill')
-    return `/consumption-tax?bill=${item.subject_id}`;
-  if (item.subject_type === 'budget') return '/budgets';
-  if (item.subject_type === 'statement_upload')
-    return `/transactions?upload=${item.subject_id}`;
-  if (item.subject_type === 'recurring') return '/transactions';
-  return null;
 }
 
 function useSoftAckOnOpen(open: boolean, items: ActivityFeedItem[]) {

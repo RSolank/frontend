@@ -3,12 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Aevum</title>
+    <!-- Neutral placeholder title + description. React updates both on
+         mount from the BE branding endpoint (`GET /metadata/branding`,
+         see src/shared/api/branding.ts) so the production brand is
+         single-source and rebrands need no FE redeploy. -->
+    <title>Loading…</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Aevum — a self-imposed consumption-tax budgeting app. Track spending, categorize transactions with tags, set per-category budgets, and generate weekly tax bills to curb discretionary expenses."
-    />
+    <meta name="description" content="" />
     <script>
       // No-FOUC theme bootstrap. Runs synchronously before React renders so
       // the .dark class is on <html> on the very first paint. Mirrors the

@@ -74,10 +74,11 @@ function installHandlers() {
     http.get(`${API_BASE}/consumption-tax/bills/101`, () =>
       HttpResponse.json(billDetailResponse)
     ),
-    http.get(
-      `${API_BASE}/consumption-tax/tracker/current-week`,
-      () => new HttpResponse(null, { status: 404 })
-    ),
+    // `/tracker/current-week` is gone — the FE now derives the
+    // running tracker from the ACCRUING bill (see
+    // `useTrackerCurrentWeekQuery` in
+    // `features/taxation/api/queries.ts`). No MSW stub needed for
+    // the deleted route.
     http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
         currencies: [
@@ -267,28 +268,67 @@ describe('TaxTrackerPage', () => {
     expect(adj).toHaveTextContent('Adjustments');
   });
 
-  it('renders the running tracker when the endpoint returns data', async () => {
+  it('derives the running tracker from the ACCRUING bill (per-tag + totals)', async () => {
+    // Drop an ACCRUING bill into the list + provide its detail.
+    // The FE finds it, fetches the detail, and reshapes items/totals
+    // into the tracker view. Adjustment rows are excluded; penalties
+    // bucket under their `penalty_tag_id` (so a "Dining" penalty
+    // surfaces under "Dining" even when the spending row was tagged
+    // differently).
     server.use(
-      http.get(
-        `${API_BASE}/consumption-tax/tracker/current-week`,
-        () =>
-          HttpResponse.json({
-            period_start: '2026-03-01',
-            period_end: '2026-03-07',
-            running_tax: 12.5,
-            running_penalty: 2.0,
-            projected_tax: 25.0,
-            projected_penalty: 4.0,
-            per_tag: [
-              {
-                tag_id: 33,
-                tag_name: 'Dining',
-                txn_type: 'discretionary',
-                tax_amount: 8.0,
-                penalty: 1.5,
-              },
-            ],
-          })
+      http.get(`${API_BASE}/consumption-tax/bills`, () =>
+        HttpResponse.json({
+          bills: [
+            ...billsResponse.bills,
+            {
+              bill_id: 999,
+              period_start: '2026-03-01',
+              period_end: '2026-03-07',
+              status: 'ACCRUING',
+              amount: 14.5,
+              amount_paid: 0,
+            },
+          ],
+        })
+      ),
+      http.get(`${API_BASE}/consumption-tax/bills/999`, () =>
+        HttpResponse.json({
+          bill_id: 999,
+          period_start: '2026-03-01',
+          period_end: '2026-03-07',
+          status: 'ACCRUING',
+          amount: 14.5,
+          amount_paid: 0,
+          totals: { tax_total: 12.5, penalty_total: 2.0 },
+          items: [
+            {
+              txn_id: 7001,
+              date: '2026-03-02',
+              beneficiary: 'Cafe',
+              txn_type: 'discretionary',
+              amount: 60,
+              debit_credit: 'debit',
+              tax_amount: 8.0,
+              penalty: 1.5,
+              tag_id: 33,
+              tag_name: 'Dining',
+              penalty_tag_id: 33,
+              penalty_tag_name: 'Dining',
+            },
+            {
+              txn_id: 7002,
+              date: '2026-03-04',
+              beneficiary: 'Bakery',
+              txn_type: 'discretionary',
+              amount: 25,
+              debit_credit: 'debit',
+              tax_amount: 4.5,
+              penalty: 0.5,
+              tag_id: 33,
+              tag_name: 'Dining',
+            },
+          ],
+        })
       )
     );
 
@@ -298,7 +338,21 @@ describe('TaxTrackerPage', () => {
       expect(screen.getByText(/Top contributors this week/)).toBeInTheDocument()
     );
     expect(screen.getByText('Dining')).toBeInTheDocument();
+    // Accrued tax = totals.tax_total = $12.50.
     expect(screen.getByText('$12.50')).toBeInTheDocument();
-    expect(screen.getByText('$25.00')).toBeInTheDocument();
+    // Accrued penalty = totals.penalty_total = $2.00.
+    expect(screen.getByText('$2.00')).toBeInTheDocument();
+  });
+
+  it('renders the empty state when no ACCRUING bill exists (was a "Loading…" hang pre-2026-06-06)', async () => {
+    renderWithProviders(<TaxTrackerPage />);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/No tax accrued for this week yet/)
+      ).toBeInTheDocument()
+    );
+    // The previously-stuck "Loading…" copy must not be on screen
+    // after the bills query settles.
+    expect(screen.queryByText(/^Loading…$/)).not.toBeInTheDocument();
   });
 });

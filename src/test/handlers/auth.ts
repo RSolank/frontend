@@ -50,10 +50,9 @@ export const authHandlers = [
     HttpResponse.json({ status: 'ok' })
   ),
   // Sessions list — empty by default; tests override with
-  // `server.use(http.get('/api/auth/sessions', ...))` for richer data.
-  http.get(`${API_BASE}/auth/sessions`, () =>
-    HttpResponse.json({ sessions: [] })
-  ),
+  // `server.use(http.get('/api/auth/sessions', ...))` for richer
+  // data. BE returns a bare `list[SessionInfo]`.
+  http.get(`${API_BASE}/auth/sessions`, () => HttpResponse.json([])),
   // BE `auth.security-status` — account-protection snapshot. Default
   // is the empty/fresh-account shape (no recovery, no 2FA, zero
   // backup codes). Tests override via `server.use(...)` to flip the
@@ -83,6 +82,10 @@ export const authHandlers = [
       secret: 'JBSWY3DPEHPK3PXP',
       provisioning_uri:
         'otpauth://totp/Personal%20Budget:test@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Personal%20Budget',
+      // BE 2026-06-06 — stateless staging. JWT carries the
+      // encrypted staged secret; FE holds it across the QR-scan
+      // step and posts it back to /2fa/verify-enroll.
+      enroll_token: 'msw.enroll.token',
     })
   ),
   http.post(`${API_BASE}/auth/2fa/verify-enroll`, () =>

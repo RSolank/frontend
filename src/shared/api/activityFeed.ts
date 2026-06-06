@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { activityKeys } from './activityKeys';
 import { apiFetch } from './apiClient';
@@ -97,13 +97,25 @@ export function itemsToSeenRefs(items: ActivityFeedItem[]): ActivitySeenRef[] {
 
 // `POST /activity/seen` is fire-and-forget from the FE perspective —
 // the BE dedupes per cycle, and an error doesn't change the user
-// experience (the feed will re-fetch on next focus anyway). Mutation
-// hooks expose the standard react-query interface for callers that
-// want to react to it, but neither caller invalidates on success
-// (the per-item state is BE-side; FE just keeps polling on a 30s
-// staleTime).
+// experience. The mutation hook **invalidates the feed query on
+// success** so a hard-ack click triggers an immediate refetch and
+// the item drops out of the list. Soft-ack callers that don't want
+// the refetch can keep using the standalone `markActivitySeen`
+// helper (it skips the cache entirely).
 export function useMarkActivitySeenMutation() {
-  return useMutation({ mutationFn: markActivitySeen });
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: markActivitySeen,
+    onSuccess: (_data, variables) => {
+      // Only invalidate on hard-ack: soft-ack changes BE state
+      // (last_seen_at) but doesn't drop items from the feed, so
+      // re-fetching produces the same list and just wastes a round
+      // trip while the modal is open.
+      if (variables.hard) {
+        void qc.invalidateQueries({ queryKey: activityKeys.feedAll() });
+      }
+    },
+  });
 }
 
 // User-side signal-settings — drives the Notifications tab.

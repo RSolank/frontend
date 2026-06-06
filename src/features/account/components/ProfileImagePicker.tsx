@@ -5,13 +5,17 @@ import {
   ProfileImage,
   profileImageSrc,
 } from '../../../shared/components/ProfileImage';
+import { useAuthStore, type AuthUser } from '../../../shared/state/auth.store';
 import { userKeys } from '../../users/api/keys';
 import {
   removeProfileImageRequest,
   setProfileImagePresetRequest,
   uploadProfileImageRequest,
 } from '../../users/api/mutations';
-import { useProfileImagePresetsQuery } from '../../users/api/queries';
+import {
+  fetchCurrentUser,
+  useProfileImagePresetsQuery,
+} from '../../users/api/queries';
 
 interface ProfileImagePickerProps {
   // Current `profile_image_url` from `/me`. `null` → user's on
@@ -44,14 +48,21 @@ export function ProfileImagePicker({
   const { data: presets = [], isLoading: presetsLoading } =
     useProfileImagePresetsQuery();
 
-  function invalidateMe() {
-    return queryClient.invalidateQueries({ queryKey: userKeys.me() });
+  // Propagate the new `profile_image_url` to BOTH the /me query
+  // cache (read by AccountProfilePage) and the auth store (read by
+  // TopNav's avatar). The auth store is independent of react-query,
+  // so an invalidate alone leaves TopNav on the stale image until
+  // the next full reload (caught during E2E 2026-06-05).
+  async function syncMe() {
+    const { user } = await fetchCurrentUser();
+    queryClient.setQueryData(userKeys.me(), { user });
+    useAuthStore.getState().setUser((user as AuthUser) ?? null);
   }
 
   const setPreset = useMutation({
     mutationFn: (preset_id: string) => setProfileImagePresetRequest(preset_id),
     onSuccess: async () => {
-      await invalidateMe();
+      await syncMe();
       setStatus('Profile picture updated.');
     },
     onError: (err: unknown) => {
@@ -63,7 +74,7 @@ export function ProfileImagePicker({
   const upload = useMutation({
     mutationFn: (file: File) => uploadProfileImageRequest(file),
     onSuccess: async () => {
-      await invalidateMe();
+      await syncMe();
       setStatus('Profile picture uploaded.');
     },
     onError: (err: unknown) => {
@@ -79,7 +90,7 @@ export function ProfileImagePicker({
   const remove = useMutation({
     mutationFn: () => removeProfileImageRequest(),
     onSuccess: async () => {
-      await invalidateMe();
+      await syncMe();
       setStatus('Profile picture removed.');
     },
     onError: (err: unknown) => {

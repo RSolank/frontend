@@ -16,14 +16,30 @@ import {
 } from './twoFactor';
 
 describe('twoFactor api surface', () => {
-  it('enrollTwoFactorRequest returns secret + provisioning URI', async () => {
+  it('enrollTwoFactorRequest returns secret + provisioning URI + enroll_token', async () => {
     const res = await enrollTwoFactorRequest();
     expect(res.secret).toBeTruthy();
     expect(res.provisioning_uri).toContain('otpauth://');
+    // Stateless staging (2026-06-06 BE update) — the JWT carrying the
+    // encrypted staged secret rides on the response now.
+    expect(res.enroll_token).toBeTruthy();
   });
 
-  it('verifyEnrollTwoFactorRequest returns 10 backup codes', async () => {
-    const res = await verifyEnrollTwoFactorRequest('123456');
+  it('verifyEnrollTwoFactorRequest forwards enroll_token + code, returns 10 backup codes', async () => {
+    let seenBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(
+        `${API_BASE}/auth/2fa/verify-enroll`,
+        async ({ request }) => {
+          seenBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({
+            backup_codes: Array.from({ length: 10 }, (_, i) => `bc-${i}`),
+          });
+        }
+      )
+    );
+    const res = await verifyEnrollTwoFactorRequest('eyJ-token', '123456');
+    expect(seenBody).toEqual({ enroll_token: 'eyJ-token', code: '123456' });
     expect(res.backup_codes).toHaveLength(10);
   });
 

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import type { ParserOption } from '../api/schemas';
 
+import { ParserIcon } from './ParserIcon';
+
 interface Props {
   open: boolean;
   parsers: readonly ParserOption[];
@@ -87,6 +89,7 @@ export function ParserPickerModal({
                 className="mt-1"
                 data-testid={`parser-picker-option-${parser.key}`}
               />
+              <ParserIcon parserKey={parser.key} size={22} />
               <span className="flex flex-col">
                 <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {parser.label}

@@ -59,6 +59,10 @@ const txnList = {
   returned_count: 2,
 };
 
+// BE 2026-06-06 (`9c00ecd`) — grouped reads carry `period_type` +
+// `period_start` on every page; with no month/period/date query
+// param the BE now aggregates all-time (period_type=`"all"`,
+// period_start=null) rather than scoping to the current month.
 const merchantGroups = {
   groups: [
     {
@@ -68,6 +72,8 @@ const merchantGroups = {
       net_expense: 450,
     },
   ],
+  period_type: 'all',
+  period_start: null,
   returned_count: 1,
 };
 
@@ -178,6 +184,52 @@ describe('TransactionsPage', () => {
         true
       );
     });
+  });
+
+  it('Merchant view scope pill — "All time" when BE returns period_type=all', async () => {
+    server.use(
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('group_by') === 'merchant') {
+          return HttpResponse.json(merchantGroups);
+        }
+        return HttpResponse.json(txnList);
+      })
+    );
+    renderWithProviders(<TransactionsPage />);
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
+    // Pill matches the BE-supplied window. Default fixture has
+    // period_type='all' / period_start=null.
+    expect(
+      await screen.findByTestId('merchant-scope-pill')
+    ).toHaveTextContent('All time');
+  });
+
+  it('Merchant view scope pill — formatted month for monthly window', async () => {
+    server.use(
+      http.get(`${API_BASE}/transactions`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('group_by') === 'merchant') {
+          return HttpResponse.json({
+            ...merchantGroups,
+            period_type: 'monthly',
+            period_start: '2026-02-01',
+          });
+        }
+        return HttpResponse.json(txnList);
+      })
+    );
+    renderWithProviders(<TransactionsPage />);
+    await waitFor(() =>
+      expect(screen.getByText('Supermarket')).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Merchant$/i }));
+    expect(
+      await screen.findByTestId('merchant-scope-pill')
+    ).toHaveTextContent(/Feb 2026/);
   });
 
   it('Calendar tab renders the calendar grid', async () => {

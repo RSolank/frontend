@@ -105,18 +105,19 @@ export interface ProfileImagePreset {
   url: string;
 }
 
-interface PresetsResponse {
-  presets?: ProfileImagePreset[];
-}
-
-export function fetchProfileImagePresets(): Promise<PresetsResponse> {
-  return apiFetch<PresetsResponse>(routes.users.profileImagePresets());
+// BE returns a bare `list[ProfileImagePreset]` (see
+// `backend/app/modules/users/user_routes.py` —
+// `response_model=list[ProfileImagePreset]`). The previous wrapper
+// `{presets?: [...]}` always resolved to `undefined.presets ?? []`,
+// which is why the picker showed no presets until 2026-06-05.
+export function fetchProfileImagePresets(): Promise<ProfileImagePreset[]> {
+  return apiFetch<ProfileImagePreset[]>(routes.users.profileImagePresets());
 }
 
 export function useProfileImagePresetsQuery(enabled = true) {
   return useQuery({
     queryKey: userKeys.profileImagePresets(),
-    queryFn: async () => (await fetchProfileImagePresets()).presets ?? [],
+    queryFn: fetchProfileImagePresets,
     enabled,
     // Presets only change between deploys.
     staleTime: 60 * 60 * 1000,

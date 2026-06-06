@@ -17,6 +17,7 @@ import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
 import {
   monthKeyFromIso,
@@ -66,6 +67,49 @@ function flattenTags(nodes: TagNode[] | undefined, out: FlatTag[] = []): FlatTag
 // call site (keeps the count label off sonarjs/no-nested-conditional).
 function pluralCount(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? '' : 's'}`;
+}
+
+// Merchant view scope copy — BE 2026-06-06 grouped reads carry the
+// active window on every page. Three cases:
+//   - 'all'      → no window param sent → all-time aggregate
+//                  (new default, surfaces backdated imports).
+//   - 'monthly'  → period_start = YYYY-MM-DD; render as "Feb 2026".
+//   - 'weekly'   → period_start = YYYY-MM-DD (Mon); render as
+//                  "Feb 9 → Feb 15" using ISO Mon→Sun convention.
+// Anything else falls back to a copy of the raw period_type so future
+// BE additions still render something readable instead of `[object]`.
+function scopePillCopy(
+  periodType: string,
+  periodStart: string | null
+): string {
+  if (periodType === 'all') return 'All time';
+  if (periodType === 'monthly' && periodStart) {
+    return formatYearMonth(periodStart.slice(0, 7), 'short');
+  }
+  if (periodType === 'weekly' && periodStart) {
+    const start = new Date(`${periodStart}T00:00:00Z`);
+    const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const f = new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    return `${f.format(start)} → ${f.format(end)}`;
+  }
+  return periodType;
+}
+
+// Merchant empty-state copy — scope-aware. Old "No merchants found."
+// was ambiguous (was it "no data ever" or "no data this month?"). The
+// new copy folds the active window into the message so the user
+// knows exactly which scope is empty.
+function merchantEmptyCopy(
+  periodType: string | null,
+  scopeLabel: string | null
+): string {
+  if (periodType === 'all') return 'No merchants across your history yet.';
+  if (scopeLabel) return `No merchants for ${scopeLabel}.`;
+  return 'No merchants found.';
 }
 
 // Resolve the banner message from the delete error + the active query error.
@@ -174,6 +218,18 @@ export function TransactionsPage() {
   );
   const groups = useMemo(
     () => accumulatedPages.flatMap((p) => p.groups ?? []),
+    [accumulatedPages]
+  );
+  // BE 2026-06-06 — grouped reads carry the active window on every
+  // page. All pages of the same query share the same window, so take
+  // it from the first page. Drives the scope pill + empty-state copy
+  // below; both null until the first page lands. Bundled into one
+  // memo so the complexity gate sees a single derived value.
+  const groupedPeriod = useMemo(
+    () => ({
+      type: accumulatedPages[0]?.period_type ?? null,
+      start: accumulatedPages[0]?.period_start ?? null,
+    }),
     [accumulatedPages]
   );
 
@@ -330,6 +386,8 @@ export function TransactionsPage() {
           isMerchant={isMerchant}
           listLoading={listLoading}
           groups={groups}
+          groupedPeriodType={groupedPeriod.type}
+          groupedPeriodStart={groupedPeriod.start}
           transactions={transactions}
           tags={tags}
           timezone={timezone}
@@ -567,6 +625,11 @@ interface TransactionListBodyProps {
   isMerchant: boolean;
   listLoading: boolean;
   groups: MerchantGroup[];
+  // Active grouped-read window (BE 2026-06-06). Drives the merchant
+  // view's scope pill + empty-state copy. Null on the flat list view
+  // / before the first page resolves.
+  groupedPeriodType: 'weekly' | 'monthly' | 'all' | string | null;
+  groupedPeriodStart: string | null;
   transactions: TransactionDTO[];
   tags: FlatTag[];
   timezone: string;
@@ -590,6 +653,8 @@ function TransactionListBody({
   isMerchant,
   listLoading,
   groups,
+  groupedPeriodType,
+  groupedPeriodStart,
   transactions,
   tags,
   timezone,
@@ -606,6 +671,10 @@ function TransactionListBody({
   const countLabel = isMerchant
     ? pluralCount(groups.length, 'merchant')
     : pluralCount(transactions.length, 'transaction');
+  const scopeLabel =
+    isMerchant && groupedPeriodType
+      ? scopePillCopy(groupedPeriodType, groupedPeriodStart)
+      : null;
 
   function renderRows() {
     if (listLoading) {
@@ -619,7 +688,7 @@ function TransactionListBody({
       if (groups.length === 0) {
         return (
           <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-            No merchants found.
+            {merchantEmptyCopy(groupedPeriodType, scopeLabel)}
           </div>
         );
       }
@@ -664,8 +733,16 @@ function TransactionListBody({
 
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
-      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-        {countLabel}
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+        <span>{countLabel}</span>
+        {scopeLabel && (
+          <span
+            data-testid="merchant-scope-pill"
+            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            {scopeLabel}
+          </span>
+        )}
       </div>
 
       {renderRows()}

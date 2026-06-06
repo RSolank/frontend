@@ -44,14 +44,12 @@ export const usersHandlers = [
   // tiles are served from `/media/presets/<id>.webp`; we serve four
   // here — enough to exercise the picker grid without bloating MSW.
   http.get(`${API_BASE}/users/profile-image-presets`, () =>
-    HttpResponse.json({
-      presets: [
-        { id: 'geo-01', url: '/media/presets/geo-01.webp' },
-        { id: 'geo-02', url: '/media/presets/geo-02.webp' },
-        { id: 'geo-03', url: '/media/presets/geo-03.webp' },
-        { id: 'geo-04', url: '/media/presets/geo-04.webp' },
-      ],
-    })
+    HttpResponse.json([
+      { id: 'geo-01', url: '/media/presets/geo-01.webp' },
+      { id: 'geo-02', url: '/media/presets/geo-02.webp' },
+      { id: 'geo-03', url: '/media/presets/geo-03.webp' },
+      { id: 'geo-04', url: '/media/presets/geo-04.webp' },
+    ])
   ),
   http.put(`${API_BASE}/users/me/profile-image/preset`, async ({ request }) => {
     const body = (await request.json()) as { preset_id: string };

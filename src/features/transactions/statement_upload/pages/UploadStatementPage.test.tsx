@@ -102,7 +102,7 @@ describe('UploadStatementPage', () => {
           const val = fd.get('parser_override');
           receivedOverride = typeof val === 'string' ? val : null;
           return HttpResponse.json(
-            { job_id: 99, status: 'PENDING' },
+            { job_id: 99, status: 'PROCESSING' },
             { status: 202 }
           );
         }
@@ -110,7 +110,8 @@ describe('UploadStatementPage', () => {
       http.get(`${API_BASE}/statement-uploads/99`, () =>
         HttpResponse.json({
           job_id: 99,
-          status: 'COMPLETE',
+          status: 'COMPLETED',
+          stage: 'done',
           file_name: 'phonepe.pdf',
           parser_used: 'phonepe',
           source_type: 'phonepe',
@@ -190,12 +191,13 @@ describe('UploadStatementPage', () => {
   test('COMPLETE + suggest_register_account renders informational notice', async () => {
     server.use(
       http.post(`${API_BASE}/statement-uploads`, () =>
-        HttpResponse.json({ job_id: 5, status: 'PENDING' }, { status: 202 })
+        HttpResponse.json({ job_id: 5, status: 'PROCESSING' }, { status: 202 })
       ),
       http.get(`${API_BASE}/statement-uploads/5`, () =>
         HttpResponse.json({
           job_id: 5,
-          status: 'COMPLETE',
+          status: 'COMPLETED',
+          stage: 'done',
           file_name: 'phonepe.pdf',
           parser_used: 'phonepe',
           source_type: 'upi',
@@ -234,12 +236,13 @@ describe('UploadStatementPage', () => {
   test('FAILED status renders error_detail + Try again', async () => {
     server.use(
       http.post(`${API_BASE}/statement-uploads`, () =>
-        HttpResponse.json({ job_id: 7, status: 'PENDING' }, { status: 202 })
+        HttpResponse.json({ job_id: 7, status: 'PROCESSING' }, { status: 202 })
       ),
       http.get(`${API_BASE}/statement-uploads/7`, () =>
         HttpResponse.json({
           job_id: 7,
           status: 'FAILED',
+          stage: 'parsing',
           file_name: 'broken.pdf',
           parser_used: null,
           source_type: null,

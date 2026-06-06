@@ -7,12 +7,25 @@ import type { TokenResponse } from './mutations';
 // Functional, RFC-6238. The secret is encrypted at rest server-side
 // (Fernet); the FE only sees it ONCE at enrollment for the QR + the
 // manual-entry fallback.
+//
+// **Stateless staging (2026-06-06 BE update):** `/2fa/enroll` no
+// longer writes the secret to the DB. It returns an `enroll_token`
+// (short-lived signed JWT carrying the encrypted secret); the FE
+// holds it across the QR-scan step and posts it back to
+// `/2fa/verify-enroll` alongside the user's code. On cancel the FE
+// just drops the token — no server call needed; the JWT expires on
+// its own. The previous shape left a dangling encrypted secret on
+// `UserAuth` whenever the user abandoned enrollment.
 
 export interface TwoFactorEnrollResponse {
   // Base32 shared secret. Shown once for manual-entry fallback.
   secret: string;
   // `otpauth://totp/...` URI. FE renders this as a QR code.
   provisioning_uri: string;
+  // Short-lived signed token carrying the (encrypted) staged secret.
+  // Pass back to `/2fa/verify-enroll` to confirm enrollment. Expires
+  // after `TWO_FACTOR_PENDING_TTL_MINUTES`; on cancel just drop it.
+  enroll_token: string;
 }
 
 export interface TwoFactorVerifyEnrollResponse {
@@ -36,13 +49,14 @@ export function enrollTwoFactorRequest(): Promise<TwoFactorEnrollResponse> {
 }
 
 export function verifyEnrollTwoFactorRequest(
+  enroll_token: string,
   code: string
 ): Promise<TwoFactorVerifyEnrollResponse> {
   return apiFetch<TwoFactorVerifyEnrollResponse>(
     routes.auth.twoFactorVerifyEnroll(),
     {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ enroll_token, code }),
     }
   );
 }

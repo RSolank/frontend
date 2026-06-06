@@ -187,9 +187,50 @@ function installPopulatedHandlers() {
       }
       return HttpResponse.json(populatedTransactions);
     }),
-    http.get(
-      `${API_BASE}/consumption-tax/tracker/current-week`,
-      () => HttpResponse.json(populatedTracker)
+    // `useTrackerCurrentWeekQuery` now derives the running-tax view
+    // from the ACCRUING bill (see `features/taxation/api/queries.ts`).
+    // Seed one bill with totals + items matching `populatedTracker`.
+    http.get(`${API_BASE}/consumption-tax/bills`, () =>
+      HttpResponse.json({
+        bills: [
+          {
+            bill_id: 7777,
+            period_start: WEEK_START,
+            period_end: WEEK_END,
+            status: 'ACCRUING',
+            amount: 15,
+            amount_paid: 0,
+          },
+        ],
+      })
+    ),
+    http.get(`${API_BASE}/consumption-tax/bills/7777`, () =>
+      HttpResponse.json({
+        bill_id: 7777,
+        period_start: WEEK_START,
+        period_end: WEEK_END,
+        status: 'ACCRUING',
+        amount: 15,
+        amount_paid: 0,
+        totals: {
+          tax_total: populatedTracker.running_tax,
+          penalty_total: populatedTracker.running_penalty,
+        },
+        items: populatedTracker.per_tag.map((p, idx) => ({
+          txn_id: 9000 + idx,
+          date: WEEK_START,
+          beneficiary: p.tag_name,
+          txn_type: p.txn_type,
+          amount: p.tax_amount * 10,
+          debit_credit: 'debit',
+          tax_amount: p.tax_amount,
+          penalty: p.penalty,
+          tag_id: p.tag_id,
+          tag_name: p.tag_name,
+          penalty_tag_id: p.tag_id,
+          penalty_tag_name: p.tag_name,
+        })),
+      })
     ),
     http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
@@ -213,9 +254,10 @@ function installEmptyHandlers() {
     http.get(`${API_BASE}/transactions`, () =>
       HttpResponse.json({ transactions: [], returned_count: 0 })
     ),
-    http.get(
-      `${API_BASE}/consumption-tax/tracker/current-week`,
-      () => new HttpResponse(null, { status: 404 })
+    // Empty-state shape: no ACCRUING bill → tracker renders the
+    // "No tax accrued for this week yet." card.
+    http.get(`${API_BASE}/consumption-tax/bills`, () =>
+      HttpResponse.json({ bills: [] })
     ),
     http.get(`${API_BASE}/metadata/currencies`, () =>
       HttpResponse.json({
@@ -331,10 +373,17 @@ describe('DashboardPage', () => {
           within(card).getByTestId('dashboard-tax-accrued')
         ).toHaveTextContent('$15.00')
       );
-      // Projected = projected_tax + projected_penalty = 30 + 6 = 36.
-      expect(
-        within(card).getByTestId('dashboard-tax-projected')
-      ).toHaveTextContent('$36.00');
+      // Projected is now derived FE-side from `running_total /
+      // fractionOfWeekElapsed` (the BE never shipped a `projected_*`
+      // value; the `tracker/current-week` route never landed — see
+      // `useTrackerCurrentWeekQuery` in
+      // `features/taxation/api/queries.ts`). So the exact $-amount
+      // floats with wall-clock day-of-week. Assert the slot rendered
+      // with *some* dollar value rather than pinning a specific one.
+      const projectedText = within(card)
+        .getByTestId('dashboard-tax-projected')
+        .textContent ?? '';
+      expect(projectedText).toMatch(/\$\d+\.\d{2}/);
       // Top contributors list renders the two per_tag rows.
       const list = within(card).getByTestId('dashboard-tax-contributors');
       expect(within(list).getByText('Dining')).toBeInTheDocument();
@@ -358,7 +407,11 @@ describe('DashboardPage', () => {
       const widget = await screen.findByTestId('dashboard-week-summary');
       await waitFor(() => expect(widget).toHaveTextContent('$148.00'));
       expect(widget).toHaveTextContent('4'); // debit count
-      expect(widget).toHaveTextContent('$15.00'); // tax accrued
+      // Tax accrued comes from the FE-derived tracker (bills →
+      // bill detail), which resolves on a separate tick from the
+      // txn-driven `$148.00` above. Wait for the second query
+      // before asserting.
+      await waitFor(() => expect(widget).toHaveTextContent('$15.00'));
     });
 
     it('Dashboard no longer renders an inline Activity widget — moved to TopNav bell in Batch 18', async () => {

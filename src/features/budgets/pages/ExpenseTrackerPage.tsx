@@ -67,7 +67,7 @@ export function ExpenseTrackerPage() {
   const availableMonths = data?.available_months ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       {/*
        * Page header — title + description only. No competing controls
        * so the heading + paragraph stay readable on narrow viewports

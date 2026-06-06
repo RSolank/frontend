@@ -222,6 +222,7 @@ overview.
   FE wiring lands, the Tax Tracker card can surface ACCRUING /
   BILLED / OVERDUE counts in the title chip.
 - **Per-card activity enrichment** — deferred review session
-  filed in [.scratch/task-admin.md](../../.scratch/task-admin.md)
-  Follow-ups (per-card `?domain=` filtered activity feed reads,
-  decision on additional surfaces).
+  scope in [.scratch/dashboard-review-followup.md](../../.scratch/dashboard-review-followup.md)
+  (per-card `?domain=` filtered activity feed reads, soft/hard-ack
+  discipline, TopNav-bell scope re-evaluation, Notifications-tab
+  interplay).
