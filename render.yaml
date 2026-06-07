@@ -1,8 +1,10 @@
 # Render deploy blueprint — FE static site (Aevum frontend).
 #
-# Apply via the Render dashboard's "Blueprint" flow pointing at the
-# `frontend/` submodule's root directory. The BE service has its own
-# blueprint under `backend/` (separate submodule, separate deploy).
+# Apply via the Render dashboard's "Blueprint" flow against THIS repo
+# (RSolank/frontend) — its root IS the Vite project, so no `rootDir` is set
+# (a `rootDir: frontend` would point at a non-existent subdir and fail with
+# "Root directory 'frontend' does not exist"). The BE service has its own
+# blueprint in the backend repo (separate submodule, separate deploy).
 #
 # After first apply:
 # - set VITE_API_URL in the dashboard to the deployed BE service URL
@@ -14,7 +16,6 @@ services:
   - type: web
     name: aevum-frontend
     runtime: static
-    rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     # SPA fallback. Vite's `appType: 'spa'` only governs the dev

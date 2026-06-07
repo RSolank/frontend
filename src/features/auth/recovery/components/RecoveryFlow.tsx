@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { PasswordRequirements } from '../../../../shared/components/PasswordRequirements';
 import { useAuthStore } from '../../../../shared/state/auth.store';
+import { getLandingRoute } from '../../../../shared/state/landingRoute.store';
 import { validatePassword } from '../../../../shared/utils/validation';
 import {
   forgotPasswordRequest,
@@ -11,9 +12,14 @@ import {
   resetPasswordFinalRequest,
   verifyAnswerRequest,
   verifyOtpRequest,
+  type TokenResponse,
 } from '../../api/mutations';
+import { establishSession } from '../../state/useAuth';
 
-type RecoveryStep = 'email' | 'choice' | 'question' | 'otp' | 'reset';
+type RecoveryStep = 'email' | 'choice' | 'question' | 'otp' | 'reset' | 'done';
+
+// How long the "password changed" confirmation shows before the auto-redirect.
+const SUCCESS_REDIRECT_MS = 2000;
 
 interface ApiErrorShape {
   detail?: string;
@@ -47,6 +53,18 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
   const [question, setQuestion] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // After a successful reset the session is already established; show the
+  // confirmation briefly, then redirect to the user's landing route. A manual
+  // "Continue" button on the step covers the case where this timer is missed.
+  useEffect(() => {
+    if (step !== 'done') return;
+    const timer = setTimeout(
+      () => navigate(getLandingRoute()),
+      SUCCESS_REDIRECT_MS
+    );
+    return () => clearTimeout(timer);
+  }, [step, navigate]);
 
   function clearError() {
     onError(null);
@@ -132,7 +150,13 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
         });
         return;
       }
-      navigate('/dashboard');
+      // reset-password-final returns a fresh session (TokenResponse) + sets the
+      // cookie, so establish it client-side — without this the user lands on a
+      // route guard with no token and gets bounced back to login. Then show the
+      // confirmation step (which auto-redirects), instead of silently closing.
+      await establishSession(res as TokenResponse);
+      onError(null);
+      setStep('done');
     } catch (err) {
       onError(readError(err, 'Failed to reset password'));
     } finally {
@@ -223,14 +247,20 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
         />
       )}
 
-      <button
-        type="button"
-        onClick={handleBackToLogin}
-        className="btn-link"
-        style={{ marginTop: '0.5rem' }}
-      >
-        Back to login
-      </button>
+      {step === 'done' && (
+        <SuccessStep onContinue={() => navigate(getLandingRoute())} />
+      )}
+
+      {step !== 'done' && (
+        <button
+          type="button"
+          onClick={handleBackToLogin}
+          className="btn-link"
+          style={{ marginTop: '0.5rem' }}
+        >
+          Back to login
+        </button>
+      )}
     </>
   );
 }
@@ -241,6 +271,32 @@ export function RecoveryFlow({ onError, onExit }: RecoveryFlowProps) {
 
 const CHOICE_BUTTON_CLASS =
   'inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-accent-300 hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 dark:focus-visible:ring-offset-slate-950';
+
+interface SuccessStepProps {
+  onContinue: () => void;
+}
+
+// Shown after a successful reset: the session is already established (the user
+// is signed in), so this confirms success and offers an immediate way to the
+// dashboard while the auto-redirect timer runs.
+function SuccessStep({ onContinue }: SuccessStepProps) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <p
+        style={{ margin: 0, color: '#059669', fontWeight: 'bold' }}
+        role="status"
+      >
+        ✓ Password changed — you are now signed in.
+      </p>
+      <p style={{ margin: 0 }} className="text-slate-600 dark:text-slate-400">
+        Taking you to your dashboard…
+      </p>
+      <button type="button" onClick={onContinue} className="btn-primary">
+        Continue to dashboard
+      </button>
+    </div>
+  );
+}
 
 interface EmailStepProps {
   email: string;

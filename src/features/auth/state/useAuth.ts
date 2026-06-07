@@ -97,6 +97,16 @@ export async function refreshAuthUser(): Promise<void> {
   }
 }
 
+// Establish a fresh client session from a TokenResponse: persist the tokens,
+// then hydrate the user + preferences into the store — the exact post-login
+// sequence. Shared by the login flows and the recovery reset (the BE returns a
+// fresh session on reset-password-final too, so the user should land
+// authenticated rather than be bounced to the login screen).
+export async function establishSession(data: TokenResponse): Promise<void> {
+  persistTokens(data);
+  await Promise.all([refreshAuthUser(), hydratePreferences()]);
+}
+
 // Compatibility hook — drop-in replacement for the old useAuth(). Returns
 // the same shape (user, constants, loading, error, setError, register,
 // login, logout, refreshUser). Legacy pages keep working unchanged
@@ -137,8 +147,7 @@ export function useAuth() {
         });
         return;
       }
-      persistTokens(data);
-      await Promise.all([refreshAuthUser(), hydratePreferences()]);
+      await establishSession(data);
       // Honor the user's `useLandingRouteStore` preference (frontend-
       // only Zustand, /account/accessibility). Defaults to '/dashboard'
       // for first-time / unset visitors.
@@ -165,8 +174,7 @@ export function useAuth() {
     useAuthStore.getState().setRetryAfterSeconds(null);
     try {
       const data = await loginVerifyTwoFactorRequest(pending_token, code);
-      persistTokens(data);
-      await Promise.all([refreshAuthUser(), hydratePreferences()]);
+      await establishSession(data);
       navigate(getLandingRoute());
     } catch (err) {
       const e = err as ApiErrorShape;
@@ -198,8 +206,7 @@ export function useAuth() {
         });
         return;
       }
-      persistTokens(data);
-      await Promise.all([refreshAuthUser(), hydratePreferences()]);
+      await establishSession(data);
       navigate(getLandingRoute());
     } catch (err) {
       const e = err as ApiErrorShape;
