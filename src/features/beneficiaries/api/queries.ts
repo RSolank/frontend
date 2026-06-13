@@ -26,6 +26,9 @@ export interface Beneficiary {
   beneficiary_type: BeneficiaryType;
   merchant?: MerchantDetail | null;
   person?: PersonDetail | null;
+  // True for system-created rows (created_by == SYSTEM) — drives the "System"
+  // chip so the user can tell shipped rows from ones they added.
+  is_system?: boolean;
 }
 
 export interface AliasUniqueResponse {

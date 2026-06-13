@@ -1,6 +1,7 @@
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
+import { SystemChip } from '../../../shared/components/SystemChip';
 import { formatAliasesDisplay } from '../../beneficiaries/api/aliases';
 import { groupRules, type RuleGroup } from '../api/grouping';
 import type { CategorizationRule } from '../api/queries';
@@ -82,8 +83,11 @@ function GroupedRuleRow({
           allotted width instead of pushing the button to a new line.
           shrink-0 on the trigger pins it right. */}
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 text-sm font-medium break-words text-slate-800 dark:text-slate-100">
-          {rule.beneficiary_name}
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="text-sm font-medium break-words text-slate-800 dark:text-slate-100">
+            {rule.beneficiary_name}
+          </span>
+          {rule.is_system && <SystemChip />}
         </span>
         <button
           type="button"
@@ -155,8 +159,11 @@ function SingleRuleCard({
           the trigger to a new line. Delete lives in the modal header
           per the DetailModal convention. */}
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 text-base font-semibold break-words text-slate-900 dark:text-slate-100">
-          {rule.rule_name}
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="text-base font-semibold break-words text-slate-900 dark:text-slate-100">
+            {rule.rule_name}
+          </span>
+          {rule.is_system && <SystemChip />}
         </span>
         <button
           type="button"

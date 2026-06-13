@@ -3,79 +3,57 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useAuthStore } from '../../../shared/state/auth.store';
 import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
 
 import { TaxationRulesPage } from './TaxationRulesPage';
 
-// Two customized rules + two "default" placeholders. Per the 2026-05-26
-// design lock the page renders only is_default=false entries; the
-// default placeholders surface as missing-and-Add-able slots.
-const partiallyCustomized = {
+// The backend returns one effective rule per taxable type. Every taxable type
+// ships seeded and the upsert never transfers provenance, so in practice all
+// rows are system-origin (is_system=true). One row is given is_system=false
+// here purely to pin the chip's conditional rendering.
+const allRules = {
   rules: [
     {
       txn_type: 'committed',
       tax_rate: 0.05,
       default_penalty_rate: 0.5,
-      is_default: false,
+      is_system: true,
     },
     {
       txn_type: 'essential',
       tax_rate: 0.1,
       default_penalty_rate: 0.5,
-      is_default: false,
+      is_system: true,
     },
     {
       txn_type: 'discretionary',
-      tax_rate: 0,
+      tax_rate: 0.2,
       default_penalty_rate: 0.5,
-      is_default: true,
+      is_system: false,
     },
     {
       txn_type: 'uncategorized',
       tax_rate: 0,
       default_penalty_rate: 0.5,
-      is_default: true,
+      is_system: true,
     },
   ],
 };
 
-const fullyCustomized = {
-  rules: partiallyCustomized.rules.map((r) => ({ ...r, is_default: false })),
-};
-
-function installListHandler(rules = partiallyCustomized) {
+function installListHandler(rules = allRules) {
   server.use(
     http.get(`${API_BASE}/taxation-rules/`, () => HttpResponse.json(rules))
   );
 }
 
-function hydrateConstants() {
-  useAuthStore.getState().setConstants({
-    TOTAL_TAG_ID: 1,
-    MISCELLANEOUS_TAG_ID: 2,
-    CONSUMPTION_TAX_TAG_ID: 3,
-    TAXABLE_TXN_TYPES: [
-      'committed',
-      'essential',
-      'discretionary',
-      'uncategorized',
-    ],
-    VALID_TAG_TYPES: [],
-    VALID_TXN_TYPES: [],
-    RELATIONSHIP_TYPES: [],
-  });
-}
-
 describe('TaxationRulesPage', () => {
   beforeEach(() => {
-    hydrateConstants();
     installListHandler();
   });
 
-  it('renders one card per customized rule with rates as label/value pairs (no inline edit fields)', async () => {
+  it('renders one read-only card per returned rule (every taxable type)', async () => {
     renderWithProviders(<TaxationRulesPage />);
 
     await waitFor(() =>
@@ -84,14 +62,13 @@ describe('TaxationRulesPage', () => {
 
     expect(screen.getByTestId('rule-card-committed')).toHaveTextContent('5%');
     expect(screen.getByTestId('rule-card-essential')).toHaveTextContent('10%');
-
-    // Default placeholders are NOT rendered as cards.
+    // All taxable types render as cards now — no Add-able placeholders.
     expect(
-      screen.queryByTestId('rule-card-discretionary')
-    ).not.toBeInTheDocument();
+      screen.getByTestId('rule-card-discretionary')
+    ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('rule-card-uncategorized')
-    ).not.toBeInTheDocument();
+      screen.getByTestId('rule-card-uncategorized')
+    ).toBeInTheDocument();
 
     // Card body has no input fields — read-only.
     expect(
@@ -99,22 +76,22 @@ describe('TaxationRulesPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Add button is visible when at least one TAXABLE_TXN_TYPE is missing a rule', async () => {
+  it('shows the "System" chip on system-origin rows only', async () => {
     renderWithProviders(<TaxationRulesPage />);
     await waitFor(() =>
       expect(screen.getByTestId('rule-card-committed')).toBeInTheDocument()
     );
-    expect(screen.getByTestId('rule-add-button')).toBeInTheDocument();
-  });
 
-  it('Add button is hidden when every TAXABLE_TXN_TYPE has a customized rule', async () => {
-    installListHandler(fullyCustomized);
-
-    renderWithProviders(<TaxationRulesPage />);
-    await waitFor(() =>
-      expect(screen.getByTestId('rule-card-committed')).toBeInTheDocument()
-    );
-    expect(screen.queryByTestId('rule-add-button')).not.toBeInTheDocument();
+    // is_system=true → chip present.
+    expect(
+      within(screen.getByTestId('rule-card-committed')).getByText('System')
+    ).toBeInTheDocument();
+    // is_system=false → no chip.
+    expect(
+      within(screen.getByTestId('rule-card-discretionary')).queryByText(
+        'System'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('Edit opens a modal pre-filled with the current rates and submits the update', async () => {
@@ -128,27 +105,24 @@ describe('TaxationRulesPage', () => {
             txn_type: 'committed',
             tax_rate: 0.075,
             default_penalty_rate: 0.5,
-            is_default: false,
+            is_system: true,
           },
         });
       }),
-      // First GET (initial render) → original 5%. Subsequent GETs
-      // (after invalidation) → 7.5%. Order matters for the prefill
-      // assertion below.
+      // First GET (initial render) → original 5%. Subsequent GETs (after
+      // invalidation) → 7.5%. Order matters for the prefill assertion below.
       http.get(`${API_BASE}/taxation-rules/`, () => {
         getCount += 1;
-        if (getCount === 1) return HttpResponse.json(partiallyCustomized);
+        if (getCount === 1) return HttpResponse.json(allRules);
         return HttpResponse.json({
           rules: [
             {
               txn_type: 'committed',
               tax_rate: 0.075,
               default_penalty_rate: 0.5,
-              is_default: false,
+              is_system: true,
             },
-            ...partiallyCustomized.rules.filter(
-              (r) => r.txn_type !== 'committed'
-            ),
+            ...allRules.rules.filter((r) => r.txn_type !== 'committed'),
           ],
         });
       })
@@ -165,9 +139,8 @@ describe('TaxationRulesPage', () => {
       })
     );
 
-    // Seamless-transition convention (Batch 9.8): the modal always
-    // renders the form, with the txn_type as a locked readOnly input.
-    // No view-mode toggle to flip through.
+    // Seamless-transition convention (Batch 9.8): the modal always renders the
+    // form, with the txn_type as a locked readOnly input.
     await waitFor(() =>
       expect(screen.getByTestId('rule-form-fixed-type')).toBeInTheDocument()
     );
@@ -188,73 +161,5 @@ describe('TaxationRulesPage', () => {
         '7.5%'
       )
     );
-  });
-
-  it('Add modal pre-fills the single missing txn_type when exactly one slot remains', async () => {
-    // 3 customized rules → exactly one missing (uncategorized).
-    server.use(
-      http.get(`${API_BASE}/taxation-rules/`, () =>
-        HttpResponse.json({
-          rules: [
-            {
-              txn_type: 'committed',
-              tax_rate: 0.05,
-              default_penalty_rate: 0.5,
-              is_default: false,
-            },
-            {
-              txn_type: 'essential',
-              tax_rate: 0.1,
-              default_penalty_rate: 0.5,
-              is_default: false,
-            },
-            {
-              txn_type: 'discretionary',
-              tax_rate: 0.2,
-              default_penalty_rate: 0.5,
-              is_default: false,
-            },
-            {
-              txn_type: 'uncategorized',
-              tax_rate: 0,
-              default_penalty_rate: 0.5,
-              is_default: true,
-            },
-          ],
-        })
-      )
-    );
-
-    renderWithProviders(<TaxationRulesPage />);
-    await waitFor(() =>
-      expect(screen.getByTestId('rule-card-committed')).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getByTestId('rule-add-button'));
-
-    const fixedType = await screen.findByTestId('rule-form-fixed-type');
-    expect(fixedType).toHaveValue('uncategorized');
-    // No combobox shown when only one slot is open.
-    expect(
-      screen.queryByRole('combobox', { name: /Transaction type/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it('Add modal shows a picker when two or more txn_types are missing', async () => {
-    renderWithProviders(<TaxationRulesPage />);
-    await waitFor(() =>
-      expect(screen.getByTestId('rule-card-committed')).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getByTestId('rule-add-button'));
-
-    const picker = await screen.findByRole('combobox', {
-      name: /Transaction type/i,
-    });
-    const options = within(picker).getAllByRole('option');
-    // "Select a type…" placeholder + 2 missing entries.
-    expect(options.map((o) => o.textContent)).toEqual([
-      'Select a type…',
-      'discretionary',
-      'uncategorized',
-    ]);
   });
 });

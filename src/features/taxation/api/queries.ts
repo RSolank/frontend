@@ -8,13 +8,15 @@ import { taxationKeys } from './keys';
 // --- Taxation rules ---------------------------------------------------------
 
 // Server-shape returned by GET /api/taxation-rules. `tax_rate` and
-// `default_penalty_rate` are fractions (0.05 = 5%). `is_default` flags
-// the system-seeded fallback row that the user hasn't overridden yet.
+// `default_penalty_rate` are fractions (0.05 = 5%). `is_system` flags
+// system-created rows (created_by == SYSTEM) for the "System" chip. Every
+// taxable type is seeded, so in practice all rows are system-origin (the
+// upsert edits the seeded row in place and never transfers provenance).
 export interface TaxationRule {
   txn_type: string;
   tax_rate: number;
   default_penalty_rate: number;
-  is_default?: boolean;
+  is_system?: boolean;
 }
 
 export interface TaxationRulesResponse {

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { SystemChip } from '../../../shared/components/SystemChip';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { formatAliasesDisplay } from '../api/aliases';
@@ -299,13 +300,16 @@ function BeneficiaryTable({
         }`}
       >
         <td className="px-4 py-3 font-semibold">
-          <button
-            type="button"
-            onClick={() => onOpen(b.uid)}
-            className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
-          >
-            {b.name}
-          </button>
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOpen(b.uid)}
+              className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+            >
+              {b.name}
+            </button>
+            {b.is_system && <SystemChip />}
+          </span>
         </td>
         <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
           {formatAliasesDisplay(b.aliases)}

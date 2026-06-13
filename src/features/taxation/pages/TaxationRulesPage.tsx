@@ -2,18 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { SystemChip } from '../../../shared/components/SystemChip';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
-import { useAuthStore } from '../../../shared/state/auth.store';
 import { taxationKeys } from '../api/keys';
 import { useTaxationRulesQuery, type TaxationRule } from '../api/queries';
 import { TaxationRuleFormDialog } from '../components/TaxationRuleFormDialog';
-
-const DEFAULT_TXN_TYPES = [
-  'committed',
-  'essential',
-  'discretionary',
-  'uncategorized',
-] as const;
 
 function formatRate(fraction: number): string {
   const pct = fraction * 100;
@@ -44,9 +37,12 @@ function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
       className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-shadow dark:border-slate-800 dark:bg-slate-900 ${ringClass}`}
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-900 capitalize dark:text-slate-100">
-          {rule.txn_type}
-        </h3>
+        <span className="flex flex-wrap items-center gap-2">
+          <h3 className="text-base font-semibold text-slate-900 capitalize dark:text-slate-100">
+            {rule.txn_type}
+          </h3>
+          {rule.is_system && <SystemChip />}
+        </span>
         <button
           type="button"
           onClick={() => onEdit(rule)}
@@ -90,35 +86,17 @@ function LabelValue({ label, value }: { label: string; value: string }) {
 
 export function TaxationRulesPage() {
   const queryClient = useQueryClient();
-  const constants = useAuthStore((s) => s.constants);
   const { data, isLoading, error } = useTaxationRulesQuery();
   const { id: highlighted, flash } = useRowHighlight<string>();
 
   const [editingRule, setEditingRule] = useState<TaxationRule | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
 
-  const taxableTypes = useMemo<string[]>(() => {
-    const fromConstants = constants?.TAXABLE_TXN_TYPES;
-    if (fromConstants && fromConstants.length > 0) return fromConstants;
-    return [...DEFAULT_TXN_TYPES];
-  }, [constants]);
-
-  // Only render user-customized rules. Backend marks unconfigured types
-  // with `is_default=true` (a synthetic fallback row); those are NOT
-  // rules in the user's mental model — they're missing-and-Add-able.
-  const userRules = useMemo<TaxationRule[]>(() => {
-    return (data?.rules ?? []).filter((r) => r.is_default !== true);
-  }, [data]);
-
-  const customizedTypes = useMemo<Set<string>>(
-    () => new Set(userRules.map((r) => r.txn_type)),
-    [userRules]
-  );
-
-  const missingTypes = useMemo<string[]>(
-    () => taxableTypes.filter((t) => !customizedTypes.has(t)),
-    [taxableTypes, customizedTypes]
-  );
+  // Render every taxable type's effective rule. The backend always returns
+  // one row per taxable type (seeded default or user-overridden); each is an
+  // editable card carrying a "System" chip when it's system-created. All types
+  // are always present, so there is no separate "configure a missing type"
+  // step — the user edits a rate in place via the row's ⋯ trigger.
+  const rules = useMemo<TaxationRule[]>(() => data?.rules ?? [], [data]);
 
   async function handleSaved(savedType: string) {
     await queryClient.invalidateQueries({ queryKey: taxationKeys.rulesList() });
@@ -135,15 +113,14 @@ export function TaxationRulesPage() {
         </div>
       );
     }
-    if (userRules.length === 0) {
+    if (rules.length === 0) {
       return (
         <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          No rules configured yet. Click <strong>Add rule</strong> above to
-          customize the rate for a transaction type.
+          No taxation rules available.
         </div>
       );
     }
-    return userRules.map((r) => (
+    return rules.map((r) => (
       <RuleCard
         key={r.txn_type}
         rule={r}
@@ -161,19 +138,6 @@ export function TaxationRulesPage() {
   // sidebar's first NavLink.
   return (
     <>
-      {missingTypes.length > 0 && (
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="btn-primary !w-auto"
-            data-testid="rule-add-button"
-          >
-            Add rule
-          </button>
-        </div>
-      )}
-
       {error && (
         <div
           role="alert"
@@ -186,13 +150,6 @@ export function TaxationRulesPage() {
       <div className="grid grid-cols-1 gap-3" data-testid="rule-list">
         {renderRuleList()}
       </div>
-
-      <TaxationRuleFormDialog
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onSaved={handleSaved}
-        availableTypes={missingTypes}
-      />
 
       <TaxationRuleFormDialog
         open={editingRule != null}

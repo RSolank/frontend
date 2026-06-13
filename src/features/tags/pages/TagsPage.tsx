@@ -3,6 +3,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { SystemChip } from '../../../shared/components/SystemChip';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { tagKeys } from '../api/keys';
@@ -77,6 +78,7 @@ interface TagRowLabelProps {
   level: number;
   hasChildren: boolean;
   isExpanded: boolean;
+  isSystem: boolean;
   onToggle: () => void;
 }
 
@@ -85,6 +87,7 @@ function TagRowLabel({
   level,
   hasChildren,
   isExpanded,
+  isSystem,
   onToggle,
 }: TagRowLabelProps) {
   return (
@@ -119,6 +122,15 @@ function TagRowLabel({
       <span className="text-xs whitespace-nowrap text-slate-500 dark:text-slate-400">
         [{tag.tag_type}]
       </span>
+      {/*
+       * "System" chip on seeded tags. Supersedes the 2026-05-27
+       * quiet-chrome lock (no always-on "(system)" badge): the chip is
+       * now wanted for consistency with the other seeded-data pages so
+       * the user can tell shipped tags from ones they added. The
+       * on-demand affordances (partial-edit tooltip, hidden delete,
+       * locked modal fields) still apply on top.
+       */}
+      {isSystem && <SystemChip />}
       {tag.aliases && tag.aliases.length > 0 && (
         <span className="ml-1 flex flex-wrap gap-1">
           {tag.aliases.map((a) => (
@@ -131,16 +143,6 @@ function TagRowLabel({
           ))}
         </span>
       )}
-      {/*
-       * No always-on "(system)" badge per the 2026-05-27 design
-       * lock — system-tag context surfaces on-demand: the Update
-       * button gets a tooltip explaining the partial-edit rule,
-       * the Delete button is hidden, and the modal's disabled
-       * fields communicate the limitation when the user opens
-       * the edit dialog. Keeps the row chrome quiet for the
-       * common case (system tags outnumber user tags after
-       * fresh signup).
-       */}
     </button>
   );
 }
@@ -232,6 +234,7 @@ function TagRow({
           level={level}
           hasChildren={hasChildren}
           isExpanded={isExpanded}
+          isSystem={isSystem}
           onToggle={handleRowToggle}
         />
         <TagRowActions

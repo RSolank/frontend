@@ -7,7 +7,9 @@ import { categorizationKeys } from './keys';
 
 // Server-shape of a categorization rule as returned from
 // /api/categorization-rules. `created_by` distinguishes system seeds
-// (== SYSTEM_USER_ID from /api/metadata/constants) from user rules.
+// (== SYSTEM_USER_ID from /api/metadata/constants) from user rules;
+// `is_system` is the server's pre-computed equivalent that drives the
+// "System" chip without the FE needing the SYSTEM_USER_ID constant.
 export interface CategorizationRule {
   uid: number;
   rule_name: string;
@@ -17,6 +19,7 @@ export interface CategorizationRule {
   tag_ids: number[];
   notes: string | null;
   created_by: number | null;
+  is_system?: boolean;
 }
 
 export interface CategorizationRulesResponse {
