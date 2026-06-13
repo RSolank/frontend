@@ -85,18 +85,21 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   `<GenerateBillsDialog />`); body stacks `<CurrentWeekTracker />`
   → bills list. Uses `useUrlValueModal('view')` so
   `/consumption-tax?view=<id>` is shareable + reload-safe.
-- `pages/TaxationRulesPage.tsx` — read-only card list. Each
-  `<RuleCard />` renders the rule as label / value pairs (no inline
-  form fields per the 2026-05-26 design lock — "view surfaces never
-  render inputs"); the top-line Edit affordance opens
-  `<TaxationRuleFormDialog editingRule={…} />`. The page header
-  hosts an **Add rule** button that's visible iff some
-  `TAXABLE_TXN_TYPE` lacks a customized rule.
-- `components/TaxationRuleFormDialog.tsx` — shared dialog for both
-  Add and Edit. Edit mode: txn_type rendered as a read-only label;
-  Add mode with one missing type: type prefilled + read-only; Add
-  mode with multiple missing types: `<select>` picker of the
-  available types. Save calls `PUT /api/v1/taxation-rules/:txn_type`
+- `pages/TaxationRulesPage.tsx` — read-only card list showing **all
+  four** canonical `txn_type` rules (the earlier inert
+  `is_default !== true` filter was dropped — the rows are always
+  seeded, so there was nothing to hide). Each `<RuleCard />` renders
+  the rule as label / value pairs (no inline form fields per the
+  2026-05-26 design lock — "view surfaces never render inputs") and a
+  `<SystemChip>` (every taxation rule is system-owned — see
+  conventions.md → System provenance chip); the top-line Edit
+  affordance opens `<TaxationRuleFormDialog editingRule={…} />`. There
+  is **no Add-rule button** — the four rows can only be customized,
+  never created or deleted.
+- `components/TaxationRuleFormDialog.tsx` — the edit dialog (the page
+  now only ever opens it in edit mode; the legacy Add path is no
+  longer reachable from the UI). Edit mode: txn_type rendered as a
+  read-only label. Save calls `PUT /api/v1/taxation-rules/:txn_type`
   (upsert — see backend handoff for why no POST is needed).
 - `components/GenerateBillsDialog.tsx` — modal-first generation
   surface. Week-picker or date-range mode; computes ISO Mon→Sun
@@ -159,7 +162,7 @@ was removed in Platform FE Batch 8 — BE Phase 2.6 deleted the
 
 Read endpoints consumed (under `/api`):
 
-- `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default }`.
+- `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default, is_system }`. `is_system` (provenance) drives the `<SystemChip>`; it's `true` for all seeded rules.
 - `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
 - `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
 - (no standalone tracker endpoint — see Tax Tracker section for the FE-derive contract.)

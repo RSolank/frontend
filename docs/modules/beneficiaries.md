@@ -21,7 +21,7 @@
 
 | Path                 | Component                                        | Notes                                                                                                                                                                                      |
 | -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/beneficiaries`     | `pages/BeneficiariesPage.tsx`                    | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded.                                                                                                 |
+| `/beneficiaries`     | `pages/BeneficiariesPage.tsx`                    | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded. System-seeded rows (e.g. `Self`) render a `<SystemChip>` off the `is_system` flag on `Beneficiary` (see conventions.md → System provenance chip).                              |
 | `/beneficiaries/:id` | `DetailRedirect` (in `beneficiaries.routes.tsx`) | Legacy alias — redirects to `/beneficiaries?edit=<id>`. The standalone detail page was retired in the 2026-05-26 follow-up; the list-page modal owns the full view + edit + merge surface. |
 
 Routes are exported from

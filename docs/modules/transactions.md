@@ -11,8 +11,12 @@
   with paging, filtering, sorting, and bulk navigation to a
   beneficiary's history.
 - Drive the manual Add / Edit transaction flows, including the
-  optional "create a categorization rule from this tag + beneficiary
-  pair" prompt.
+  categorization-rule flow: selecting a beneficiary **auto-populates**
+  the tags from its existing rule; if the user diverges, a read-only
+  `<RuleReviewModal>` shows the diff and offers "use for this
+  transaction only" vs. "update the rule" — the latter saves the txn
+  and **redirects** to the categorization-rules page rather than
+  editing a rule in a nested modal (see Cross-feature seams).
 - Run the async statement-upload pipeline (BE Phase 2.2,
   `ac4ad00`): POST a file → 202 with `{job_id}`. The page
   **redirects to `/dashboard` immediately on submit** (Batch 20
@@ -161,9 +165,7 @@ Endpoints touched:
 | `GET /api/v1/statement-uploads/{job_id}`     | UploadStatementPage + StatementUploadDock poll                                                                                |
 | `GET /api/v1/statement-uploads/parsers`      | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
 | `POST /api/v1/transactions/:id/manual-tags`  | Re-tag a statement-imported transaction (still wired, called by future transactions DetailModal flow)                         |
-| `GET /api/v1/categorization-rules`           | EditTransactionPage tag-changed flow                                                                                          |
-| `POST /api/v1/categorization-rules`          | AddTransactionPage + EditTransactionPage (helper lives in `features/beneficiaries/api/mutations.ts`; see Cross-feature seams) |
-| `PUT /api/v1/categorization-rules/:uid`      | EditTransactionPage update-existing-rule path                                                                                 |
+| `GET /api/v1/categorization-rules`           | Add / Edit — on beneficiary select, find the existing rule to auto-populate tags + diff against (read-only; the create/update of rules happens on the rules page, not here) |
 | `GET /api/v1/tags`                           | All pages — flat tag list for chips + search dropdowns                                                                        |
 | `GET /api/v1/metadata/constants`             | Add / Edit — Misc + Total tag IDs for the chip rules                                                                          |
 
@@ -205,13 +207,25 @@ Per [`docs/conventions.md`](../conventions.md):
   so TransactionsPage can resolve `code → symbol` for the
   `formatMoney` calls. Currency code itself comes from
   `usePreferencesStore` (the source of truth for the header).
-- **Imports `createCategorizationRule`** from
-  `features/beneficiaries/api/mutations.ts`. That helper sits in the
-  beneficiaries feature — creating a rule from a transaction's
-  beneficiary + tag pair is the same write that BeneficiaryFormFields
-  uses, so the rule mutation surface keeps one canonical home; the
-  categorization feature reads / manages rules but doesn't relocate
-  the writes.
+- **Categorization rules — read here, write there (redirect model).**
+  Add / Edit reads `fetchCategorizationRules` from
+  `features/beneficiaries/api/queries` (feature → feature-api, allowed)
+  to auto-populate tags and diff against the existing rule, and uses the
+  local `api/ruleFlow.ts` helpers (`findRuleForBeneficiary`,
+  `sameTagSet`). It does **not** create or update rules itself — the
+  `transactions → categorization` boundary stays closed. When the user
+  opts to create or update a rule, the page saves the transaction
+  (linking the existing `rule_id` where applicable) and **navigates** to
+  the categorization-rules page with a `RulePrefillState` (the contract
+  in `shared/navigation/rulePrefill.ts`); the rule editor opens there
+  pre-filled. The only rule-related UI transactions imports is the
+  presentational `<RuleReviewModal>` from `shared/components/` — never
+  the categorization feature's canonical rule dialog. For the create
+  case the rules page backfills the new `rule_id` onto the originating
+  txn via the existing `PATCH /transactions/:id?rule_id=…` route (no
+  backend change). This replaced the earlier model where the
+  transaction page imported `createCategorizationRule` and hit a `409`
+  hard-stop when a rule already existed.
 - **Imports `<BankAccountField>`** from
   `features/bankAccounts/components/BankAccountField.tsx` (Batch 13)
   on Add / Edit transaction forms. The field self-hides when the

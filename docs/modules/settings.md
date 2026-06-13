@@ -34,9 +34,10 @@ The pre-Batch-9 `/categories` and `/categorization-rules` URLs are
 grep confirmed no in-app surface links to them (the TopNav SETTINGS
 dropdown, the mobile-drawer SETTINGS section, and the old husk
 `SettingsPage` index all migrated to `/settings/*` in this batch).
-External bookmarks fall through the root `*` catch-all and land on
-`/` (or `/login` via `<ProtectedRoute>` if the visitor is authed but
-hitting a non-existent path) — the same UX as any other unknown URL.
+External bookmarks fall through the root `*` catch-all and render the
+branded 404 page (`app/pages/NotFound.tsx`) inside the App shell — the
+same UX as any other unknown URL (see
+[architecture.md](../architecture.md) Routing model).
 
 Beneficiaries deliberately stays at the top-level `/beneficiaries`
 route — it has heavy cross-feature deep-linking from transactions +

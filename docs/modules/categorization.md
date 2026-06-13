@@ -53,18 +53,30 @@ deleting the rule.
 - `pages/CategorizationRulesPage.tsx` — page-level surface with
   header, "Re-run categorization" action, beneficiary search and
   the grouped existing-rules list. The form itself lives in the
-  modal below.
+  modal below. It is also the **landing target for the transactions
+  redirect flow**: it reads a `RulePrefillState` off
+  `useLocation().state` (`readRulePrefill`, one-shot ref-guarded
+  effect) and opens the editor pre-filled in create or edit mode. For
+  the create case it backfills the freshly-minted `rule_id` onto the
+  originating transaction via `PATCH /transactions/:id?rule_id=…` (see
+  [transactions.md](transactions.md) Cross-feature seams).
 - `components/CategorizationRuleFormDialog.tsx` — `<Modal size="lg">`
   wrapping the rule form (beneficiary search dropdown, tag chip
   editor with `Set Primary` + remove affordances, auto-generated
   rule-name preview). The "+ Add new beneficiary" CTA inside the
   beneficiary search opens
   `features/beneficiaries/components/BeneficiaryFormDialog.tsx`
-  nested inside this dialog.
+  nested inside this dialog. Accepts an optional `prefill`
+  (`RulePrefillDraft`) used to hydrate the form when arriving from the
+  transactions redirect; in edit mode it renders a "Changes from the
+  saved rule" tag diff (added / removed vs. the persisted
+  `tag_ids`).
 - `components/GroupedRulesList.tsx` — bucketed rule renderer.
   Single-rule groups render as the full rule card; multi-rule
   groups render as a collapsible header (chip row + count) with
-  compact per-rule rows when expanded.
+  compact per-rule rows when expanded. System rules render a
+  `<SystemChip>` off `CategorizationRuleDTO.is_system` (see
+  conventions.md → System provenance chip).
 
 ## Rule grouping
 
@@ -192,6 +204,13 @@ Endpoints touched:
 - **`features/beneficiaries/api/aliases.ts`** owns
   `formatAliasesDisplay`, reused by the rule card to render
   alias suffixes.
+- **Inbound redirect from transactions** — the rules page is the
+  owning surface for rule create/edit triggered during transaction
+  entry. The contract is `shared/navigation/rulePrefill.ts`
+  (`RulePrefillState` + `readRulePrefill`); transactions navigates
+  here with state instead of importing this feature's rule dialog,
+  keeping the `transactions → categorization` boundary closed. This
+  page imports nothing from `features/transactions`.
 
 ## Tests
 

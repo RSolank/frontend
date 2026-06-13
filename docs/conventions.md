@@ -512,6 +512,46 @@ be deleted (system tags, locked rows, etc.), the parent omits
 Avoids the disabled-button-with-tooltip pattern that suggests "you
 might be able to do this later" — the action is genuinely absent.
 
+## System provenance chip
+
+**Seeded rows wear a "System" chip.** `shared/components/SystemChip.tsx`
+is a small presentational badge rendered on any row the backend marks
+`is_system` — beneficiaries, categorization rules, taxation rules, and
+tags. It signals **provenance, not ownership**: `is_system` is derived
+backend-side from `created_by` (null or `== SYSTEM_USER_ID`), and the
+codebase **does not transfer provenance on edit**, so the chip stays put
+after a user customizes a seeded row. The word is deliberately
+**"System"** (not "Default") because the row keeps the chip even once
+edited — "Default" would stop being true. Tooltip: "Created by the
+system. You can still edit or remove it." The chip is purely a read of
+the BE `is_system` flag — no client-side `created_by` comparison (that
+logic lives once, on the server).
+
+## Redirect over nested modal for full-feature surfaces
+
+A refinement of the modal-first CRUD default. Two shapes of "sub-flow
+from within a parent context":
+
+- **Lightweight value-object creation → nest a modal.** Minting a
+  missing beneficiary or tag while filling another form opens the
+  owning feature's small create dialog *on top of* the current one
+  (`BeneficiaryFormDialog` / `TagFormDialog`, sanctioned by the
+  `eslint-plugin-boundaries` allow-list). The in-flight draft survives;
+  there's no standalone page worth leaving for.
+- **Another feature's full editor surface → redirect, don't nest.**
+  When the sub-flow *is* a complete feature surface with its own page
+  (the categorization-rule editor), the parent saves its own work and
+  **navigates** to the owning page with prefill state rather than
+  importing+rendering that feature's dialog. This keeps the feature
+  boundary closed (no cross-feature component import) and avoids a
+  heavy modal-on-modal stack. The cross-feature contract is a
+  presentational review modal in `shared/` (e.g.
+  `RuleReviewModal`) plus a typed navigation payload in
+  `shared/navigation/` (e.g. `rulePrefill.ts`) — never the other
+  feature's editor. See [transactions.md](modules/transactions.md) /
+  [categorization.md](modules/categorization.md) for the worked
+  example (transaction entry → categorization rules).
+
 ## Row highlight on save
 
 Locked 2026-05-26. **Every list

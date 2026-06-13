@@ -199,8 +199,10 @@ Single source of truth: `shared/utils/sessionRedirect.ts`.
 - Any `access_token` OR `refresh_token` present → **/login** (session
   expired).
 - Neither present → **/** (true unauthenticated visitor or post-logout).
-- `<ProtectedRoute>` and the unknown-path catch-all both consume the
-  helper.
+- `<ProtectedRoute>` consumes the helper. The unknown-path catch-all
+  **no longer** redirects through it — it renders a branded 404 (see
+  Routing model); a stale-token visitor still bounces via the
+  apiClient 401-refresh chain or `<ProtectedRoute>` on any gated path.
 - `apiClient`'s refresh-fail path lands on `/login` (matches case 1, by
   construction — refresh fails only when a token was present).
 - Logout clears tokens and lands on `/` (no tokens → case 2).
@@ -219,6 +221,14 @@ Single source of truth: `shared/utils/sessionRedirect.ts`.
 - Each feature exports its own `<feature>.routes.tsx` `RouteObject[]`
   (lazy-loaded for code-split first paint); `routes.tsx` just spreads
   them into the `publicRoutes` / `authedRoutes` arrays.
+- **Unknown paths** hit a catch-all `{ path: '*', element:
+  <NotFoundPage /> }` that renders a branded 404 inside the App shell
+  (TopNav stays put) — a wrong URL tells the user it's wrong instead of
+  silently dumping them on the landing/dashboard. The root route also
+  carries `errorElement: <NotFoundPage />` so a thrown loader or a
+  failed lazy chunk renders the same branded surface rather than a
+  blank screen. `app/pages/NotFound.tsx` is the single component behind
+  both.
 
 ## Data fetching
 

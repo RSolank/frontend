@@ -32,7 +32,9 @@ was retired in the Batch 9 settings shell — see
 
 - `pages/TagsPage.tsx` — full standalone page with header, add /
   cancel CTA, expandable tag tree, and the create / update dialog.
-  Tailwind-styled with dark-mode parity.
+  Tailwind-styled with dark-mode parity. System tags render the shared
+  `<SystemChip>` (now the common badge across beneficiaries / rules /
+  taxation / tags — see conventions.md → System provenance chip).
 - `components/TagFormDialog.tsx` — `<Modal size="md">` add/edit
   dialog opened from `TagsPage` (`?add=true` / `?edit=<uid>`).
   Owns the name + parent picker + tag-type radio + alias chips,
