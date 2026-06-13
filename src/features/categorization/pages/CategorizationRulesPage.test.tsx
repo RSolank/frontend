@@ -479,4 +479,76 @@ describe('CategorizationRulesPage', () => {
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText('Name')).toHaveValue('Swiggy');
   });
+
+  it('opens the editor pre-filled from an edit rule-prefill and shows the tag diff', async () => {
+    renderWithProviders(<CategorizationRulesPage />, {
+      initialEntries: [
+        {
+          pathname: '/settings/categorization-rules',
+          state: {
+            rulePrefill: {
+              mode: 'edit',
+              beneficiaryId: 10,
+              beneficiaryName: 'TestShop',
+              tagIds: [12, 13], // rule 1 persists [12] → +Dining(13)
+              ruleId: 1,
+            },
+          },
+        },
+      ],
+    });
+
+    // The editor opens for rule 1 pre-filled with the new tags; the diff vs the
+    // persisted [Groceries] surfaces, and it's edit mode (Update Rule).
+    await waitFor(() =>
+      expect(
+        screen.getByText('Changes from the saved rule')
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.getByRole('button', { name: 'Update Rule' })
+    ).toBeInTheDocument();
+  });
+
+  it('create rule-prefill backfills the originating transaction rule_id on save', async () => {
+    let patchUrl = '';
+    let patchBody: { tag_ids?: number[] } | null = null;
+    server.use(
+      http.post(`${API_BASE}/categorization-rules`, () =>
+        HttpResponse.json({ rule: { uid: 5 } }, { status: 201 })
+      ),
+      http.patch(`${API_BASE}/transactions/99`, async ({ request }) => {
+        patchUrl = request.url;
+        patchBody = (await request.json()) as { tag_ids?: number[] };
+        return HttpResponse.json({ status: 'ok', transaction: {} });
+      })
+    );
+
+    renderWithProviders(<CategorizationRulesPage />, {
+      initialEntries: [
+        {
+          pathname: '/settings/categorization-rules',
+          state: {
+            rulePrefill: {
+              mode: 'create',
+              beneficiaryId: 20,
+              beneficiaryName: 'NewShop',
+              tagIds: [12],
+              originatingTxnId: 99,
+            },
+          },
+        },
+      ],
+    });
+
+    // Add modal opens pre-filled (NewShop + Groceries) → save it.
+    fireEvent.click(await screen.findByRole('button', { name: 'Create Rule' }));
+
+    // The new rule_id is backfilled onto the originating txn via the
+    // transactions PATCH route.
+    await waitFor(() =>
+      expect(patchUrl).toContain('/transactions/99?rule_id=5')
+    );
+    expect(patchBody).toMatchObject({ tag_ids: [12] });
+  });
 });

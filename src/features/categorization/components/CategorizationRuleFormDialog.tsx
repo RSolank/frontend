@@ -38,6 +38,15 @@ interface FormState {
   notes: string;
 }
 
+// Inbound pre-fill from another flow (e.g. a transaction's diverged/created
+// tags). Edit mode uses only `tagIds` (beneficiary stays the rule's); Add mode
+// uses beneficiary + tags.
+export interface RulePrefillDraft {
+  beneficiaryId?: number;
+  beneficiaryName?: string;
+  tagIds: number[];
+}
+
 const EMPTY_FORM: FormState = {
   beneficiary_id: '',
   beneficiary_name: '',
@@ -50,11 +59,19 @@ function errorMessage(err: unknown, fallback: string): string {
   return e?.detail || e?.error || fallback;
 }
 
+function tagName(tags: FlatTag[], id: number): string {
+  return tags.find((t) => t.tag_id === id)?.tag_name ?? `Tag ${id}`;
+}
+
 interface CategorizationRuleFormDialogProps {
   open: boolean;
   onClose: () => void;
   // Null = Add flow. Populated = Edit flow.
   editingRule: CategorizationRule | null;
+  // Pre-fill from another flow (e.g. a transaction redirect). In Edit mode the
+  // tags pre-fill the form while `editingRule.tag_ids` stays the diff baseline;
+  // in Add mode it seeds the beneficiary + tags.
+  prefill?: RulePrefillDraft | null;
   // Reference data the form binds to.
   tags: FlatTag[];
   beneficiaries: Beneficiary[];
@@ -186,6 +203,7 @@ function useRuleSubmit({
 interface UseRuleFormArgs {
   open: boolean;
   editingRule: CategorizationRule | null;
+  prefill?: RulePrefillDraft | null;
   tags: FlatTag[];
   beneficiaries: Beneficiary[];
   constants: Constants | null;
@@ -198,12 +216,13 @@ interface UseRuleFormArgs {
 
 // All of the dialog's state, effects, derived values and handlers. Pulled
 // out of the component so the render stays a presentational shell under the
-// complexity / line-count gates. Behaviour is identical to the previous
-// inline implementation — a verbatim relocation. Reference data (tags,
-// beneficiaries) arrives via props, so nothing here subscribes a query.
+// complexity / line-count gates. Reference data (tags, beneficiaries) arrives
+// via props, so nothing here subscribes a query.
+// eslint-disable-next-line max-lines-per-function -- a single cohesive form view-model (hydrate/dirty/diff/conflict effects + pick/promote/remove handlers); the pieces share `form` state and splitting would just scatter tightly-coupled logic.
 function useRuleForm({
   open,
   editingRule,
+  prefill,
   tags,
   beneficiaries,
   constants,
@@ -231,13 +250,25 @@ function useRuleForm({
   useEffect(() => {
     if (!open) return;
     if (editingRule) {
+      // Edit: pre-fill tags from `prefill` if present (the originating flow's
+      // proposed tags) — `editingRule.tag_ids` stays the persisted baseline the
+      // diff compares against.
       setForm({
         beneficiary_id: editingRule.beneficiary_id,
         beneficiary_name: editingRule.beneficiary_name || '',
-        tag_ids: [...(editingRule.tag_ids || [])],
+        tag_ids: [...(prefill?.tagIds ?? editingRule.tag_ids ?? [])],
         notes: editingRule.notes || '',
       });
       setBSearch(editingRule.beneficiary_name || '');
+    } else if (prefill) {
+      // Add: seed beneficiary + tags from the originating flow.
+      setForm({
+        beneficiary_id: prefill.beneficiaryId ?? '',
+        beneficiary_name: prefill.beneficiaryName ?? '',
+        tag_ids: [...prefill.tagIds],
+        notes: '',
+      });
+      setBSearch(prefill.beneficiaryName ?? '');
     } else {
       setForm(EMPTY_FORM);
       setBSearch('');
@@ -246,7 +277,7 @@ function useRuleForm({
     setBSearchFocused(false);
     setTagSearchFocused(false);
     setBeneficiaryConflict(null);
-  }, [open, isEditing, editingRule]);
+  }, [open, isEditing, editingRule, prefill]);
 
   const originalForm = useMemo<FormState>(
     () =>
@@ -265,6 +296,19 @@ function useRuleForm({
     if (!isEditing) return true;
     return JSON.stringify(form) !== JSON.stringify(originalForm);
   }, [isEditing, form, originalForm]);
+
+  // Tag diff vs the persisted rule (edit mode only) — drives the
+  // added/removed preview so the user sees the change before saving. `null`
+  // when there's no baseline (Add) or nothing changed.
+  const tagDiff = useMemo(() => {
+    if (!isEditing) return null;
+    const base = new Set(originalForm.tag_ids);
+    const cur = new Set(form.tag_ids);
+    const added = form.tag_ids.filter((id) => !base.has(id));
+    const removed = originalForm.tag_ids.filter((id) => !cur.has(id));
+    if (added.length === 0 && removed.length === 0) return null;
+    return { added, removed };
+  }, [isEditing, form.tag_ids, originalForm.tag_ids]);
 
   // Beneficiary-conflict check — one rule per beneficiary.
   useEffect(() => {
@@ -403,6 +447,7 @@ function useRuleForm({
     setCreateTagOpen,
     isEditing,
     isDirty,
+    tagDiff,
     filteredTags,
     generatedRuleName,
     availableBeneficiaries,
@@ -428,6 +473,7 @@ export function CategorizationRuleFormDialog({
   open,
   onClose,
   editingRule,
+  prefill,
   tags,
   beneficiaries,
   constants,
@@ -441,6 +487,7 @@ export function CategorizationRuleFormDialog({
   const f = useRuleForm({
     open,
     editingRule,
+    prefill,
     tags,
     beneficiaries,
     constants,
@@ -536,6 +583,34 @@ export function CategorizationRuleFormDialog({
               f.setTagSearchFocused(false);
             }}
           />
+
+          {f.tagDiff && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/40">
+              <p className="mb-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                Changes from the saved rule
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {f.tagDiff.added.map((id) => (
+                  <span
+                    key={`a-${id}`}
+                    className="bg-success-100 text-success-800 dark:bg-success-950/50 dark:text-success-300 inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-sm font-medium"
+                  >
+                    <span aria-hidden="true">+</span>
+                    {tagName(tags, id)}
+                  </span>
+                ))}
+                {f.tagDiff.removed.map((id) => (
+                  <span
+                    key={`r-${id}`}
+                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-sm font-medium text-slate-400 line-through dark:bg-slate-800 dark:text-slate-500"
+                  >
+                    <span aria-hidden="true">−</span>
+                    {tagName(tags, id)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label htmlFor="rule-notes" className="form-label">

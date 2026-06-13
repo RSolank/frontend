@@ -1,7 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
+import { apiFetch } from '../../../shared/api/apiClient';
+import { routes } from '../../../shared/api/routes';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import {
+  readRulePrefill,
+  type RulePrefillState,
+} from '../../../shared/navigation/rulePrefill';
 import { deleteCategorizationRule } from '../../beneficiaries/api/mutations';
 import { fetchBeneficiaries } from '../../beneficiaries/api/queries';
 import type { Beneficiary } from '../../beneficiaries/api/queries';
@@ -15,7 +22,10 @@ import {
   type CategorizationRule,
 } from '../api/queries';
 import { flattenTags, type FlatTag } from '../api/ruleUtils';
-import { CategorizationRuleFormDialog } from '../components/CategorizationRuleFormDialog';
+import {
+  CategorizationRuleFormDialog,
+  type RulePrefillDraft,
+} from '../components/CategorizationRuleFormDialog';
 import { GroupedRulesList } from '../components/GroupedRulesList';
 
 interface ApiErrorShape {
@@ -47,7 +57,10 @@ function useCategorizationRules() {
   const queryClient = useQueryClient();
   const { data: rulesData, isLoading: rulesLoading } =
     useCategorizationRulesQuery();
-  const rules: CategorizationRule[] = rulesData?.rules ?? [];
+  const rules: CategorizationRule[] = useMemo(
+    () => rulesData?.rules ?? [],
+    [rulesData]
+  );
 
   const [tags, setTags] = useState<FlatTag[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
@@ -62,6 +75,16 @@ function useCategorizationRules() {
   const [confirmDelete, setConfirmDelete] = useState<CategorizationRule | null>(
     null
   );
+  // Inbound pre-fill from another flow (e.g. a transaction redirect — see
+  // shared/navigation/rulePrefill). `activePrefill` feeds the dialog; the ref
+  // holds the originating txn whose rule_id we backfill after a create.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activePrefill, setActivePrefill] = useState<RulePrefillDraft | null>(
+    null
+  );
+  const pendingBackfillTxnRef = useRef<number | null>(null);
+  const prefillConsumedRef = useRef(false);
 
   const [highlightedGroupKey, setHighlightedGroupKey] = useState<string | null>(
     null
@@ -70,6 +93,38 @@ function useCategorizationRules() {
     null
   );
   const highlightTimer = useRef<number | null>(null);
+
+  // Consume a one-shot rule pre-fill handed over via navigation state (another
+  // feature redirected here to create/edit a rule). Open the right modal
+  // pre-filled, remember any originating txn to backfill, then clear the state
+  // so a re-render / back-nav doesn't re-trigger it. Edit waits for the rules
+  // list so we can attach the persisted rule (the diff baseline).
+  useEffect(() => {
+    if (prefillConsumedRef.current) return;
+    const prefill: RulePrefillState | null = readRulePrefill(location.state);
+    if (!prefill) return;
+
+    if (prefill.mode === 'edit') {
+      if (rulesLoading) return; // wait for the rule to be available
+      const rule = rules.find((r) => r.uid === prefill.ruleId);
+      prefillConsumedRef.current = true;
+      if (rule) {
+        setActivePrefill({ tagIds: prefill.tagIds });
+        setEditingRule(rule);
+      }
+    } else {
+      prefillConsumedRef.current = true;
+      setActivePrefill({
+        beneficiaryId: prefill.beneficiaryId,
+        beneficiaryName: prefill.beneficiaryName,
+        tagIds: prefill.tagIds,
+      });
+      pendingBackfillTxnRef.current = prefill.originatingTxnId ?? null;
+      setAddOpen(true);
+    }
+    // Clear the consumed state so it can't replay.
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate, rules, rulesLoading]);
 
   useEffect(() => {
     void loadReferenceData();
@@ -127,6 +182,23 @@ function useCategorizationRules() {
   async function handleSaved(uid: number, tagIds: readonly number[]) {
     await invalidateRules();
     highlightRule(uid, tagIds);
+    // Backfill: if this rule was created from a transaction redirect, stamp the
+    // new rule_id onto that txn's tag rows via the transactions PATCH route
+    // (shared client + route string — no transactions-feature import, so the
+    // boundary holds). Provenance-only; nothing user-visible changes, so no
+    // cache invalidation is needed.
+    const txnId = pendingBackfillTxnRef.current;
+    pendingBackfillTxnRef.current = null;
+    if (txnId != null) {
+      try {
+        await apiFetch(`${routes.transactions.byId(txnId)}?rule_id=${uid}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ tag_ids: [...tagIds] }),
+        });
+      } catch (err) {
+        console.warn('rule_id backfill failed', err);
+      }
+    }
   }
 
   async function handleBeneficiaryCreated(b: Beneficiary) {
@@ -154,6 +226,8 @@ function useCategorizationRules() {
   function handleCloseDialog() {
     setEditingRule(null);
     setAddOpen(false);
+    setActivePrefill(null);
+    pendingBackfillTxnRef.current = null;
   }
 
   async function handleConfirmDelete() {
@@ -196,6 +270,7 @@ function useCategorizationRules() {
     busy,
     error,
     editingRule,
+    activePrefill,
     confirmDelete,
     editingIsUserRule,
     dialogOpen: addOpen || editingRule != null,
@@ -232,6 +307,7 @@ export function CategorizationRulesPage() {
     busy,
     error,
     editingRule,
+    activePrefill,
     confirmDelete,
     editingIsUserRule,
     dialogOpen,
@@ -309,6 +385,7 @@ export function CategorizationRulesPage() {
         open={dialogOpen}
         onClose={handleCloseDialog}
         editingRule={editingRule}
+        prefill={activePrefill}
         tags={tags}
         beneficiaries={beneficiaries}
         constants={constants}

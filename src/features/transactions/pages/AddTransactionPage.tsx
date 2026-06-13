@@ -4,17 +4,17 @@ import { useNavigate } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DateField } from '../../../shared/components/DateField';
+import { RuleReviewModal } from '../../../shared/components/RuleReviewModal';
+import { CATEGORIZATION_RULES_PATH } from '../../../shared/navigation/rulePrefill';
 import { getDefaultTxnKind } from '../../../shared/state/defaultTxnKind.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import { BankAccountField } from '../../bankAccounts/components/BankAccountField';
 import {
-  createCategorizationRule,
-  type CreateCategorizationRulePayload,
-} from '../../beneficiaries/api/mutations';
-import {
   fetchBeneficiaries,
+  fetchCategorizationRules,
   type Beneficiary,
+  type CategorizationRule,
 } from '../../beneficiaries/api/queries';
 import { BeneficiaryFormDialog } from '../../beneficiaries/components/BeneficiaryFormDialog';
 import { tagKeys } from '../../tags/api/keys';
@@ -28,6 +28,7 @@ import {
 import { TagFormDialog } from '../../tags/components/TagFormDialog';
 import { transactionKeys } from '../api/keys';
 import { createTransactionRequest } from '../api/mutations';
+import { findRuleForBeneficiary, sameTagSet } from '../api/ruleFlow';
 import { BeneficiarySearch } from '../components/BeneficiarySearch';
 import { TagSelector } from '../components/TagSelector';
 
@@ -82,9 +83,11 @@ function resolveBeneficiaryId(beneficiaryId: number | string): number | null {
 }
 
 // View-model: owns all the add-transaction form state, the metadata load
-// effect, and every handler (beneficiary/tag create + select, tag add/
-// remove with the misc-tag rules, submit with the optional rule-create
-// prompt). Keeps the page component a thin render under the max-lines gate.
+// effect, and every handler (beneficiary/tag create + select, tag add/remove
+// with the misc-tag rules, the categorization-rule flow on submit —
+// auto-populate, create-prompt / diverge-review, and navigation to the
+// categorization rules page to actually create/edit the rule).
+// eslint-disable-next-line max-lines-per-function -- a cohesive form view-model: the state, load effect and handlers are tightly coupled; splitting would scatter them. Add/Edit deliberately keep this logic local + duplicated (see resolveBeneficiaryId note) rather than sharing a hook.
 function useAddTransactionForm({
   onClose,
   onSaved,
@@ -98,6 +101,9 @@ function useAddTransactionForm({
   const [tags, setTags] = useState<FlatTag[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [constants, setConstants] = useState<TagConstants | null>(null);
+  // The user's categorization rules — drives tag auto-populate on beneficiary
+  // select and the create / diverge decision at submit time.
+  const [rules, setRules] = useState<CategorizationRule[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [amount, setAmount] = useState('');
@@ -113,38 +119,39 @@ function useAddTransactionForm({
   );
   const [notes, setNotes] = useState('');
   const [tagIds, setTagIds] = useState<number[]>([]);
-  // Batch 13f: optional bank-account picker. Sent in the POST
-  // payload; BE transaction routes don't read it yet (handoff
-  // item), so it's a graceful no-op until BE wires it in.
+  // Batch 13f: optional bank-account picker. Sent in the POST payload; BE
+  // transaction routes don't read it yet (handoff item), so it's a graceful
+  // no-op until BE wires it in.
   const [bankAccountId, setBankAccountId] = useState<number | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Inline create modals for beneficiary + tag (Batch 6.5 follow-up).
-  // Open them from the picker dropdowns rather than navigating away.
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
   const [createTagOpen, setCreateTagOpen] = useState(false);
-  // Mid-submit "create categorization rule?" prompt — opens after the
-  // user submits and we have both tags + beneficiary. ConfirmDialog
-  // replaces the legacy window.confirm; ref-stored resolver keeps the
-  // existing await flow inside handleSubmit.
-  const [confirmRuleOpen, setConfirmRuleOpen] = useState(false);
-  const ruleResolveRef = useRef<((createRule: boolean) => void) | null>(null);
 
-  function promptForRule(): Promise<boolean> {
+  // "Create a categorization rule?" prompt (no rule exists for this
+  // beneficiary). ref-stored resolver keeps the submit flow a straight await.
+  const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const createResolveRef = useRef<((ok: boolean) => void) | null>(null);
+  function promptCreate(): Promise<boolean> {
     return new Promise((resolve) => {
-      ruleResolveRef.current = resolve;
-      setConfirmRuleOpen(true);
+      createResolveRef.current = resolve;
+      setConfirmCreateOpen(true);
     });
   }
-
-  function decideRule(create: boolean) {
-    setConfirmRuleOpen(false);
-    const r = ruleResolveRef.current;
-    ruleResolveRef.current = null;
-    r?.(create);
+  function decideCreate(ok: boolean) {
+    setConfirmCreateOpen(false);
+    const r = createResolveRef.current;
+    createResolveRef.current = null;
+    r?.(ok);
   }
+
+  // The diverge-review modal: when the chosen tags differ from the
+  // beneficiary's existing rule, show the rule (read-only) + the diff, and let
+  // the user override for this txn or head to the rule editor.
+  const [reviewRule, setReviewRule] = useState<CategorizationRule | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,12 +159,14 @@ function useAddTransactionForm({
       fetchTags().then((d) => flattenTags(d.tags)),
       fetchBeneficiaries(),
       fetchTagConstants(),
+      fetchCategorizationRules().then((d) => d.rules),
     ])
-      .then(([tagList, bList, consts]) => {
+      .then(([tagList, bList, consts, ruleList]) => {
         if (cancelled) return;
         setTags(tagList);
         setBeneficiaries(bList);
         setConstants(consts);
+        setRules(ruleList);
       })
       .catch(() => {
         if (!cancelled) setLoadError('Failed to load metadata');
@@ -218,26 +227,34 @@ function useAddTransactionForm({
     });
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  // Beneficiary select: auto-populate the tags from that beneficiary's rule
+  // (overwriting any prior picks — "this beneficiary categorizes this way").
+  // No rule → leave the current tags untouched.
+  function handleBeneficiaryChange(name: string, id: number | string) {
+    setBeneficiaryName(name);
+    setBeneficiaryId(id);
+    const rule = findRuleForBeneficiary(rules, id);
+    if (rule) setTagIds([...rule.tag_ids]);
+  }
+
+  // Resolve tag ids → {id, name} for the review modal's diff.
+  function tagObjects(ids: number[]) {
+    return ids.map((id) => {
+      const t = tags.find((x) => x.tag_id === id);
+      return { tag_id: id, tag_name: t?.tag_name ?? `Tag ${id}` };
+    });
+  }
+
+  // Build the payload from current form state and create the transaction.
+  // Returns the new txn id on success (so the caller decides dismiss vs.
+  // navigate-to-rule-editor), or null on failure. `ruleIdToLink` stamps the
+  // tag rows' provenance.
+  async function saveTxn(
+    ruleIdToLink: number | null
+  ): Promise<{ txnId: number | null } | null> {
     setSubmitting(true);
     setError(null);
-
     try {
-      let ruleIdToLink: number | null = null;
-      if (tagIds.length > 0 && beneficiaryId) {
-        const shouldCreateRule = await promptForRule();
-        if (shouldCreateRule) {
-          const payload: CreateCategorizationRulePayload = {
-            name: `Rule for ${beneficiaryName}`,
-            beneficiary_id: beneficiaryId,
-            tag_ids: tagIds,
-          };
-          const created = await createCategorizationRule(payload);
-          ruleIdToLink = created.rule.uid;
-        }
-      }
-
       const res = await createTransactionRequest(
         {
           amount: parseFloat(amount),
@@ -251,17 +268,99 @@ function useAddTransactionForm({
         },
         ruleIdToLink
       );
-
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      if (res?.transaction?.txn_id != null) onSaved?.(res.transaction.txn_id);
-      dismiss();
+      const txnId = res?.transaction?.txn_id ?? null;
+      if (txnId != null) onSaved?.(txnId);
+      return { txnId };
     } catch (err) {
       const e = err as ApiErrorShape;
       setError(e.detail || e.error || 'Failed to create');
+      return null;
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Navigate to the categorization rules page to create/edit the rule there
+  // (keeps the transactions↔categorization boundary: a router redirect, not an
+  // import; no nested modal). See shared/navigation/rulePrefill.
+  function goToCreateRule(originatingTxnId: number | null) {
+    navigate(CATEGORIZATION_RULES_PATH, {
+      state: {
+        rulePrefill: {
+          mode: 'create',
+          beneficiaryId: Number(beneficiaryId),
+          beneficiaryName,
+          tagIds,
+          originatingTxnId: originatingTxnId ?? undefined,
+        },
+      },
+    });
+  }
+  function goToEditRule(ruleId: number) {
+    navigate(CATEGORIZATION_RULES_PATH, {
+      state: {
+        rulePrefill: {
+          mode: 'edit',
+          beneficiaryId: Number(beneficiaryId),
+          beneficiaryName,
+          tagIds,
+          ruleId,
+        },
+      },
+    });
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    // Nothing to crystallise (no beneficiary or no tags) → create directly.
+    if (!beneficiaryId || tagIds.length === 0) {
+      if (await saveTxn(null)) dismiss();
+      return;
+    }
+
+    const existingRule = findRuleForBeneficiary(rules, beneficiaryId);
+
+    // No rule yet → offer to create one. On "yes" we save the txn first, then
+    // head to the rules page to author the rule (pre-filled). On "skip" the
+    // tags apply to this txn only.
+    if (!existingRule) {
+      const create = await promptCreate();
+      const saved = await saveTxn(null);
+      if (!saved) return;
+      if (create) goToCreateRule(saved.txnId);
+      else dismiss();
+      return;
+    }
+
+    // Rule exists and the tags still match → save linked, no prompt.
+    if (sameTagSet(tagIds, existingRule.tag_ids)) {
+      if (await saveTxn(existingRule.uid)) dismiss();
+      return;
+    }
+
+    // Tags diverge → open the read-only review (existing rule + diff).
+    setReviewRule(existingRule);
+  }
+
+  // Review: keep the new tags on this transaction only — rule untouched.
+  async function handleReviewOverride() {
+    setReviewRule(null);
+    if (await saveTxn(null)) dismiss();
+  }
+
+  // Review: proceed to update the rule. Save the txn linked to the existing
+  // rule, then navigate to the rule editor pre-filled with the new tags.
+  async function handleReviewUpdate() {
+    const rule = reviewRule;
+    setReviewRule(null);
+    if (!rule) return;
+    const saved = await saveTxn(rule.uid);
+    if (!saved) return;
+    goToEditRule(rule.uid);
   }
 
   return {
@@ -275,9 +374,7 @@ function useAddTransactionForm({
     debitCredit,
     setDebitCredit,
     beneficiaryName,
-    setBeneficiaryName,
     beneficiaryId,
-    setBeneficiaryId,
     txnDate,
     setTxnDate,
     notes,
@@ -291,16 +388,23 @@ function useAddTransactionForm({
     setCreateBeneficiaryOpen,
     createTagOpen,
     setCreateTagOpen,
+    handleBeneficiaryChange,
     handleBeneficiaryCreated,
     handleTagCreated,
     handleAddTag,
     handleRemoveTag,
     handleSubmit,
-    confirmRuleOpen,
-    decideRule,
+    confirmCreateOpen,
+    decideCreate,
+    reviewRule,
+    tagObjects,
+    handleReviewOverride,
+    handleReviewUpdate,
+    closeReview: () => setReviewRule(null),
   };
 }
 
+// eslint-disable-next-line max-lines-per-function -- thin render shell: destructures the view-model then lays out the form + inline dialogs (beneficiary/tag create, the create prompt, the rule-review modal). The logic lives in the hook above; the residual length is flat JSX.
 export function AddTransactionPage({
   onClose,
   onSaved,
@@ -318,9 +422,7 @@ export function AddTransactionPage({
     debitCredit,
     setDebitCredit,
     beneficiaryName,
-    setBeneficiaryName,
     beneficiaryId,
-    setBeneficiaryId,
     txnDate,
     setTxnDate,
     notes,
@@ -334,13 +436,19 @@ export function AddTransactionPage({
     setCreateBeneficiaryOpen,
     createTagOpen,
     setCreateTagOpen,
+    handleBeneficiaryChange,
     handleBeneficiaryCreated,
     handleTagCreated,
     handleAddTag,
     handleRemoveTag,
     handleSubmit,
-    confirmRuleOpen,
-    decideRule,
+    confirmCreateOpen,
+    decideCreate,
+    reviewRule,
+    tagObjects,
+    handleReviewOverride,
+    handleReviewUpdate,
+    closeReview,
   } = useAddTransactionForm({ onClose, onSaved, defaultDate });
 
   const body = (
@@ -353,10 +461,7 @@ export function AddTransactionPage({
           value={beneficiaryName}
           beneficiaryId={beneficiaryId}
           beneficiaries={beneficiaries}
-          onChange={(name, id) => {
-            setBeneficiaryName(name);
-            setBeneficiaryId(id);
-          }}
+          onChange={handleBeneficiaryChange}
           onRequestAddBeneficiary={() => setCreateBeneficiaryOpen(true)}
           required
         />
@@ -469,14 +574,23 @@ export function AddTransactionPage({
         flatTags={tags}
       />
       <ConfirmDialog
-        open={confirmRuleOpen}
+        open={confirmCreateOpen}
         title="Create categorization rule?"
-        message="Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way."
+        message="Save this beneficiary + tag pairing as a categorization rule so future transactions auto-tag the same way. You'll review it on the rules page."
         confirmLabel="Create rule"
         cancelLabel="Skip"
         intent="primary"
-        onConfirm={() => decideRule(true)}
-        onClose={() => decideRule(false)}
+        onConfirm={() => decideCreate(true)}
+        onClose={() => decideCreate(false)}
+      />
+      <RuleReviewModal
+        open={reviewRule != null}
+        beneficiaryName={beneficiaryName}
+        currentTags={reviewRule ? tagObjects(reviewRule.tag_ids) : []}
+        newTags={tagObjects(tagIds)}
+        onOverrideForTransaction={handleReviewOverride}
+        onUpdateRule={handleReviewUpdate}
+        onClose={closeReview}
       />
     </>
   );
