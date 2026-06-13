@@ -18,7 +18,6 @@ function makeItem(overrides: Record<string, unknown> = {}) {
     subject_id: '42',
     priority: 1,
     state: 'active',
-    rank_value: 100,
     summary: 'You owe 100 on your weekly tax bill',
     created_at: '2026-06-01T10:00:00Z',
     refreshed_at: '2026-06-01T10:00:00Z',

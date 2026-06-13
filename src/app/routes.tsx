@@ -1,9 +1,5 @@
 import { lazy } from 'react';
-import {
-  createBrowserRouter,
-  Navigate,
-  type RouteObject,
-} from 'react-router-dom';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 
 import { accountRoutes } from '../features/account/account.routes';
 import { adminRoutes } from '../features/admin/admin.routes';
@@ -18,6 +14,7 @@ import { transactionsRoutes } from '../features/transactions/transactions.routes
 
 import { App } from './App';
 import { HomePage } from './pages/Home';
+import { NotFoundPage } from './pages/NotFound';
 import { protectedRoutes } from './routeHelpers';
 
 // Help is a content-heavy doc-style page hit by a small minority of
@@ -77,14 +74,19 @@ const authedRoutes: RouteObject[] = protectedRoutes([
 export const routes: RouteObject[] = [
   {
     element: <App />,
+    // A thrown loader / failed lazy-chunk anywhere under the shell renders
+    // the branded error surface instead of a blank screen.
+    errorElement: <NotFoundPage />,
     children: [
       ...publicRoutes,
       ...authedRoutes,
-      // Unknown paths fall back to the landing page; visitors with a
-      // stale token bounce to /login via the apiClient's 401 refresh
-      // chain or via <ProtectedRoute> on any gated path they were
-      // trying to reach. See shared/utils/sessionRedirect.ts.
-      { path: '*', element: <Navigate to="/" replace /> },
+      // Unknown paths render a branded 404 (inside the App shell, so the
+      // TopNav stays put) rather than silently bouncing to the landing
+      // page — a wrong URL should tell the user it's wrong, not quietly
+      // dump them on the dashboard. Visitors with a stale token still
+      // bounce to /login via the apiClient's 401 refresh chain or via
+      // <ProtectedRoute> on any gated path. See shared/utils/sessionRedirect.ts.
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];

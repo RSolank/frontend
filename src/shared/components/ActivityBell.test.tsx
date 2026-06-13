@@ -26,7 +26,6 @@ function makeItem(uid: number, refreshedAt: string) {
     subject_id: String(uid),
     priority: 2,
     state: 'active',
-    rank_value: 100,
     summary: `Item ${uid}`,
     created_at: refreshedAt,
     refreshed_at: refreshedAt,

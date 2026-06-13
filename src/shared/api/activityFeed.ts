@@ -22,7 +22,6 @@ export interface ActivityFeedItem {
   subject_id: string;
   priority: 1 | 2 | 3 | number;
   state: string;
-  rank_value: number;
   summary: string;
   created_at: string;
   refreshed_at: string;
