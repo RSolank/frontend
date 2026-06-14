@@ -54,7 +54,14 @@ export function HomePage() {
     <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
       <div className="to-accent-50 dark:to-accent-950/40 absolute inset-0 -z-10 bg-gradient-to-br from-sky-50 via-white dark:from-slate-950 dark:via-slate-950" />
 
-      <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr,1fr] lg:items-center">
+      {/*
+       * Tailwind arbitrary grid tracks are space-separated — the `_` becomes a
+       * space (`grid-template-columns: 1.4fr 1fr`). A comma here would emit
+       * invalid CSS (`1.4fr,1fr`), which the browser drops, silently collapsing
+       * the hero to one column (text stacked above the card). Keep the
+       * underscore.
+       */}
+      <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
         <div>
           {brandTagline ? (
             <div className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wider uppercase">
