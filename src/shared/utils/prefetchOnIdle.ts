@@ -10,8 +10,12 @@ import { useEffect } from 'react';
 //   1. setTimeout(delayMs) — gives first paint + initial user
 //      interactions room to breathe before we add network/CPU work.
 //   2. requestIdleCallback (when available) — defers the actual
-//      import() to a true idle window with a 2s timeout cap so the
-//      prefetch always fires eventually even on busy main threads.
+//      import() to a true idle window, but with a short 250ms timeout
+//      cap (RIC_TIMEOUT_MS) so the prefetch fires promptly even on a
+//      busy main thread. RIC still yields to in-progress user
+//      interaction within that window; the tight cap just stops a
+//      perpetually-busy thread from pushing the warm-up out by seconds
+//      (the click-gated dropdowns felt laggy with the old 2s cap).
 //      Falls back to immediate fire if RIC isn't supported (Safari).
 //   3. Idempotence: each `importFn` is fired at most once per page
 //      session via a module-level WeakSet — re-mount safe.
@@ -21,6 +25,12 @@ import { useEffect } from 'react';
 // the chunk anyway.
 
 const FIRED = new WeakSet<() => Promise<unknown>>();
+
+// Upper bound on how long requestIdleCallback may wait for an idle
+// window before forcing the prefetch. Kept tight so warm-up is
+// time-deterministic (≈ delayMs + this) rather than drifting with
+// main-thread busyness.
+const RIC_TIMEOUT_MS = 250;
 
 // `requestIdleCallback` isn't in TS's default lib (Safari skips it),
 // so we feature-detect via a narrow typed handle instead of widening
@@ -62,7 +72,7 @@ export function prefetchOnIdle(
   const timeoutId = window.setTimeout(() => {
     const api = getIdleApi();
     if (api.request) {
-      idleId = api.request(fire, { timeout: 2000 });
+      idleId = api.request(fire, { timeout: RIC_TIMEOUT_MS });
     } else {
       fire();
     }
