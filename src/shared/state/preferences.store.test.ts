@@ -13,15 +13,15 @@ describe('usePreferencesStore', () => {
     localStorage.clear();
   });
 
-  it('starts on the §5 defaults (USD / null / UTC)', () => {
+  it('starts on the India-first defaults (INR / India / Asia-Kolkata)', () => {
     const s = usePreferencesStore.getState();
-    expect(s.currency).toBe('USD');
-    expect(s.country).toBeNull();
-    expect(s.timezone).toBe('UTC');
+    expect(s.currency).toBe('INR');
+    expect(s.country).toBe('India');
+    expect(s.timezone).toBe('Asia/Kolkata');
     expect(PREFERENCES_DEFAULTS).toEqual({
-      currency: 'USD',
-      country: null,
-      timezone: 'UTC',
+      currency: 'INR',
+      country: 'India',
+      timezone: 'Asia/Kolkata',
     });
   });
 
@@ -101,7 +101,7 @@ describe('sanitizePreferences', () => {
     });
   });
 
-  it('falls back to USD when currency is a unicode symbol', () => {
+  it('falls back to the default currency when given a unicode symbol', () => {
     // Mirrors the 2026-05-25 incident: a legacy data row had currency
     // stored as "₹" instead of "INR"; without this fallback the value
     // poisoned the store and broke every subsequent fetch().
@@ -112,7 +112,7 @@ describe('sanitizePreferences', () => {
         timezone: 'Asia/Kolkata',
       })
     ).toEqual({
-      currency: 'USD',
+      currency: 'INR',
       country: 'India',
       timezone: 'Asia/Kolkata',
     });

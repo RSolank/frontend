@@ -26,10 +26,14 @@ export interface PreferencesState extends UserPreferences {
   reset: () => void;
 }
 
+// Aevum is an India-first product (UPI / PhonePe / Paytm / GPay), so the
+// pre-auth baseline — what the public landing hero formats with before any
+// user preference exists — is the Indian locale, mirroring the backend's
+// global defaults (app/constants/preferences.py).
 export const PREFERENCES_DEFAULTS: UserPreferences = {
-  currency: 'USD',
-  country: null,
-  timezone: 'UTC',
+  currency: 'INR',
+  country: 'India',
+  timezone: 'Asia/Kolkata',
 };
 
 // HTTP header values must be ISO-8859-1 (char codes 0–255); we tighten

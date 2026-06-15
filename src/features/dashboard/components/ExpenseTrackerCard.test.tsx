@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { useBudgetStatusQuery } from '../../budgets/api/queries';
 
@@ -26,6 +27,14 @@ function mockStatus(data: unknown, isLoading = false) {
 }
 
 describe('ExpenseTrackerCard', () => {
+  // Pin USD so the money assertions ('$570.00') are independent of the
+  // app-wide default currency (now INR).
+  beforeEach(() => {
+    usePreferencesStore
+      .getState()
+      .setPreferences({ currency: 'USD', country: 'US', timezone: 'UTC' });
+  });
+
   it('renders the loading state while the first fetch is in flight', () => {
     mockStatus(undefined, true);
     renderWithProviders(<ExpenseTrackerCard />);
