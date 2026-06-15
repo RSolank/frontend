@@ -9,6 +9,7 @@ import {
   useIdlePrefetch,
   type PrefetchEntry,
 } from '../../shared/utils/prefetchOnIdle';
+import { LandingShowcases } from '../components/LandingShowcases';
 
 // Lazy-load the AuthModal so the (~30 KB) `countries-and-timezones`
 // bundle stays in the auth chunk rather than first-paint. Home is
@@ -90,99 +91,103 @@ export function HomePage() {
   // a single "Go to dashboard" CTA. The Home icon in TopNav is the
   // canonical path back to the app.
   return (
-    <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
-      <div className="to-accent-50 dark:to-accent-950/40 absolute inset-0 -z-10 bg-gradient-to-br from-sky-50 via-white dark:from-slate-950 dark:via-slate-950" />
+    <>
+      <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
+        <div className="to-accent-50 dark:to-accent-950/40 absolute inset-0 -z-10 bg-gradient-to-br from-sky-50 via-white dark:from-slate-950 dark:via-slate-950" />
 
-      {/*
-       * Tailwind arbitrary grid tracks are space-separated — the `_` becomes a
-       * space (`grid-template-columns: 1.4fr 1fr`). A comma here would emit
-       * invalid CSS (`1.4fr,1fr`), which the browser drops, silently collapsing
-       * the hero to one column (text stacked above the card). Keep the
-       * underscore.
-       */}
-      <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-        <div>
-          {brandTagline ? (
-            <div className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wider uppercase">
-              {brandTagline}
-            </div>
-          ) : null}
+        {/*
+         * Tailwind arbitrary grid tracks are space-separated — the `_` becomes a
+         * space (`grid-template-columns: 1.4fr 1fr`). A comma here would emit
+         * invalid CSS (`1.4fr,1fr`), which the browser drops, silently collapsing
+         * the hero to one column (text stacked above the card). Keep the
+         * underscore.
+         */}
+        <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+          <div>
+            {brandTagline ? (
+              <div className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wider uppercase">
+                {brandTagline}
+              </div>
+            ) : null}
 
-          <h1 className="mb-3 text-4xl leading-tight font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
-            See every dollar with{' '}
-            <span className="text-accent-700 dark:text-accent-400">
-              clarity
-            </span>
-            .
-          </h1>
+            <h1 className="mb-3 text-4xl leading-tight font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
+              See every rupee with{' '}
+              <span className="text-accent-700 dark:text-accent-400">
+                clarity
+              </span>
+              .
+            </h1>
 
-          {brandDescription ? (
-            <p className="mb-3 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
-              {brandDescription}
+            {brandDescription ? (
+              <p className="mb-3 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
+                {brandDescription}
+              </p>
+            ) : null}
+
+            <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
+              Sign in to pick up where you left off, or create a free account to
+              get started in minutes.
             </p>
-          ) : null}
 
-          <p className="mb-7 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
-            Sign in to pick up where you left off, or create a free account to
-            get started in minutes.
-          </p>
+            <div className="mb-3 flex flex-wrap gap-3">
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+                >
+                  Go to dashboard
+                </Link>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('register')}
+                    className="focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
+                  >
+                    Register
+                  </button>
+                </>
+              )}
+            </div>
 
-          <div className="mb-3 flex flex-wrap gap-3">
-            {user ? (
-              <Link
-                to="/dashboard"
-                className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-md transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
-              >
-                Go to dashboard
-              </Link>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('register')}
-                  className="focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-950"
-                >
-                  Register
-                </button>
-              </>
-            )}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              No credit card required. You can switch plans or export your data
+              any time.
+            </p>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            No credit card required. You can switch plans or export your data
-            any time.
-          </p>
-        </div>
-
-        <div className="relative p-5">
-          <div
-            aria-hidden="true"
-            className="via-success-200/20 absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 to-cyan-300/30 blur-2xl"
-          />
-          <div className="relative shadow-lg">
-            <Suspense
-              fallback={
-                <div className="h-72 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
-              }
-            >
-              <ExpenseOverviewPreview
-                month={PREVIEW_MONTH}
-                total={PREVIEW_TOTAL}
-                deltaPct={-0.05}
-                topCategories={PREVIEW_TOP}
-                moreCount={0}
-              />
-            </Suspense>
+          <div className="relative p-5">
+            <div
+              aria-hidden="true"
+              className="via-success-200/20 absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 to-cyan-300/30 blur-2xl"
+            />
+            <div className="relative shadow-lg">
+              <Suspense
+                fallback={
+                  <div className="h-72 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+                }
+              >
+                <ExpenseOverviewPreview
+                  month={PREVIEW_MONTH}
+                  total={PREVIEW_TOTAL}
+                  deltaPct={-0.05}
+                  topCategories={PREVIEW_TOP}
+                  moreCount={0}
+                />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>
+
+      <LandingShowcases />
 
       {authMode != null && (
         <Suspense fallback={null}>
@@ -193,6 +198,6 @@ export function HomePage() {
           />
         </Suspense>
       )}
-    </div>
+    </>
   );
 }

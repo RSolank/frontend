@@ -25,7 +25,6 @@ import {
 // live here. The bills list below this card handles those.
 export function CurrentWeekTracker() {
   const timezone = usePreferencesStore((s) => s.timezone);
-  const { money } = useMoneyFormatter();
   const { data, isLoading, isError } = useTrackerCurrentWeekQuery();
 
   const elapsedFraction = useMemo(
@@ -52,6 +51,21 @@ export function CurrentWeekTracker() {
     );
   }
 
+  return (
+    <CurrentWeekTrackerView data={data} elapsedFraction={elapsedFraction} />
+  );
+}
+
+// The populated-card render, split out so it can be rendered with fabricated
+// data (the landing-page showcase) without the network round-trip.
+export function CurrentWeekTrackerView({
+  data,
+  elapsedFraction,
+}: {
+  data: TrackerCurrentWeekResponse;
+  elapsedFraction: number;
+}) {
+  const { money } = useMoneyFormatter();
   const projectedTax =
     data.projected_tax > 0
       ? data.projected_tax

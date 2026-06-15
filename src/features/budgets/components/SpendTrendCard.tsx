@@ -57,7 +57,6 @@ function bucketLabel(period_start: string, grain: TrendPeriod): string {
 }
 
 export function SpendTrendCard({ month, rolling }: SpendTrendCardProps) {
-  const { money } = useMoneyFormatter();
   const constants = useAuthStore((s) => s.constants);
   const totalTagId = constants?.TOTAL_TAG_ID;
   const [rangeKey, setRangeKey] = useState('6mo');
@@ -114,6 +113,53 @@ export function SpendTrendCard({ month, rolling }: SpendTrendCardProps) {
     points.length <= BARS_MAX_POINTS ? 'bars' : 'line';
 
   return (
+    <SpendTrendView
+      rangeKey={rangeKey}
+      onRangeChange={setRangeKey}
+      loading={totalQ.isLoading}
+      points={points}
+      chartKind={chartKind}
+      periodStats={periodStats}
+      grainUnit={grainUnit}
+      rangeLabel={range.label}
+      rolling={rolling}
+      slices={slices}
+      legend={legend}
+    />
+  );
+}
+
+interface SpendTrendViewProps {
+  rangeKey: string;
+  onRangeChange?: (k: string) => void;
+  loading?: boolean;
+  points: TrendPoint[];
+  chartKind: 'bars' | 'line';
+  periodStats: { avg: number; min: number; max: number } | null;
+  grainUnit: string;
+  rangeLabel: string;
+  rolling: { avg: number | null; min: number | null; max: number | null };
+  slices: DonutSlice[];
+  legend: { label: string; pct: number; dotClass: string }[];
+}
+
+// Pure render — the landing-page showcase imports this with fabricated data
+// (omit `onRangeChange` for a static, non-interactive range row).
+export function SpendTrendView({
+  rangeKey,
+  onRangeChange,
+  loading = false,
+  points,
+  chartKind,
+  periodStats,
+  grainUnit,
+  rangeLabel,
+  rolling,
+  slices,
+  legend,
+}: SpendTrendViewProps) {
+  const { money } = useMoneyFormatter();
+  return (
     <section
       data-testid="spend-trend"
       aria-labelledby="spend-trend-heading"
@@ -126,10 +172,10 @@ export function SpendTrendCard({ month, rolling }: SpendTrendCardProps) {
         >
           Spending trend
         </h2>
-        <RangeSelector rangeKey={rangeKey} onChange={setRangeKey} />
+        <RangeSelector rangeKey={rangeKey} onChange={onRangeChange} />
       </header>
 
-      {totalQ.isLoading ? (
+      {loading ? (
         <p className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
           Loading trend…
         </p>
@@ -150,7 +196,7 @@ export function SpendTrendCard({ month, rolling }: SpendTrendCardProps) {
       {/* Stacked stats footer: this-window above rolling-12-month. */}
       <div className="mt-4 space-y-1.5 border-t border-dashed border-slate-200 pt-3 dark:border-slate-700">
         <StatRow
-          heading={`This ${range.label}`}
+          heading={`This ${rangeLabel}`}
           avg={periodStats?.avg ?? null}
           min={periodStats?.min ?? null}
           max={periodStats?.max ?? null}
@@ -175,7 +221,7 @@ function RangeSelector({
   onChange,
 }: {
   rangeKey: string;
-  onChange: (k: string) => void;
+  onChange?: (k: string) => void;
 }) {
   return (
     <div role="group" aria-label="Trend range" className="flex flex-wrap gap-1">
@@ -183,7 +229,7 @@ function RangeSelector({
         <button
           key={r.key}
           type="button"
-          onClick={() => onChange(r.key)}
+          onClick={onChange ? () => onChange(r.key) : undefined}
           aria-pressed={r.key === rangeKey}
           className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
             r.key === rangeKey
@@ -253,7 +299,7 @@ function BreakdownArea({
                 {l.label}
               </span>
             </span>
-            <span className="shrink-0 font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+            <span className="shrink-0 font-semibold text-slate-900 tabular-nums dark:text-slate-100">
               {Math.round(l.pct)}%
             </span>
           </li>
@@ -285,20 +331,20 @@ function StatRow({
       </span>
       <span className="text-slate-600 dark:text-slate-300">
         avg{' '}
-        <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+        <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(avg)}
           {unit}
         </span>
       </span>
       <span className="text-slate-600 dark:text-slate-300">
         low{' '}
-        <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+        <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(min)}
         </span>
       </span>
       <span className="text-slate-600 dark:text-slate-300">
         high{' '}
-        <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+        <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
           {money(max)}
         </span>
       </span>
@@ -311,7 +357,10 @@ function StatRow({
 function buildBreakdown(
   rows: { tag_id: number; tag_name: string | null; net_expense: number }[],
   totalTagId: number | undefined
-): { slices: DonutSlice[]; legend: { label: string; pct: number; dotClass: string }[] } {
+): {
+  slices: DonutSlice[];
+  legend: { label: string; pct: number; dotClass: string }[];
+} {
   const byTag = new Map<number, { name: string; value: number }>();
   for (const r of rows) {
     if (r.tag_id === totalTagId) continue;
@@ -327,8 +376,7 @@ function buildBreakdown(
 
   const head =
     ranked.length > MAX_SLICES ? ranked.slice(0, MAX_SLICES - 1) : ranked;
-  const tail =
-    ranked.length > MAX_SLICES ? ranked.slice(MAX_SLICES - 1) : [];
+  const tail = ranked.length > MAX_SLICES ? ranked.slice(MAX_SLICES - 1) : [];
   const display = head.map((c, i) => ({
     name: c.name,
     value: c.value,
