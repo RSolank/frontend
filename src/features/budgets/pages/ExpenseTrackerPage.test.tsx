@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
@@ -81,6 +82,31 @@ const statusResponse = {
   available_months: ['2026-02', '2026-01', '2025-12'],
 };
 
+// Minimal expense-trend rows so Zone 2 (SpendTrendCard) + the Zone 1 MoM delta
+// resolve. The FE filters by tag_id client-side, so one set covers both the
+// total series and the category breakdown.
+function trendRow(
+  tag_id: number,
+  tag_name: string,
+  period_start: string,
+  net: number
+) {
+  return {
+    tag_id,
+    tag_name,
+    period_type: 'monthly',
+    period_start,
+    period_end: period_start,
+    total_count: 1,
+    total_debit: net,
+    total_credit: 0,
+    net_expense: net,
+    avg_net_expense: null,
+    min_net_expense: null,
+    max_net_expense: null,
+  };
+}
+
 function installHandlers() {
   server.use(
     http.get(`${API_BASE}/budget-limits/status`, () =>
@@ -90,7 +116,23 @@ function installHandlers() {
       HttpResponse.json({
         currencies: [{ code: 'USD', label: 'USD - US Dollar', symbol: '$' }],
       })
-    )
+    ),
+    http.get(`${API_BASE}/expense-tracker/`, ({ request }) => {
+      const tagId = new URL(request.url).searchParams.get('tag_id');
+      let rows = [
+        trendRow(1, 'Total Budget', '2026-01-01', 500),
+        trendRow(1, 'Total Budget', '2026-02-01', 570),
+        trendRow(11, 'Groceries', '2026-02-01', 300),
+        trendRow(12, 'Dining', '2026-02-01', 220),
+        trendRow(13, 'Hobbies', '2026-02-01', 50),
+      ];
+      if (tagId) rows = rows.filter((r) => String(r.tag_id) === tagId);
+      return HttpResponse.json({
+        period_type: 'monthly',
+        returned_count: rows.length,
+        rows,
+      });
+    })
   );
 }
 
@@ -101,50 +143,49 @@ describe('ExpenseTrackerPage', () => {
       country: 'US',
       timezone: 'UTC',
     });
+    // The page reads TOTAL / MISCELLANEOUS tag ids off the auth store to
+    // anchor the trend + exclude Misc from the Zone 1 top-3.
+    useAuthStore.getState().setConstants({
+      TOTAL_TAG_ID: 1,
+      MISCELLANEOUS_TAG_ID: 2,
+      CONSUMPTION_TAX_TAG_ID: 3,
+      TAXABLE_TXN_TYPES: [],
+      VALID_TAG_TYPES: [],
+      VALID_TXN_TYPES: [],
+      RELATIONSHIP_TYPES: [],
+    });
     installHandlers();
   });
 
-  it('renders the Total Budget overview + filtered category cards + page-scoped month picker', async () => {
+  it('renders the Zone 1 overview + filtered category cards + page-scoped month picker', async () => {
     renderWithProviders(<ExpenseTrackerPage />);
 
-    await waitFor(() =>
-      expect(screen.getByTestId('budget-card-1')).toBeInTheDocument()
-    );
+    // Zone 1 — the overview card carries the total (no longer a category card).
+    const overview = await screen.findByTestId('expense-overview');
+    expect(overview).toHaveTextContent('Total spent');
+    await waitFor(() => expect(overview).toHaveTextContent('$570.00'));
+    // Total 570 / 1000 = 57% → "On track" signal.
+    expect(within(overview).getByText('On track')).toBeInTheDocument();
+    // "Where it went" surfaces the top categories.
+    expect(overview).toHaveTextContent('Groceries');
 
-    // Total budget (emphasis variant) — title + Spent / Limit values.
-    // waitFor the money values: the currency symbol resolves from the
-    // currencies reference-data query, which may land a tick after the card
-    // first paints (the card renders "USD 570.00" until the symbol arrives).
-    const total = screen.getByTestId('budget-card-1');
-    expect(total).toHaveTextContent('Total Budget');
-    await waitFor(() =>
-      expect(screen.getByTestId('budget-card-1')).toHaveTextContent('$570.00')
-    );
-    expect(screen.getByTestId('budget-card-1')).toHaveTextContent('$1,000.00');
-
-    // Month picker lives in the PAGE header, not inside the Total
-    // card — it scopes every card on the page.
-    const monthSelect = screen.getByTestId('expense-tracker-month-select');
-    expect(monthSelect).toBeInTheDocument();
+    // Month picker lives in the PAGE header, not inside the overview.
+    expect(screen.getByTestId('expense-tracker-month-select')).toBeInTheDocument();
     expect(
-      within(total).queryByTestId('expense-tracker-month-select')
+      within(overview).queryByTestId('expense-tracker-month-select')
     ).toBeNull();
 
-    // Category cards render (idle filtered out, over-budget status on
-    // Dining via the gradient progress bar, Set vs Edit affordance per
-    // limit presence).
+    // Zone 3 — category cards render (idle filtered out); Dining is over budget.
     expect(screen.getByTestId('budget-card-11')).toBeInTheDocument();
     expect(screen.getByTestId('budget-card-12')).toBeInTheDocument();
     expect(screen.getByTestId('budget-card-13')).toBeInTheDocument();
     expect(screen.queryByTestId('budget-card-14')).not.toBeInTheDocument();
     expect(
-      within(screen.getByTestId('budget-card-12')).getByTestId(
-        'budget-progress-over'
-      )
+      within(screen.getByTestId('budget-card-12')).getByText('Over budget')
     ).toBeInTheDocument();
   });
 
-  it('progress bar uses gradient thresholds — safe / watch / near / over', async () => {
+  it('BudgetSignal pills classify the four budget bands — safe / watch / near / over', async () => {
     server.use(
       http.get(`${API_BASE}/budget-limits/status`, () =>
         HttpResponse.json({
@@ -193,28 +234,20 @@ describe('ExpenseTrackerPage', () => {
     );
 
     expect(
-      within(screen.getByTestId('budget-card-101')).getByTestId(
-        'budget-progress-safe'
-      )
-    ).toHaveTextContent('On track');
+      within(screen.getByTestId('budget-card-101')).getByText('On track')
+    ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('budget-card-102')).getByTestId(
-        'budget-progress-watch'
-      )
-    ).toHaveTextContent('Watch');
+      within(screen.getByTestId('budget-card-102')).getByText('Watch')
+    ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('budget-card-103')).getByTestId(
-        'budget-progress-near'
-      )
-    ).toHaveTextContent('Near limit');
+      within(screen.getByTestId('budget-card-103')).getByText('Near limit')
+    ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('budget-card-104')).getByTestId(
-        'budget-progress-over'
-      )
-    ).toHaveTextContent('Over budget');
+      within(screen.getByTestId('budget-card-104')).getByText('Over budget')
+    ).toBeInTheDocument();
   });
 
-  it('Min / Max are dropped from category cards but kept on the rolling stats strip', async () => {
+  it('Min / Max are off category cards; rolling 12-month stats live in the trend footer', async () => {
     renderWithProviders(<ExpenseTrackerPage />);
     await waitFor(() =>
       expect(screen.getByTestId('budget-card-11')).toBeInTheDocument()
@@ -222,22 +255,15 @@ describe('ExpenseTrackerPage', () => {
 
     // Category cards no longer surface Min / Max labels.
     const groceries = screen.getByTestId('budget-card-11');
-    expect(groceries).not.toHaveTextContent(/Min \/ Max/i);
     expect(groceries).not.toHaveTextContent(/Lowest monthly/);
     expect(groceries).not.toHaveTextContent(/Highest monthly/);
 
-    // Rolling stats strip lives below the Total card and surfaces all
-    // three rollup stats with the locked labels.
-    const stats = screen.getByTestId('rolling-stats');
-    expect(stats).toHaveTextContent('Average monthly spend');
-    expect(stats).toHaveTextContent('Lowest monthly spend');
-    expect(stats).toHaveTextContent('Highest monthly spend');
-    // waitFor the symbol (see the Total-card note above).
-    await waitFor(() =>
-      expect(screen.getByTestId('rolling-stats')).toHaveTextContent('$460.00')
-    );
-    expect(stats).toHaveTextContent('$320.00');
-    expect(stats).toHaveTextContent('$710.00');
+    // The rolling 12-month rollup stats moved into the trend card footer.
+    const trend = screen.getByTestId('spend-trend');
+    expect(trend).toHaveTextContent('Last 12 months');
+    await waitFor(() => expect(trend).toHaveTextContent('$460.00'));
+    expect(trend).toHaveTextContent('$320.00');
+    expect(trend).toHaveTextContent('$710.00');
   });
 
   it('view cards render label/value pairs only (no inline edit fields)', async () => {
@@ -560,42 +586,10 @@ describe('ExpenseTrackerPage', () => {
     });
   });
 
-  // Batch 9.5 — anomaly badges on category cards. Classification:
-  //   below typical   : current ≤ avg * 0.75
-  //   typical         : avg * 0.75 < current ≤ avg * 1.25
-  //   near typical max: avg * 1.25 < current ≤ max
-  //   above typical   : current > max
-  // Hidden when avg ≤ 0 (fresh signup) or current ≤ 0.
-  describe('anomaly badges', () => {
-    it('renders the typical / near / above bands per the fixture data', async () => {
-      renderWithProviders(<ExpenseTrackerPage />);
-      await waitFor(() =>
-        expect(screen.getByTestId('budget-card-11')).toBeInTheDocument()
-      );
-
-      // Groceries: current=300, avg=250 → 300 ≤ 312.5 → typical (slate).
-      expect(
-        within(screen.getByTestId('budget-card-11')).getByTestId(
-          'budget-anomaly-typical'
-        )
-      ).toHaveTextContent('Typical');
-
-      // Dining: current=220, avg=150 → 220 > 187.5 AND 220 ≤ max=220 → near.
-      expect(
-        within(screen.getByTestId('budget-card-12')).getByTestId(
-          'budget-anomaly-near'
-        )
-      ).toHaveTextContent('Near typical max');
-
-      // Hobbies: current=50, avg=60 → 50 ≥ 45 (0.75*60) → typical.
-      expect(
-        within(screen.getByTestId('budget-card-13')).getByTestId(
-          'budget-anomaly-typical'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('renders "above" band when current > max and "below" when current ≤ 0.75 * avg', async () => {
+  // The unified BudgetSignal falls back to the rolling "typical" baseline when
+  // no budget limit is set: below / typical / above / most-expensive-yet.
+  describe('BudgetSignal — no-limit categories use the rolling baseline', () => {
+    it('classifies below / typical / above / most-expensive bands', async () => {
       server.use(
         http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
@@ -604,22 +598,38 @@ describe('ExpenseTrackerPage', () => {
               {
                 ...statusResponse.categories[0]!,
                 tag_id: 201,
-                tag_name: 'Above Max',
-                current_net_expense: 500,
+                tag_name: 'Below Cat',
+                current_net_expense: 60, // < 0.75 * 200
                 avg_net_expense: 200,
-                min_net_expense: 150,
                 max_net_expense: 400,
-                limit_amt: 1000,
+                limit_amt: null,
               },
               {
                 ...statusResponse.categories[0]!,
                 tag_id: 202,
-                tag_name: 'Quiet Month',
-                current_net_expense: 60,
+                tag_name: 'Typical Cat',
+                current_net_expense: 200, // within ±25%
                 avg_net_expense: 200,
-                min_net_expense: 150,
                 max_net_expense: 400,
-                limit_amt: 1000,
+                limit_amt: null,
+              },
+              {
+                ...statusResponse.categories[0]!,
+                tag_id: 203,
+                tag_name: 'Above Cat',
+                current_net_expense: 300, // > 1.25 * 200, ≤ max
+                avg_net_expense: 200,
+                max_net_expense: 400,
+                limit_amt: null,
+              },
+              {
+                ...statusResponse.categories[0]!,
+                tag_id: 204,
+                tag_name: 'Peak Cat',
+                current_net_expense: 500, // > max
+                avg_net_expense: 200,
+                max_net_expense: 400,
+                limit_amt: null,
               },
             ],
           })
@@ -632,18 +642,22 @@ describe('ExpenseTrackerPage', () => {
       );
 
       expect(
-        within(screen.getByTestId('budget-card-201')).getByTestId(
-          'budget-anomaly-above'
-        )
-      ).toHaveTextContent('Above typical max');
+        within(screen.getByTestId('budget-card-201')).getByText('Below typical')
+      ).toBeInTheDocument();
       expect(
-        within(screen.getByTestId('budget-card-202')).getByTestId(
-          'budget-anomaly-below'
+        within(screen.getByTestId('budget-card-202')).getByText('Typical')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('budget-card-203')).getByText('Above typical')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('budget-card-204')).getByText(
+          'Most expensive yet'
         )
-      ).toHaveTextContent('Below typical');
+      ).toBeInTheDocument();
     });
 
-    it('hides the badge when there is no historical baseline yet (avg = 0)', async () => {
+    it('shows "No budget set" with no history yet', async () => {
       server.use(
         http.get(`${API_BASE}/budget-limits/status`, () =>
           HttpResponse.json({
@@ -657,7 +671,7 @@ describe('ExpenseTrackerPage', () => {
                 avg_net_expense: 0,
                 min_net_expense: 0,
                 max_net_expense: 0,
-                limit_amt: 500,
+                limit_amt: null,
               },
             ],
           })
@@ -668,8 +682,9 @@ describe('ExpenseTrackerPage', () => {
       await waitFor(() =>
         expect(screen.getByTestId('budget-card-301')).toBeInTheDocument()
       );
-      const card = screen.getByTestId('budget-card-301');
-      expect(within(card).queryByTestId(/^budget-anomaly-/)).toBeNull();
+      expect(
+        within(screen.getByTestId('budget-card-301')).getByText('No budget set')
+      ).toBeInTheDocument();
     });
   });
 });

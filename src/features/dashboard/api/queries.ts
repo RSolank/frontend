@@ -13,13 +13,17 @@ import type { ExpenseTrendResponse, TrendPeriod } from './schemas';
 export function fetchExpenseTrend(
   period_type: TrendPeriod,
   n: number,
-  tag_id?: number
+  tag_id?: number,
+  end?: string
 ): Promise<ExpenseTrendResponse> {
   const sp = new URLSearchParams({
     period_type,
     n: String(n),
   });
   if (tag_id !== undefined) sp.set('tag_id', String(tag_id));
+  // `end` (YYYY-MM-DD) anchors the window's last bucket so the trend can
+  // follow the expense-tracker page's month selector (BE optional param).
+  if (end !== undefined) sp.set('end', end);
   return apiFetch<ExpenseTrendResponse>(
     `${routes.expenseTracker.trend()}?${sp.toString()}`
   );
@@ -29,11 +33,12 @@ export function useExpenseTrendQuery(
   period_type: TrendPeriod,
   n: number,
   tag_id?: number,
-  enabled = true
+  enabled = true,
+  end?: string
 ) {
   return useQuery({
-    queryKey: dashboardKeys.trend(period_type, n, tag_id),
-    queryFn: () => fetchExpenseTrend(period_type, n, tag_id),
+    queryKey: dashboardKeys.trend(period_type, n, tag_id, end),
+    queryFn: () => fetchExpenseTrend(period_type, n, tag_id, end),
     enabled,
     // Trend data is materialized read-model output; a 60s staleTime
     // matches the BE tracker cache and avoids hammering the read path

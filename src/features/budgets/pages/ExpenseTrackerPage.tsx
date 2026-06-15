@@ -1,17 +1,23 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
-import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { budgetKeys } from '../api/keys';
 import { useBudgetStatusQuery, type BudgetCategory } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
 import { BudgetFormDialog } from '../components/BudgetFormDialog';
-import { ExpenseTrendChart } from '../components/ExpenseTrendChart';
+import { ExpenseOverviewCard } from '../components/ExpenseOverviewCard';
+import { SpendTrendCard } from '../components/SpendTrendCard';
 
+// Expense Tracker — a single analytics dashboard, ordered by importance so a
+// casual reader gets the answer up top (Zone 1 overview) and explorers scroll
+// to the trend (Zone 2) and per-category budgets (Zone 3). The month selector
+// is the page anchor: Zones 1 & 3 snapshot that month, Zone 2's trend ends on
+// it. Drill-down into individual transactions lives on the Transactions page —
+// here it's cumulative totals, trends, and state only.
 export function ExpenseTrackerPage() {
   const queryClient = useQueryClient();
   const [activeMonth, setActiveMonth] = useState<string | null>(null);
@@ -21,9 +27,7 @@ export function ExpenseTrackerPage() {
   const editTagId = editModal.value != null ? Number(editModal.value) : null;
   const { id: highlightTagId, flash } = useRowHighlight<number>();
 
-  // Categories grid filter — match the Batch 8 close behavior: keep any
-  // category with spend OR a configured limit. Idle/empty cells stay
-  // hidden so the grid doesn't sprawl.
+  // Categories grid filter — keep any category with spend OR a configured limit.
   const visibleCategories: BudgetCategory[] = useMemo(() => {
     const cats = data?.categories ?? [];
     return cats.filter(
@@ -38,8 +42,6 @@ export function ExpenseTrackerPage() {
     [data]
   );
 
-  // Look up the active edit target by tag_id across (total + categories).
-  // Total is editable too — same modal, same POST.
   const editingCategory: BudgetCategory | null = useMemo(() => {
     if (editTagId == null) return null;
     if (totalBudget?.tag_id === editTagId) return totalBudget;
@@ -56,8 +58,7 @@ export function ExpenseTrackerPage() {
   }
 
   function handleMonthChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value;
-    setActiveMonth(val || null);
+    setActiveMonth(e.target.value || null);
   }
 
   const displayMonth = data?.month ?? '';
@@ -65,13 +66,6 @@ export function ExpenseTrackerPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      {/*
-       * Page header — title + description only. No competing controls
-       * so the heading + paragraph stay readable on narrow viewports
-       * (no flex-wrap squeeze). The month selector lives in its own
-       * row below per the 2026-05-27 layout refinement (next-of-kin
-       * to the rollup card, not the breadcrumb).
-       */}
       <header className="mb-4">
         <nav className="text-sm text-slate-500 dark:text-slate-400">
           <Link
@@ -89,27 +83,15 @@ export function ExpenseTrackerPage() {
           Expense Tracker
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          Monitor monthly spending against per-category budgets. Breaches stack
-          a penalty on top of the base tax rate — see Taxation Rules for the
-          defaults, or override per-budget below.
+          Your spending at a glance — totals, trends, and per-category budgets.
+          Breaches stack a penalty on top of the base tax; see Taxation Rules for
+          the defaults, or override per-budget below.
         </p>
       </header>
 
-      {/*
-       * Month selector — sits on its own row above the rollup card.
-       * Closest contextual relative to the cards it scopes; reads
-       * cleanly on mobile (own line, no flex-wrap collision with the
-       * heading) and on desktop (left-aligned, breathes from both
-       * the header and the rollup).
-       */}
+      {/* Page anchor — scopes every zone. */}
       {availableMonths.length > 0 && (
         <div className="mb-4">
-          {/*
-           * No visible label — the dropdown's own option text
-           * ("February 2026", etc.) is self-explanatory in this
-           * placement (above the rollup card it scopes). aria-label
-           * stays for screen readers per the 2026-05-27 design lock.
-           */}
           <select
             id="expense-tracker-month-select"
             value={displayMonth}
@@ -141,58 +123,16 @@ export function ExpenseTrackerPage() {
           Loading…
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {totalBudget && (
-            <MonthOverviewCard
-              category={totalBudget}
-              isHighlighted={highlightTagId === totalBudget.tag_id}
-              onEdit={handleEdit}
-            />
-          )}
-
-          <ExpenseTrendChart />
-
-          <section
-            aria-labelledby="categories-heading"
-            className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2
-                id="categories-heading"
-                className="text-base font-semibold text-slate-900 dark:text-slate-100"
-              >
-                Categories
-              </h2>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {visibleCategories.length}{' '}
-                {visibleCategories.length === 1 ? 'category' : 'categories'}
-              </span>
-            </div>
-            {visibleCategories.length === 0 ? (
-              <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                No categorized spending found for{' '}
-                {displayMonth
-                  ? formatYearMonth(displayMonth, 'long')
-                  : 'this month'}
-                .
-              </div>
-            ) : (
-              <div
-                className="grid grid-cols-1 gap-3 lg:grid-cols-2"
-                data-testid="budget-category-list"
-              >
-                {visibleCategories.map((cat) => (
-                  <BudgetCategoryCard
-                    key={cat.tag_id}
-                    category={cat}
-                    isHighlighted={highlightTagId === cat.tag_id}
-                    onEdit={handleEdit}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+        displayMonth && (
+          <TrackerZones
+            month={displayMonth}
+            total={totalBudget}
+            categories={data?.categories ?? []}
+            visibleCategories={visibleCategories}
+            highlightTagId={highlightTagId}
+            onEdit={handleEdit}
+          />
+        )
       )}
 
       <BudgetFormDialog
@@ -205,77 +145,108 @@ export function ExpenseTrackerPage() {
   );
 }
 
-interface MonthOverviewCardProps {
-  category: BudgetCategory;
-  isHighlighted: boolean;
-  onEdit: (category: BudgetCategory) => void;
+interface TrackerZonesProps {
+  month: string;
+  total: BudgetCategory | null;
+  categories: BudgetCategory[];
+  visibleCategories: BudgetCategory[];
+  highlightTagId: number | null;
+  onEdit: (c: BudgetCategory) => void;
 }
 
-// Month Overview — the emphasized Total Budget surface (Spent / Limit
-// / progress) plus a dedicated "recent months" trends strip below.
-// Month selector is intentionally NOT here — it scopes the entire
-// page, so it lives in the page header alongside the title.
-function MonthOverviewCard({
-  category,
-  isHighlighted,
+// The loaded page body — the three zones. The categories section owns the
+// scroll target so Zone 1's "+N more →" can jump to it.
+function TrackerZones({
+  month,
+  total,
+  categories,
+  visibleCategories,
+  highlightTagId,
   onEdit,
-}: MonthOverviewCardProps) {
-  const { money } = useMoneyFormatter();
-
+}: TrackerZonesProps) {
+  const categoriesRef = useRef<HTMLDivElement>(null);
   return (
-    <div>
-      <BudgetCategoryCard
-        category={category}
-        isHighlighted={isHighlighted}
+    <div className="flex flex-col gap-4">
+      <ExpenseOverviewCard
+        month={month}
+        total={total}
+        categories={categories}
+        onEditTotal={onEdit}
+        onSeeCategories={() =>
+          categoriesRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+      />
+      <SpendTrendCard
+        month={month}
+        rolling={{
+          avg: total?.avg_net_expense ?? null,
+          min: total?.min_net_expense ?? null,
+          max: total?.max_net_expense ?? null,
+        }}
+      />
+      <CategoriesSection
+        sectionRef={categoriesRef}
+        month={month}
+        visibleCategories={visibleCategories}
+        highlightTagId={highlightTagId}
         onEdit={onEdit}
-        emphasis
-        showTypeChip={false}
       />
-      <RollingStatsStrip money={money} category={category} />
     </div>
   );
 }
 
-interface RollingStatsStripProps {
-  category: BudgetCategory;
-  money: (n: number | null | undefined) => string;
+interface CategoriesSectionProps {
+  sectionRef: React.Ref<HTMLDivElement>;
+  month: string;
+  visibleCategories: BudgetCategory[];
+  highlightTagId: number | null;
+  onEdit: (c: BudgetCategory) => void;
 }
 
-// "Recent months" trends strip — Avg / Min / Max in a dedicated row
-// under the Month Overview card. Per the 2026-05-27 lock these are
-// rollup-level stats that don't belong on each category card; placing
-// them here makes the rollup-vs-detail distinction obvious.
-function RollingStatsStrip({ category, money }: RollingStatsStripProps) {
+function CategoriesSection({
+  sectionRef,
+  month,
+  visibleCategories,
+  highlightTagId,
+  onEdit,
+}: CategoriesSectionProps) {
   return (
-    <dl
-      className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-sm sm:grid-cols-3 dark:border-slate-800 dark:bg-slate-900"
-      data-testid="rolling-stats"
+    <section
+      ref={sectionRef}
+      aria-labelledby="categories-heading"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
     >
-      <Stat
-        label="Average monthly spend"
-        value={money(category.avg_net_expense)}
-      />
-      <Stat
-        label="Lowest monthly spend"
-        value={money(category.min_net_expense)}
-      />
-      <Stat
-        label="Highest monthly spend"
-        value={money(category.max_net_expense)}
-      />
-    </dl>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
-        {label}
-      </dt>
-      <dd className="money text-base font-semibold text-slate-900 tabular-nums dark:text-slate-100">
-        {value}
-      </dd>
-    </div>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2
+          id="categories-heading"
+          className="text-base font-semibold text-slate-900 dark:text-slate-100"
+        >
+          Categories
+        </h2>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          {visibleCategories.length}{' '}
+          {visibleCategories.length === 1 ? 'category' : 'categories'}
+        </span>
+      </div>
+      {visibleCategories.length === 0 ? (
+        <div className="rounded-md border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          No categorized spending found for {formatYearMonth(month, 'long')}.
+        </div>
+      ) : (
+        <div
+          className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+          data-testid="budget-category-list"
+        >
+          {visibleCategories.map((cat) => (
+            <BudgetCategoryCard
+              key={cat.tag_id}
+              category={cat}
+              isHighlighted={highlightTagId === cat.tag_id}
+              onEdit={onEdit}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

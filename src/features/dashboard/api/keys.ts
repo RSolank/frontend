@@ -6,6 +6,15 @@
 // per-(tag, bucket) trend the dashboard + budgets pages render.
 export const dashboardKeys = {
   all: ['dashboard'] as const,
-  trend: (period_type: string, n: number, tag_id?: number) =>
-    [...dashboardKeys.all, 'trend', period_type, n, tag_id ?? null] as const,
+  // `end` anchors the window's last bucket (defaults to "now" when omitted),
+  // so the expense-tracker page's month selector keys distinct trend windows.
+  trend: (period_type: string, n: number, tag_id?: number, end?: string) =>
+    [
+      ...dashboardKeys.all,
+      'trend',
+      period_type,
+      n,
+      tag_id ?? null,
+      end ?? null,
+    ] as const,
 } as const;

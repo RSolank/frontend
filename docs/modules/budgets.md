@@ -7,11 +7,17 @@
 
 ## Purpose
 
-- Render `/budgets` as the Expense Tracker page — a month-scoped
-  view of every category with spend (or a configured limit), each
-  shown as a card with the current month's expense, the configured
-  limit, the rolling avg/min/max, and a progress bar that paints red
-  when spend exceeds the limit.
+- Render `/budgets` as the Expense Tracker — a single analytics
+  dashboard ordered by importance into three zones: **Zone 1** an
+  overview card (total + state + top categories), **Zone 2** a
+  spending-trend card (total bars/line beside a category-breakdown
+  donut, with a stacked stats footer), and **Zone 3** the per-category
+  budget cards. A casual / mobile reader gets the answer from Zone 1
+  and can stop; explorers scroll for the trend and per-category detail.
+  The month `<select>` is the **page anchor**: Zones 1 & 3 snapshot
+  that month, Zone 2's trend ends on it. Drill-down into individual
+  transactions lives on the Transactions page — here it's cumulative
+  totals, trends, and state only.
 - Configure budget limits + per-budget penalty-rate overrides via a
   modal-first form (`<BudgetFormDialog />`). The same modal handles
   the global "Total Budget" surface — different tag id, same shape.
@@ -33,25 +39,46 @@ wrapped by `protectedRoutes()`).
 ## Components
 
 - `pages/ExpenseTrackerPage.tsx` — page-level surface. Hosts the
-  month-picker (`<select>` keyed on `available_months`), the Total
-  Budget card (emphasis variant), the categories grid, and the
+  month-picker page anchor (`<select>` keyed on `available_months`)
+  and the three zones (`<TrackerZones>`), plus the
   `<BudgetFormDialog />` instance. URL-state-synced via
   `useUrlValueModal('edit')` so `/budgets?edit=<tag_id>` is
   shareable + reload-safe.
-- `components/BudgetCategoryCard.tsx` — read-only card rendering
-  label/value pairs (Spent / Limit / Avg / Min-Max) + a progress
-  bar + a penalty-rate footnote. Top-line Edit affordance ("Set
-  budget" when no limit; "Edit budget" otherwise). The same
-  component renders the Total Budget surface with `emphasis` set,
-  which paints an indigo-tinted background to mark it as the
-  top-level rollup. Carries an **anomaly badge** inline with the title
-  that classifies the current month's spend
-  against `avg_net_expense` / `max_net_expense` into four bands —
-  `Below typical` (emerald, current ≤ avg×0.75),
-  `Typical` (slate, within ±25 % of avg),
-  `Near typical max` (amber, > avg×1.25 and ≤ max), and
-  `Above typical max` (rose, > max). The badge is hidden when no
-  historical baseline exists yet (`avg_net_expense ≤ 0`).
+- `lib/budgetSignal.ts` — the **single classifier** behind the unified
+  signal (replaces the old status-word + anomaly-badge pair).
+  `computeBudgetSignal()` has two modes: with a limit → the budget band
+  (`On track` / `Watch` / `Near limit` / `Over budget` by % of limit);
+  without → the rolling-baseline band (`Below typical` / `Typical` /
+  `Above typical` / `Most expensive yet`, or `No budget set` when there's
+  no spend / history). `SIGNAL_STYLE` maps each tone to the existing
+  semantic tokens (success / warning / orange / danger / slate).
+- `components/BudgetSignal.tsx` — the pill rendering that classifier;
+  the secondary dimension (rolling typical, or breach overshoot) rides
+  in the tooltip. Used on the Zone 1 overview and every Zone 3 card.
+- `components/SpendGauge.tsx` — the unified spend bar. With a limit →
+  fill vs the limit + a threshold line, an `avg` tick, and (only when
+  breached) a `max` tick. Without → fill vs the rolling max + an `avg`
+  tick. `min` rides in the tooltip.
+- `components/ExpenseOverviewCard.tsx` — **Zone 1** (the highlight).
+  Exports a pure `ExpenseOverviewView` (total + MoM delta + BudgetSignal
+  + SpendGauge + top-3 categories, Miscellaneous excluded) and a thin
+  `ExpenseOverviewCard` container that wires live data + the MoM delta
+  query. The landing hero imports the **View** with fabricated data so
+  the mock can't drift from the app.
+- `components/SpendTrendCard.tsx` — **Zone 2**. A range selector
+  (1W / 1M / 3M / 6M / YTD / 1Y / 2Y, default 6M) drives two queries
+  (Total series + all-tag breakdown) ending at the page anchor; renders
+  bars (≤5 buckets) or a line (more) beside a category donut, with a
+  stacked footer (this-window stats above rolling-12-month stats).
+- `components/trendCharts.tsx` — hand-rolled inline-SVG `MiniBars` /
+  `MiniLine` / `MiniDonut` primitives (no chart library — recharts would
+  punch the bundle ceiling) + the categorical slice palette.
+- `components/BudgetCategoryCard.tsx` — **Zone 3** read-only card:
+  label/value pairs (Spent / Limit / Avg) + a `<SpendGauge>` + a
+  `<BudgetSignal>` in the header + a penalty-rate footnote. Min/Max no
+  longer clutter the card (they live in the Zone 2 footer). The same
+  component renders the Total surface with `emphasis` set (indigo tint)
+  — though the Total now headlines Zone 1, not the grid.
 - `components/BudgetFormDialog.tsx` — `<Modal size="md">` with two
   fields: Monthly limit (numeric, in active currency) and Penalty
   rate (humanized — accepts `5%`, `0.05`, `5`). Save calls
@@ -59,13 +86,6 @@ wrapped by `protectedRoutes()`).
   Cancel + Save in footer; confirmOnDirty on close. When the tag has
   a configured limit, a muted "Created on …" footer renders below
   the form fields from the BE Phase 3.0 `BudgetStatusRow.created_at`.
-- `components/ExpenseTrendChart.tsx` — six-month
-  `<svg>` bar chart of the Total tag's `net_expense`. Reads
-  `useExpenseTrendQuery('monthly', 6, TOTAL_TAG_ID)` from the
-  dashboard feature's `api/queries.ts`. Inline SVG (no chart-lib
-  dep — recharts would punch the bundle ceiling). Slots between
-  the Month Overview rollup and the Categories grid.
-
 ## Hooks
 
 | Hook                           | Purpose                                                                                                                                                                      |
@@ -95,12 +115,13 @@ Read endpoints consumed (under `/api/v1/budget-limits`):
   positive — refunds net spend down).
 - `GET /api/v1/budget-limits/?budget_period=monthly` → list of
   configured limits (no spend aggregates).
-- `GET /api/v1/expense-tracker?period_type=monthly&n=6&tag_id=<TOTAL>` →
-  per-bucket trend for the `<ExpenseTrendChart>` six-month chart.
-  Query hook lives in
+- `GET /api/v1/expense-tracker?period_type=…&n=…&tag_id=<TOTAL>&end=YYYY-MM-DD`
+  → the Total-tag series for Zone 2's bars/line. Omitting `tag_id` returns
+  every tag's per-bucket rows, which `SpendTrendCard` sums per tag into the
+  breakdown donut. `end` (BE optional param) anchors the window's last
+  bucket at the page's selected month. Query hook lives in
   [`features/dashboard/api/queries.ts`](../../src/features/dashboard/api/queries.ts)
-  because two consumers (this page + future dashboard widget)
-  share it; see [`dashboard.md`](dashboard.md).
+  because multiple consumers share it; see [`dashboard.md`](dashboard.md).
 
 Write endpoints consumed:
 
@@ -121,8 +142,8 @@ limit_amt, penalty_rate? }`. Backend upserts by user + tag + period.
 - Categories are ordered as the backend returns them — root tags
   first, then alphabetical within each group (see
   `budget_services.list_budget_limits` ordering).
-- The Total Budget card always renders when the backend returns one;
-  it sits above the categories grid with the `emphasis` variant.
+- The Total Budget headlines **Zone 1** (the overview card) when the
+  backend returns one; it no longer renders as a card above the grid.
 
 ## Form semantics
 

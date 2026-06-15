@@ -2,6 +2,8 @@ import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/state/useAuth';
+import type { BudgetCategory } from '../../features/budgets/api/queries';
+import type { OverviewTopCategory } from '../../features/budgets/components/ExpenseOverviewCard';
 import { useBrandingQuery } from '../../shared/api/branding';
 import {
   useIdlePrefetch,
@@ -28,6 +30,43 @@ const ANON_PREFETCH: readonly PrefetchEntry[] = [
     load: () => import('../../features/auth/components/AuthModal'),
     delayMs: 2_000,
   },
+];
+
+// Hero preview = the REAL Zone-1 overview card, rendered with fabricated data.
+// Importing the actual component (lazy, so it stays off first paint) guarantees
+// the landing mock can never visually drift from the live expense-tracker page.
+const ExpenseOverviewPreview = lazy(() =>
+  import('../../features/budgets/components/ExpenseOverviewCard').then((m) => ({
+    default: m.ExpenseOverviewView,
+  }))
+);
+
+const PREVIEW_NOW = new Date();
+const PREVIEW_MONTH = `${PREVIEW_NOW.getFullYear()}-${String(
+  PREVIEW_NOW.getMonth() + 1
+).padStart(2, '0')}`;
+
+// 82,450 / 150,000 = 55% → "On track"; numbers chosen to read as a calm,
+// in-control month.
+const PREVIEW_TOTAL: BudgetCategory = {
+  tag_id: 1,
+  tag_name: 'Total Budget',
+  tag_type: 'total',
+  current_debit: 82_450,
+  current_credit: 0,
+  current_net_expense: 82_450,
+  avg_net_expense: 86_800,
+  min_net_expense: 61_000,
+  max_net_expense: 98_000,
+  limit_amt: 150_000,
+  penalty_rate: null,
+  default_penalty_rate: null,
+};
+
+const PREVIEW_TOP: OverviewTopCategory[] = [
+  { tag_id: 11, tag_name: 'Essentials', pctOfTotal: 42 },
+  { tag_id: 12, tag_name: 'Dining', pctOfTotal: 18 },
+  { tag_id: 13, tag_name: 'Transport', pctOfTotal: 11 },
 ];
 
 // Landing page. CTAs open the AuthModal (preferred entry path) but
@@ -127,63 +166,20 @@ export function HomePage() {
             aria-hidden="true"
             className="via-success-200/20 absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 to-cyan-300/30 blur-2xl"
           />
-          <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="mb-0.5 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-                  Monthly overview
-                </div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  ₹82,450
-                </div>
-                <div className="text-success-600 dark:text-success-400 mt-0.5 text-xs">
-                  +12.4% vs last month
-                </div>
-              </div>
-              <div className="bg-success-100/70 text-success-800 dark:bg-success-950/40 dark:text-success-300 rounded-full px-3 py-1 text-xs font-semibold">
-                On track
-              </div>
-            </div>
-
-            <div className="mb-5 grid grid-cols-3 gap-2">
-              {[
-                { label: 'Essentials', value: '42%', tint: 'bg-teal-500' },
-                { label: 'Goals & tax', value: '28%', tint: 'bg-blue-500' },
-                { label: 'Lifestyle', value: '30%', tint: 'bg-purple-500' },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/40"
-                >
-                  <div className="mb-0.5 text-[0.7rem] text-slate-500 dark:text-slate-400">
-                    {item.label}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {item.value}
-                    </span>
-                    <span
-                      className={`h-2 w-2 rounded-full ${item.tint}`}
-                      aria-hidden="true"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between gap-3 border-t border-dashed border-slate-300 pt-3 dark:border-slate-700">
-              <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Next tax set-aside
-                </div>
-                <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                  ₹14,300
-                </div>
-              </div>
-              <div className="max-w-[11rem] text-right text-[0.7rem] text-slate-500 dark:text-slate-400">
-                Automatically tagged so you do not have to think about it.
-              </div>
-            </div>
+          <div className="relative shadow-lg">
+            <Suspense
+              fallback={
+                <div className="h-72 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+              }
+            >
+              <ExpenseOverviewPreview
+                month={PREVIEW_MONTH}
+                total={PREVIEW_TOTAL}
+                deltaPct={-0.05}
+                topCategories={PREVIEW_TOP}
+                moreCount={0}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

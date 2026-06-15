@@ -123,7 +123,9 @@ span multiple feature pages):
 
 - `GET /api/v1/expense-tracker` — BE Phase 1.7 (`3252ca4`,
   T-aggregates-engine). Per-(tag, bucket) trend; consumed by both
-  the dashboard and the `/budgets` `<ExpenseTrendChart>`.
+  the dashboard and the `/budgets` Zone 2 `<SpendTrendCard>`. Takes an
+  optional `end=YYYY-MM-DD` to anchor the window's last bucket (so the
+  trend can follow the expense-tracker page's month selector).
 
 Every other card consumes the same `/api/v1/transactions`,
 `/api/v1/budget-limits/status`, and `/api/v1/consumption-tax/…` endpoints
