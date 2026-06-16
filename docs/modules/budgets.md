@@ -58,21 +58,35 @@ wrapped by `protectedRoutes()`).
 - `components/SpendGauge.tsx` — the unified spend bar. With a limit →
   fill vs the limit + a threshold line, an `avg` tick, and (only when
   breached) a `max` tick. Without → fill vs the rolling max + an `avg`
-  tick. `min` rides in the tooltip.
+  tick. `min` rides in the tooltip. A non-zero spend keeps a `min-width`
+  sliver so a quiet first month never collapses to an invisible bar.
 - `components/ExpenseOverviewCard.tsx` — **Zone 1** (the highlight).
   Exports a pure `ExpenseOverviewView` (total + MoM delta + BudgetSignal
   + SpendGauge + top-3 categories, Miscellaneous excluded) and a thin
   `ExpenseOverviewCard` container that wires live data + the MoM delta
-  query. The landing hero imports the **View** with fabricated data so
-  the mock can't drift from the app.
+  query. **Top categories rank ROOT tags only** (`rootTagIds` from the
+  tag tree, `parent == null`) so a parent (Utilities) and its child
+  (Phone) aren't double-counted — a root already includes its descendants
+  via tag-lineage. The landing hero imports the **View** with fabricated
+  data so the mock can't drift from the app.
 - `components/SpendTrendCard.tsx` — **Zone 2**. A range selector
   (1W / 1M / 3M / 6M / YTD / 1Y / 2Y, default 6M) drives two queries
   (Total series + all-tag breakdown) ending at the page anchor; renders
-  bars (≤5 buckets) or a line (more) beside a category donut, with a
-  stacked footer (this-window stats above rolling-12-month stats).
+  bars (≤5 buckets) or a line (more) beside a category donut (roots only),
+  with a **tabular footer** (`avg / low / high` columns) whose two rows
+  are the selected window and the **grain-matched rolling baseline** —
+  "Last 52 weeks" for a weekly view, "Last 12 months" for a monthly one.
+  That baseline is read off the **latest displayed bucket's stored stats**
+  (the BE computes `avg/min/max_net_expense` per grain), so a weekly view
+  never shows a `/mo` figure.
 - `components/trendCharts.tsx` — hand-rolled inline-SVG `MiniBars` /
   `MiniLine` / `MiniDonut` primitives (no chart library — recharts would
-  punch the bundle ceiling) + the categorical slice palette.
+  punch the bundle ceiling) + the categorical slice palette. Bars/line
+  carry a y-axis (gridlines + compact money labels) and **controlled
+  hover** (`hovered` / `onHover`): the chart-area owns the index and
+  renders the value as an **HTML readout** above the chart (the SVG is
+  scaled non-uniformly, so in-chart value text would distort); hovering
+  emphasises the bar / point + drops a guide line.
 - `components/BudgetCategoryCard.tsx` — **Zone 3** read-only card:
   label/value pairs (Spent / Limit / Avg) + a `<SpendGauge>` + a
   `<BudgetSignal>` in the header + a penalty-rate footnote. Min/Max no

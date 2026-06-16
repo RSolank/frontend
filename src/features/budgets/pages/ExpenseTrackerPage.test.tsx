@@ -89,7 +89,10 @@ function trendRow(
   tag_id: number,
   tag_name: string,
   period_start: string,
-  net: number
+  net: number,
+  // The BE stores the rolling avg/min/max per bucket; the trend footer reads
+  // them off the latest displayed bucket (grain-correct rolling baseline).
+  roll?: { avg: number; min: number; max: number }
 ) {
   return {
     tag_id,
@@ -101,9 +104,9 @@ function trendRow(
     total_debit: net,
     total_credit: 0,
     net_expense: net,
-    avg_net_expense: null,
-    min_net_expense: null,
-    max_net_expense: null,
+    avg_net_expense: roll?.avg ?? null,
+    min_net_expense: roll?.min ?? null,
+    max_net_expense: roll?.max ?? null,
   };
 }
 
@@ -121,7 +124,12 @@ function installHandlers() {
       const tagId = new URL(request.url).searchParams.get('tag_id');
       let rows = [
         trendRow(1, 'Total Budget', '2026-01-01', 500),
-        trendRow(1, 'Total Budget', '2026-02-01', 570),
+        // Latest Total bucket carries the rolling 12-month stats the footer reads.
+        trendRow(1, 'Total Budget', '2026-02-01', 570, {
+          avg: 460,
+          min: 320,
+          max: 710,
+        }),
         trendRow(11, 'Groceries', '2026-02-01', 300),
         trendRow(12, 'Dining', '2026-02-01', 220),
         trendRow(13, 'Hobbies', '2026-02-01', 50),

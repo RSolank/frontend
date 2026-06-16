@@ -5,8 +5,9 @@ import { Modal } from '../../../shared/components/Modal';
 import {
   createBeneficiaryRequest,
   updateBeneficiaryRequest,
+  updateCategorizationRuleTags,
 } from '../api/mutations';
-import type { Beneficiary } from '../api/queries';
+import { fetchCategorizationRules, type Beneficiary } from '../api/queries';
 import {
   beneficiaryToForm,
   emptyBeneficiaryForm,
@@ -19,6 +20,23 @@ import { BeneficiaryFormFields } from './BeneficiaryFormFields';
 interface ApiErrorShape {
   detail?: string;
   error?: string;
+}
+
+// Point a freshly-created person's auto rule at the chosen category (best
+// effort — a failure leaves the BE's Other Transfer default in place).
+async function syncNewPersonRule(
+  beneficiaryUid: number,
+  tagId: number
+): Promise<void> {
+  try {
+    const res = await fetchCategorizationRules();
+    const rule = (res.rules || []).find(
+      (r) => r.beneficiary_id === beneficiaryUid
+    );
+    if (rule) await updateCategorizationRuleTags(rule.uid, [tagId]);
+  } catch (err) {
+    console.error('Failed to sync new person category', err);
+  }
 }
 
 // Save-button label by state — if/else (not a nested ternary) so it stays off
@@ -113,6 +131,13 @@ function useBeneficiaryForm({
             formToPayload(form)
           )
         : await createBeneficiaryRequest(formToPayload(form));
+      // A NEW person gets an auto-created Other Transfer rule on the BE; if the
+      // user chose a different category in the form, point that rule at it
+      // (merchants persist their category via the payload; persons have no
+      // category column, so the FE syncs the rule directly).
+      if (!isEditing && form.beneficiary_type === 'person' && form.category) {
+        await syncNewPersonRule(saved.uid, Number(form.category));
+      }
       onSaved(saved);
       // Row-highlight on the parent surfaces the saved state; close
       // cleanly.

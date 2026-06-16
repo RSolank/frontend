@@ -168,7 +168,9 @@ export function HomePage() {
               aria-hidden="true"
               className="via-success-200/20 absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 to-cyan-300/30 blur-2xl"
             />
-            <div className="relative shadow-lg">
+            {/* A subtle desktop upscale gives the card a touch more presence
+                without overpowering the (much taller) text column. */}
+            <div className="relative origin-center shadow-lg lg:scale-[1.06]">
               <Suspense
                 fallback={
                   <div className="h-72 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />

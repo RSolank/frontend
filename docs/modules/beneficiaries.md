@@ -13,9 +13,9 @@
 - Drive the alias-uniqueness probe + chip UI that feeds the
   auto-categorization engine.
 - Own the `/api/v1/beneficiaries/*` query surface and the merge flow.
-- Sync merchant → category changes by writing through the
-  `/api/v1/categorization-rules` endpoint so the beneficiary form can
-  set / change / clear a merchant's primary tag in one save.
+- Sync **both** merchant and person category changes by writing through
+  the `/api/v1/categorization-rules` endpoint so the beneficiary form can
+  set / change / clear a beneficiary's primary tag in one save.
 
 ## Pages
 
@@ -35,17 +35,24 @@ and composed into the root router by `src/app/routes.tsx`
   `/api/v1/beneficiaries/check-alias`; surfaces "checking", "available",
   "taken", "duplicate" states; controlled `aliases[]` value.
 - `components/BeneficiaryFormFields.tsx` — shared by the create form
-  on the list page and the list-page edit modal. Owns the category +
-  assigned-tags editor (uses `fetchTags` from the tags feature) and
-  the merchant↔person type switch.
+  on the list page and the list-page edit modal. Owns the shared
+  `CategoryPicker` (category `SearchableSelect` + assigned-tags editor,
+  `fetchTags` from the tags feature) and the merchant↔person type switch.
+  Categorization-v2: the `CategoryPicker` now renders for **persons too**
+  (full parity — a person can be a landlord → Rent), defaulting to the
+  BE's auto-created `Other Transfer` rule; the picker seeds from that rule
+  since persons carry their tag only on the rule (no `person.category`).
+- `components/BeneficiaryFormDialog.tsx` — unified create / edit modal
+  (also reused inline by the categorization-rules page). On creating a
+  **person** with a chosen category it syncs the auto-created rule to that
+  tag (merchants persist category via the payload; persons have no
+  category column, so the FE writes the rule).
 - `components/MergeBeneficiariesForm.tsx` — source / target picker
   with swap + mismatched-type warning, mounted inside
   `MergeBeneficiariesDialog` from the list-page edit modal. Source
   / target render as a 2-up grid (stacked below `sm`); Swap +
   Merge buttons share a separate action row so the swap arrow
   never lands between selects on narrow viewports.
-- `components/BeneficiaryFormDialog.tsx` — unified create / edit
-  modal (also reused inline by the categorization-rules page).
 - `components/MergeBeneficiariesDialog.tsx` — `<Modal>` wrapper
   around `MergeBeneficiariesForm`, opened from the edit modal's
   Merge action.

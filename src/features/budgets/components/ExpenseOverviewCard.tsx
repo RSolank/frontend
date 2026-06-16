@@ -208,6 +208,9 @@ interface ExpenseOverviewCardProps {
   month: string; // YYYY-MM anchor (the page selector)
   total: BudgetCategory | null;
   categories: BudgetCategory[];
+  // Top-level tag ids — "where it went" ranks roots only so a parent and its
+  // child aren't both counted (a root already includes its descendants).
+  rootTagIds?: Set<number>;
   onEditTotal: (c: BudgetCategory) => void;
   onSeeCategories: () => void;
 }
@@ -216,6 +219,7 @@ export function ExpenseOverviewCard({
   month,
   total,
   categories,
+  rootTagIds,
   onEditTotal,
   onSeeCategories,
 }: ExpenseOverviewCardProps) {
@@ -244,13 +248,18 @@ export function ExpenseOverviewCard({
     return prev > 0 ? (cur - prev) / prev : null;
   })();
 
+  // % of TOTAL spend (including the uncategorized/Misc share) — the same
+  // denominator the Zone 2 donut uses, so a category reads the same % in both.
   const totalSpend = total?.current_net_expense ?? 0;
+  // Roots-only (unless the tag tree hasn't loaded yet → don't hide everything).
+  const rootsReady = rootTagIds != null && rootTagIds.size > 0;
   const ranked = categories
     .filter(
       (c) =>
         c.tag_id !== miscTagId &&
         c.tag_id !== totalTagId &&
-        (c.current_net_expense ?? 0) > 0
+        (c.current_net_expense ?? 0) > 0 &&
+        (!rootsReady || rootTagIds!.has(c.tag_id))
     )
     .sort(
       (a, b) => (b.current_net_expense ?? 0) - (a.current_net_expense ?? 0)

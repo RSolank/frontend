@@ -455,24 +455,43 @@ function DrawerSection({ label, links }: DrawerSectionProps) {
 // shift when the chunk lands; on first click we set `opened=true`
 // which mounts the lazy chunk with `defaultOpen={true}` so the click
 // is honored without a second tap.
+//
+// Two guarantees so the trigger never blinks out (the chunk is ~17.8 kB
+// gz and may not be warm yet on an early click):
+//   • `prefetchTopNavMenus` on hover/focus warms the chunk the instant
+//     the user shows intent — on top of the 2s idle schedule — so the
+//     click usually resolves from cache.
+//   • the Suspense fallback re-renders the SAME trigger (not `null`), so
+//     during any residual load lag the icon stays put instead of
+//     vanishing until the Radix surface mounts.
+const prefetchTopNavMenus = () => import('./TopNavMenus');
+
+const SETTINGS_TRIGGER_CLASS =
+  'hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300';
+
+// `onOpen` undefined → presentational (the Suspense fallback while the
+// chunk lands); the click is already in flight.
+function SettingsTrigger({ onOpen }: { onOpen?: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Settings"
+      onClick={onOpen}
+      onMouseEnter={prefetchTopNavMenus}
+      onFocus={prefetchTopNavMenus}
+      className={SETTINGS_TRIGGER_CLASS}
+    >
+      <Settings aria-hidden="true" size={20} />
+      <ChevronDown aria-hidden="true" size={14} />
+    </button>
+  );
+}
 
 function SettingsMenuLazy() {
   const [opened, setOpened] = useState(false);
-  if (!opened) {
-    return (
-      <button
-        type="button"
-        aria-label="Settings"
-        onClick={() => setOpened(true)}
-        className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
-      >
-        <Settings aria-hidden="true" size={20} />
-        <ChevronDown aria-hidden="true" size={14} />
-      </button>
-    );
-  }
+  if (!opened) return <SettingsTrigger onOpen={() => setOpened(true)} />;
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SettingsTrigger />}>
       <SettingsDropdownLazy links={SETTINGS_LINKS} defaultOpen />
     </Suspense>
   );
@@ -488,30 +507,39 @@ interface UserMenuLazyProps {
   onLogout: () => void | Promise<void>;
 }
 
+function UserTrigger({
+  user,
+  onOpen,
+}: {
+  user: UserMenuLazyProps['user'];
+  onOpen?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="Account menu"
+      title={user.email_id}
+      onClick={onOpen}
+      onMouseEnter={prefetchTopNavMenus}
+      onFocus={prefetchTopNavMenus}
+      className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+    >
+      <ProfileImage
+        profileImageUrl={user.profile_image_url ?? null}
+        email={user.email_id}
+        firstName={user.first_name ?? null}
+        lastName={user.last_name ?? null}
+        sizeClassName="h-11 w-11"
+      />
+    </button>
+  );
+}
+
 function UserMenuLazy({ user, onLogout }: UserMenuLazyProps) {
   const [opened, setOpened] = useState(false);
-  const email = user.email_id;
-  if (!opened) {
-    return (
-      <button
-        type="button"
-        aria-label="Account menu"
-        title={email}
-        onClick={() => setOpened(true)}
-        className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
-      >
-        <ProfileImage
-          profileImageUrl={user.profile_image_url ?? null}
-          email={email}
-          firstName={user.first_name ?? null}
-          lastName={user.last_name ?? null}
-          sizeClassName="h-11 w-11"
-        />
-      </button>
-    );
-  }
+  if (!opened) return <UserTrigger user={user} onOpen={() => setOpened(true)} />;
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<UserTrigger user={user} />}>
       <UserDropdownLazy user={user} onLogout={onLogout} defaultOpen />
     </Suspense>
   );

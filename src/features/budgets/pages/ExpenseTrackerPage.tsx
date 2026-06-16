@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
+import { useTagsQuery } from '../../tags/api/queries';
 import { budgetKeys } from '../api/keys';
 import { useBudgetStatusQuery, type BudgetCategory } from '../api/queries';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
@@ -26,6 +27,16 @@ export function ExpenseTrackerPage() {
   const editModal = useUrlValueModal('edit');
   const editTagId = editModal.value != null ? Number(editModal.value) : null;
   const { id: highlightTagId, flash } = useRowHighlight<number>();
+
+  // Root categories (top-level tags, `parent == null`) — Zone 1's "where it
+  // went" and Zone 2's donut scope to these so a parent (e.g. Utilities) and
+  // its child (e.g. Phone) aren't double-counted; a root's spend already
+  // includes its descendants via tag-lineage propagation.
+  const { data: tagTree } = useTagsQuery();
+  const rootTagIds = useMemo(
+    () => new Set((tagTree?.tags ?? []).map((t) => t.tag_id)),
+    [tagTree]
+  );
 
   // Categories grid filter — keep any category with spend OR a configured limit.
   const visibleCategories: BudgetCategory[] = useMemo(() => {
@@ -129,6 +140,7 @@ export function ExpenseTrackerPage() {
             total={totalBudget}
             categories={data?.categories ?? []}
             visibleCategories={visibleCategories}
+            rootTagIds={rootTagIds}
             highlightTagId={highlightTagId}
             onEdit={handleEdit}
           />
@@ -150,6 +162,7 @@ interface TrackerZonesProps {
   total: BudgetCategory | null;
   categories: BudgetCategory[];
   visibleCategories: BudgetCategory[];
+  rootTagIds: Set<number>;
   highlightTagId: number | null;
   onEdit: (c: BudgetCategory) => void;
 }
@@ -161,6 +174,7 @@ function TrackerZones({
   total,
   categories,
   visibleCategories,
+  rootTagIds,
   highlightTagId,
   onEdit,
 }: TrackerZonesProps) {
@@ -171,19 +185,13 @@ function TrackerZones({
         month={month}
         total={total}
         categories={categories}
+        rootTagIds={rootTagIds}
         onEditTotal={onEdit}
         onSeeCategories={() =>
           categoriesRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
       />
-      <SpendTrendCard
-        month={month}
-        rolling={{
-          avg: total?.avg_net_expense ?? null,
-          min: total?.min_net_expense ?? null,
-          max: total?.max_net_expense ?? null,
-        }}
-      />
+      <SpendTrendCard month={month} rootTagIds={rootTagIds} />
       <CategoriesSection
         sectionRef={categoriesRef}
         month={month}

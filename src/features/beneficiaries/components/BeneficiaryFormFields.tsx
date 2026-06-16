@@ -115,10 +115,20 @@ export function BeneficiaryFormFields({
         const rule = (res.rules || []).find(
           (r: CategorizationRule) => r.beneficiary_id === form.uid
         );
-        setRuleTags(rule?.tag_ids ?? []);
+        const tagIds = rule?.tag_ids ?? [];
+        setRuleTags(tagIds);
+        // Seed the picker from the rule's primary when the form has no
+        // category yet — persons carry their tag only on the rule (there's no
+        // person.category column), so without this the picker would read empty
+        // while the chip shows the tag.
+        if (tagIds.length > 0) {
+          applyUpdate(setForm, (f) =>
+            f.category ? f : { ...f, category: String(tagIds[0]) }
+          );
+        }
       })
       .catch((err) => console.error('Failed to load rules', err));
-  }, [form.uid]);
+  }, [form.uid, setForm]);
 
   useEffect(() => {
     if (form.category && ruleTags.length === 0) {
@@ -256,9 +266,15 @@ export function BeneficiaryFormFields({
           phone={form.phone}
           upi={form.person_upi_id}
           relationships={relationships}
+          category={form.category}
+          tags={tags}
+          ruleTags={ruleTags}
           disabled={disabled}
           readOnly={readOnly}
           onChangeField={updateField}
+          onCategoryChange={handleCategoryChange}
+          onSetPrimary={handleSetPrimary}
+          onRemoveTag={handleRemoveRuleTag}
         />
       )}
     </>
@@ -279,26 +295,37 @@ interface MerchantFieldsProps {
   onRemoveTag: (tid: number) => void;
 }
 
-// Merchant-specific fields: category (which seeds the rule-tag list),
-// the assigned-tag chips, contact, and UPI id.
-function MerchantFields({
+interface CategoryPickerProps {
+  category: string;
+  tags: FlatTag[];
+  ruleTags: number[];
+  disabled: boolean;
+  label?: string;
+  hint?: string;
+  onCategoryChange: (newCat: string) => void;
+  onSetPrimary: (tid: number) => void;
+  onRemoveTag: (tid: number) => void;
+}
+
+// The category SearchableSelect + assigned-tag chips. Shared by merchants and
+// persons — both map a beneficiary → a categorization rule; the only difference
+// is the default a person carries (Other Transfer) and the helper hint.
+function CategoryPicker({
   category,
-  contact,
-  upi,
   tags,
   ruleTags,
   disabled,
-  readOnly,
+  label = 'Category',
+  hint,
   onCategoryChange,
-  onChangeField,
   onSetPrimary,
   onRemoveTag,
-}: MerchantFieldsProps) {
+}: CategoryPickerProps) {
   return (
     <>
       <div className="mb-4">
         <label htmlFor="beneficiary-category" className="form-label">
-          Category
+          {label}
         </label>
         {disabled ? (
           <input
@@ -314,7 +341,7 @@ function MerchantFields({
         ) : (
           <SearchableSelect
             id="beneficiary-category"
-            ariaLabel="Category"
+            ariaLabel={label}
             placeholder="— None —"
             value={category}
             onChange={onCategoryChange}
@@ -325,6 +352,11 @@ function MerchantFields({
                 label: formatTagAssignment(t.tag_id, tags),
               }))}
           />
+        )}
+        {hint && !disabled && (
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {hint}
+          </p>
         )}
       </div>
 
@@ -337,6 +369,35 @@ function MerchantFields({
           onRemoveTag={onRemoveTag}
         />
       )}
+    </>
+  );
+}
+
+// Merchant-specific fields: the shared category picker, contact, and UPI id.
+function MerchantFields({
+  category,
+  contact,
+  upi,
+  tags,
+  ruleTags,
+  disabled,
+  readOnly,
+  onCategoryChange,
+  onChangeField,
+  onSetPrimary,
+  onRemoveTag,
+}: MerchantFieldsProps) {
+  return (
+    <>
+      <CategoryPicker
+        category={category}
+        tags={tags}
+        ruleTags={ruleTags}
+        disabled={disabled}
+        onCategoryChange={onCategoryChange}
+        onSetPrimary={onSetPrimary}
+        onRemoveTag={onRemoveTag}
+      />
 
       <div className="mb-4">
         <label htmlFor="beneficiary-contact" className="form-label">
@@ -446,20 +507,33 @@ interface PersonFieldsProps {
   phone: string;
   upi: string;
   relationships: string[];
+  category: string;
+  tags: FlatTag[];
+  ruleTags: number[];
   disabled: boolean;
   readOnly: boolean;
   onChangeField: (patch: Partial<BeneficiaryFormInput>) => void;
+  onCategoryChange: (newCat: string) => void;
+  onSetPrimary: (tid: number) => void;
+  onRemoveTag: (tid: number) => void;
 }
 
-// Person-specific fields: relationship, phone, and UPI id.
+// Person-specific fields: relationship, the shared category picker (P2P flows
+// default to Other Transfer, overridable e.g. a landlord → Rent), phone, UPI.
 function PersonFields({
   relationshipType,
   phone,
   upi,
   relationships,
+  category,
+  tags,
+  ruleTags,
   disabled,
   readOnly,
   onChangeField,
+  onCategoryChange,
+  onSetPrimary,
+  onRemoveTag,
 }: PersonFieldsProps) {
   return (
     <>
@@ -482,6 +556,16 @@ function PersonFields({
           ))}
         </select>
       </div>
+      <CategoryPicker
+        category={category}
+        tags={tags}
+        ruleTags={ruleTags}
+        disabled={disabled}
+        hint="Payments to a person default to Other Transfer (not taxed). Change it if this is really an expense — e.g. a landlord → Rent."
+        onCategoryChange={onCategoryChange}
+        onSetPrimary={onSetPrimary}
+        onRemoveTag={onRemoveTag}
+      />
       <div className="mb-4">
         <label htmlFor="beneficiary-phone" className="form-label">
           Phone

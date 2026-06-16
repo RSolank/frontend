@@ -643,6 +643,16 @@ The schedule is the budget — adding a row makes it longer for
 everyone. Add only when usage data (or a UAT round) flags a
 specific click-gated chunk as slow.
 
+**Stub-then-hydrate triggers must stay visible.** A click-gated
+lazy surface that swaps a stub trigger for a `<Suspense>` boundary
+must use the **stub itself as the fallback**, never `fallback={null}`
+— otherwise the trigger (e.g. the TopNav Settings cog / Account
+avatar) blinks out during any residual load lag. Pair it with an
+intent-prefetch: warm the chunk on the trigger's `onMouseEnter` /
+`onFocus` (on top of the idle schedule) so the click usually
+resolves from cache. See `shared/components/TopNav.tsx`
+(`SettingsTrigger` / `UserTrigger` + `prefetchTopNavMenus`).
+
 ## Accessibility vs Preferences
 
 Locked 2026-05-26, reclassified 2026-06-01 after BE Phase 1.9 +

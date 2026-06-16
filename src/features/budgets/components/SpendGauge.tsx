@@ -128,7 +128,12 @@ export function SpendGauge({ current, limit, avg, min, max }: SpendGaugeProps) {
     >
       <div
         className={`h-full rounded-full ${SIGNAL_STYLE[fillTone].bar}`}
-        style={{ width: `${clampPct(current, scaleMax)}%` }}
+        style={{
+          width: `${clampPct(current, scaleMax)}%`,
+          // Any real spend stays visible — never collapse to a 0-px sliver when
+          // the value is tiny relative to the scale (a quiet first month, etc.).
+          minWidth: current > 0 ? '0.5rem' : 0,
+        }}
       />
       {ticks.map((t, i) => (
         <span

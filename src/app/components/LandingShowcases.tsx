@@ -149,8 +149,9 @@ export function LandingShowcases() {
                   points={TREND_POINTS}
                   chartKind="line"
                   periodStats={TREND_STATS}
+                  grain="monthly"
                   grainUnit="/mo"
-                  rangeLabel="6M"
+                  rangeLabel="Last 6 months"
                   rolling={{ avg: 83_700, min: 71_200, max: 96_100 }}
                   slices={TREND_SLICES}
                   legend={TREND_LEGEND}

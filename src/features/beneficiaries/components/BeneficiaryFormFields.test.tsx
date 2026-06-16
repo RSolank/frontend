@@ -85,11 +85,13 @@ describe('BeneficiaryFormFields', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders person fields with the loaded relationship options', async () => {
+  it('renders person fields with the loaded relationship options + category picker', async () => {
     render(<Harness initialType="person" />);
     expect(screen.getByLabelText('Relationship')).toBeInTheDocument();
     expect(screen.getByLabelText('Phone')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
+    // Categorization-v2: persons now carry a category picker too (full parity
+    // with merchants — a person can be a landlord → Rent, etc.).
+    expect(screen.getByLabelText('Category')).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('option', { name: 'friend' })).toBeInTheDocument()
     );
