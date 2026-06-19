@@ -32,8 +32,13 @@ export function MerchantRow({
   const beneficiaryName = group.beneficiary_name ?? '—';
   const total = group.net_expense;
   const count = group.total_count;
-  const totalSign = amountSign(total);
-  const totalColor = amountColorClass(total);
+  // `net_expense` is expense-positive (debit − credit), but amountSign/
+  // amountColorClass use the income convention (positive = green/+). Negate so
+  // a net-spend merchant reads red/− and a net-credit (refund-heavy) one reads
+  // green/+, matching the per-row TransactionRow convention.
+  const signed = -(total ?? 0);
+  const totalSign = amountSign(signed);
+  const totalColor = amountColorClass(signed);
 
   return (
     <li className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60">

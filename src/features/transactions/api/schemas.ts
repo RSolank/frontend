@@ -48,7 +48,6 @@ export interface TransactionDTO {
   txn_date: string;
   beneficiary_id?: number | null;
   beneficiary_name?: string | null;
-  beneficiary?: string | null;
   amount: number;
   debit_credit: 'debit' | 'credit';
   source: 'manual' | 'statement';

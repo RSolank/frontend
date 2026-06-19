@@ -81,10 +81,10 @@ export function TransactionRow({
               className="text-accent-700 hover:text-accent-800 dark:text-accent-300 dark:hover:text-accent-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {txn.beneficiary_name || txn.beneficiary || '—'}
+              {txn.beneficiary_name || '—'}
             </Link>
           ) : (
-            txn.beneficiary_name || txn.beneficiary || '—'
+            txn.beneficiary_name || '—'
           )}
         </div>
         <div className="flex flex-wrap gap-1 md:ml-2">

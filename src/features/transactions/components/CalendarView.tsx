@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { formatMoney } from '../../../shared/utils/currency';
@@ -120,9 +120,12 @@ function cellAriaLabel(
   return `${cell.iso}${activity}${todaySuffix}`;
 }
 
-// The cell's amount line — debit (rose) takes precedence, else credit
-// (emerald), else an em-dash. Its own component so the parent button stays
-// off sonarjs/no-nested-conditional and under the complexity gate.
+// The cell's amount line(s) — a day shows BOTH its debit (rose) and credit
+// (emerald) totals when it has both, so a mixed day never collapses to a
+// misleading net or hides an inflow behind the spend. Single-direction days
+// show the one figure; an empty day shows an em-dash. Its own component so the
+// parent button stays off sonarjs/no-nested-conditional and under the
+// complexity gate.
 function CellAmount({
   debit,
   credit,
@@ -134,23 +137,25 @@ function CellAmount({
   currencyCode: string;
   currencySymbol: string | null;
 }) {
-  if (debit > 0) {
+  if (debit <= 0 && credit <= 0) {
     return (
-      <span className="money text-danger-600 dark:text-danger-400 mt-auto text-sm font-bold">
-        -{formatMoney(debit, currencyCode, currencySymbol)}
-      </span>
-    );
-  }
-  if (credit > 0) {
-    return (
-      <span className="money text-success-600 dark:text-success-400 mt-auto text-sm font-bold">
-        +{formatMoney(credit, currencyCode, currencySymbol)}
+      <span className="mt-auto text-xs text-slate-400 dark:text-slate-600">
+        —
       </span>
     );
   }
   return (
-    <span className="mt-auto text-xs text-slate-400 dark:text-slate-600">
-      —
+    <span className="mt-auto flex flex-col items-stretch gap-0.5 leading-tight">
+      {debit > 0 && (
+        <span className="money text-danger-600 dark:text-danger-400 text-sm font-bold">
+          -{formatMoney(debit, currencyCode, currencySymbol)}
+        </span>
+      )}
+      {credit > 0 && (
+        <span className="money text-success-600 dark:text-success-400 text-sm font-bold">
+          +{formatMoney(credit, currencyCode, currencySymbol)}
+        </span>
+      )}
     </span>
   );
 }
@@ -233,15 +238,6 @@ function CalendarCellButton({
         >
           {cell.day}
         </span>
-        {credit > 0 && (
-          <span
-            title="Credit on this day"
-            className="text-success-600 dark:text-success-400 inline-flex items-center"
-            aria-hidden="true"
-          >
-            <TrendingUp size={12} />
-          </span>
-        )}
       </span>
       <CellAmount
         debit={debit}

@@ -12,9 +12,12 @@
   alias, or delete custom tags.
 - Own the `/api/v1/tags` query surface that the categorization rules tab
   and the beneficiary form's category dropdown also consume.
-- Surface system-tag protections — the seeded `TOTAL`,
-  `MISCELLANEOUS`, and `CONSUMPTION_TAX` rows are read-only; system
-  tags allow alias + tag-type edits but not name / parent changes.
+- Surface tag protections on two distinct axes. The four **reserved** rows
+  (`TOTAL`, Misc Debit, Misc Credit, `CONSUMPTION_TAX`) are fully read-only —
+  gated on the BE's per-tag `is_reserved` flag (no hardcoded id list), so they
+  have no edit/delete affordance. Separately, **system-provenance** tags
+  (`created_by == SYSTEM`) lock name / parent in the edit form but still allow
+  alias + tag-type edits.
 
 ## Pages
 
@@ -85,7 +88,7 @@ Endpoints touched:
 | `POST /api/v1/tags`              | TagsPage create form                                                                              |
 | `PATCH /api/v1/tags/:id`         | TagsPage update form                                                                              |
 | `DELETE /api/v1/tags/:id`        | TagsPage delete action                                                                            |
-| `GET /api/v1/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID`, `TOTAL_TAG_ID`, etc. for read-only row decisions |
+| `GET /api/v1/metadata/constants` | `fetchTagConstants` — surfaces `SYSTEM_USER_ID` for system-provenance detection (reserved / read-only rows now come from the per-tag `is_reserved` flag, not an id list) |
 
 ## Cross-feature seams
 

@@ -165,7 +165,12 @@ export function LandingShowcases() {
           eyebrow="Stay ahead"
           title="Imports, auto-categorization & recurring forecasts"
           copy="Import a PhonePe / GPay / Paytm statement and Aevum reads it, tags it by rules you set once, and forecasts the bills it sees repeating."
-          visual={<ScreenshotSlot label="Recurring & statement import" />}
+          visual={
+            <ScreenshotSlot
+              label="Recurring & statement import"
+              src="/landing/recurring-forecast.png"
+            />
+          }
         />
       </div>
     </section>
@@ -222,9 +227,20 @@ function Skeleton() {
   );
 }
 
-// Placeholder for a marketing screenshot dropped in post-deploy (into
-// `public/landing/`). Until then it renders a labelled frame, not a broken img.
-function ScreenshotSlot({ label }: { label: string }) {
+// Marketing screenshot. When a ``src`` is provided (a file dropped into
+// `public/landing/`) it renders the image in a framed card; otherwise it falls
+// back to a labelled dashed frame, never a broken img.
+function ScreenshotSlot({ label, src }: { label: string; src?: string }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={label}
+        loading="lazy"
+        className="w-full rounded-xl border border-slate-200 shadow-sm dark:border-slate-800"
+      />
+    );
+  }
   return (
     <div className="flex aspect-[16/10] w-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
       {label} — screenshot

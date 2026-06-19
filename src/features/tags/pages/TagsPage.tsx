@@ -204,10 +204,10 @@ function TagRow({
 
   const isSystem =
     tag.created_by === null || tag.created_by === constants?.SYSTEM_USER_ID;
-  const isRestricted =
-    tag.tag_id === constants?.TOTAL_TAG_ID ||
-    tag.tag_id === constants?.MISCELLANEOUS_TAG_ID ||
-    tag.tag_id === constants?.CONSUMPTION_TAX_TAG_ID;
+  // Reserved (engine-load-bearing, immutable) tags can't be edited/deleted.
+  // Sourced from the BE `is_reserved` flag — no longer a hardcoded id list
+  // (which silently missed Misc Credit when it was added).
+  const isRestricted = tag.is_reserved === true;
 
   const stripeClass =
     level % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-900/40';

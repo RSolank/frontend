@@ -15,6 +15,10 @@ export interface TagNode {
   tag_type: string;
   aliases: string[];
   created_by: number | null;
+  // Engine-load-bearing immutable tag (Total / Misc Debit / Misc Credit /
+  // Consumption Tax). The UI gates edit/delete on this, not on created_by
+  // (which is provenance / "is_system"). Optional for backward tolerance.
+  is_reserved?: boolean;
   children?: TagNode[];
 }
 

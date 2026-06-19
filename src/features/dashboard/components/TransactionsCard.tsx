@@ -147,7 +147,7 @@ export function TransactionsCard() {
             >
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                  {t.beneficiary_name || t.beneficiary || '—'}
+                  {t.beneficiary_name || '—'}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   {formatDate(t.txn_date, timezone)}

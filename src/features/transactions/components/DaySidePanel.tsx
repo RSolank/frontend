@@ -155,10 +155,10 @@ export function DaySidePanel({
                               to={`/beneficiaries/${t.beneficiary_id}`}
                               className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
                             >
-                              {t.beneficiary_name || t.beneficiary || '—'}
+                              {t.beneficiary_name || '—'}
                             </Link>
                           ) : (
-                            t.beneficiary_name || t.beneficiary || '—'
+                            t.beneficiary_name || '—'
                           )}
                         </div>
                         {(t.tag_ids || []).length > 0 ? (

@@ -20,6 +20,13 @@ import { useSearchParams } from 'react-router-dom';
 //                                  useUrlValueModal('day')).
 // `?add=true`, `?edit=<id>`      — modal state (existing).
 
+// Filter-patch keys whose URL param name differs from the API field name.
+// The read side reads `beneficiary`/`sort`; the write side must mirror it.
+const URL_KEY_OVERRIDES: Record<string, string> = {
+  beneficiaryId: 'beneficiary',
+  sortBy: 'sort',
+};
+
 export type TransactionView = 'list' | 'merchant' | 'calendar';
 export type TypeFilter = 'all' | 'debit' | 'credit';
 // BE Phase 1.7 contract: backend accepts `date | amount | total_count |
@@ -123,7 +130,11 @@ export function useTransactionFilters(): UseTransactionFiltersReturn {
     (patch: FilterUpdate) => {
       const next = new URLSearchParams(searchParams);
       for (const [key, value] of Object.entries(patch)) {
-        const urlKey = key === 'beneficiaryId' ? 'beneficiary' : key;
+        // URL-key remap: the filter API uses `beneficiaryId`/`sortBy`, but the
+        // URL (and the read side above) carry `beneficiary`/`sort`. Keep these
+        // in sync or a sort selection writes `?sortBy=` while the reader looks
+        // for `?sort=` and silently falls back to the view default.
+        const urlKey = URL_KEY_OVERRIDES[key] ?? key;
         if (value == null || value === '' || value === 'all') {
           next.delete(urlKey);
         } else {
