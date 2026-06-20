@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
@@ -32,10 +33,29 @@ export function RecurringPage() {
     null
   );
   const highlight = useRowHighlight<string>();
+  const [searchParams] = useSearchParams();
 
   const queryClient = useQueryClient();
   const templates = useRecurringTemplatesQuery();
   const benQuery = useBeneficiariesQuery();
+
+  // Deep-link from a transaction's recurring chip: `/recurring?template=<uid>`
+  // flashes that template's row + scrolls it into view once the list is loaded.
+  const templateParam = searchParams.get('template');
+  const templatesReady = templates.data != null;
+  useEffect(() => {
+    if (!templateParam || !templatesReady) return;
+    setTab('templates');
+    highlight.flash(templateParam);
+    const raf = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`recurring-template-${templateParam}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(raf);
+    // `highlight.flash` is stable (useCallback); re-run only on param/load change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateParam, templatesReady]);
 
   const benData = benQuery.data;
   const benById = useMemo(() => {

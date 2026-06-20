@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Plus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { RecurringChip } from '../../../shared/components/RecurringChip';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
 import type { TransactionDTO } from '../api/schemas';
@@ -178,6 +179,11 @@ export function DaySidePanel({
                         ) : (
                           <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                             Uncategorized
+                          </div>
+                        )}
+                        {t.recurring_template_id != null && (
+                          <div className="mt-1">
+                            <RecurringChip templateId={t.recurring_template_id} />
                           </div>
                         )}
                         {t.notes && (

@@ -53,6 +53,9 @@ export interface TransactionDTO {
   source: 'manual' | 'statement';
   notes?: string | null;
   tag_ids: number[];
+  // The recurring template this txn settled (null if not a recurring instance).
+  // Stamped BE-side at reconcile; drives the recurring chip.
+  recurring_template_id?: number | null;
 }
 
 // BE returns one of two response shapes off the same path:

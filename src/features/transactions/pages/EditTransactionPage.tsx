@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
+import { RecurringChip } from '../../../shared/components/RecurringChip';
 import { RuleReviewModal } from '../../../shared/components/RuleReviewModal';
 import { CATEGORIZATION_RULES_PATH } from '../../../shared/navigation/rulePrefill';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
@@ -514,6 +515,11 @@ export function EditTransactionPage({
 
   return wrap(
     <>
+      {txn?.recurring_template_id != null && (
+        <div className="mb-4">
+          <RecurringChip templateId={txn.recurring_template_id} />
+        </div>
+      )}
       <EditTransactionForm
         error={error}
         lockedReason={lockedReason}

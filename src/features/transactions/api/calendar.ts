@@ -163,12 +163,16 @@ export interface DayBucket {
   credit_total: number;
   debit_count: number;
   credit_count: number;
+  // True when any txn on this day settled a recurring bill — drives the
+  // calendar's recurring marker.
+  has_recurring: boolean;
 }
 
 interface MinimalTxn {
   txn_date: string;
   amount: number;
   debit_credit: 'debit' | 'credit';
+  recurring_template_id?: number | null;
 }
 
 export function bucketByDay<T extends MinimalTxn>(
@@ -204,6 +208,7 @@ export function bucketByDay<T extends MinimalTxn>(
         credit_total: 0,
         debit_count: 0,
         credit_count: 0,
+        has_recurring: false,
       };
       out.set(iso, bucket);
     }
@@ -214,6 +219,7 @@ export function bucketByDay<T extends MinimalTxn>(
       bucket.credit_total += Math.abs(t.amount);
       bucket.credit_count += 1;
     }
+    if (t.recurring_template_id != null) bucket.has_recurring = true;
   }
   return out;
 }

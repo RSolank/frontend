@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { formatMoney } from '../../../shared/utils/currency';
@@ -104,20 +104,21 @@ function weekTitle(cells: CalendarCell[]): string {
 // inside a template literal) so it reads as plain branches.
 function cellAriaLabel(
   cell: CalendarCell,
-  debit: number,
-  credit: number,
+  totals: { debit: number; credit: number; hasRecurring: boolean },
   currencyCode: string,
   currencySymbol: string | null
 ): string {
+  const { debit, credit, hasRecurring } = totals;
   const todaySuffix = cell.isToday ? ', today' : '';
+  const recurringSuffix = hasRecurring ? ', recurring bill paid' : '';
   if (debit <= 0 && credit <= 0) {
-    return `${cell.iso}, no transactions${todaySuffix}`;
+    return `${cell.iso}, no transactions${recurringSuffix}${todaySuffix}`;
   }
   let activity = `, ${formatMoney(debit, currencyCode, currencySymbol)} debit`;
   if (credit > 0) {
     activity += ` and ${formatMoney(credit, currencyCode, currencySymbol)} credit`;
   }
-  return `${cell.iso}${activity}${todaySuffix}`;
+  return `${cell.iso}${activity}${recurringSuffix}${todaySuffix}`;
 }
 
 // The cell's amount line(s) — a day shows BOTH its debit (rose) and credit
@@ -214,8 +215,7 @@ function CalendarCellButton({
       tabIndex={tabIndex}
       aria-label={cellAriaLabel(
         cell,
-        debit,
-        credit,
+        { debit, credit, hasRecurring: bucket?.has_recurring ?? false },
         currencyCode,
         currencySymbol
       )}
@@ -238,6 +238,13 @@ function CalendarCellButton({
         >
           {cell.day}
         </span>
+        {bucket?.has_recurring && (
+          <RefreshCw
+            size={11}
+            className="text-violet-500 dark:text-violet-400"
+            aria-hidden
+          />
+        )}
       </span>
       <CellAmount
         debit={debit}

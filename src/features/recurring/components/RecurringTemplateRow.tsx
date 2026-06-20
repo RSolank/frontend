@@ -52,6 +52,7 @@ export function RecurringTemplateRow({
 
   return (
     <li
+      id={`recurring-template-${template.uid}`}
       data-testid={`recurring-row-${template.uid}`}
       className={`flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass}`}
     >

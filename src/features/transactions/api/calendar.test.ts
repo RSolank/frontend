@@ -77,8 +77,26 @@ describe('bucketByDay', () => {
       credit_total: 200,
       debit_count: 2,
       credit_count: 1,
+      has_recurring: false,
     });
     expect(buckets.get('2026-05-16')?.debit_total).toBe(10);
+  });
+
+  it('flags a day that has a recurring-settled txn', () => {
+    const buckets = bucketByDay(
+      [
+        {
+          txn_date: '2026-05-15',
+          amount: 10,
+          debit_credit: 'debit',
+          recurring_template_id: 3,
+        },
+        { txn_date: '2026-05-16', amount: 10, debit_credit: 'debit' },
+      ],
+      'UTC'
+    );
+    expect(buckets.get('2026-05-15')?.has_recurring).toBe(true);
+    expect(buckets.get('2026-05-16')?.has_recurring).toBe(false);
   });
 
   it('treats abs(amount) so negative inputs do not subtract', () => {

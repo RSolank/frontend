@@ -62,7 +62,15 @@ and composed into the root router by `src/app/routes.tsx`
   `components/TransactionRow.tsx`, `components/MerchantRow.tsx`,
   `components/DaySidePanel.tsx` — pieces of the URL-state-driven view
   system on `TransactionsPage` (list / merchants / calendar). Detailed
-  shapes + URL contract under § View system below.
+  shapes + URL contract under § View system below. A transaction that
+  settled a recurring bill (`recurring_template_id != null`, BE-stamped)
+  shows a violet `<RecurringChip>` (`shared/components/`, the significant/
+  interactive chip tone — see [conventions.md → Chip tones](../conventions.md#chip-tones))
+  on the list row, `DaySidePanel`, and the edit view; the chip **links** to
+  `/recurring?template=<uid>`, which flashes + scrolls that template's row into
+  view. Calendar cells show an **icon-only** `RefreshCw` marker (no text) on any
+  day with a recurring-settled txn — `bucketByDay` carries a per-day
+  `has_recurring` flag for this.
 - `statement_upload/components/StatementUploadDock.tsx` — fixed
   bottom-right widget mounted from the app shell when the
   `useStatementUploadJobStore` reports an active job id. Polls

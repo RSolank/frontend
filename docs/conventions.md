@@ -560,6 +560,23 @@ pre-mobile-app) will reuse this primitive once the payment + security flow lands
 the `upi://pay?…` intent-builder and VPA plumbing are deliberately **not** built
 yet (no structure for them).
 
+## Chip tones
+
+Small pill/badge chips carry a **semantic tone**, not an arbitrary color:
+
+- **Slate** (`bg-slate-100 / text-slate-600`) — neutral metadata: tag chips, the
+  System provenance chip. The default; most chips are slate.
+- **Violet** (`bg-violet-100 / text-violet-700`, dark `violet-950/violet-300`) —
+  marks something **significant and/or interactive**. The recurring chip
+  (`shared/components/RecurringChip.tsx`) is the first user: it flags a txn that
+  settled a recurring bill, and when given a `templateId` it becomes a `<Link>`
+  to that template (with a `hover:bg-violet-200` affordance). Reuse violet for any
+  future chip that's notable or links somewhere — keeps "this is special / you can
+  click it" visually consistent and distinct from neutral tags and the teal
+  brand-accent (which means "brand / focus ring").
+- **success / warning / danger** — status tones, reserved for state (e.g. a
+  breach or low-balance pill), not for marker chips.
+
 ## System provenance chip
 
 **Seeded rows wear a "System" chip.** `shared/components/SystemChip.tsx`

@@ -120,6 +120,8 @@ describe('EditTransactionPage', () => {
       expect(screen.getByDisplayValue('Store')).toBeInTheDocument();
       expect(screen.getByText('Groceries')).toBeInTheDocument();
     });
+    // Non-recurring txn → no recurring chip.
+    expect(screen.queryByText('Recurring')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByDisplayValue('50.5'), {
       target: { value: '60' },
@@ -132,6 +134,32 @@ describe('EditTransactionPage', () => {
       expect(patchedBody).toMatchObject({ amount: 60 });
       expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
+  });
+
+  it('shows the recurring chip for a recurring instance', async () => {
+    server.use(
+      http.get(`${API_BASE}/transactions/7`, () =>
+        HttpResponse.json({
+          transaction: {
+            txn_id: 7,
+            amount: 1000,
+            debit_credit: 'debit',
+            beneficiary_name: 'Netflix',
+            txn_date: '2023-10-10',
+            tag_ids: [],
+            source: 'statement',
+            recurring_template_id: 5,
+          },
+        })
+      )
+    );
+    mountAt('7');
+    const chip = await screen.findByText('Recurring');
+    // Links to the template, highlighted on the recurring page.
+    expect(chip.closest('a')).toHaveAttribute(
+      'href',
+      '/recurring?template=5'
+    );
   });
 
   it('restricts editable fields for statement-sourced rows', async () => {

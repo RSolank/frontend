@@ -1,6 +1,7 @@
 import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { RecurringChip } from '../../../shared/components/RecurringChip';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
 import type { TransactionDTO } from '../api/schemas';
@@ -99,6 +100,9 @@ export function TransactionRow({
               </span>
             );
           })}
+          {txn.recurring_template_id != null && (
+            <RecurringChip templateId={txn.recurring_template_id} />
+          )}
         </div>
       </div>
 
