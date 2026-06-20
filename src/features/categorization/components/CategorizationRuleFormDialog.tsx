@@ -524,8 +524,33 @@ export function CategorizationRuleFormDialog({
             </button>
           ) : null
         }
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              {dismissLabel}
+            </button>
+            <button
+              type="submit"
+              form="categorization-rule-form"
+              disabled={f.saveDisabled}
+              className="btn-primary !w-auto"
+            >
+              {f.isEditing ? 'Update Rule' : 'Create Rule'}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={f.handleSubmit} className="grid gap-4">
+        {/* Footer holds the CTAs (modal-CTA convention); the submit button
+            targets this form by id, preserving Enter-to-submit. */}
+        <form
+          id="categorization-rule-form"
+          onSubmit={f.handleSubmit}
+          className="grid gap-4"
+        >
           <div>
             <span className="form-label">Rule name</span>
             <output
@@ -627,29 +652,6 @@ export function CategorizationRuleFormDialog({
           </div>
 
           {f.error && <div className="form-error">{f.error}</div>}
-
-          {/* DetailModal footer convention (Batch 9.8): Cancel/Close
-              on the left of the right-cluster, Save on the right;
-              buttons size to their content (no `w-full`). The Modal's
-              own `footer` prop right-justifies — this dialog uses an
-              inline footer instead so the `<form onSubmit>` keeps
-              Enter-to-submit semantics, so the alignment lives here. */}
-          <div className="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              {dismissLabel}
-            </button>
-            <button
-              type="submit"
-              disabled={f.saveDisabled}
-              className="btn-primary !w-auto"
-            >
-              {f.isEditing ? 'Update Rule' : 'Create Rule'}
-            </button>
-          </div>
         </form>
       </Modal>
 
