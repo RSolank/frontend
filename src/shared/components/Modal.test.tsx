@@ -36,6 +36,16 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('hides the close button when not dismissible', () => {
+    render(
+      <Modal open onClose={() => {}} title="Locked" dismissible={false}>
+        <p>must acknowledge</p>
+      </Modal>
+    );
+    expect(screen.getByText('must acknowledge')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
+  });
+
   it('confirms when dirty and confirmOnDirty is set', () => {
     const confirm = vi.fn().mockReturnValue(false);
     const original = window.confirm;

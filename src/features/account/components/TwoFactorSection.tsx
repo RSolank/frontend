@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useBrandingQuery } from '../../../shared/api/branding';
 import { Modal } from '../../../shared/components/Modal';
+import { QrCode } from '../../../shared/components/QrCode';
 import { useSecurityStatusQuery } from '../../auth/api/security';
 import {
   disableTwoFactorRequest,
@@ -16,18 +17,19 @@ import {
 // Three flow states:
 //   - **idle** — initial state. Renders the Enable CTA (off) or
 //     Disable card (on).
-//   - **enrolling** — `/2fa/enroll` succeeded; FE shows the
-//     `provisioning_uri` deep link + the base32 `secret` for manual
-//     entry, and prompts for the first TOTP code.
+//   - **enrolling** — `/2fa/enroll` succeeded; FE renders the
+//     `provisioning_uri` as a scannable QR (plus a deep link) and the
+//     base32 `secret` for manual entry, and prompts for the first TOTP
+//     code.
 //   - **showing-backup-codes** — `/2fa/verify-enroll` succeeded; FE
 //     shows the 10 one-time backup codes WITH a Download button.
 //     BE only returns these once; lose them, lose them.
 //
-// NOTE: a proper QR render is queued for a follow-up — bundle headroom
-// is currently 0.73 kB and a QR library would push us over the §3
-// ceiling. The provisioning URI is shown as a deep link (mobile
-// authenticators register `otpauth://`) plus the base32 secret for
-// manual entry, which every authenticator app accepts.
+// The provisioning URI is rendered via the shared <QrCode> primitive
+// (which lazy-loads qrcode.react into its own chunk). No `caption` is
+// passed: the otpauth:// URI carries the TOTP secret, so it is never
+// printed as copyable text — the base32 secret below is the intended
+// manual-entry path.
 type FlowState =
   | { kind: 'idle' }
   | { kind: 'enrolling'; data: TwoFactorEnrollResponse }
@@ -44,6 +46,31 @@ function errorMessage(err: unknown, fallback: string): string {
   return e?.detail || e?.error || fallback;
 }
 
+// Brand identity is reactive: when the BE rebrands, the downloaded file header
+// + filename reflect the new product name on the next page load. No hardcoded
+// fallback — the header reads "Backup codes" without a brand prefix on the rare
+// first-ever-load case before the branding query resolves.
+function downloadBackupCodes(codes: string[], brandName: string) {
+  const headerPrefix = brandName ? `${brandName} — ` : '';
+  const content = [
+    `# ${headerPrefix}two-factor backup codes`,
+    '# Each code is single-use. Store these somewhere safe.',
+    '',
+    ...codes,
+    '',
+  ].join('\n');
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const slug = brandName
+    ? `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-`
+    : '';
+  a.download = `${slug}2fa-backup-codes.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function TwoFactorSection() {
   // Auth-owned account-protection snapshot — `GET /api/v1/auth/security`
   // (BE `auth.security-status`). `UserAuth` security state lives on the
@@ -54,6 +81,7 @@ export function TwoFactorSection() {
   const { data: security, refetch: refetchSecurity } = useSecurityStatusQuery();
   const enabled = security?.two_factor_enabled ?? false;
   const backupCodesRemaining = security?.backup_codes_remaining ?? 0;
+  const brandName = useBrandingQuery().data?.name ?? '';
 
   const [flow, setFlow] = useState<FlowState>({ kind: 'idle' });
   const [error, setError] = useState<string | null>(null);
@@ -117,24 +145,11 @@ export function TwoFactorSection() {
     setFlow({ kind: 'idle' });
   }
 
-  if (flow.kind === 'enrolling') {
-    return (
-      <EnrollingPanel
-        data={flow.data}
-        code={code}
-        onCodeChange={setCode}
-        onCancel={() => setFlow({ kind: 'idle' })}
-        onSubmit={handleVerifyEnroll}
-        submitting={submitting}
-        error={error}
-      />
-    );
-  }
-
-  if (flow.kind === 'showing-backup-codes') {
-    return (
-      <BackupCodesPanel codes={flow.codes} onDone={handleDoneWithBackupCodes} />
-    );
+  function cancelEnroll() {
+    if (submitting) return;
+    setFlow({ kind: 'idle' });
+    setCode('');
+    setError(null);
   }
 
   return (
@@ -216,7 +231,133 @@ export function TwoFactorSection() {
           )}
         </div>
       </Modal>
+
+      {/* Enroll → verify. Opened by the Enable CTA (which mints the secret
+          on demand via /2fa/enroll) — never on page load. */}
+      {flow.kind === 'enrolling' && (
+        <EnrollModal
+          data={flow.data}
+          code={code}
+          onCodeChange={setCode}
+          onCancel={cancelEnroll}
+          onSubmit={handleVerifyEnroll}
+          submitting={submitting}
+          error={error}
+        />
+      )}
+
+      {/* Backup codes — one-time reveal in a non-dismissible modal. */}
+      {flow.kind === 'showing-backup-codes' && (
+        <BackupCodesModal
+          codes={flow.codes}
+          brandName={brandName}
+          onDone={handleDoneWithBackupCodes}
+        />
+      )}
     </div>
+  );
+}
+
+// Enroll + verify modal. CTAs live in the footer (modal-CTA convention); the
+// submit button targets the body `<form id>` by id to keep Enter-to-submit.
+function EnrollModal({
+  data,
+  code,
+  onCodeChange,
+  onCancel,
+  onSubmit,
+  submitting,
+  error,
+}: {
+  data: TwoFactorEnrollResponse;
+  code: string;
+  onCodeChange: (s: string) => void;
+  onCancel: () => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  submitting: boolean;
+  error: string | null;
+}) {
+  return (
+    <Modal
+      open
+      onClose={onCancel}
+      title="Set up your authenticator app"
+      size="md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="twofa-enroll-form"
+            disabled={submitting || code.trim() === ''}
+            className="btn-primary !w-auto"
+            data-testid="2fa-enroll-verify"
+          >
+            {submitting ? 'Verifying…' : 'Verify & enable'}
+          </button>
+        </>
+      }
+    >
+      <EnrollingPanel
+        data={data}
+        code={code}
+        onCodeChange={onCodeChange}
+        onSubmit={onSubmit}
+        error={error}
+      />
+    </Modal>
+  );
+}
+
+// One-time backup-codes reveal. Non-dismissible (no close X, Escape/overlay
+// blocked) so the codes can't be lost to a stray dismiss — closes only via the
+// explicit "I've saved them" action.
+function BackupCodesModal({
+  codes,
+  brandName,
+  onDone,
+}: {
+  codes: string[];
+  brandName: string;
+  onDone: () => void;
+}) {
+  return (
+    <Modal
+      open
+      onClose={onDone}
+      dismissible={false}
+      title="Save your backup codes"
+      size="md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={() => downloadBackupCodes(codes, brandName)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            data-testid="2fa-backup-download"
+          >
+            Download codes
+          </button>
+          <button
+            type="button"
+            onClick={onDone}
+            className="btn-primary !w-auto"
+            data-testid="2fa-backup-done"
+          >
+            I&rsquo;ve saved them
+          </button>
+        </>
+      }
+    >
+      <BackupCodesPanel codes={codes} />
+    </Modal>
   );
 }
 
@@ -324,17 +465,13 @@ function EnrollingPanel({
   data,
   code,
   onCodeChange,
-  onCancel,
   onSubmit,
-  submitting,
   error,
 }: {
   data: TwoFactorEnrollResponse;
   code: string;
   onCodeChange: (s: string) => void;
-  onCancel: () => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  submitting: boolean;
   error: string | null;
 }) {
   return (
@@ -348,15 +485,21 @@ function EnrollingPanel({
           <div className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             Add via authenticator
           </div>
+          <QrCode
+            value={data.provisioning_uri}
+            label="Scan with your authenticator app"
+            className="mt-2 flex justify-center"
+          />
           <a
             href={data.provisioning_uri}
-            className="text-accent-600 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-200 mt-1 inline-block text-sm font-medium underline underline-offset-2"
+            className="text-accent-600 hover:text-accent-700 dark:text-accent-300 dark:hover:text-accent-200 mt-2 inline-block text-sm font-medium underline underline-offset-2"
           >
             Open in authenticator app
           </a>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            On mobile, this opens your default authenticator with the account
-            preloaded. On desktop, copy the secret below.
+            Scan the QR with your authenticator app. On mobile, tap the link to
+            open your default authenticator with the account preloaded. On
+            desktop, copy the secret below.
           </p>
         </div>
         <div>
@@ -371,7 +514,9 @@ function EnrollingPanel({
           </code>
         </div>
       </div>
-      <form onSubmit={onSubmit} className="grid gap-3">
+      {/* The submit button lives in the modal footer (per the modal-CTA
+          convention) and targets this form by id, preserving Enter-to-submit. */}
+      <form id="twofa-enroll-form" onSubmit={onSubmit} className="grid gap-3">
         <div>
           <label htmlFor="2fa-enroll-code" className="form-label">
             First 6-digit code <span className="text-danger-600">*</span>
@@ -394,77 +539,22 @@ function EnrollingPanel({
             {error}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="submit"
-            disabled={submitting || code.trim() === ''}
-            className="btn-primary !w-auto"
-            data-testid="2fa-enroll-verify"
-          >
-            {submitting ? 'Verifying…' : 'Verify & enable'}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
-          >
-            Cancel
-          </button>
-        </div>
       </form>
     </div>
   );
 }
 
-function BackupCodesPanel({
-  codes,
-  onDone,
-}: {
-  codes: string[];
-  onDone: () => void;
-}) {
-  // Brand identity is reactive: when the BE rebrands, the downloaded
-  // file header + filename reflect the new product name on the next
-  // page load. No hardcoded fallback — the file header reads "Backup
-  // codes" without a brand prefix on the rare first-ever-load case
-  // before the branding query resolves.
-  const brandName = useBrandingQuery().data?.name ?? '';
-  function handleDownload() {
-    const headerPrefix = brandName ? `${brandName} — ` : '';
-    const content = [
-      `# ${headerPrefix}two-factor backup codes`,
-      '# Each code is single-use. Store these somewhere safe.',
-      '',
-      ...codes,
-      '',
-    ].join('\n');
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const slug = brandName
-      ? `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-`
-      : '';
-    a.download = `${slug}2fa-backup-codes.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
+function BackupCodesPanel({ codes }: { codes: string[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="border-success-300 bg-success-50 text-success-800 dark:border-success-900/60 dark:bg-success-950/30 dark:text-success-200 rounded-md border px-3 py-2 text-sm">
         Two-factor authentication is now enabled.
       </div>
-      <div>
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          Save your backup codes
-        </h3>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Each code can be used once if you lose access to your authenticator
-          app. <strong>We won&rsquo;t show them again</strong> — download a copy
-          or write them down before you leave this page.
-        </p>
-      </div>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Each code can be used once if you lose access to your authenticator app.{' '}
+        <strong>We won&rsquo;t show them again</strong> — download a copy or write
+        them down before you close this dialog.
+      </p>
       <ul
         className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3 dark:border-slate-800 dark:bg-slate-950/40"
         data-testid="2fa-backup-codes"
@@ -478,24 +568,6 @@ function BackupCodesPanel({
           </li>
         ))}
       </ul>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="btn-primary !w-auto"
-          data-testid="2fa-backup-download"
-        >
-          Download codes
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="text-sm text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
-          data-testid="2fa-backup-done"
-        >
-          I&rsquo;ve saved them
-        </button>
-      </div>
     </div>
   );
 }

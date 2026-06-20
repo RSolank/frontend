@@ -112,7 +112,10 @@ previous choice).
 
 **Two-factor authentication** — `<TwoFactorSection>` (BE Phase 2.7,
 auth-domain snapshot Phase 3.0 `fc22163`). Three flow states managed
-by a `FlowState` discriminator:
+by a `FlowState` discriminator. The page itself only ever shows the
+**idle** card (Enable / Enabled-with-Disable); the `enrolling`,
+`showing-backup-codes`, and disable steps each open in a `<Modal>` over
+it, so the multi-step flow is focused and never reflows the page:
 
 1. **idle** — reads `security.two_factor_enabled` from
    [`useSecurityStatusQuery()`](../../src/features/auth/api/security.ts)
@@ -123,20 +126,30 @@ by a `FlowState` discriminator:
    danger when 0 with copy nudging re-enroll). 2FA state lives on
    the auth domain — never on `/me` — so the profile/auth split
    stays clean across FE + BE.
-2. **enrolling** — `/2fa/enroll` returned a staged secret +
+2. **enrolling** (modal) — `/2fa/enroll` returned a staged secret +
    provisioning URI + a JWT `enroll_token` (Batch 20 UAT, BE
    refactor `b6675df`: secret no longer persists to `user_auth`
    at /enroll — the token wraps the encrypted secret instead).
-   The panel shows the base32 secret prominently for manual
-   authenticator entry and an `otpauth://` deep link that mobile
-   authenticators register. (A proper QR render is queued as
-   polish — adding a QR library now would punch the §3 ceiling.)
-   Submitting a 6-digit code POSTs `{enroll_token, code}` to
-   `/2fa/verify-enroll`; the token is the BE's source of truth
-   for which secret to commit on success.
-3. **showing-backup-codes** — verify-enroll returned 10 one-time
-   backup codes. Panel renders them in a 2- / 3-column grid + a
-   Download button (text-file blob). Code visibility is one-shot;
+   The enroll modal renders the `otpauth://` provisioning URI as a
+   centered scannable QR via the shared `<QrCode>` primitive
+   ([`shared/components/QrCode.tsx`](../conventions.md#qr-codes) —
+   lazy-loads `qrcode.react` into its own chunk; drawn dark-on-white
+   for scanner contrast), with the same URI as an `otpauth://` deep
+   link that mobile authenticators register and the base32 secret for
+   manual entry as fallbacks. No copyable `caption` is passed — the
+   provisioning URI carries the TOTP secret, so it is never printed as
+   text; the base32 secret is the deliberate manual path. The enroll
+   call is **button-triggered** (the Enable CTA), never on page load —
+   a fresh secret is minted only on demand. Submitting a 6-digit code
+   POSTs `{enroll_token, code}` to `/2fa/verify-enroll`; the token is
+   the BE's source of truth for which secret to commit on success.
+3. **showing-backup-codes** (modal, **non-dismissible**) —
+   verify-enroll returned 10 one-time backup codes. The modal is opened
+   with `dismissible={false}` (no close X, Escape/overlay blocked) so the
+   one-time codes can't be lost to a stray dismiss — it closes only via
+   the explicit "I've saved them" action. Renders the codes in a 2- /
+   3-column grid + a Download button (text-file blob). Code visibility is
+   one-shot;
    the BE only returns hashes — no regenerate endpoint.
 
 Disable lives behind a `<Modal size="sm">` that re-confirms with

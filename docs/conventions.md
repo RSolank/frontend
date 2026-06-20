@@ -216,6 +216,24 @@ manager autofill, modal flow offered from Home as a convenience layer.
 - **Modal close confirmations** when the form is dirty — built into
   `Modal.tsx` via a `confirmOnDirty` prop; never let users lose typed
   input to a stray backdrop click.
+- **CTAs live in the `footer` prop, not the body.** Primary/secondary
+  action buttons (Save / Cancel / Confirm / Delete / Verify, etc.) go in
+  the Modal's `footer` slot, which right-aligns them in a bordered bar —
+  `ConfirmDialog` and every form dialog follow this. Order is
+  secondary-left → primary-right. For a body `<form>` that needs
+  Enter-to-submit, give the form an `id` and point a footer
+  `<button type="submit" form="…">` at it (e.g. `TwoFactorSection`'s
+  `twofa-enroll-form`, `TagFormDialog`) — you keep Enter-to-submit **and**
+  the footer placement. The **only** justified inline-CTA exception is a
+  full **page/form component reused both standalone and `embedded` in a
+  modal** (`AuthModal` → `LoginForm`/`RegisterForm`; the transactions
+  Add/Edit modals → `AddTransactionPage`/`EditTransactionPage`): its CTAs
+  belong to the reused component, so the modal wrapper adds none. A
+  dialog built only for the modal has no excuse to put CTAs in the body.
+- **Must-acknowledge modals** (one-time reveals the user can't safely
+  dismiss, e.g. 2FA backup codes) set `dismissible={false}` — hides the
+  close X and blocks Escape / overlay-click; closes only via an explicit
+  footer action wired to `onClose`.
 
 **When NOT to use a modal:**
 
@@ -504,13 +522,43 @@ crowding the Cancel / Save footer.
 **Shared infra:** `shared/components/Modal.tsx` exposes a
 `headerActions?: React.ReactNode` slot rendered between the title
 block and the close X. Future modals that need a destructive header
-action consume this slot — no new infra per surface.
+action consume this slot — no new infra per surface. It also exposes
+`dismissible?: boolean` (default `true`); set `false` for
+must-acknowledge surfaces (e.g. the one-time 2FA backup-codes reveal)
+to hide the close X and block Escape / overlay-click — the modal then
+closes only via an explicit in-content action wired to `onClose`.
 
 **System / restricted entities:** when a class of entities can't
 be deleted (system tags, locked rows, etc.), the parent omits
 `onRequestRemove` in the form dialog and the icon doesn't render.
 Avoids the disabled-button-with-tooltip pattern that suggests "you
 might be able to do this later" — the action is genuinely absent.
+
+## QR codes
+
+**All QR rendering goes through `shared/components/QrCode.tsx`.** It is a
+value-agnostic primitive: the caller builds the encoded string (a URL, an
+`otpauth://` URI, a future `upi://pay?…` intent) and owns when to obtain it
+(a button-triggered mutation, or an eager on-mount fetch for a dedicated QR
+page) — the component only renders. It **internally `lazy()`-loads**
+`qrcode.react` (via `QrCodeSvg.tsx`) so the library sits in its own async chunk
+and never enters the initial-JS budget in `.size-limit.json`; consumers get the
+code-split + `<Suspense>` for free.
+
+- **Scan-safe:** drawn dark-on-white in **both** themes (scanners need contrast —
+  never inverted), with a built-in quiet zone and `role="img"` + aria-label.
+- **`caption?`** (opt-in) renders the encoded value as copyable text under the
+  QR. Pass it **only for short, NON-SENSITIVE values** (a URL or UPI id), judged
+  per consumer — it is never auto-derived from `value`. 2FA enrollment passes no
+  caption because its `otpauth://` URI carries the TOTP secret; the base32 secret
+  is surfaced separately as the manual-entry path.
+- **`level?`** (default `'M'`) is reserved to bump error-correction to `Q` / `H`
+  for a future logo-overlay QR (e.g. UPI payments).
+
+Future UPI-payment QRs (paying bills / consumption tax from the savings account,
+pre-mobile-app) will reuse this primitive once the payment + security flow lands;
+the `upi://pay?…` intent-builder and VPA plumbing are deliberately **not** built
+yet (no structure for them).
 
 ## System provenance chip
 

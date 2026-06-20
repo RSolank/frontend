@@ -40,26 +40,46 @@ describe('<TwoFactorSection>', () => {
     renderWithProviders(<TwoFactorSection />);
 
     fireEvent.click(await screen.findByTestId('2fa-enable-button'));
-    // Stage 2 — secret + provisioning URI shown.
+    // Stage 2 — enroll modal opens with the secret + provisioning URI.
+    expect(
+      await screen.findByText('Set up your authenticator app')
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByTestId('2fa-enroll-secret')).toBeInTheDocument()
     );
     expect(screen.getByTestId('2fa-enroll-secret')).toHaveTextContent(
       'JBSWY3DPEHPK3PXP'
     );
+    // QR (shared lazy-loaded <QrCode>) renders from the provisioning URI
+    // alongside the deep-link + manual-secret fallbacks. No copyable caption
+    // is shown — the otpauth:// URI carries the TOTP secret.
+    const qr = await screen.findByRole('img', {
+      name: /scan with your authenticator app/i,
+    });
+    expect(qr.querySelector('svg')).toBeInTheDocument();
+    expect(screen.queryByTestId('qr-caption')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('2fa-enroll-code'), {
       target: { value: '123456' },
     });
     fireEvent.click(screen.getByTestId('2fa-enroll-verify'));
 
-    // Stage 3 — backup codes panel.
+    // Stage 3 — backup codes in a non-dismissible modal (no close X; only the
+    // explicit "I've saved them" action closes it).
+    expect(
+      await screen.findByText('Save your backup codes')
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
     const panel = await screen.findByTestId('2fa-backup-codes');
     const codes = within(panel).getAllByRole('listitem');
     expect(codes).toHaveLength(10);
     expect(panel).toHaveTextContent('ABCD1234');
 
     expect(screen.getByTestId('2fa-backup-download')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('2fa-backup-done'));
+    await waitFor(() =>
+      expect(screen.queryByText('Save your backup codes')).not.toBeInTheDocument()
+    );
   });
 
   it('renders the enabled-idle Disable CTA when 2FA is on', async () => {

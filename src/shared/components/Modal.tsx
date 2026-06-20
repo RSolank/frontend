@@ -16,6 +16,11 @@ interface ModalProps {
   // Caller is responsible for setting `isDirty` from its form state.
   confirmOnDirty?: boolean;
   isDirty?: boolean;
+  // When false, the modal can only be closed by an explicit in-content
+  // action: the header X is hidden and Escape / overlay-click are blocked.
+  // Use for must-acknowledge surfaces (e.g. a one-time backup-codes reveal).
+  // Default true. The caller still wires `onClose` to its own Done action.
+  dismissible?: boolean;
   // Legacy escape hatch for callers that need a Tailwind override on
   // the panel. New code should use `size` — `panelClassName` exists so
   // pre-Batch-6.5 callers keep compiling without a refactor.
@@ -48,6 +53,7 @@ export function Modal({
   size = 'md',
   confirmOnDirty = false,
   isDirty = false,
+  dismissible = true,
   panelClassName,
   headerActions,
 }: ModalProps) {
@@ -68,12 +74,21 @@ export function Modal({
     <Dialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (!next) guardedClose();
+        // When non-dismissible, ignore Radix's auto-close (Escape / overlay) —
+        // only an explicit in-content action may close the modal.
+        if (!next && dismissible) guardedClose();
       }}
     >
       <Dialog.Portal>
         <Dialog.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm dark:bg-slate-950/70" />
         <Dialog.Content
+          onEscapeKeyDown={dismissible ? undefined : (e) => e.preventDefault()}
+          onPointerDownOutside={
+            dismissible ? undefined : (e) => e.preventDefault()
+          }
+          onInteractOutside={
+            dismissible ? undefined : (e) => e.preventDefault()
+          }
           className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] w-full ${cap} flex-col rounded-t-xl bg-white shadow-xl outline-none sm:top-1/2 sm:right-auto sm:bottom-auto sm:left-1/2 sm:mx-0 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-800`}
         >
           <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 dark:border-slate-800">
@@ -89,15 +104,17 @@ export function Modal({
             </div>
             <div className="flex shrink-0 items-center gap-1">
               {headerActions}
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label="Close"
-                  className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                >
-                  <X aria-hidden="true" size={18} />
-                </button>
-              </Dialog.Close>
+              {dismissible && (
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  >
+                    <X aria-hidden="true" size={18} />
+                  </button>
+                </Dialog.Close>
+              )}
             </div>
           </header>
           <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
