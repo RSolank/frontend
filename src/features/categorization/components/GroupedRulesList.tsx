@@ -75,6 +75,7 @@ function GroupedRuleRow({
   const primaryId = rule.tag_ids?.[0];
   return (
     <li
+      id={`rule-row-${rule.uid}`}
       className={`rounded-md border border-slate-100 bg-white px-3 py-2 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass(isHighlighted)}`}
     >
       {/* Top row: beneficiary name + ⋯ trigger on the same line at
@@ -148,6 +149,7 @@ function SingleRuleCard({
   const userRule = isUserRule(rule);
   return (
     <li
+      id={`rule-row-${rule.uid}`}
       className={`rounded-lg border border-slate-200 p-4 transition-shadow dark:border-slate-800 ${highlightClass(isHighlighted)}`}
     >
       {/* `flex` (not flex-wrap) + `min-w-0` on the name + `shrink-0`

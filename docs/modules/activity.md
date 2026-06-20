@@ -33,7 +33,7 @@
 
 ## Surfaces
 
-Lives across three FE consumers; the contract is one BE-side
+Lives across several FE consumers; the contract is one BE-side
 endpoint set:
 
 | Surface                                                                                                                                                                      | What it renders                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Owner                                    |
@@ -43,6 +43,7 @@ endpoint set:
 | **Activity detail modal** — [`shared/components/ActivityDetailModal.tsx`](../../src/shared/components/ActivityDetailModal.tsx)                                               | In-place expansion of a single activity row. Hosts the per-subject CTAs derived from [`shared/utils/activitySubject.ts`](../../src/shared/utils/activitySubject.ts) (`subjectMeta()` maps each `subject_type` → CTA label + deep-link target). Replaces the prior full-page-navigation pattern so users stay in the feed context.                                                                                                                                                                                                                                                                       | App shell                                |
 | **User Notifications tab** — [`features/account/pages/AccountNotificationsPage.tsx`](../../src/features/account/pages/AccountNotificationsPage.tsx)                          | Per-kind enable/disable for the user's own feed. Renders the shared `<SignalSettingsEditor viewerRole="user">`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [account.md](account.md) § Notifications |
 | **Admin user-detail signal section** — `<SignalSettingsSection>` in [`features/admin/pages/AdminUserDetailPage.tsx`](../../src/features/admin/pages/AdminUserDetailPage.tsx) | Per-user disable for the admin'd account + system-wide catalog tunables (priority / rank_order / system_enabled). Renders the shared `<SignalSettingsEditor viewerRole="admin">` with `onTune` wired.                                                                                                                                                                                                                                                                                                                                                                                                   | [admin.md](admin.md) § Pages             |
+| **Dashboard callouts (B1)** — `<ActivityCallout>` inside `OverdueBillsWidget` + the `TaxTrackerCard` tax-mode banner                                                        | Targeted per-card enrichment: a domain-scoped slice (`useDomainActivityQuery('taxation')`) spliced into a card for the _additive_ signals only (`bill_overdue`, `tax_mode_auto_disabled`). Each `<ActivityCallout>` reuses `iconForKind` + `priorityTone*` + `subjectMeta`, and **hard-acks on dismiss only** — the bell remains the sole soft-ack owner. See [dashboard.md](dashboard.md).                                                                                                                                                                                                              | [dashboard.md](dashboard.md)             |
 
 ## Components
 
@@ -93,6 +94,30 @@ are empty.
 `ModalBody` is a separate component to avoid nested ternaries
 (sonarjs rule).
 
+The kind→icon map was extracted out of this modal into
+[`shared/utils/activityIcon.ts`](../../src/shared/utils/activityIcon.ts)
+(`iconForKind`) in B1 so the dashboard callouts import the same
+mapping rather than forking it (a locked invariant — "import, don't
+fork"). Unknown kinds fall back to `Bell`.
+
+### `ActivityCallout` (`shared/components/ActivityCallout.tsx`) — B1
+
+Inline, dismissible activity row for the dashboard cards. Renders
+one feed item: `iconForKind` glyph tinted by `priorityToneClass`,
+the BE-authored `summary`, an optional `subjectMeta` deep-link, and
+a dismiss `×`. **Dismiss hard-acks** (`POST /activity/seen {refs,
+hard: true}` via `useMarkActivitySeenMutation`); the mutation
+invalidates `feedAll()` so the row drops on the next domain-feed
+refetch. Per the BE Law a hard-ack MUTEs an alert (resurfaces later)
+or DELETEs a notification. Unlike the bell, these callouts **never
+soft-ack on render** — the bell stays the sole soft-ack owner, so a
+card surfacing an item doesn't silently mark it seen.
+
+`OverdueBillsWidget` (`features/dashboard/`) and the `TaxTrackerCard`
+tax-mode banner are the two consumers; both pull one shared
+`useDomainActivityQuery('taxation')` fetch (deduped by react-query)
+and filter client-side to the kind they care about.
+
 ### `SignalSettingsEditor` (`shared/components/SignalSettingsEditor.tsx`)
 
 Stateless editor. Caller owns the query + mutation; editor
@@ -136,15 +161,17 @@ applies.
 
 | File                 | Exports                                                                                                                                                                                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `activityKeys.ts`    | `activityKeys` — `all`, `feed(limit)`, `catalog()`, `signalSettings()`, `adminUserSignalSettings(userId)`                                                                                                                                                            |
-| `activityFeed.ts`    | `ActivityFeedItem` shape, `ActivitySeenRef` + `ActivitySeenRequest`, `fetchActivityFeed`, `markActivitySeen`, `itemsToSeenRefs`, `useActivityFeedQuery(limit, enabled)`, `useUserSignalSettingsQuery(enabled)`, plus the user-side signal-settings GET / PUT helpers |
+| `activityKeys.ts`    | `activityKeys` — `all`, `feed(limit)`, `feedByDomain(domain, limit)`, `catalog()`, `signalSettings()`, `adminUserSignalSettings(userId)`                                                                                                                              |
+| `activityFeed.ts`    | `ActivityFeedItem` shape, `ActivitySeenRef` + `ActivitySeenRequest`, `fetchActivityFeed(limit, domain?)`, `markActivitySeen`, `itemsToSeenRefs`, `useActivityFeedQuery(limit, enabled)`, `useDomainActivityQuery(domain, limit, enabled)` (B1), `useUserSignalSettingsQuery(enabled)`, plus the user-side signal-settings GET / PUT helpers |
 | `activityCatalog.ts` | `CatalogEntry` + `CatalogResponse` types, `useActivityCatalogQuery`, `buildEventClassIndex(catalog)` (Map<kind, event_class>)                                                                                                                                        |
+| `activityIcon.ts`    | `iconForKind(kind)` (B1) — shared kind→Lucide-icon map, `Bell` fallback; consumed by the bell modal + dashboard callouts                                                                                                                                             |
 
 Endpoints touched:
 
 | Method + path                                  | Used by                                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `GET /api/v1/activity?limit=N`                 | Activity feed modal — list of items, server-ordered                                          |
+| `GET /api/v1/activity?limit=N&domain=<str>`    | B1 dashboard callouts (`useDomainActivityQuery`) — same reader path + `disabled[]` filter, scoped to one domain; 404s on an unknown domain |
 | `POST /api/v1/activity/seen`                   | Soft + hard acks (body shape below)                                                          |
 | `GET /api/v1/activity/catalog`                 | Activity feed modal (event_class split) + SignalSettingsEditor (kind list + domain grouping) |
 | `GET /api/v1/activity/signal-settings`         | Account → Notifications                                                                      |

@@ -13,7 +13,10 @@ import { CurrencySelect } from '../../../shared/components/CurrencySelect';
 import { DefaultTxnKindSelect } from '../../../shared/components/DefaultTxnKindSelect';
 import { TaxModeToggle } from '../../../shared/components/TaxModeToggle';
 import { TimezoneSelect } from '../../../shared/components/TimezoneSelect';
+import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
+import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { getBrowserTimezone } from '../../../shared/utils/countryTimezones';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { userKeys } from '../../users/api/keys';
 import {
   updatePreferencesRequest,
@@ -50,6 +53,19 @@ export function AccountPreferencesPage() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Deep-link "point at this" — a redirect can land here with
+  // `?highlight=tax-mode` (the dashboard Tax Tracker's "turn it back on"
+  // banner) to flash + scroll the taxation card. The shared hook fires once
+  // the page has loaded (so the card exists), then consumes the param.
+  const { id: highlightId, flash } = useRowHighlight<string>();
+  useDeepLinkHighlight({
+    param: 'highlight',
+    flash,
+    ready: !isLoading,
+    accept: (v) => v === 'tax-mode',
+  });
+  const taxCardHighlighted = highlightId === 'tax-mode';
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -230,7 +246,13 @@ export function AccountPreferencesPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800">
+      <div
+        id="prefs-taxation-card"
+        data-testid="prefs-taxation-card"
+        className={`overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800 ${highlightClass(
+          taxCardHighlighted
+        )}`}
+      >
         <div className="border-b border-slate-100 px-4 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:text-slate-400">
           Taxation
         </div>

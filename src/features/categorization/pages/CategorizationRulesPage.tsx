@@ -9,6 +9,10 @@ import {
   readRulePrefill,
   type RulePrefillState,
 } from '../../../shared/navigation/rulePrefill';
+import {
+  HIGHLIGHT_DURATION_MS,
+  scrollHighlightIntoView,
+} from '../../../shared/utils/highlight';
 import { deleteCategorizationRule } from '../../beneficiaries/api/mutations';
 import { fetchBeneficiaries } from '../../beneficiaries/api/queries';
 import type { Beneficiary } from '../../beneficiaries/api/queries';
@@ -33,6 +37,7 @@ interface ApiErrorShape {
   error?: string;
 }
 
+
 interface Constants {
   SYSTEM_USER_ID?: number;
   TOTAL_TAG_ID?: number;
@@ -40,10 +45,6 @@ interface Constants {
   [key: string]: unknown;
 }
 
-// How long the post-save indigo ring stays on the destination rule row
-// before fading out. Long enough for the user to spot it after the list
-// rebuckets; short enough not to feel like a stuck loading state.
-const HIGHLIGHT_DURATION_MS = 1500;
 
 function errorMessage(err: unknown, fallback: string): string {
   const e = err as ApiErrorShape;
@@ -128,20 +129,23 @@ function useCategorizationRules() {
 
   useEffect(() => {
     void loadReferenceData();
-    return () => {
-      if (highlightTimer.current != null) {
-        window.clearTimeout(highlightTimer.current);
-      }
-    };
+    // clearTimeout(undefined) is a safe no-op, so no null-guard needed.
+    return () => window.clearTimeout(highlightTimer.current ?? undefined);
   }, []);
+
+  // Post-commit scroll to the highlighted rule row — runs after the save
+  // rebuckets the list + force-opens its group, so the row is at its FINAL
+  // position (an imperative scroll from the save handler would hit the stale
+  // spot). Uses the shared helper (no-ops if already on screen).
+  useEffect(() => {
+    if (highlightedRuleUid == null) return;
+    const raf = scrollHighlightIntoView(`rule-row-${highlightedRuleUid}`);
+    return () => window.cancelAnimationFrame(raf);
+  }, [highlightedRuleUid]);
 
   async function loadReferenceData() {
     try {
-      const [tagsRes, bList, c] = await Promise.all([
-        fetchTags(),
-        fetchBeneficiaries(),
-        fetchTagConstants(),
-      ]);
+      const [tagsRes, bList, c] = await Promise.all([fetchTags(), fetchBeneficiaries(), fetchTagConstants()]); // prettier-ignore
       setTags(flattenTags(tagsRes.tags));
       setBeneficiaries(bList);
       setConstants(c as Constants);

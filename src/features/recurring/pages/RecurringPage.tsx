@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { useBeneficiariesQuery } from '../../beneficiaries/api/queries';
 import { recurringKeys } from '../api/keys';
@@ -75,29 +76,21 @@ export function RecurringPage() {
 
   // Deep-link from a transaction's recurring chip: `/recurring?template=<uid>`
   // selects the tab the target lives in (Detected for a candidate, else
-  // Confirmed), expands the Detected reveal if it's hidden, then flashes the
-  // row + scrolls it into view. Reactive to the param so a fresh chip click
-  // re-targets even while the page is mounted.
-  useEffect(() => {
-    if (!templateParam || !templatesReady) return;
-    const target = (templates.data ?? []).find(
-      (t) => String(t.uid) === templateParam
-    );
-    const targetTab: TabKey =
-      target?.status === 'candidate' ? 'detected' : 'confirmed';
-    setTab(targetTab);
-    if (targetTab === 'detected') setShowAllDetected(true);
-    highlight.flash(templateParam);
-    const raf = window.requestAnimationFrame(() => {
-      document
-        .getElementById(`recurring-template-${templateParam}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    return () => window.cancelAnimationFrame(raf);
-    // `highlight.flash` is stable (useCallback); `templates.data` is read at
-    // run time but re-running only on param/load change is intentional.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateParam, templatesReady]);
+  // Confirmed), expands the Detected reveal if hidden, then flashes + scrolls
+  // the row. The shared hook fires once templates are loaded, then consumes
+  // the param so a refresh doesn't re-flash (a fresh chip click re-targets).
+  useDeepLinkHighlight({
+    param: 'template',
+    flash: highlight.flash,
+    ready: templatesReady,
+    onMatch: (uid) => {
+      const target = (templates.data ?? []).find((t) => String(t.uid) === uid);
+      const targetTab: TabKey =
+        target?.status === 'candidate' ? 'detected' : 'confirmed';
+      setTab(targetTab);
+      if (targetTab === 'detected') setShowAllDetected(true);
+    },
+  });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: recurringKeys.all });

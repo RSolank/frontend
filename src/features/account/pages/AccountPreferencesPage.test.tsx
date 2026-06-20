@@ -7,8 +7,8 @@ import {
   act,
 } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
@@ -23,11 +23,23 @@ function makeClient() {
   });
 }
 
+// Surfaces the live router search string so a test can assert the
+// deep-link `?highlight=` param is consumed (replace) after firing.
+function LocationProbe() {
+  const { search } = useLocation();
+  return <div data-testid="location-search">{search}</div>;
+}
+
 function renderPage() {
+  return renderPageAt('/account/preferences');
+}
+
+function renderPageAt(path: string) {
   return render(
     <QueryClientProvider client={makeClient()}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <AccountPreferencesPage />
+        <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -168,5 +180,30 @@ describe('AccountPreferencesPage', () => {
       'href',
       '/account/accessibility'
     );
+  });
+
+  it('flashes the taxation card when landed via ?highlight=tax-mode', async () => {
+    // happy-dom doesn't implement scrollIntoView — stub it so the
+    // deep-link effect (which scrolls inside a rAF) doesn't throw. The
+    // scroll itself isn't asserted (rAF doesn't flush synchronously
+    // here); the flash class is the observable behaviour.
+    Element.prototype.scrollIntoView = vi.fn();
+
+    renderPageAt('/account/preferences?highlight=tax-mode');
+
+    const card = await screen.findByTestId('prefs-taxation-card');
+    await waitFor(() => expect(card.className).toContain('highlight-pulse'));
+    // Param is consumed (replace) so a refresh doesn't re-flash.
+    await waitFor(() =>
+      expect(screen.getByTestId('location-search').textContent).not.toContain(
+        'highlight'
+      )
+    );
+  });
+
+  it('does not flash the taxation card without the highlight param', async () => {
+    renderPage();
+    const card = await screen.findByTestId('prefs-taxation-card');
+    expect(card.className).not.toContain('highlight-pulse');
   });
 });

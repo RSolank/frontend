@@ -16,6 +16,7 @@
 - [**DetailModal**](#detailmodal-canonical-view--edit-surface) — the canonical view + edit surface for CRUD features.
 - [**Modal-header destructive actions**](#modal-header-destructive-actions-remove-in-edit) — the Remove-in-edit convention.
 - [**Row highlight on save**](#row-highlight-on-save) — post-save feedback on the originating list.
+- [**Activity callouts**](#activity-callouts-surfacing-feed-items-outside-the-bell) — surfacing feed items outside the TopNav bell.
 - [**Idle-time prefetch**](#idle-time-prefetch) — warm click-gated chunks during the browser idle window.
 - [**Accessibility vs Preferences**](#accessibility-vs-preferences) — device a11y toggle vs backend-persisted preference.
 - [**Week convention**](#week-convention) — ISO Mon→Sun, app-wide.
@@ -594,6 +595,38 @@ system. You can still edit or remove it." The chip is purely a read of
 the BE `is_system` flag — no client-side `created_by` comparison (that
 logic lives once, on the server).
 
+## Activity callouts (surfacing feed items outside the bell)
+
+**The TopNav bell is the primary activity inbox; any _other_ surface
+that shows feed items uses `shared/components/ActivityCallout.tsx`.**
+B1's dashboard enrichment established the pattern: a card pulls a
+domain-scoped slice via `useDomainActivityQuery(domain)`
+(`shared/api/activityFeed.ts` — `?domain=` reuses the bell's reader
+path + per-user `disabled[]` filter, keyed separately so caches don't
+collide), filters client-side to the kind(s) it cares about, and
+renders an `<ActivityCallout>` per item.
+
+Rules a new consumer inherits:
+
+- **Reuse, don't fork** the shared machinery: `iconForKind`
+  (`shared/utils/activityIcon.ts`), `priorityTone*`
+  (`shared/utils/activityPriority.ts`), `subjectMeta`
+  (`shared/utils/activitySubject.ts`). New BE kinds degrade
+  gracefully (unknown icon → `Bell`, unknown subject → no CTA).
+- **Hard-ack on dismiss only.** Callouts never soft-ack on render —
+  the bell stays the sole owner of the soft-seen lifecycle, so a card
+  showing an item doesn't silently mark it seen. Dismiss fires
+  `{hard: true}`, which (per the BE Law) MUTEs an alert (resurfaces
+  later) or DELETEs a notification.
+- **Splice only _additive_ signals.** Don't surface an activity event
+  a card already renders from its own live data (a budget breach, a
+  forecast bill) — that just prints the same thing twice. B1 wired
+  only `tax_mode_auto_disabled` + `bill_overdue` for this reason.
+- **Live state ≠ activity.** A persistent "this mode is off" nudge is
+  a read of the live flag (e.g. `useTaxModeStore`), not a feed item;
+  layer the dismissible activity notice _on top_ of it (the Tax
+  Tracker card's two-layer banner) rather than conflating them.
+
 ## Redirect over nested modal for full-feature surfaces
 
 A refinement of the modal-first CRUD default. Two shapes of "sub-flow
@@ -631,21 +664,37 @@ eye lands on the changed row instead of scanning the table.
 
 - Highlight kicks in on **both create AND edit** success, not just
   edit. Symmetric UX: every save → glow.
-- Visual: a **violet ring** that fades after ~1500 ms. Never hand-write
+- Visual: a **violet glow pulse** — a ring + soft halo that ramps in
+  fast then fades smoothly over **~2 s**, never abrupt. Never hand-write
   the class — call `highlightClass(highlighted, variant?)` from
-  `shared/utils/highlight.ts` and concatenate it into the row's
-  `className` (`variant: 'ring'` default, or `'surface'` for rows that
-  also wash the background). The tone is **violet and theme-stable** —
-  one hue in both light and dark (deliberately *not* the `accent` token,
-  which flips teal/indigo per theme and is shared with chrome). Violet is
-  the app's "pay attention here / significant" signal (same family as the
-  `RecurringChip`, see [Chip tones](#chip-tones)), kept constant so the
-  glow reads identically everywhere. Single-point retone: change the
-  token, not the call sites.
-- **Best-effort, no scrolling.** If the user has filtered or
-  sorted the row out of view, the highlight still fires but the
-  user may not see it. Don't auto-scroll — surprise scrolling is
-  worse than a missed highlight.
+  `shared/utils/highlight.ts` and concatenate it into the element's
+  `className`. The glow (`highlight-pulse` keyframe in `index.css`)
+  animates the **element's own `box-shadow`** — deliberately *not* a
+  child `::after` overlay, because a child's outer halo is **clipped by
+  an `overflow-hidden` ancestor** (the rounded Preferences cards), while
+  an element's own box-shadow paints outside its border box, is never
+  clipped by its own overflow, and follows its `border-radius` natively.
+  The tone is
+  **violet and theme-stable** — one hue in both light and dark
+  (deliberately *not* the `accent` token, which flips teal/indigo per
+  theme and is shared with chrome). Violet is the app's "pay attention
+  here / significant" signal (same family as the `RecurringChip`, see
+  [Chip tones](#chip-tones)), kept constant so the glow reads identically
+  everywhere. Single-point retone: change the keyframe, not the call
+  sites. `prefers-reduced-motion` collapses the animation to a static
+  ring. (The `variant` param is kept for call-site back-compat; both
+  variants resolve to the same glow today.)
+- **Always auto-scrolls the item to centre.** `useRowHighlight` centres
+  the highlighted element from a **post-commit effect** (so the row is at
+  its FINAL position even when a save reorders/rebuckets the list), every
+  time — *not* gated on visibility. A `block: 'nearest'` / visible-only
+  guard was tried and rejected: a row that moves but stays partly on
+  screen then wouldn't scroll at all, losing the user's place. The whole
+  point is to relocate the item, so it's always brought to focus. Single
+  mechanism (`scrollHighlightIntoView`, finds the element by its
+  `highlight-pulse` class) — never hand-roll an imperative `scrollIntoView`
+  from a save handler (it runs before the re-render commits and lands on
+  the stale position).
 - The highlight **does not block subsequent interactions** —
   clicking another row, opening another modal, or sorting the
   list cancels the timer cleanly.
@@ -654,21 +703,87 @@ eye lands on the changed row instead of scanning the table.
 
 **The feature is two co-operating pieces** — keep them paired:
 
-- **State:** `shared/hooks/useRowHighlight.ts` returns `{ id, flash }`.
-  Callers wire `flash(id)` into the modal's `onSaved` and compare
-  `id === row.id` for the row.
-- **Style:** `shared/utils/highlight.ts` — `highlightClass()` +
-  `HIGHLIGHT_RING` / `HIGHLIGHT_SURFACE` tokens. The single source for the
-  ring/surface classes, so the violet tone is one edit away.
+- **State + scroll:** `shared/hooks/useRowHighlight.ts` returns
+  `{ id, flash }` (default ~2 s timer, matched to the keyframe). Callers
+  wire `flash(id)` into the modal's `onSaved` and compare `id === row.id`
+  for the row. It also **auto-scrolls** the highlighted element into view
+  (post-commit, off-screen-only — see above) with no per-consumer wiring.
+- **Style:** `shared/utils/highlight.ts` — `highlightClass()` + the
+  `HIGHLIGHT_PULSE` token (the `highlight-pulse` class) + the
+  `scrollHighlightIntoView()` helper. The single source for the glow +
+  scroll, so the look is one edit away (retone in the `index.css` keyframe).
 
-Reference implementations: `BeneficiariesPage`, `TagsPage`,
-`TransactionsPage`. The same flash doubles as the **deep-link landing**
-cue (e.g. a transaction's recurring chip → `/recurring?template=<uid>`
-flashes the target row). `CategorizationRulesPage` keeps a feature-
-specific highlight **state** machine (it also rebuckets + expands the
-target group), but its ring now routes through the shared
-`highlightClass()` token like everyone else — only the bespoke
-bookkeeping is local.
+**Pick the trigger by whether the user *navigated* to the page** — the
+look (the glow) is always `highlightClass`; only the *trigger* differs:
+
+| Trigger | Mechanism | Param consumed? |
+| --- | --- | --- |
+| **In-place** — a modal closes back onto the same page (create/edit). No navigation, no URL change. | `useRowHighlight` directly; `flash(id)` in the modal's `onSaved`. | n/a — there's no param. **Don't** manufacture a `?highlight=` for an in-place save (URL churn, and it'd wrongly survive refresh). |
+| **Deep-link via URL param** — a redirect lands the user on a page to point at one item. | `useDeepLinkHighlight` (reads `?<param>=`). | **Yes** — the hook consumes the param (`replace`). |
+| **In-place, multi-target / with a side-effect** — one save must glow *and* do more (glow two rows, force-open a containing group, scroll). | A feature-local state machine is acceptable, **but it must still** (a) paint via `highlightClass` and (b) use the shared `HIGHLIGHT_DURATION_MS` so its timer matches the keyframe. | n/a — still in-place, no param. |
+
+The middle row is the default for any new navigate-to-highlight flow.
+The bottom row is the sanctioned exception (`useRowHighlight` tracks a
+single id, so genuine multi-target cases need their own state) — not a
+license to hand-roll a single-row highlight.
+
+**Deep-link landing — "point at this on redirect".** The same flash is
+the standard way to point a user at one item after a cross-page
+redirect: the source links with a `?highlight=<key>` (or `?template=…`)
+param, and the destination flashes the target — `useRowHighlight`'s
+auto-scroll then brings it into view, so the hook itself doesn't scroll.
+**Always go through the shared `shared/hooks/useDeepLinkHighlight.ts`
+hook** — don't hand-roll the effect:
+
+```ts
+const { id, flash } = useRowHighlight<string>();
+useDeepLinkHighlight({
+  param: 'highlight',
+  flash,                       // shares the page's row-highlight state (+ its scroll)
+  ready: !isLoading,           // fire only once the target is rendered
+  accept: (v) => v === 'tax-mode',
+});
+```
+
+The hook bakes in the two rules that keep it robust:
+
+- **Fire once the target is rendered, not on the raw mount.** If the
+  page shows a loading skeleton first, flashing on the loading mount
+  burns the ~2 s timer (and StrictMode's mount/unmount clears it) before
+  the element paints. Pass the page's ready flag (`!isLoading` /
+  `templatesReady`).
+- **Consume the param so a refresh doesn't re-flash.** The cue belongs
+  to the redirect, not the URL — a manual reload is no longer an
+  "arrival", so the hook clears the param (`replace`) after firing. A
+  fresh navigation that re-sets the param still re-targets.
+
+Both deep-link sites (`AccountPreferencesPage` → `?highlight=tax-mode`,
+`RecurringPage` → `?template=<uid>`) route through it.
+
+Reference implementations:
+
+- **In-place save-flash:** `BeneficiariesPage`, `TagsPage`,
+  `TransactionsPage`, `BankAccountsPage`, `ExpenseTrackerPage`,
+  `TaxationRulesPage`, `TaxTrackerPage` (generate/mark-paid),
+  `RecurringPage` (confirm/save). All `useRowHighlight` + `flash` in
+  `onSaved` — no param.
+- **Deep-link via URL param:** a transaction's recurring chip →
+  `/recurring?template=<uid>` (row); the dashboard Tax Tracker "turn it
+  back on" banner → `/account/preferences?highlight=tax-mode` (card).
+  Both via `useDeepLinkHighlight`.
+- **Sanctioned multi-target exception:** `CategorizationRulesPage`'s
+  highlight fires **in-place on save** (`handleSaved` → `highlightRule`),
+  but it must glow the saved rule row, force-open its containing group,
+  and scroll the row into view — the save *rebuckets* the list (the rule
+  moves to a new group), so the off-screen-only auto-scroll genuinely
+  fires here. Two targets `useRowHighlight` (single id) can't express, so
+  it keeps a feature-local state machine — but still reuses the shared
+  pieces: `highlightClass()` glow (in `GroupedRulesList`),
+  `HIGHLIGHT_DURATION_MS` for its timer, and `scrollHighlightIntoView()`
+  from a post-commit effect (keyed on the highlighted uid) so the scroll
+  lands at the row's final post-rebucket position. (Its `location.state`
+  consumption is a separate concern — the rule-prefill modal handoff, not
+  the highlight.)
 
 ## Idle-time prefetch
 

@@ -50,7 +50,7 @@ card is in its empty state.
 | ----------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `components/TransactionsCard.tsx`   | `useTransactionsQuery` (recent + week-bounded)                         | Weekly stat strip (spend + debit count) → 5 most recent rows → "Add transaction" inline CTA → footer link to `/transactions`.                                                                                                                                                                                                                                         |
 | `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` + `useTransactionsQuery` + `useTagsQuery` | Total Spent / Limit rollup with gradient progress bar → top 3 monthly categories with mini progress bars → **week-by-category strip** (top 3 tags by spend this week, aggregated client-side from the same weekly transactions slice TransactionsCard uses; React Query dedupes the fetch) → breach count chip when any category is over → footer link to `/budgets`. |
-| `components/TaxTrackerCard.tsx`     | `useTrackerCurrentWeekQuery`                                           | Accrued + projected stat pair → week progress bar → top 3 contributors → footer link to `/consumption-tax`.                                                                                                                                                                                                                                                           |
+| `components/TaxTrackerCard.tsx`     | `useTrackerCurrentWeekQuery` + `useTaxModeStore` + `useDomainActivityQuery('taxation')` | Accrued + projected stat pair → week progress bar → top 3 contributors → footer link to `/consumption-tax`. **Tax-mode banner (B1):** when auto-finalize is off (`!useTaxModeStore.enabled`), a two-layer banner shows — Layer A is a live, persistent "turn it back on" nudge driven by the `auto_enabled` flag (covers auto _and_ manual disable); Layer B is the louder, dismissible `tax_mode_auto_disabled` notice (hard-ack DELETEs it, leaving Layer A). **Stale guard:** the tracker derives from the first ACCRUING bill, which in manual mode drifts to a past, closed week — when `period_end < currentWeek.period_start` the projection + week-progress are date-relative garbage, so they're dropped and only the accrued figure (labelled with its real period) + contributors render. |
 
 Empty states (fresh signup) — each card shows a friendly headline
 
@@ -74,6 +74,7 @@ what's worth desktop space is worth mobile space too.
 | `components/BreachAlertsWidget.tsx`  | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert.                                                                                                                                                                                                                                                                                      |
 | `components/WeekSummaryWidget.tsx`   | "This week" mini-summary — date range + spend + debit count + tax accrued.                                                                                                                                                                                                                                                                                                                                                                |
 | `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/v1/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
+| `components/OverdueBillsWidget.tsx`   | **B1 activity enrichment.** The one taxation activity signal no other card carries (TaxTracker shows accrual, UpcomingBills shows the forward forecast). Filters `useDomainActivityQuery('taxation')` to `bill_overdue` and renders a dismissible `<ActivityCallout>` per overdue committee bill; renders nothing when none (conditional, like BreachAlertsWidget). `bill_overdue` is an ALERT/P1, so dismissing hard-acks → BE MUTEs + resurfaces later (snooze ladder), not a permanent delete. |
 
 > **Activity feed moved to the TopNav bell in Batch 18.** The
 > previous `RecentActivityWidget` was removed; the secondary grid
@@ -81,6 +82,17 @@ what's worth desktop space is worth mobile space too.
 > renders a lazy modal with Alerts + Notifications as two sections
 > in the same surface, capped at 10, preserving BE rank order. See
 > [activity.md](activity.md) for the full contract.
+>
+> **B1 (per-card enrichment) keeps the bell as the primary inbox** and
+> only splices the _additive_ activity signals into cards — the ones no
+> card already renders from its own live data (`tax_mode_auto_disabled`
+> on the Tax Tracker, `bill_overdue` in `OverdueBillsWidget`). The
+> redundant splices the 2026-06-04 spec sketched (breach / near-limit /
+> recurring-upcoming) were dropped because each card already computes
+> them. Per-card callouts **hard-ack on dismiss only** — the bell stays
+> the sole owner of the soft-ack-on-render lifecycle. The shared
+> machinery (`useDomainActivityQuery`, `iconForKind`, `ActivityCallout`)
+> lives in `shared/` — see [activity.md](activity.md).
 
 ### Shared chrome
 
@@ -215,8 +227,9 @@ overview.
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pages/DashboardPage.test.tsx`            | Welcome heading reads the user first name; the three primary cards render in the primary grid with the right stat values; breach chip appears when any category is over; Top-3 categories filtered + sorted; Tax Tracker renders accrued + projected + contributors; secondary widgets render with the correct stats; empty-state copy + CTAs render when each underlying dataset is empty; BreachAlertsWidget hides itself when no breach exists. |
 | `components/ExpenseTrackerCard.test.tsx`  | Per-card rollup of Total Spent / Limit + top 3 categories + breach chip; week-by-category strip aggregation; empty + populated branches.                                                                                                                                                                                                                                                                                                           |
-| `components/TaxTrackerCard.test.tsx`      | Accrued + projected stat pair, top-3 contributors, 404-tolerant empty branch, populated state via the BE Phase 2.6 endpoint.                                                                                                                                                                                                                                                                                                                       |
+| `components/TaxTrackerCard.test.tsx`      | Accrued + projected stat pair, top-3 contributors, 404-tolerant empty branch, populated state via the BE Phase 2.6 endpoint. **B1:** no banner while on; persistent off-banner + kept stats when off-but-current-week; off + stale suppresses projection/progress and labels the period; loud `tax_mode_auto_disabled` notice above the persistent banner; notice hidden once mode is back on (lingering event).                                       |
 | `components/UpcomingBillsWidget.test.tsx` | 7-day forecast render, "more in /recurring" cap hint, empty + populated branches.                                                                                                                                                                                                                                                                                                                                                                  |
+| `components/OverdueBillsWidget.test.tsx`  | Renders nothing when no `bill_overdue`; one callout per overdue bill with the count; ignores non-overdue kinds in the taxation domain.                                                                                                                                                                                                                                                                                                              |
 
 ## Future polish (queued)
 
@@ -224,8 +237,10 @@ overview.
 - **Bill state surfacing** — once [[taxation.bill-state-machine]]
   FE wiring lands, the Tax Tracker card can surface ACCRUING /
   BILLED / OVERDUE counts in the title chip.
-- **Per-card activity enrichment** — deferred review session
-  scope in [.scratch/dashboard-review-followup.md](../../.scratch/dashboard-review-followup.md)
-  (per-card `?domain=` filtered activity feed reads, soft/hard-ack
-  discipline, TopNav-bell scope re-evaluation, Notifications-tab
-  interplay).
+- **Per-card activity enrichment** — ✅ **shipped as B1** (targeted).
+  Re-reviewing the 2026-06-04 scope against the current cards showed
+  most of its examples now duplicate live data each card already
+  renders, so B1 wired only the _additive_ signals: the Tax Tracker
+  two-layer tax-mode banner + the `OverdueBillsWidget`, on a shared
+  `useDomainActivityQuery` / `ActivityCallout` / `iconForKind`
+  foundation. The bell stays the primary inbox.

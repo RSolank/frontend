@@ -315,7 +315,64 @@ html.dark {
  * shared patterns (e.g. a project-wide button reset) that appear
  * across multiple features.
  */
+/*
+ * Row / card highlight pulse (shared with `shared/utils/highlight.ts` +
+ * `shared/hooks/useRowHighlight`). The "pay attention here" signal after a
+ * save lands in a re-rendered list, or when the user is redirected to a page
+ * to be pointed at one item (e.g. the tax-mode banner → Preferences).
+ *
+ * It's a **violet glow** animated on the element's own `box-shadow` (ring +
+ * soft halo). Deliberately NOT a child `::after` overlay: a child's outer
+ * glow is clipped by an `overflow-hidden` ancestor (e.g. the rounded
+ * Preferences cards), whereas an element's *own* box-shadow paints outside
+ * its border box and is never clipped by its own overflow — and it follows
+ * the element's `border-radius` natively. The box-shadow is briefly
+ * overridden during the ~2s animation, then the element's resting shadow
+ * returns. The keyframe ramps the ring + halo in fast (~0.24s) then fades it
+ * out so appearance and disappearance are both smooth, never abrupt. Violet
+ * is theme-stable on purpose (one hue in light + dark) — see highlight.ts.
+ *
+ * `rgb(139 92 246)` is violet-500 inlined (keyframes can't read the `accent`
+ * token, and violet is fixed here regardless of theme anyway).
+ */
+@keyframes highlight-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgb(139 92 246 / 0),
+      0 0 0 0 rgb(139 92 246 / 0);
+  }
+  12% {
+    box-shadow:
+      0 0 0 2px rgb(139 92 246 / 0.92),
+      0 0 16px 5px rgb(139 92 246 / 0.5);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(139 92 246 / 0),
+      0 0 22px 8px rgb(139 92 246 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Respect the OS setting: hold a static ring for the duration instead of
+     animating the glow. */
+  @keyframes highlight-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 2px rgb(139 92 246 / 0.7);
+    }
+  }
+}
+
 @layer components {
+  /*
+   * The highlight target — the glow animates the element's own box-shadow
+   * (see the note above on why not an `::after` overlay).
+   */
+  .highlight-pulse {
+    animation: highlight-pulse 2s ease-out;
+  }
+
   /*
    * Form-control primitives. Pair `<label class="form-label" htmlFor="x">`
    * with `<input id="x" class="form-input">` so the focus / disabled /

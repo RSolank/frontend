@@ -10,6 +10,12 @@ export const activityKeys = {
   // surfaces — the bell uses 10, future surfaces may use more).
   feedAll: () => [...activityKeys.all, 'feed'] as const,
   feed: (limit: number) => [...activityKeys.all, 'feed', limit] as const,
+  // Domain-filtered feed (B1 dashboard enrichment). Keyed by domain +
+  // limit so a `?domain=taxation` fetch never collides with the bell's
+  // full-feed `feed(limit)` cache. Still nested under `feedAll()` so a
+  // hard-ack invalidation (which targets `feedAll()`) refreshes these too.
+  feedByDomain: (domain: string, limit: number) =>
+    [...activityKeys.all, 'feed', 'domain', domain, limit] as const,
   catalog: () => [...activityKeys.all, 'catalog'] as const,
   // The user's own disabled-kinds list (drives Notifications tab).
   signalSettings: () => [...activityKeys.all, 'signal-settings'] as const,

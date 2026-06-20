@@ -1,6 +1,7 @@
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { BreachAlertsWidget } from '../components/BreachAlertsWidget';
 import { ExpenseTrackerCard } from '../components/ExpenseTrackerCard';
+import { OverdueBillsWidget } from '../components/OverdueBillsWidget';
 import { TaxTrackerCard } from '../components/TaxTrackerCard';
 import { TransactionsCard } from '../components/TransactionsCard';
 import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
@@ -78,6 +79,14 @@ export function DashboardPage() {
         <BreachAlertsWidget />
         <WeekSummaryWidget />
         <UpcomingBillsWidget />
+        {/*
+         * Overdue committee bills — the one taxation activity signal no
+         * other card carries (TaxTracker shows accrual, UpcomingBills
+         * shows the forward forecast). Conditional like BreachAlerts:
+         * renders nothing when no bill is overdue, so it costs no space
+         * on the happy path.
+         */}
+        <OverdueBillsWidget />
       </section>
     </div>
   );

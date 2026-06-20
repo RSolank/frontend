@@ -1,7 +1,14 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
+import {
+  useDomainActivityQuery,
+  type ActivityFeedItem,
+} from '../../../shared/api/activityFeed';
+import { ActivityCallout } from '../../../shared/components/ActivityCallout';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { useTaxModeStore } from '../../../shared/state/taxMode.store';
 import {
   fractionOfWeekElapsed,
   weekRangeInTz,
@@ -9,6 +16,7 @@ import {
 import {
   useTrackerCurrentWeekQuery,
   type PerTagContribution,
+  type TrackerCurrentWeekResponse,
 } from '../../taxation/api/queries';
 
 import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
@@ -23,13 +31,34 @@ import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 // `.scratch/task-handoff-be-to-fe.md §1`). Until then the query
 // swallows 404/501 → null and the card renders the pending state
 // with the active week label.
+//
+// Tax-mode banner (B1 dashboard enrichment) — two co-operating
+// layers shown whenever auto-finalize is off:
+//   • Layer A (live, persistent, non-dismissible): driven by the
+//     `auto_enabled` flag via `useTaxModeStore`, so it covers *both*
+//     auto- and manual-disable and clears the instant the user turns
+//     it back on. A quiet "turn it back on" nudge.
+//   • Layer B (activity, dismissible): the louder "we just switched
+//     it off after bills stacked up" notice, sourced from the
+//     `tax_mode_auto_disabled` event. Dismiss hard-acks (DELETEs the
+//     notification) and leaves Layer A behind — the loud→ack→quiet
+//     transition.
+// Stale guard: the tracker derives from the first ACCRUING bill,
+// which in manual mode drifts to a *past, closed* week. When that
+// happens (`isStale`) the projection + week-progress are
+// date-relative and therefore invalid, so we drop them and show only
+// the accrued figure (labelled with its real period) + contributors.
 const TOP_CONTRIBUTORS_LIMIT = 3;
 
 export function TaxTrackerCard() {
   const timezone = usePreferencesStore((s) => s.timezone);
   const { money } = useMoneyFormatter();
+  const taxModeEnabled = useTaxModeStore((s) => s.enabled);
 
   const { data, isLoading } = useTrackerCurrentWeekQuery();
+  // One domain-scoped fetch shared (via the react-query cache) with
+  // the OverdueBillsWidget — both call `useDomainActivityQuery('taxation')`.
+  const domainFeed = useDomainActivityQuery('taxation');
   const fallbackWeek = useMemo(
     () => weekRangeInTz(new Date(), timezone),
     [timezone]
@@ -38,6 +67,14 @@ export function TaxTrackerCard() {
     () => fractionOfWeekElapsed(new Date(), timezone),
     [timezone]
   );
+
+  // Gate the loud notice on the *live* off-state so a `tax_mode_auto_disabled`
+  // event lingering after the user re-enables never re-shows.
+  const autoDisabledNotice = !taxModeEnabled
+    ? ((domainFeed.data?.items ?? []).find(
+        (i) => i.kind === 'tax_mode_auto_disabled'
+      ) ?? null)
+    : null;
 
   if (isLoading && data == null) {
     return (
@@ -66,6 +103,7 @@ export function TaxTrackerCard() {
         pending
         testId="dashboard-tax-card"
       >
+        <TaxModeBanners off={!taxModeEnabled} notice={autoDisabledNotice} />
         <DashboardCardEmpty
           headline="No tax accrual yet this week"
           body="Tax accrues automatically as you add transactions. Add one to start the week's running total."
@@ -76,9 +114,57 @@ export function TaxTrackerCard() {
     );
   }
 
-  // Populated. Projection prefers the backend's value; falls back to
-  // a client-side linear extrapolation by fraction-of-week-elapsed
-  // (mirrors CurrentWeekTracker on the Tax Tracker page).
+  // The accruing bill's week has already closed (manual mode let it
+  // drift past a week boundary). Projection + week-progress extrapolate
+  // by *this* week's elapsed fraction against an *old* period, so they
+  // are invalid — the populated body drops them and labels the accrued
+  // figure honestly.
+  const isStale = !taxModeEnabled && periodEnd < fallbackWeek.period_start;
+
+  return (
+    <DashboardCard
+      title="Tax Tracker"
+      titleChip={titleChip}
+      footerHref="/consumption-tax"
+      footerLabel="View bills + week detail"
+      testId="dashboard-tax-card"
+    >
+      <TaxModeBanners off={!taxModeEnabled} notice={autoDisabledNotice} />
+      <PopulatedTaxBody
+        data={data}
+        money={money}
+        elapsedFraction={elapsedFraction}
+        isStale={isStale}
+        periodStart={periodStart}
+        periodEnd={periodEnd}
+      />
+    </DashboardCard>
+  );
+}
+
+// The populated card body — split out of TaxTrackerCard so the estimate
+// banner + stale/projection branches don't push the parent over the
+// cyclomatic-complexity budget (same view-model split as ExpenseTrackerCard).
+interface PopulatedTaxBodyProps {
+  data: TrackerCurrentWeekResponse;
+  money: (n: number) => string;
+  elapsedFraction: number;
+  isStale: boolean;
+  periodStart: string;
+  periodEnd: string;
+}
+
+function PopulatedTaxBody({
+  data,
+  money,
+  elapsedFraction,
+  isStale,
+  periodStart,
+  periodEnd,
+}: PopulatedTaxBodyProps) {
+  // Projection prefers the backend's value; falls back to a client-side
+  // linear extrapolation by fraction-of-week-elapsed (mirrors
+  // CurrentWeekTracker on the Tax Tracker page).
   const runningTotal = data.running_tax + data.running_penalty;
   const projectedTax =
     data.projected_tax > 0
@@ -91,13 +177,7 @@ export function TaxTrackerCard() {
   const projectedTotal = projectedTax + projectedPenalty;
 
   return (
-    <DashboardCard
-      title="Tax Tracker"
-      titleChip={titleChip}
-      footerHref="/consumption-tax"
-      footerLabel="View bills + week detail"
-      testId="dashboard-tax-card"
-    >
+    <>
       {data.is_estimate && (
         <p
           className="border-warning-300 bg-warning-50 text-warning-800 dark:border-warning-700/60 dark:bg-warning-950/40 dark:text-warning-200 mb-3 rounded-md border px-2 py-1 text-xs"
@@ -107,25 +187,100 @@ export function TaxTrackerCard() {
         </p>
       )}
 
-      <dl className="grid grid-cols-2 gap-2">
-        <Stat
-          label="Accrued"
+      {isStale ? (
+        <StaleAccrued
           value={money(runningTotal)}
-          accent
-          testId="dashboard-tax-accrued"
+          periodStart={periodStart}
+          periodEnd={periodEnd}
         />
-        <Stat
-          label="Projected"
-          value={money(projectedTotal)}
-          muted
-          testId="dashboard-tax-projected"
-        />
-      </dl>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-2">
+            <Stat
+              label="Accrued"
+              value={money(runningTotal)}
+              accent
+              testId="dashboard-tax-accrued"
+            />
+            <Stat
+              label="Projected"
+              value={money(projectedTotal)}
+              muted
+              testId="dashboard-tax-projected"
+            />
+          </dl>
 
-      <WeekProgress fraction={elapsedFraction} />
+          <WeekProgress fraction={elapsedFraction} />
+        </>
+      )}
 
       <TopContributors perTag={data.per_tag} money={money} />
-    </DashboardCard>
+    </>
+  );
+}
+
+// Layer A + Layer B of the tax-mode banner stack. Renders nothing when
+// auto-finalize is on. The loud Layer-B notice (if present) sits above
+// the quiet, persistent Layer-A nudge.
+function TaxModeBanners({
+  off,
+  notice,
+}: {
+  off: boolean;
+  notice: ActivityFeedItem | null;
+}) {
+  if (!off) return null;
+  return (
+    <div className="mb-3 flex flex-col gap-2">
+      {notice ? (
+        <ActivityCallout item={notice} testId="dashboard-tax-auto-disabled" />
+      ) : null}
+      <div
+        className="border-warning-300 bg-warning-50 dark:border-warning-700/60 dark:bg-warning-950/40 rounded-md border px-2.5 py-2"
+        data-testid="dashboard-tax-mode-off"
+      >
+        <p className="text-warning-800 dark:text-warning-200 text-xs font-medium">
+          Auto-finalize is off — weekly bills won&apos;t be generated
+          automatically.
+        </p>
+        <Link
+          to="/account/preferences?highlight=tax-mode"
+          className="text-warning-800 dark:text-warning-200 mt-1 inline-block text-xs font-semibold hover:underline"
+        >
+          Turn it back on →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// Off + stale: the only accrual detail that survives a closed accruing
+// week — the running total, labelled with the period it actually
+// covers (the projection/progress bars are suppressed by the caller).
+function StaleAccrued({
+  value,
+  periodStart,
+  periodEnd,
+}: {
+  value: string;
+  periodStart: string;
+  periodEnd: string;
+}) {
+  return (
+    <div
+      className="bg-accent-50 dark:bg-accent-950/40 rounded-md px-3 py-2"
+      data-testid="dashboard-tax-accrued"
+    >
+      <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        Accrued
+      </div>
+      <div className="money text-accent-700 dark:text-accent-200 mt-0.5 text-base font-semibold tabular-nums">
+        {value}
+      </div>
+      <div className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+        Week of {periodStart} → {periodEnd} · not finalized
+      </div>
+    </div>
   );
 }
 

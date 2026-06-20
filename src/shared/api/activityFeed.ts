@@ -34,9 +34,11 @@ export interface ActivityFeedResponse {
 }
 
 export function fetchActivityFeed(
-  limit: number
+  limit: number,
+  domain?: string
 ): Promise<ActivityFeedResponse> {
   const sp = new URLSearchParams({ limit: String(limit) });
+  if (domain) sp.set('domain', domain);
   return apiFetch<ActivityFeedResponse>(
     `${routes.activity.feed()}?${sp.toString()}`
   );
@@ -50,6 +52,28 @@ export function useActivityFeedQuery(limit = 10, enabled = true) {
     // 30s matches the old dashboard widget posture — the feed updates
     // on user events; this keeps the bell quiet while still surfacing
     // worker-originated events on the next focus/refetch cycle.
+    staleTime: 30_000,
+  });
+}
+
+// B1 dashboard enrichment — a single domain-scoped feed fetch that a
+// card filters client-side to the one or two kinds it cares about
+// (e.g. the TaxTracker card pulls `domain='taxation'` and picks out
+// `tax_mode_auto_disabled` + `bill_overdue`). BE ranking + the
+// per-user `disabled[]` filter are inherited unchanged — this is the
+// same reader path as the bell, just with `?domain=`. Keyed
+// separately from the bell so the two caches never collide; still
+// invalidated by the shared hard-ack mutation (which targets
+// `feedAll()`).
+export function useDomainActivityQuery(
+  domain: string,
+  limit = 10,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: activityKeys.feedByDomain(domain, limit),
+    queryFn: () => fetchActivityFeed(limit, domain),
+    enabled,
     staleTime: 30_000,
   });
 }
