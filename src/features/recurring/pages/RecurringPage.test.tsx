@@ -64,40 +64,112 @@ describe('RecurringPage', () => {
     );
   });
 
-  test('buckets templates by status, surfaces review first', async () => {
+  test('defaults to Detected and routes statuses to the right tab', async () => {
     withTemplates([
       templateFixture({ uid: 1, status: 'candidate' }),
       templateFixture({ uid: 2, status: 'review' }),
       templateFixture({ uid: 3, status: 'locked' }),
+      templateFixture({ uid: 4, status: 'locked', active: false }),
     ]);
     renderWithProviders(<RecurringPage />);
+
+    // Candidates exist → Detected is the default landing tab, showing only the
+    // candidate row.
     await waitFor(() =>
       expect(screen.getByTestId('recurring-row-1')).toBeInTheDocument()
     );
+    expect(screen.getByTestId('recurring-tab-detected')).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.queryByTestId('recurring-row-3')).toBeNull();
 
-    const sections = screen.getAllByRole('region');
-    const titles = sections.map((s) => s.getAttribute('aria-label'));
-    // "Needs attention" (review) must precede "Detected" (candidate)
-    // which must precede "Confirmed" (locked).
+    // Confirmed tab holds review + locked + paused, in that order.
+    await userEvent.click(screen.getByTestId('recurring-tab-confirmed'));
+    const titles = screen
+      .getAllByRole('region')
+      .map((s) => s.getAttribute('aria-label'));
     const idxReview = titles.indexOf('Needs attention');
-    const idxDetected = titles.indexOf('Detected');
     const idxConfirmed = titles.indexOf('Confirmed');
+    const idxPaused = titles.indexOf('Paused');
     expect(idxReview).toBeGreaterThanOrEqual(0);
-    expect(idxReview).toBeLessThan(idxDetected);
-    expect(idxDetected).toBeLessThan(idxConfirmed);
+    expect(idxReview).toBeLessThan(idxConfirmed);
+    expect(idxConfirmed).toBeLessThan(idxPaused);
+    // The candidate is not on the Confirmed tab.
+    expect(screen.queryByTestId('recurring-row-1')).toBeNull();
   });
 
-  test('Confirm button hidden on locked rows, shown on detected', async () => {
+  test('Confirm button shown on detected, hidden on confirmed locked rows', async () => {
     withTemplates([
       templateFixture({ uid: 1, status: 'candidate' }),
       templateFixture({ uid: 3, status: 'locked' }),
     ]);
     renderWithProviders(<RecurringPage />);
+
+    // Detected tab (default): candidate offers Confirm.
+    await waitFor(() =>
+      expect(screen.getByTestId('recurring-confirm-1')).toBeInTheDocument()
+    );
+
+    // Confirmed tab: a locked row offers no Confirm.
+    await userEvent.click(screen.getByTestId('recurring-tab-confirmed'));
+    expect(screen.getByTestId('recurring-row-3')).toBeInTheDocument();
+    expect(screen.queryByTestId('recurring-confirm-3')).toBeNull();
+  });
+
+  test('Detected "show more" reveals candidates beyond the preview', async () => {
+    withTemplates(
+      Array.from({ length: 7 }, (_, i) =>
+        templateFixture({ uid: i + 1, status: 'candidate' })
+      )
+    );
+    renderWithProviders(<RecurringPage />);
+
+    // Only the first 5 candidates show; 6 and 7 are behind the reveal.
     await waitFor(() =>
       expect(screen.getByTestId('recurring-row-1')).toBeInTheDocument()
     );
-    expect(screen.getByTestId('recurring-confirm-1')).toBeInTheDocument();
-    expect(screen.queryByTestId('recurring-confirm-3')).toBeNull();
+    expect(screen.getByTestId('recurring-row-5')).toBeInTheDocument();
+    expect(screen.queryByTestId('recurring-row-6')).toBeNull();
+
+    await userEvent.click(screen.getByTestId('recurring-detected-show-more'));
+    expect(screen.getByTestId('recurring-row-6')).toBeInTheDocument();
+    expect(screen.getByTestId('recurring-row-7')).toBeInTheDocument();
+    expect(screen.queryByTestId('recurring-detected-show-more')).toBeNull();
+  });
+
+  test('deep-link to a candidate lands on the Detected tab', async () => {
+    withTemplates([
+      templateFixture({ uid: 1, status: 'candidate' }),
+      templateFixture({ uid: 3, status: 'locked' }),
+    ]);
+    renderWithProviders(<RecurringPage />, {
+      initialEntries: ['/recurring?template=1'],
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('recurring-row-1')).toBeInTheDocument()
+    );
+    expect(screen.getByTestId('recurring-tab-detected')).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
+  test('deep-link to a confirmed template lands on the Confirmed tab', async () => {
+    withTemplates([
+      templateFixture({ uid: 1, status: 'candidate' }),
+      templateFixture({ uid: 3, status: 'locked' }),
+    ]);
+    renderWithProviders(<RecurringPage />, {
+      initialEntries: ['/recurring?template=3'],
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('recurring-row-3')).toBeInTheDocument()
+    );
+    expect(screen.getByTestId('recurring-tab-confirmed')).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
   });
 
   test('Upcoming tab swaps to upcoming-bills list', async () => {

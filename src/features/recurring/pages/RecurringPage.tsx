@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
@@ -17,16 +17,22 @@ import { RecurringFormDialog } from '../components/RecurringFormDialog';
 import { RecurringTemplateRow } from '../components/RecurringTemplateRow';
 import { UpcomingBillsList } from '../components/UpcomingBillsList';
 
-type TabKey = 'templates' | 'upcoming';
+type TabKey = 'confirmed' | 'detected' | 'upcoming';
 
-// /recurring — the inference-engine surface. The worker detects
-// patterns and forecasts bills; this page exposes the templates with
-// "Detected" / "Needs attention" / "Confirmed" status chips, plus
-// Confirm / Edit / Dismiss action clusters and an "Upcoming" tab that
-// shows the 30-day forecast. New manual templates are authored via
-// the "+ Add manually" CTA in the header (secondary by UX choice).
+// How many detected (candidate) rows to show before the "show more" reveal.
+const DETECTED_PREVIEW = 5;
+
+// /recurring — the inference-engine surface. The worker detects patterns and
+// forecasts bills; the page splits them into two tabs (B3):
+//   - **Detected** — `candidate` templates the engine suggested, awaiting a
+//     Confirm / Dismiss decision (capped to a preview with a "show more").
+//   - **Confirmed** — everything the user already owns: `locked` (active),
+//     `review` (active but flagged for attention), and paused (`inactive`).
+// plus an **Upcoming** tab showing the 30-day forecast. New manual templates
+// are authored via the "+ Add manually" CTA in the header.
 export function RecurringPage() {
-  const [tab, setTab] = useState<TabKey>('templates');
+  const [tab, setTab] = useState<TabKey>('confirmed');
+  const [showAllDetected, setShowAllDetected] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<RecurringTemplate | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<RecurringTemplate | null>(
@@ -39,23 +45,8 @@ export function RecurringPage() {
   const templates = useRecurringTemplatesQuery();
   const benQuery = useBeneficiariesQuery();
 
-  // Deep-link from a transaction's recurring chip: `/recurring?template=<uid>`
-  // flashes that template's row + scrolls it into view once the list is loaded.
   const templateParam = searchParams.get('template');
   const templatesReady = templates.data != null;
-  useEffect(() => {
-    if (!templateParam || !templatesReady) return;
-    setTab('templates');
-    highlight.flash(templateParam);
-    const raf = window.requestAnimationFrame(() => {
-      document
-        .getElementById(`recurring-template-${templateParam}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    return () => window.cancelAnimationFrame(raf);
-    // `highlight.flash` is stable (useCallback); re-run only on param/load change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateParam, templatesReady]);
 
   const benData = benQuery.data;
   const benById = useMemo(() => {
@@ -68,6 +59,45 @@ export function RecurringPage() {
     () => bucketTemplates(templates.data ?? []),
     [templates.data]
   );
+  const detectedCount = buckets.candidate.length;
+  const confirmedCount =
+    buckets.review.length + buckets.locked.length + buckets.inactive.length;
+
+  // Default landing tab, decided once when templates first load (and only when
+  // a deep-link isn't already steering it): start on Detected when there are
+  // candidates awaiting a decision, otherwise the Confirmed home.
+  const defaultedRef = useRef(false);
+  useEffect(() => {
+    if (!templatesReady || defaultedRef.current) return;
+    defaultedRef.current = true;
+    if (!templateParam && detectedCount > 0) setTab('detected');
+  }, [templatesReady, templateParam, detectedCount]);
+
+  // Deep-link from a transaction's recurring chip: `/recurring?template=<uid>`
+  // selects the tab the target lives in (Detected for a candidate, else
+  // Confirmed), expands the Detected reveal if it's hidden, then flashes the
+  // row + scrolls it into view. Reactive to the param so a fresh chip click
+  // re-targets even while the page is mounted.
+  useEffect(() => {
+    if (!templateParam || !templatesReady) return;
+    const target = (templates.data ?? []).find(
+      (t) => String(t.uid) === templateParam
+    );
+    const targetTab: TabKey =
+      target?.status === 'candidate' ? 'detected' : 'confirmed';
+    setTab(targetTab);
+    if (targetTab === 'detected') setShowAllDetected(true);
+    highlight.flash(templateParam);
+    const raf = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`recurring-template-${templateParam}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(raf);
+    // `highlight.flash` is stable (useCallback); `templates.data` is read at
+    // run time but re-running only on param/load change is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateParam, templatesReady]);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: recurringKeys.all });
@@ -110,19 +140,41 @@ export function RecurringPage() {
         </button>
       </header>
 
-      <Tabs tab={tab} onTabChange={setTab} />
+      <Tabs
+        tab={tab}
+        onTabChange={setTab}
+        detectedCount={detectedCount}
+        confirmedCount={confirmedCount}
+      />
 
-      {tab === 'templates' ? (
-        <TemplatesView
+      {tab === 'detected' && (
+        <DetectedView
           loading={templates.isLoading}
-          buckets={buckets}
+          rows={buckets.candidate}
+          showAll={showAllDetected}
+          onShowAll={() => setShowAllDetected(true)}
           benById={benById}
           highlightId={highlight.id}
           onConfirm={handleConfirm}
           onEdit={setEditing}
           onDismiss={setConfirmDelete}
         />
-      ) : (
+      )}
+
+      {tab === 'confirmed' && (
+        <ConfirmedView
+          loading={templates.isLoading}
+          buckets={buckets}
+          hasDetected={detectedCount > 0}
+          benById={benById}
+          highlightId={highlight.id}
+          onConfirm={handleConfirm}
+          onEdit={setEditing}
+          onDismiss={setConfirmDelete}
+        />
+      )}
+
+      {tab === 'upcoming' && (
         <section
           aria-label="Upcoming bills (30 days)"
           className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
@@ -193,9 +245,13 @@ function bucketTemplates(rows: RecurringTemplate[]): TemplatesBuckets {
 function Tabs({
   tab,
   onTabChange,
+  detectedCount,
+  confirmedCount,
 }: {
   tab: TabKey;
   onTabChange: (next: TabKey) => void;
+  detectedCount: number;
+  confirmedCount: number;
 }) {
   return (
     <nav
@@ -203,10 +259,18 @@ function Tabs({
       className="mb-4 flex border-b border-slate-200 dark:border-slate-800"
     >
       <TabButton
-        active={tab === 'templates'}
-        onClick={() => onTabChange('templates')}
-        label="Templates"
-        testid="recurring-tab-templates"
+        active={tab === 'detected'}
+        onClick={() => onTabChange('detected')}
+        label="Detected"
+        count={detectedCount}
+        testid="recurring-tab-detected"
+      />
+      <TabButton
+        active={tab === 'confirmed'}
+        onClick={() => onTabChange('confirmed')}
+        label="Confirmed"
+        count={confirmedCount}
+        testid="recurring-tab-confirmed"
       />
       <TabButton
         active={tab === 'upcoming'}
@@ -222,11 +286,13 @@ function TabButton({
   active,
   onClick,
   label,
+  count,
   testid,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  count?: number;
   testid: string;
 }) {
   return (
@@ -244,49 +310,58 @@ function TabButton({
       ].join(' ')}
     >
       {label}
+      {count != null && count > 0 && (
+        <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
+          {count}
+        </span>
+      )}
     </button>
   );
 }
 
-interface TemplatesViewProps {
-  loading: boolean;
-  buckets: TemplatesBuckets;
-  benById: Map<
-    number,
-    NonNullable<ReturnType<typeof useBeneficiariesQuery>['data']>[number]
-  >;
+type BenById = Map<
+  number,
+  NonNullable<ReturnType<typeof useBeneficiariesQuery>['data']>[number]
+>;
+
+interface RowHandlers {
+  benById: BenById;
   highlightId: string | null;
   onConfirm: (t: RecurringTemplate) => void;
   onEdit: (t: RecurringTemplate) => void;
   onDismiss: (t: RecurringTemplate) => void;
 }
 
-function TemplatesView({
+function LoadingNote() {
+  return (
+    <p className="text-sm text-slate-500" data-testid="recurring-templates-loading">
+      Loading templates…
+    </p>
+  );
+}
+
+// --- Detected tab: candidate suggestions with a "show more" reveal ---------
+
+interface DetectedViewProps extends RowHandlers {
+  loading: boolean;
+  rows: RecurringTemplate[];
+  showAll: boolean;
+  onShowAll: () => void;
+}
+
+function DetectedView({
   loading,
-  buckets,
+  rows,
+  showAll,
+  onShowAll,
   benById,
   highlightId,
   onConfirm,
   onEdit,
   onDismiss,
-}: TemplatesViewProps) {
-  if (loading)
-    return (
-      <p
-        className="text-sm text-slate-500"
-        data-testid="recurring-templates-loading"
-      >
-        Loading templates…
-      </p>
-    );
-
-  const total =
-    buckets.review.length +
-    buckets.candidate.length +
-    buckets.locked.length +
-    buckets.inactive.length;
-
-  if (total === 0)
+}: DetectedViewProps) {
+  if (loading) return <LoadingNote />;
+  if (rows.length === 0)
     return (
       <p
         data-testid="recurring-empty"
@@ -297,20 +372,78 @@ function TemplatesView({
       </p>
     );
 
+  const visible = showAll ? rows : rows.slice(0, DETECTED_PREVIEW);
+  const hidden = rows.length - visible.length;
+
+  return (
+    <section aria-label="Detected" className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
+        {visible.map((t) => (
+          <RecurringTemplateRow
+            key={t.uid}
+            template={t}
+            beneficiaryById={benById}
+            highlighted={highlightId === String(t.uid)}
+            onConfirm={() => onConfirm(t)}
+            onEdit={() => onEdit(t)}
+            onDismiss={() => onDismiss(t)}
+          />
+        ))}
+      </ul>
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={onShowAll}
+          data-testid="recurring-detected-show-more"
+          className="focus-visible:ring-accent-500 self-start rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-300 dark:hover:text-slate-100"
+        >
+          Show {hidden} more
+        </button>
+      )}
+    </section>
+  );
+}
+
+// --- Confirmed tab: everything the user owns (active / review / paused) -----
+
+interface ConfirmedViewProps extends RowHandlers {
+  loading: boolean;
+  buckets: TemplatesBuckets;
+  hasDetected: boolean;
+}
+
+function ConfirmedView({
+  loading,
+  buckets,
+  hasDetected,
+  benById,
+  highlightId,
+  onConfirm,
+  onEdit,
+  onDismiss,
+}: ConfirmedViewProps) {
+  if (loading) return <LoadingNote />;
+
+  const total =
+    buckets.review.length + buckets.locked.length + buckets.inactive.length;
+  if (total === 0)
+    return (
+      <p
+        data-testid="recurring-empty"
+        className="rounded-md border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+      >
+        {hasDetected
+          ? 'No confirmed templates yet. Confirm a detected pattern and it will keep forecasting here.'
+          : 'Nothing detected yet. Once the engine spots a recurring pattern across a few of your transactions, it will surface here for confirmation.'}
+      </p>
+    );
+
   return (
     <div className="flex flex-col gap-6">
       <Bucket
         title="Needs attention"
+        tone="warning"
         rows={buckets.review}
-        benById={benById}
-        highlightId={highlightId}
-        onConfirm={onConfirm}
-        onEdit={onEdit}
-        onDismiss={onDismiss}
-      />
-      <Bucket
-        title="Detected"
-        rows={buckets.candidate}
         benById={benById}
         highlightId={highlightId}
         onConfirm={onConfirm}
@@ -326,7 +459,7 @@ function TemplatesView({
         onDismiss={onDismiss}
       />
       <Bucket
-        title="Inactive"
+        title="Paused"
         rows={buckets.inactive}
         benById={benById}
         highlightId={highlightId}
@@ -339,8 +472,9 @@ function TemplatesView({
 
 interface BucketProps {
   title: string;
+  tone?: 'default' | 'warning';
   rows: RecurringTemplate[];
-  benById: TemplatesViewProps['benById'];
+  benById: BenById;
   highlightId: string | null;
   onConfirm?: (t: RecurringTemplate) => void;
   onEdit: (t: RecurringTemplate) => void;
@@ -349,6 +483,7 @@ interface BucketProps {
 
 function Bucket({
   title,
+  tone = 'default',
   rows,
   benById,
   highlightId,
@@ -357,9 +492,13 @@ function Bucket({
   onDismiss,
 }: BucketProps) {
   if (rows.length === 0) return null;
+  const titleClass =
+    tone === 'warning'
+      ? 'text-amber-700 dark:text-amber-400'
+      : 'text-slate-700 dark:text-slate-200';
   return (
     <section aria-label={title}>
-      <h2 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+      <h2 className={`mb-2 text-sm font-semibold ${titleClass}`}>
         {title}{' '}
         <span className="text-xs font-normal text-slate-500">
           ({rows.length})
@@ -373,9 +512,7 @@ function Bucket({
             beneficiaryById={benById}
             highlighted={highlightId === String(t.uid)}
             onConfirm={
-              onConfirm && t.status !== 'locked'
-                ? () => onConfirm(t)
-                : undefined
+              onConfirm && t.status !== 'locked' ? () => onConfirm(t) : undefined
             }
             onEdit={() => onEdit(t)}
             onDismiss={() => onDismiss(t)}
