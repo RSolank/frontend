@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { SystemChip } from '../../../shared/components/SystemChip';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { formatAliasesDisplay } from '../api/aliases';
 import { beneficiaryKeys } from '../api/keys';
 import { deleteBeneficiaryRequest } from '../api/mutations';
@@ -293,11 +294,10 @@ function BeneficiaryTable({
     return rows.map((b) => (
       <tr
         key={b.uid}
-        className={`border-t border-slate-100 transition-colors dark:border-slate-800 ${
-          highlightUid === b.uid
-            ? 'bg-accent-50/60 ring-accent-500 dark:bg-accent-950/30 ring-2 ring-inset'
-            : ''
-        }`}
+        className={`border-t border-slate-100 transition-colors dark:border-slate-800 ${highlightClass(
+          highlightUid === b.uid,
+          'surface'
+        )}`}
       >
         <td className="px-4 py-3 font-semibold">
           <span className="inline-flex flex-wrap items-center gap-2">

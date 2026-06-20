@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseRowHighlightReturn<T> {
   // The currently-highlighted row id, or null when no highlight is
-  // active. Callers compare this against each row's id to decide
-  // whether to paint the indigo ring.
+  // active. Callers compare this against each row's id and feed the
+  // result to `highlightClass()` (shared/utils/highlight) to paint the
+  // violet ring.
   id: T | null;
   // Trigger the highlight on a new id. Cancels any running timer
   // first so only one row glows at a time.
@@ -12,7 +13,9 @@ interface UseRowHighlightReturn<T> {
 
 // "Row highlight on save" pattern (CONTRIBUTING.md §6). Briefly paints
 // a row to neutralize the surprise of a modal closing into a
-// re-rendered list. ~1500 ms default fade.
+// re-rendered list. ~1500 ms default fade. This hook owns the *state*;
+// the *style* (the violet ring/surface classes) lives in the shared
+// `highlightClass()` helper so the tone is single-point.
 export function useRowHighlight<T extends string | number>(
   durationMs = 1500
 ): UseRowHighlightReturn<T> {

@@ -1,6 +1,7 @@
 import { MoreHorizontal } from 'lucide-react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
+import { highlightClass } from '../../../shared/utils/highlight';
 import type { BudgetCategory } from '../api/queries';
 import { formatRateForInput } from '../api/rateInput';
 
@@ -41,9 +42,7 @@ export function BudgetCategoryCard({
   const current = category.current_net_expense ?? 0;
   const hasLimit = category.limit_amt != null && category.limit_amt > 0;
 
-  const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-accent-500'
-    : 'ring-0';
+  const ringClass = highlightClass(isHighlighted);
 
   const cardBase = emphasis
     ? 'bg-accent-50/60 border-accent-200 dark:bg-accent-950/30 dark:border-accent-900/60'

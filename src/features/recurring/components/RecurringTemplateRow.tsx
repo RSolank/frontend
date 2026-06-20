@@ -9,6 +9,7 @@ import {
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
+import { highlightClass } from '../../../shared/utils/highlight';
 import type { Beneficiary } from '../../beneficiaries/api/queries';
 import type { RecurringCadence, RecurringTemplate } from '../api/schemas';
 
@@ -48,13 +49,11 @@ export function RecurringTemplateRow({
       <ArrowDownLeft size={14} className="text-success-500" aria-hidden />
     );
 
-  const highlightClass = highlighted ? 'ring-2 ring-accent-500 ring-inset' : '';
-
   return (
     <li
       id={`recurring-template-${template.uid}`}
       data-testid={`recurring-row-${template.uid}`}
-      className={`flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass}`}
+      className={`flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass(highlighted)}`}
     >
       <div className="flex flex-wrap items-center gap-2">
         {directionIcon}

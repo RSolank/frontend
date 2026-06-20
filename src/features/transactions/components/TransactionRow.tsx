@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { RecurringChip } from '../../../shared/components/RecurringChip';
 import { formatMoney } from '../../../shared/utils/currency';
 import { formatDate } from '../../../shared/utils/dateUtils';
+import { highlightClass } from '../../../shared/utils/highlight';
 import type { TransactionDTO } from '../api/schemas';
 
 interface FlatTag {
@@ -60,11 +61,7 @@ export function TransactionRow({
 
   return (
     <li
-      className={`group flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60 ${
-        highlighted
-          ? 'bg-accent-50/60 ring-accent-500 dark:bg-accent-950/30 ring-2 ring-inset'
-          : ''
-      }`}
+      className={`group flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50 md:flex-row md:items-center md:gap-3 md:py-2 dark:border-slate-800 dark:hover:bg-slate-900/60 ${highlightClass(highlighted, 'surface')}`}
     >
       {/* Date — fixed-ish width on desktop so amounts stay column-aligned;
           full width above name on mobile. */}

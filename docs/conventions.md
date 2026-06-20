@@ -573,7 +573,9 @@ Small pill/badge chips carry a **semantic tone**, not an arbitrary color:
   to that template (with a `hover:bg-violet-200` affordance). Reuse violet for any
   future chip that's notable or links somewhere — keeps "this is special / you can
   click it" visually consistent and distinct from neutral tags and the teal
-  brand-accent (which means "brand / focus ring").
+  brand-accent (which means "brand / focus ring"). The transient
+  [row-highlight](#row-highlight-on-save) glow shares this violet tone (a
+  theme-stable "pay attention here"), so chip and flash speak one visual language.
 - **success / warning / danger** — status tones, reserved for state (e.g. a
   breach or low-balance pill), not for marker chips.
 
@@ -629,11 +631,17 @@ eye lands on the changed row instead of scanning the table.
 
 - Highlight kicks in on **both create AND edit** success, not just
   edit. Symmetric UX: every save → glow.
-- Visual: **accent ring** that fades after ~1500 ms. Use
-  `ring-2 ring-accent-500 ring-inset` (or equivalent), conditional
-  on `highlightId === row.id`. The accent token flips per theme
-  (teal in light, indigo in dark) — the highlight automatically
-  follows.
+- Visual: a **violet ring** that fades after ~1500 ms. Never hand-write
+  the class — call `highlightClass(highlighted, variant?)` from
+  `shared/utils/highlight.ts` and concatenate it into the row's
+  `className` (`variant: 'ring'` default, or `'surface'` for rows that
+  also wash the background). The tone is **violet and theme-stable** —
+  one hue in both light and dark (deliberately *not* the `accent` token,
+  which flips teal/indigo per theme and is shared with chrome). Violet is
+  the app's "pay attention here / significant" signal (same family as the
+  `RecurringChip`, see [Chip tones](#chip-tones)), kept constant so the
+  glow reads identically everywhere. Single-point retone: change the
+  token, not the call sites.
 - **Best-effort, no scrolling.** If the user has filtered or
   sorted the row out of view, the highlight still fires but the
   user may not see it. Don't auto-scroll — surprise scrolling is
@@ -644,14 +652,23 @@ eye lands on the changed row instead of scanning the table.
 - **One timer, one row at a time.** Triggering the highlight on a
   new row cancels the previous timer.
 
-**Shared hook:** `shared/hooks/useRowHighlight.ts` returns
-`{ id, flash }`. Callers wire `flash(id)` into the modal's
-`onSaved` and compare `id === row.id` in row className. Reference
-implementations: `BeneficiariesPage`, `TagsPage`,
-`TransactionsPage`. (`CategorizationRulesPage` has a feature-
-specific variant that also handles group rebucket-and-expand on
-top of the base highlight; it predates the shared hook and is
-left in place.)
+**The feature is two co-operating pieces** — keep them paired:
+
+- **State:** `shared/hooks/useRowHighlight.ts` returns `{ id, flash }`.
+  Callers wire `flash(id)` into the modal's `onSaved` and compare
+  `id === row.id` for the row.
+- **Style:** `shared/utils/highlight.ts` — `highlightClass()` +
+  `HIGHLIGHT_RING` / `HIGHLIGHT_SURFACE` tokens. The single source for the
+  ring/surface classes, so the violet tone is one edit away.
+
+Reference implementations: `BeneficiariesPage`, `TagsPage`,
+`TransactionsPage`. The same flash doubles as the **deep-link landing**
+cue (e.g. a transaction's recurring chip → `/recurring?template=<uid>`
+flashes the target row). `CategorizationRulesPage` keeps a feature-
+specific highlight **state** machine (it also rebuckets + expands the
+target group), but its ring now routes through the shared
+`highlightClass()` token like everyone else — only the bespoke
+bookkeeping is local.
 
 ## Idle-time prefetch
 

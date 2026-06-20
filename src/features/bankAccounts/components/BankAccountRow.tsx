@@ -1,5 +1,6 @@
 import { MoreHorizontal, Wallet } from 'lucide-react';
 
+import { highlightClass } from '../../../shared/utils/highlight';
 import { ACCOUNT_TYPE_LABEL, type BankAccount } from '../api/schemas';
 
 interface Props {
@@ -18,11 +19,10 @@ export function BankAccountRow({
   highlighted = false,
   onOpenDetail,
 }: Props) {
-  const highlightClass = highlighted ? 'ring-2 ring-accent-500 ring-inset' : '';
   return (
     <li
       data-testid={`bank-account-row-${account.uid}`}
-      className={`flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass}`}
+      className={`flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass(highlighted)}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

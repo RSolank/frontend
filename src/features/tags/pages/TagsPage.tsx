@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { SystemChip } from '../../../shared/components/SystemChip';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { tagKeys } from '../api/keys';
 import type { CreatedTag } from '../api/mutations';
 import { deleteTagRequest } from '../api/mutations';
@@ -211,10 +212,10 @@ function TagRow({
 
   const stripeClass =
     level % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-900/40';
-  const highlightClass =
-    highlightTagId === tag.tag_id
-      ? 'bg-accent-50/60 ring-2 ring-accent-500 ring-inset dark:bg-accent-950/30'
-      : '';
+  const highlightRowClass = highlightClass(
+    highlightTagId === tag.tag_id,
+    'surface'
+  );
 
   // Toggle the expansion when the row content area is clicked. The
   // chevron stays as a visual affordance but is no longer the only
@@ -227,7 +228,7 @@ function TagRow({
   return (
     <>
       <li
-        className={`flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 px-3 py-2 transition-colors sm:flex-nowrap sm:items-center dark:border-slate-800 ${stripeClass} ${highlightClass}`}
+        className={`flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 px-3 py-2 transition-colors sm:flex-nowrap sm:items-center dark:border-slate-800 ${stripeClass} ${highlightRowClass}`}
       >
         <TagRowLabel
           tag={tag}

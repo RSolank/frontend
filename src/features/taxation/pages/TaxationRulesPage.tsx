@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { SystemChip } from '../../../shared/components/SystemChip';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { taxationKeys } from '../api/keys';
 import { useTaxationRulesQuery, type TaxationRule } from '../api/queries';
 import { TaxationRuleFormDialog } from '../components/TaxationRuleFormDialog';
@@ -27,9 +28,7 @@ interface RuleCardProps {
 // modal opened by the row-level ⋯ trigger (Batch 9.8 convention).
 // Add/Edit are the only surfaces that render form fields.
 function RuleCard({ rule, isHighlighted, onEdit }: RuleCardProps) {
-  const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-accent-500'
-    : 'ring-0';
+  const ringClass = highlightClass(isHighlighted);
 
   return (
     <article

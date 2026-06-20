@@ -7,6 +7,7 @@ import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { formatBillDate } from '../api/billPeriod';
 import { taxationKeys } from '../api/keys';
 import { markBillPaidRequest, markBillUnpaidRequest } from '../api/mutations';
@@ -293,9 +294,7 @@ function BillRow({
   onMarkPaid,
   onMarkUnpaid,
 }: BillRowProps) {
-  const ringClass = isHighlighted
-    ? 'ring-2 ring-inset ring-accent-500'
-    : 'ring-0';
+  const ringClass = highlightClass(isHighlighted);
   const paid = bill.amount_paid ?? 0;
   const total = bill.amount ?? 0;
   const showProgress =

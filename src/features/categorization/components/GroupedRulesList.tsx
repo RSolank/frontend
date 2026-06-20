@@ -2,6 +2,7 @@ import { ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 import { SystemChip } from '../../../shared/components/SystemChip';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { formatAliasesDisplay } from '../../beneficiaries/api/aliases';
 import { groupRules, type RuleGroup } from '../api/grouping';
 import type { CategorizationRule } from '../api/queries';
@@ -74,9 +75,7 @@ function GroupedRuleRow({
   const primaryId = rule.tag_ids?.[0];
   return (
     <li
-      className={`rounded-md border border-slate-100 bg-white px-3 py-2 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${
-        isHighlighted ? 'ring-accent-400 dark:ring-accent-500 ring-2' : ''
-      }`}
+      className={`rounded-md border border-slate-100 bg-white px-3 py-2 transition-shadow dark:border-slate-800 dark:bg-slate-900 ${highlightClass(isHighlighted)}`}
     >
       {/* Top row: beneficiary name + ⋯ trigger on the same line at
           every viewport. min-w-0 on the name lets it wrap inside its
@@ -149,9 +148,7 @@ function SingleRuleCard({
   const userRule = isUserRule(rule);
   return (
     <li
-      className={`rounded-lg border border-slate-200 p-4 transition-shadow dark:border-slate-800 ${
-        isHighlighted ? 'ring-accent-400 dark:ring-accent-500 ring-2' : ''
-      }`}
+      className={`rounded-lg border border-slate-200 p-4 transition-shadow dark:border-slate-800 ${highlightClass(isHighlighted)}`}
     >
       {/* `flex` (not flex-wrap) + `min-w-0` on the name + `shrink-0`
           on the trigger pins ⋯ to the top line at every viewport. The
