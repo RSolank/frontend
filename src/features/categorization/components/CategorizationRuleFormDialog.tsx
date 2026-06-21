@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../../shared/components/Modal';
 import { SearchableMultiSelect } from '../../../shared/components/SearchableMultiSelect';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
+import { TagDiffPreview } from '../../../shared/components/TagDiffPreview';
 import { createCategorizationRule } from '../../beneficiaries/api/mutations';
 import {
   fetchBeneficiaries,
@@ -590,33 +591,12 @@ export function CategorizationRuleFormDialog({
             onCreate={() => f.setCreateTagOpen(true)}
           />
 
-          {f.tagDiff && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/40">
-              <p className="mb-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                Changes from the saved rule
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {f.tagDiff.added.map((id) => (
-                  <span
-                    key={`a-${id}`}
-                    className="bg-success-100 text-success-800 dark:bg-success-950/50 dark:text-success-300 inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-sm font-medium"
-                  >
-                    <span aria-hidden="true">+</span>
-                    {tagName(tags, id)}
-                  </span>
-                ))}
-                {f.tagDiff.removed.map((id) => (
-                  <span
-                    key={`r-${id}`}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-sm font-medium text-slate-400 line-through dark:bg-slate-800 dark:text-slate-500"
-                  >
-                    <span aria-hidden="true">−</span>
-                    {tagName(tags, id)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagDiffPreview
+            added={f.tagDiff?.added ?? []}
+            removed={f.tagDiff?.removed ?? []}
+            resolveLabel={(id) => tagName(tags, id)}
+            title="Changes from the saved rule"
+          />
 
           <div>
             <label htmlFor="rule-notes" className="form-label">

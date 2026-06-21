@@ -35,6 +35,7 @@ const constants = {
   SYSTEM_USER_ID: 0,
   TOTAL_TAG_ID: 1,
   MISCELLANEOUS_TAG_ID: 2,
+  MISC_CREDIT_TAG_ID: 4,
   CONSUMPTION_TAX_TAG_ID: 3,
 };
 

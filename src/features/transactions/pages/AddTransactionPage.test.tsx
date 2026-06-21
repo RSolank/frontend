@@ -41,7 +41,7 @@ const mockTags = {
       children: [],
     },
     {
-      tag_id: 4,
+      tag_id: 51,
       tag_name: 'Dining',
       parent: null,
       tag_type: 'discretionary',
@@ -89,6 +89,7 @@ function installRuledBeneficiary() {
 const mockConstants = {
   TOTAL_TAG_ID: 1,
   MISCELLANEOUS_TAG_ID: 2,
+  MISC_CREDIT_TAG_ID: 4,
   CONSUMPTION_TAX_TAG_ID: 3,
 };
 
@@ -216,7 +217,7 @@ describe('AddTransactionPage', () => {
     await waitFor(() =>
       expect(screen.getByText('Groceries')).toBeInTheDocument()
     );
-    // Add a second tag → tags now diverge from the rule ([3] → [3, 4]).
+    // Add a second tag → tags now diverge from the rule ([3] → [3, 51]).
     fireEvent.focus(screen.getByLabelText('Tags'));
     fireEvent.mouseDown(await screen.findByText('Dining'));
     fireEvent.change(screen.getByLabelText(/Amount/), {
@@ -248,7 +249,7 @@ describe('AddTransactionPage', () => {
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('/transactions')
     );
-    expect(body).toMatchObject({ tag_ids: [3, 4] });
+    expect(body).toMatchObject({ tag_ids: [3, 51] });
     expect(url).not.toContain('rule_id='); // one-off, rule untouched
   });
 
@@ -275,7 +276,7 @@ describe('AddTransactionPage', () => {
             rulePrefill: expect.objectContaining({
               mode: 'edit',
               ruleId: 9,
-              tagIds: [3, 4],
+              tagIds: [3, 51],
             }),
           }),
         })

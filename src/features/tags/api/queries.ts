@@ -35,6 +35,7 @@ export interface TagConstants {
   SYSTEM_USER_ID?: number;
   TOTAL_TAG_ID?: number;
   MISCELLANEOUS_TAG_ID?: number;
+  MISC_CREDIT_TAG_ID?: number;
   CONSUMPTION_TAX_TAG_ID?: number;
   [key: string]: unknown;
 }

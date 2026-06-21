@@ -201,30 +201,16 @@ function useAddTransactionForm({
     if (created?.tag_id != null) handleAddTag(created.tag_id);
   }
 
+  // Tags are plain add/remove. The Miscellaneous fallback is *not* managed
+  // here (categorization-v2): an empty tag set is submitted as-is and the
+  // backend files the txn under the direction-correct Misc placeholder. The
+  // TagSelector surfaces a passive hint of where it will land.
   function handleAddTag(tagId: number) {
-    setTagIds((prev) => {
-      if (prev.includes(tagId)) return prev;
-      const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      if (MISC_ID && tagId !== MISC_ID) {
-        return [...prev.filter((x) => x !== MISC_ID), tagId];
-      }
-      // Adding misc with nothing else selected is allowed; otherwise no-op.
-      if (MISC_ID && tagId === MISC_ID) {
-        return prev.length === 0 ? [MISC_ID] : prev;
-      }
-      return [...prev, tagId];
-    });
+    setTagIds((prev) => (prev.includes(tagId) ? prev : [...prev, tagId]));
   }
 
   function handleRemoveTag(tagId: number) {
-    setTagIds((prev) => {
-      const next = prev.filter((x) => x !== tagId);
-      const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      if (next.length === 0 && MISC_ID && tagId !== MISC_ID) {
-        return [MISC_ID];
-      }
-      return next;
-    });
+    setTagIds((prev) => prev.filter((x) => x !== tagId));
   }
 
   // Beneficiary select: auto-populate the tags from that beneficiary's rule
@@ -520,7 +506,9 @@ export function AddTransactionPage({
           miscellaneousTagId={
             constants?.MISCELLANEOUS_TAG_ID as number | undefined
           }
+          miscCreditTagId={constants?.MISC_CREDIT_TAG_ID as number | undefined}
           totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
+          debitCredit={debitCredit}
           onAdd={handleAddTag}
           onRemove={handleRemoveTag}
           onRequestAddTag={() => setCreateTagOpen(true)}

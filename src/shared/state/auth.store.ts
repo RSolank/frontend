@@ -25,6 +25,10 @@ export interface AuthUser {
 export interface SystemConstants {
   TOTAL_TAG_ID: number;
   MISCELLANEOUS_TAG_ID: number;
+  // Direction-aware uncategorized fallback for inflows (Misc Credit). The
+  // backend files a tag-less credit txn under this; the debit counterpart is
+  // MISCELLANEOUS_TAG_ID.
+  MISC_CREDIT_TAG_ID: number;
   CONSUMPTION_TAX_TAG_ID: number;
   TAXABLE_TXN_TYPES: string[];
   VALID_TAG_TYPES: string[];

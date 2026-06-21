@@ -3655,6 +3655,8 @@ export interface components {
             TOTAL_TAG_ID: number;
             /** Miscellaneous Tag Id */
             MISCELLANEOUS_TAG_ID: number;
+            /** Misc Credit Tag Id */
+            MISC_CREDIT_TAG_ID: number;
             /** Consumption Tax Tag Id */
             CONSUMPTION_TAX_TAG_ID: number;
             /** Taxable Txn Types */

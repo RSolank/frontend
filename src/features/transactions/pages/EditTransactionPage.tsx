@@ -7,6 +7,7 @@ import { DateField } from '../../../shared/components/DateField';
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { RecurringChip } from '../../../shared/components/RecurringChip';
 import { RuleReviewModal } from '../../../shared/components/RuleReviewModal';
+import { TagDiffPreview } from '../../../shared/components/TagDiffPreview';
 import { CATEGORIZATION_RULES_PATH } from '../../../shared/navigation/rulePrefill';
 import { formatInputDate } from '../../../shared/utils/dateUtils';
 import { BankAccountField } from '../../bankAccounts/components/BankAccountField';
@@ -31,7 +32,6 @@ import { updateTransactionRequest } from '../api/mutations';
 import { fetchTransaction } from '../api/queries';
 import { findRuleForBeneficiary, sameTagSet } from '../api/ruleFlow';
 import type {
-  TransactionCreatePayload,
   TransactionDTO,
   TransactionUpdatePayload,
 } from '../api/schemas';
@@ -68,6 +68,42 @@ function resolveBeneficiaryId(beneficiaryId: number | string): number | null {
   return null;
 }
 
+// The reserved tags the user never manages directly: the Total rollup and the
+// two Miscellaneous fallback placeholders (Debit / Credit). They're stripped
+// from the editable set so the form only ever holds real, user-chosen tags.
+function stripReservedTags(ids: number[], consts: TagConstants | null): number[] {
+  const reserved = new Set(
+    [
+      consts?.TOTAL_TAG_ID,
+      consts?.MISCELLANEOUS_TAG_ID,
+      consts?.MISC_CREDIT_TAG_ID,
+    ].filter((id): id is number => id != null)
+  );
+  return ids.filter((id) => !reserved.has(id));
+}
+
+// Added/removed tags relative to the loaded baseline — drives the pre-save
+// TagDiffPreview so the user sees the change explicitly (parity with the
+// categorization-rule form) rather than relying on memory.
+function computeTagDiff(current: number[], baseline: number[]) {
+  const base = new Set(baseline);
+  const cur = new Set(current);
+  return {
+    added: current.filter((id) => !base.has(id)),
+    removed: baseline.filter((id) => !cur.has(id)),
+  };
+}
+
+// The reserved tag ids the TagSelector needs (Total + the two Misc fallbacks).
+// Resolved once so the page body doesn't carry the optional-chain branches.
+function reservedTagIds(consts: TagConstants | null) {
+  return {
+    miscDebit: consts?.MISCELLANEOUS_TAG_ID as number | undefined,
+    miscCredit: consts?.MISC_CREDIT_TAG_ID as number | undefined,
+    total: consts?.TOTAL_TAG_ID as number | undefined,
+  };
+}
+
 interface PayloadFields {
   amount: string;
   debitCredit: 'debit' | 'credit';
@@ -83,26 +119,39 @@ interface PayloadFields {
   tagIds: number[];
 }
 
-// Statement-sourced txns are bank-owned: only notes + tags are editable, so
-// the payload carries just those. Manual txns send the full editable set.
+// Build a minimal PATCH: only the fields whose value differs from the loaded
+// baseline are included, so the backend skips re-validating / re-running
+// services for untouched fields (a notes-only edit must not resend tags, which
+// would needlessly re-run categorization — and historically collided on the
+// txn↔tag unique constraint). Statement-sourced rows are bank-owned: only notes
+// + tags are editable, so nothing else can diverge from the baseline anyway.
 // Pulled out of handleSubmit to keep that function under the gates.
 function buildTransactionPayload(
   txn: TransactionDTO,
-  fields: PayloadFields
+  fields: PayloadFields,
+  baseline: PayloadFields
 ): TransactionUpdatePayload {
-  if (txn.source === 'statement') {
-    return { notes: fields.notes || null, tag_ids: fields.tagIds };
+  const patch: TransactionUpdatePayload = {};
+  if (fields.notes !== baseline.notes) patch.notes = fields.notes || null;
+  if (!sameTagSet(fields.tagIds, baseline.tagIds)) patch.tag_ids = fields.tagIds;
+  if (txn.source === 'statement') return patch;
+
+  if (fields.amount !== baseline.amount) patch.amount = parseFloat(fields.amount);
+  if (fields.debitCredit !== baseline.debitCredit) {
+    patch.debit_credit = fields.debitCredit;
   }
-  return {
-    amount: parseFloat(fields.amount),
-    debit_credit: fields.debitCredit,
-    beneficiary_id: resolveBeneficiaryId(fields.beneficiaryId),
-    beneficiary_name: fields.beneficiaryName || null,
-    bank_account_id: fields.bankAccountId,
-    txn_date: fields.txnDate,
-    notes: fields.notes || null,
-    tag_ids: fields.tagIds,
-  } satisfies TransactionCreatePayload;
+  if (fields.txnDate !== baseline.txnDate) patch.txn_date = fields.txnDate;
+  if (
+    fields.beneficiaryId !== baseline.beneficiaryId ||
+    fields.beneficiaryName !== baseline.beneficiaryName
+  ) {
+    patch.beneficiary_id = resolveBeneficiaryId(fields.beneficiaryId);
+    patch.beneficiary_name = fields.beneficiaryName || null;
+  }
+  if (fields.bankAccountId !== baseline.bankAccountId) {
+    patch.bank_account_id = fields.bankAccountId;
+  }
+  return patch;
 }
 
 interface EditTransactionPageProps {
@@ -252,7 +301,12 @@ export function EditTransactionPage({
         const loadedNotes = t.notes || '';
         const loadedBenName = t.beneficiary_name || '';
         const loadedBenId = t.beneficiary_id || '';
-        const loadedTagIds = t.tag_ids || [];
+        // Drop the reserved fallback/Total tags from the editable set: the
+        // Miscellaneous placeholder is a backend fallback (categorization-v2),
+        // not a user pick — a txn filed under Misc presents here as "no tags"
+        // (the TagSelector shows a passive hint). Keeps a stale Misc from
+        // riding along when the user later adds a real tag.
+        const loadedTagIds = stripReservedTags(t.tag_ids || [], consts);
         setBeneficiaryName(loadedBenName);
         setBeneficiaryId(loadedBenId);
         setAmount(loadedAmount);
@@ -287,29 +341,16 @@ export function EditTransactionPage({
     };
   }, [id]);
 
+  // Tags are plain add/remove. The Miscellaneous fallback is *not* managed
+  // here (categorization-v2): clearing every tag submits an empty set and the
+  // backend re-files the txn under the direction-correct Misc placeholder. The
+  // TagSelector surfaces a passive hint of where it will land.
   function handleAddTag(tagId: number) {
-    setTagIds((prev) => {
-      if (prev.includes(tagId)) return prev;
-      const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      if (MISC_ID && tagId !== MISC_ID) {
-        return [...prev.filter((x) => x !== MISC_ID), tagId];
-      }
-      if (MISC_ID && tagId === MISC_ID) {
-        return prev.length === 0 ? [MISC_ID] : prev;
-      }
-      return [...prev, tagId];
-    });
+    setTagIds((prev) => (prev.includes(tagId) ? prev : [...prev, tagId]));
   }
 
   function handleRemoveTag(tagId: number) {
-    setTagIds((prev) => {
-      const next = prev.filter((x) => x !== tagId);
-      const MISC_ID = constants?.MISCELLANEOUS_TAG_ID;
-      if (next.length === 0 && MISC_ID && tagId !== MISC_ID) {
-        return [MISC_ID];
-      }
-      return next;
-    });
+    setTagIds((prev) => prev.filter((x) => x !== tagId));
   }
 
   // Beneficiary select: auto-populate the tags from that beneficiary's rule
@@ -330,16 +371,22 @@ export function EditTransactionPage({
     setSubmitting(true);
     setError(null);
     try {
-      const payload = buildTransactionPayload(txn, {
-        amount,
-        debitCredit,
-        beneficiaryId,
-        beneficiaryName,
-        txnDate,
-        notes,
-        bankAccountId,
-        tagIds,
-      });
+      const baseline = initialSnapshotRef.current;
+      if (!baseline) return false;
+      const payload = buildTransactionPayload(
+        txn,
+        {
+          amount,
+          debitCredit,
+          beneficiaryId,
+          beneficiaryName,
+          txnDate,
+          notes,
+          bankAccountId,
+          tagIds,
+        },
+        baseline
+      );
       await updateTransactionRequest(id, payload, ruleIdToLink);
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       await queryClient.invalidateQueries({ queryKey: tagKeys.all });
@@ -397,7 +444,10 @@ export function EditTransactionPage({
     if (!id || !txn) return;
     setError(null);
 
-    const tagsChanged = !sameTagSet(tagIds, txn.tag_ids ?? []);
+    const tagsChanged = !sameTagSet(
+      tagIds,
+      initialSnapshotRef.current?.tagIds ?? []
+    );
 
     // Only engage the rule flow when the tags actually changed and there's a
     // beneficiary + tags to crystallise. Otherwise just persist.
@@ -509,6 +559,11 @@ export function EditTransactionPage({
   }
 
   const dismissLabel = isDirty ? 'Cancel' : 'Close';
+  const reservedIds = reservedTagIds(constants);
+  const tagDiff = computeTagDiff(
+    tagIds,
+    initialSnapshotRef.current?.tagIds ?? []
+  );
   const lockedInputClass = isStatement
     ? 'cursor-not-allowed bg-slate-50 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
     : '';
@@ -534,10 +589,10 @@ export function EditTransactionPage({
         txnDate={txnDate}
         tags={tags}
         tagIds={tagIds}
-        miscellaneousTagId={
-          constants?.MISCELLANEOUS_TAG_ID as number | undefined
-        }
-        totalTagId={constants?.TOTAL_TAG_ID as number | undefined}
+        tagDiff={tagDiff}
+        miscellaneousTagId={reservedIds.miscDebit}
+        miscCreditTagId={reservedIds.miscCredit}
+        totalTagId={reservedIds.total}
         notes={notes}
         bankAccountId={bankAccountId}
         submitting={submitting}
@@ -640,7 +695,9 @@ interface EditTransactionFormProps {
   txnDate: string;
   tags: FlatTag[];
   tagIds: number[];
+  tagDiff: { added: number[]; removed: number[] };
   miscellaneousTagId: number | undefined;
+  miscCreditTagId: number | undefined;
   totalTagId: number | undefined;
   notes: string;
   bankAccountId: number | null;
@@ -681,7 +738,9 @@ function EditTransactionForm({
   txnDate,
   tags,
   tagIds,
+  tagDiff,
   miscellaneousTagId,
+  miscCreditTagId,
   totalTagId,
   notes,
   bankAccountId,
@@ -808,10 +867,21 @@ function EditTransactionForm({
           tags={tags}
           selectedTagIds={tagIds}
           miscellaneousTagId={miscellaneousTagId}
+          miscCreditTagId={miscCreditTagId}
           totalTagId={totalTagId}
+          debitCredit={debitCredit}
           onAdd={onAddTag}
           onRemove={onRemoveTag}
           onRequestAddTag={onRequestAddTag}
+        />
+
+        <TagDiffPreview
+          added={tagDiff.added}
+          removed={tagDiff.removed}
+          resolveLabel={(id) =>
+            tags.find((t) => t.tag_id === id)?.tag_name ?? `Tag ${id}`
+          }
+          title="Tag changes"
         />
 
         {!isStatement && (

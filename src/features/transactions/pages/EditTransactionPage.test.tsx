@@ -25,7 +25,7 @@ const mockTags = {
   tags: [
     {
       tag_id: 2,
-      tag_name: 'Miscellaneous',
+      tag_name: 'Miscellaneous (Debit)',
       parent: null,
       tag_type: 'discretionary',
       aliases: [],
@@ -41,12 +41,22 @@ const mockTags = {
       created_by: null,
       children: [],
     },
+    {
+      tag_id: 51,
+      tag_name: 'Dining',
+      parent: null,
+      tag_type: 'discretionary',
+      aliases: [],
+      created_by: null,
+      children: [],
+    },
   ],
 };
 
 const mockConstants = {
   TOTAL_TAG_ID: 1,
   MISCELLANEOUS_TAG_ID: 2,
+  MISC_CREDIT_TAG_ID: 4,
   CONSUMPTION_TAX_TAG_ID: 3,
 };
 
@@ -131,8 +141,10 @@ describe('EditTransactionPage', () => {
     if (!form) throw new Error('form not found');
     fireEvent.submit(form);
 
+    // Minimal PATCH: only the changed field (amount) is sent — tags + the
+    // other fields are untouched so they're omitted entirely.
     await waitFor(() => {
-      expect(patchedBody).toMatchObject({ amount: 60 });
+      expect(patchedBody).toEqual({ amount: 60 });
       expect(mockNavigate).toHaveBeenCalledWith('/transactions');
     });
   });
@@ -213,12 +225,74 @@ describe('EditTransactionPage', () => {
     if (!form) throw new Error('form not found');
     fireEvent.submit(form);
 
+    // Notes-only edit: tags are unchanged, so `tag_ids` is omitted from the
+    // PATCH (the backend then skips re-categorization). BUG-1 FE angle.
     await waitFor(() => {
-      expect(patchedBody).toEqual({ notes: 'Updated', tag_ids: [] });
+      expect(patchedBody).toEqual({ notes: 'Updated' });
     });
   });
 
-  it('replaces Miscellaneous when a real tag is picked', async () => {
+  it('presents a Misc-only txn as untagged with a fallback hint, then a real pick clears it', async () => {
+    let patchedBody: { tag_ids?: number[] } | null = null;
+    server.use(
+      http.get(`${API_BASE}/transactions/1`, () =>
+        HttpResponse.json({
+          transaction: {
+            txn_id: 1,
+            amount: 10,
+            debit_credit: 'debit',
+            // No beneficiary → save goes direct (skips the rule-create prompt),
+            // keeping this test focused on the tag/hint behavior.
+            beneficiary_name: 'Store',
+            beneficiary: 'Store',
+            txn_date: '2023-10-10',
+            notes: '',
+            tag_ids: [2], // Misc Debit — the backend fallback, not a user pick
+            source: 'manual',
+          },
+        })
+      ),
+      http.patch(`${API_BASE}/transactions/1`, async ({ request }) => {
+        patchedBody = (await request.json()) as { tag_ids?: number[] };
+        return HttpResponse.json({ ok: true });
+      })
+    );
+
+    mountAt('1');
+
+    // The Misc placeholder is stripped from the editable set: no removable
+    // chip, just a passive direction-aware hint of where it lands.
+    await waitFor(() =>
+      expect(screen.getByText(/will be filed under/i)).toBeInTheDocument()
+    );
+    expect(screen.getByText('Miscellaneous (Debit)')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Remove Miscellaneous/i })
+    ).not.toBeInTheDocument();
+
+    // Picking a real tag clears the hint and chips the tag.
+    fireEvent.focus(screen.getByPlaceholderText('Search tags...'));
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Groceries' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(/will be filed under/i)).not.toBeInTheDocument()
+    );
+    // Groceries now appears as both a selected chip and a "+Groceries" entry in
+    // the pre-save tag diff.
+    expect(screen.getAllByText('Groceries').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Tag changes')).toBeInTheDocument();
+
+    const form = screen.getByText('Save Changes').closest('form');
+    if (!form) throw new Error('form not found');
+    fireEvent.submit(form);
+
+    // Tags changed (untagged → Groceries) → tag_ids is sent, without the
+    // stripped Misc placeholder.
+    await waitFor(() => expect(patchedBody?.tag_ids).toEqual([3]));
+  });
+
+  it('shows an add/remove tag diff before save and sends only the changed tags', async () => {
+    let patchedBody: { tag_ids?: number[]; amount?: number } | null = null;
     server.use(
       http.get(`${API_BASE}/transactions/1`, () =>
         HttpResponse.json({
@@ -230,27 +304,46 @@ describe('EditTransactionPage', () => {
             beneficiary: 'Store',
             txn_date: '2023-10-10',
             notes: '',
-            tag_ids: [2], // Misc
+            tag_ids: [3], // Groceries
             source: 'manual',
           },
         })
-      )
+      ),
+      http.patch(`${API_BASE}/transactions/1`, async ({ request }) => {
+        patchedBody = (await request.json()) as {
+          tag_ids?: number[];
+          amount?: number;
+        };
+        return HttpResponse.json({ ok: true });
+      })
     );
 
     mountAt('1');
 
+    // No change yet → no diff box.
     await waitFor(() =>
-      expect(screen.getByText('Miscellaneous')).toBeInTheDocument()
+      expect(screen.getByText('Groceries')).toBeInTheDocument()
     );
+    expect(screen.queryByText('Tag changes')).not.toBeInTheDocument();
 
+    // Add Dining and drop Groceries → the diff shows both, explicitly.
     fireEvent.focus(screen.getByPlaceholderText('Search tags...'));
-    // Tag options now carry role="option" (shared SearchableMultiSelect
-    // combobox ARIA), not the implicit button role.
-    fireEvent.mouseDown(screen.getByRole('option', { name: 'Groceries' }));
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Dining' }));
+    fireEvent.click(screen.getByLabelText('Remove Groceries'));
 
     await waitFor(() =>
-      expect(screen.queryByText('Miscellaneous')).not.toBeInTheDocument()
+      expect(screen.getByText('Tag changes')).toBeInTheDocument()
     );
+    // The removed tag is surfaced in the diff even though its chip is gone.
     expect(screen.getByText('Groceries')).toBeInTheDocument();
+    // The added tag shows as both a chip and a diff entry.
+    expect(screen.getAllByText('Dining').length).toBeGreaterThanOrEqual(2);
+
+    const form = screen.getByText('Save Changes').closest('form');
+    if (!form) throw new Error('form not found');
+    fireEvent.submit(form);
+
+    // Only the tag set is sent (amount/notes/etc. untouched → omitted).
+    await waitFor(() => expect(patchedBody).toEqual({ tag_ids: [51] }));
   });
 });

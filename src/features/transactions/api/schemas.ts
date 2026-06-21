@@ -34,14 +34,25 @@ export interface TransactionCreatePayload {
   bank_account_id?: number | null;
   txn_date: string;
   notes: string | null;
-  tag_ids: number[];
+  // Omitted on an edit that leaves the tags untouched (a notes-only PATCH),
+  // so the backend skips re-categorization. Always present on create.
+  tag_ids?: number[];
 }
 
-// PATCH allows partial updates; statement-sourced rows only send
-// notes + tag_ids; manual rows send the full shape.
-export type TransactionUpdatePayload =
-  | { notes: string | null; tag_ids: number[] }
-  | TransactionCreatePayload;
+// PATCH is a true partial update: only the fields the user actually changed are
+// sent, so the backend skips re-validating / re-running services (e.g. tag
+// re-categorization) for untouched fields. Statement-sourced rows only ever
+// carry notes + tag_ids (the rest are locked).
+export interface TransactionUpdatePayload {
+  amount?: number;
+  debit_credit?: 'debit' | 'credit';
+  beneficiary_id?: number | null;
+  beneficiary_name?: string | null;
+  bank_account_id?: number | null;
+  txn_date?: string;
+  notes?: string | null;
+  tag_ids?: number[];
+}
 
 export interface TransactionDTO {
   txn_id: number;
