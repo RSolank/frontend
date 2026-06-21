@@ -2,6 +2,8 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
+import { SearchableMultiSelect } from '../../../shared/components/SearchableMultiSelect';
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import { createCategorizationRule } from '../../beneficiaries/api/mutations';
 import {
   fetchBeneficiaries,
@@ -205,7 +207,6 @@ interface UseRuleFormArgs {
   editingRule: CategorizationRule | null;
   prefill?: RulePrefillDraft | null;
   tags: FlatTag[];
-  beneficiaries: Beneficiary[];
   constants: Constants | null;
   rules: CategorizationRule[];
   onSaved: (uid: number, tagIds: readonly number[]) => void | Promise<void>;
@@ -224,7 +225,6 @@ function useRuleForm({
   editingRule,
   prefill,
   tags,
-  beneficiaries,
   constants,
   rules,
   onSaved,
@@ -235,14 +235,13 @@ function useRuleForm({
   const isEditing = editingRule != null;
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [bSearch, setBSearch] = useState('');
-  const [bSearchFocused, setBSearchFocused] = useState(false);
-  const [tagSearch, setTagSearch] = useState('');
-  const [tagSearchFocused, setTagSearchFocused] = useState(false);
   const [beneficiaryConflict, setBeneficiaryConflict] = useState<string | null>(
     null
   );
   const [createBeneficiaryOpen, setCreateBeneficiaryOpen] = useState(false);
+  // The typed search text captured when the user clicks "+ Add new
+  // beneficiary", used to pre-fill the nested create dialog's name field.
+  const [createBeneficiaryName, setCreateBeneficiaryName] = useState('');
   const [createTagOpen, setCreateTagOpen] = useState(false);
 
   // Reset / hydrate the form whenever the dialog (re)opens. Add
@@ -259,7 +258,6 @@ function useRuleForm({
         tag_ids: [...(prefill?.tagIds ?? editingRule.tag_ids ?? [])],
         notes: editingRule.notes || '',
       });
-      setBSearch(editingRule.beneficiary_name || '');
     } else if (prefill) {
       // Add: seed beneficiary + tags from the originating flow.
       setForm({
@@ -268,14 +266,9 @@ function useRuleForm({
         tag_ids: [...prefill.tagIds],
         notes: '',
       });
-      setBSearch(prefill.beneficiaryName ?? '');
     } else {
       setForm(EMPTY_FORM);
-      setBSearch('');
     }
-    setTagSearch('');
-    setBSearchFocused(false);
-    setTagSearchFocused(false);
     setBeneficiaryConflict(null);
   }, [open, isEditing, editingRule, prefill]);
 
@@ -344,24 +337,14 @@ function useRuleForm({
     [form.beneficiary_name, form.tag_ids, tags]
   );
 
-  const availableBeneficiaries = useMemo(
-    () =>
-      beneficiaries.filter(
-        (b) => !bSearch || b.name.toLowerCase().includes(bSearch.toLowerCase())
-      ),
-    [beneficiaries, bSearch]
-  );
-
-  function selectBeneficiaryById(id: number, name: string) {
-    setBSearch(name);
+  // Commit / clear the selected beneficiary. SearchableSelect owns its own
+  // search text now, so these only touch the form-level id + name (the rule
+  // name + conflict check read off them).
+  function selectBeneficiary(id: number, name: string) {
     setForm((f) => ({ ...f, beneficiary_id: id, beneficiary_name: name }));
-    setBSearchFocused(false);
   }
 
-  // Beneficiary search input change — typing clears any prior selection so
-  // the form-level id/name don't drift from the visible text.
-  function handleBeneficiarySearchChange(value: string) {
-    setBSearch(value);
+  function clearBeneficiary() {
     setForm((f) => ({ ...f, beneficiary_id: '', beneficiary_name: '' }));
   }
 
@@ -376,7 +359,7 @@ function useRuleForm({
       console.warn('Failed to refresh beneficiaries after create', err);
       await onBeneficiaryCreated(b);
     }
-    selectBeneficiaryById(b.uid, b.name);
+    selectBeneficiary(b.uid, b.name);
   }
 
   async function handleTagCreated(created?: CreatedTag) {
@@ -432,17 +415,12 @@ function useRuleForm({
   return {
     form,
     setForm,
-    bSearch,
-    bSearchFocused,
-    setBSearchFocused,
-    tagSearch,
-    setTagSearch,
-    tagSearchFocused,
-    setTagSearchFocused,
     beneficiaryConflict,
     error: submit.error,
     createBeneficiaryOpen,
     setCreateBeneficiaryOpen,
+    createBeneficiaryName,
+    setCreateBeneficiaryName,
     createTagOpen,
     setCreateTagOpen,
     isEditing,
@@ -450,10 +428,9 @@ function useRuleForm({
     tagDiff,
     filteredTags,
     generatedRuleName,
-    availableBeneficiaries,
     saveDisabled,
-    selectBeneficiaryById,
-    handleBeneficiarySearchChange,
+    selectBeneficiary,
+    clearBeneficiary,
     handleBeneficiaryCreated,
     handleTagCreated,
     handlePickTag,
@@ -489,7 +466,6 @@ export function CategorizationRuleFormDialog({
     editingRule,
     prefill,
     tags,
-    beneficiaries,
     constants,
     rules,
     onSaved,
@@ -500,6 +476,24 @@ export function CategorizationRuleFormDialog({
 
   const title = ruleTitle(f.isEditing, f.generatedRuleName, editingRule);
   const dismissLabel = f.isDirty ? 'Cancel' : 'Close';
+
+  const beneficiaryOptions = useMemo(
+    () => beneficiaries.map((b) => ({ value: String(b.uid), label: b.name })),
+    [beneficiaries]
+  );
+  // Tag dropdown options: the non-reserved tags, minus the already-selected
+  // ones (chips), labelled by their full ancestor path so the search matches
+  // "Food (Groceries)".
+  const tagOptions = useMemo(
+    () =>
+      f.filteredTags
+        .filter((t) => !f.form.tag_ids.includes(t.tag_id))
+        .map((t) => ({
+          value: String(t.tag_id),
+          label: formatTagAssignment(t.tag_id, tags),
+        })),
+    [f.filteredTags, f.form.tag_ids, tags]
+  );
 
   return (
     <>
@@ -568,45 +562,32 @@ export function CategorizationRuleFormDialog({
             </p>
           </div>
 
-          <BeneficiaryPicker
-            bSearch={f.bSearch}
-            focused={f.bSearchFocused}
-            beneficiaries={f.availableBeneficiaries}
-            selectedId={f.form.beneficiary_id}
+          <BeneficiaryField
+            value={f.form.beneficiary_id ? String(f.form.beneficiary_id) : ''}
+            options={beneficiaryOptions}
             conflict={f.beneficiaryConflict}
-            onSearchChange={f.handleBeneficiarySearchChange}
-            onFocus={() => f.setBSearchFocused(true)}
-            onBlur={() =>
-              window.setTimeout(() => f.setBSearchFocused(false), 200)
-            }
-            onSelect={f.selectBeneficiaryById}
-            onAddNew={() => {
+            onChange={(next) => {
+              if (!next) {
+                f.clearBeneficiary();
+                return;
+              }
+              const b = beneficiaries.find((x) => String(x.uid) === next);
+              if (b) f.selectBeneficiary(b.uid, b.name);
+            }}
+            onCreate={(query) => {
+              f.setCreateBeneficiaryName(query);
               f.setCreateBeneficiaryOpen(true);
-              f.setBSearchFocused(false);
             }}
           />
 
-          <TagPicker
-            tagSearch={f.tagSearch}
-            focused={f.tagSearchFocused}
-            filteredTags={f.filteredTags}
+          <TagField
+            options={tagOptions}
+            selectedValues={f.form.tag_ids.map(String)}
             tags={tags}
-            selectedTagIds={f.form.tag_ids}
-            onSearchChange={f.setTagSearch}
-            onFocus={() => f.setTagSearchFocused(true)}
-            onBlur={() =>
-              window.setTimeout(() => f.setTagSearchFocused(false), 200)
-            }
-            onPickTag={(raw) => {
-              f.handlePickTag(raw);
-              f.setTagSearch('');
-            }}
-            onRemoveTag={f.handleRemoveTag}
-            onPromoteTag={f.handlePromoteTag}
-            onAddNew={() => {
-              f.setCreateTagOpen(true);
-              f.setTagSearchFocused(false);
-            }}
+            onAdd={f.handlePickTag}
+            onRemove={(v) => f.handleRemoveTag(Number(v))}
+            onPromote={f.handlePromoteTag}
+            onCreate={() => f.setCreateTagOpen(true)}
           />
 
           {f.tagDiff && (
@@ -662,7 +643,7 @@ export function CategorizationRuleFormDialog({
         open={f.createBeneficiaryOpen}
         onClose={() => f.setCreateBeneficiaryOpen(false)}
         onSaved={f.handleBeneficiaryCreated}
-        initialName={f.bSearch}
+        initialName={f.createBeneficiaryName}
       />
       <TagFormDialog
         open={f.createTagOpen}
@@ -674,216 +655,135 @@ export function CategorizationRuleFormDialog({
   );
 }
 
-interface BeneficiaryPickerProps {
-  bSearch: string;
-  focused: boolean;
-  beneficiaries: Beneficiary[];
-  selectedId: number | '';
+interface BeneficiaryFieldProps {
+  value: string;
+  options: { value: string; label: string }[];
   conflict: string | null;
-  onSearchChange: (value: string) => void;
-  onFocus: () => void;
-  onBlur: () => void;
-  onSelect: (id: number, name: string) => void;
-  onAddNew: () => void;
+  onChange: (next: string) => void;
+  onCreate: (query: string) => void;
 }
 
-// Beneficiary search + dropdown (with inline "Add new beneficiary"). Split
-// out of the dialog to keep that component under the complexity / line gates.
-function BeneficiaryPicker({
-  bSearch,
-  focused,
-  beneficiaries,
-  selectedId,
+// The rule's beneficiary slot: a single-select typeahead with inline
+// "+ Add new beneficiary" (Type A create) + the one-rule-per-beneficiary
+// conflict message. Split out so the dialog stays under the line-count gate.
+function BeneficiaryField({
+  value,
+  options,
   conflict,
-  onSearchChange,
-  onFocus,
-  onBlur,
-  onSelect,
-  onAddNew,
-}: BeneficiaryPickerProps) {
+  onChange,
+  onCreate,
+}: BeneficiaryFieldProps) {
   return (
-    <div className="relative">
-      <label htmlFor="rule-beneficiary-search" className="form-label">
+    <div>
+      <label htmlFor="rule-beneficiary" className="form-label">
         Beneficiary
       </label>
-      <input
-        id="rule-beneficiary-search"
-        value={bSearch}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
+      <SearchableSelect
+        id="rule-beneficiary"
+        ariaLabel="Beneficiary"
         placeholder="Search beneficiary..."
-        required
-        className="form-input"
+        value={value}
+        options={options}
+        onChange={onChange}
+        onCreate={onCreate}
+        createLabel="Add new beneficiary"
       />
-      {focused && (
-        <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          <button
-            type="button"
-            onMouseDown={onAddNew}
-            className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
-          >
-            <span aria-hidden="true">＋</span>
-            Add new beneficiary
-          </button>
-          {beneficiaries.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-              No matches
-            </div>
-          ) : (
-            beneficiaries.map((b) => (
-              <div
-                key={b.uid}
-                role="option"
-                aria-selected={selectedId === b.uid}
-                tabIndex={0}
-                onMouseDown={() => onSelect(b.uid, b.name)}
-                className="hover:bg-accent-50 dark:hover:bg-accent-950/40 cursor-pointer px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
-              >
-                {b.name}
-                {b.aliases?.length > 0 && (
-                  <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
-                    ({b.aliases.join(', ')})
-                  </span>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
       {conflict && <div className="form-error mt-1">{conflict}</div>}
     </div>
   );
 }
 
-interface TagPickerProps {
-  tagSearch: string;
-  focused: boolean;
-  filteredTags: FlatTag[];
+interface TagFieldProps {
+  options: { value: string; label: string }[];
+  selectedValues: string[];
   tags: FlatTag[];
-  selectedTagIds: number[];
-  onSearchChange: (value: string) => void;
-  onFocus: () => void;
-  onBlur: () => void;
-  onPickTag: (raw: string) => void;
-  onRemoveTag: (tid: number) => void;
-  onPromoteTag: (tid: number) => void;
-  onAddNew: () => void;
+  onAdd: (value: string) => void;
+  onRemove: (value: string) => void;
+  onPromote: (tid: number) => void;
+  onCreate: () => void;
 }
 
-// Tag search + dropdown (with inline "Add new tag") and the selected-tag
-// chip list (primary / promote / remove). Split out of the dialog for the
-// same complexity / line-count reason.
-function TagPicker({
-  tagSearch,
-  focused,
-  filteredTags,
+// The rule's tag slot: a chip-accumulating multi-select with inline
+// "+ Add new tag" (Type A) and the primary/promote chip variant via the
+// `renderToken` slot. Split out to keep the dialog under the line gate.
+function TagField({
+  options,
+  selectedValues,
   tags,
-  selectedTagIds,
-  onSearchChange,
-  onFocus,
-  onBlur,
-  onPickTag,
-  onRemoveTag,
-  onPromoteTag,
-  onAddNew,
-}: TagPickerProps) {
+  onAdd,
+  onRemove,
+  onPromote,
+  onCreate,
+}: TagFieldProps) {
   return (
-    <div className="relative">
-      <label htmlFor="rule-tag-search" className="form-label">
-        Tags
-      </label>
-      <input
-        id="rule-tag-search"
-        value={tagSearch}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        placeholder="Search tags..."
-        className="form-input"
-        autoComplete="off"
-      />
-      {focused &&
-        (() => {
-          const q = tagSearch.trim().toLowerCase();
-          const matches = filteredTags.filter((t) => {
-            if (selectedTagIds.includes(t.tag_id)) return false;
-            if (!q) return true;
-            return formatTagAssignment(t.tag_id, tags)
-              .toLowerCase()
-              .includes(q);
-          });
-          return (
-            <div className="absolute top-full right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              <button
-                type="button"
-                onMouseDown={onAddNew}
-                className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
-              >
-                <span aria-hidden="true">＋</span>
-                Add new tag
-              </button>
-              {matches.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-                  No matches
-                </div>
-              ) : (
-                matches.map((t) => (
-                  <button
-                    key={t.tag_id}
-                    type="button"
-                    onMouseDown={() => onPickTag(String(t.tag_id))}
-                    className="hover:bg-accent-50 dark:hover:bg-accent-950/40 block w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200"
-                  >
-                    {formatTagAssignment(t.tag_id, tags)}
-                  </button>
-                ))
-              )}
-            </div>
-          );
-        })()}
-      <div className="mt-2 flex min-h-12 flex-wrap gap-2 rounded-md border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-        {selectedTagIds.length === 0 ? (
-          <span className="text-sm text-slate-400 dark:text-slate-500">
-            No tags selected
-          </span>
-        ) : (
-          selectedTagIds.map((tid, idx) => {
-            const isPrimary = idx === 0;
-            const chipBase =
-              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border';
-            const chipColor = isPrimary
-              ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-950/40 dark:text-success-300 dark:border-success-900/50'
-              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
-            return (
-              <span key={tid} className={`${chipBase} ${chipColor}`}>
-                {formatTagAssignment(tid, tags)}
-                {isPrimary ? (
-                  <span className="bg-success-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
-                    Primary
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onPromoteTag(tid)}
-                    className="bg-accent-600 hover:bg-accent-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase"
-                  >
-                    Set Primary
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onRemoveTag(tid)}
-                  aria-label={`Remove tag ${formatTagAssignment(tid, tags)}`}
-                  className="ml-0.5 text-base leading-none font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  ×
-                </button>
-              </span>
-            );
-          })
-        )}
-      </div>
-    </div>
+    <SearchableMultiSelect
+      id="rule-tag"
+      label="Tags"
+      ariaLabel="Tags"
+      placeholder="Search tags..."
+      options={options}
+      selectedValues={selectedValues}
+      onAdd={onAdd}
+      onRemove={onRemove}
+      tokenLabel={(v) => formatTagAssignment(Number(v), tags)}
+      onCreate={onCreate}
+      createLabel="Add new tag"
+      emptyTokensLabel="No tags selected"
+      renderToken={(args) => <TagChipToken {...args} onPromote={onPromote} />}
+    />
+  );
+}
+
+interface TagChipTokenProps {
+  value: string;
+  label: string;
+  index: number;
+  remove: () => void;
+  onPromote: (tid: number) => void;
+}
+
+// A selected-tag chip for the categorization rule's SearchableMultiSelect.
+// The first chip (index 0) is the Primary (drives the rule name); the rest
+// carry a "Set Primary" promote button. Passed as the `renderToken` slot so
+// the shared multi-select stays generic (the transaction tag selector uses
+// the default plain chip instead).
+function TagChipToken({
+  value,
+  label,
+  index,
+  remove,
+  onPromote,
+}: TagChipTokenProps) {
+  const isPrimary = index === 0;
+  const chipBase =
+    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border';
+  const chipColor = isPrimary
+    ? 'bg-success-50 text-success-700 border-success-200 dark:bg-success-950/40 dark:text-success-300 dark:border-success-900/50'
+    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
+  return (
+    <span className={`${chipBase} ${chipColor}`}>
+      {label}
+      {isPrimary ? (
+        <span className="bg-success-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase">
+          Primary
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onPromote(Number(value))}
+          className="bg-accent-600 hover:bg-accent-700 rounded-sm px-1 py-px text-[10px] font-bold tracking-wide text-white uppercase"
+        >
+          Set Primary
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={remove}
+        aria-label={`Remove tag ${label}`}
+        className="ml-0.5 text-base leading-none font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+      >
+        ×
+      </button>
+    </span>
   );
 }

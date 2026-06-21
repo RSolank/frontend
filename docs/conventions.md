@@ -356,11 +356,12 @@ ordinary entry in `options[]`.
 
 | Surface                                           | Convention                                                                 | Reason                                                                                                                                                                               |
 | ------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Beneficiary picker (Add Tx, Categorization Rules) | `SearchableList` (pick-or-create)                                          | Data-driven, user can add                                                                                                                                                            |
-| Tag picker on Add Tx                              | `SearchableList` (pick-or-create, multi)                                   | Data-driven, user can add                                                                                                                                                            |
+| Beneficiary picker (Add/Edit Tx, Categorization Rules) | `SearchableSelect` (+ `onCreate` Type A)                              | Data-driven, user can add. Pick-only — typing filters; create via the CTA                                                                                                            |
+| Tag picker (Add/Edit Tx, Categorization Rules)   | `SearchableMultiSelect` (+ `onCreate`; `renderToken` for primary/promote)  | Data-driven, multi-select, user can add                                                                                                                                             |
 | Tag dropdown in Filter Sidebar                    | `SearchableSelect`                                                         | Data-driven, often > 15                                                                                                                                                              |
 | Beneficiary category (Beneficiary form)           | `SearchableSelect`                                                         | Data-driven, ~25+ tags in the default seed                                                                                                                                           |
-| Merchant search bar (Transactions filter row)     | bespoke (per-feature `MerchantSearchBar`)                                  | Filter-row chrome, not a sidebar dropdown                                                                                                                                            |
+| Merchant search bar (Transactions filter row)     | `SearchableSelect` (compact, label-less wrapper)                          | Folded onto the shared component (T-typeahead-consolidation); only the on-mount beneficiary load stays local                                                                        |
+| Admin user picker (bill-backfill)                 | bespoke (`AdminUserPicker`)                                                | **Carve-out:** async server-search (debounce + 3-char gate + loading state) + selected-user card — distinct from the pre-loaded pick-only model; not worth complicating the shared component |
 | Country picker (Register, Profile)                | `SearchableSelect`                                                         | 250 items                                                                                                                                                                            |
 | Currency picker (Profile, Preferences)            | `SearchableSelect`                                                         | 170 items                                                                                                                                                                            |
 | Timezone picker (Register, Profile)               | bespoke `TimezoneSelect` (country-narrowing + `SearchableSelect` fallback) | Specialised filter cascade; full IANA fallback is searchable per the >15-items rule                                                                                                  |
@@ -384,6 +385,66 @@ ordinary entry in `options[]`.
 
 All data-driven / >15-item selects use the shared `SearchableSelect`;
 `CountrySelect` and `CurrencySelect` are built on it.
+
+### The shared typeahead family (engine + two shells)
+
+Locked 2026-06-21. Every "search input + dropdown" picker is built
+from one headless engine + one of two shells, so behaviour
+(filtering, keyboard nav, open/close, click-outside, pick→clear) is
+single-sourced rather than re-implemented per feature.
+
+- **`shared/hooks/useTypeahead`** — the headless engine. Owns the
+  query, open state, the query-filtered list, keyboard nav (via
+  `useTypeaheadKeyboard`), close-on-click-outside, and the
+  pick→clear-query→close orchestration. Returns `getInputProps()` /
+  `getOptionProps()` to spread + `containerRef` / `listRef`. The
+  active row re-pins on query / list-length change — **never** on the
+  options array reference — so a parent that rebuilds `options` each
+  render can't freeze arrow-nav.
+- **`shared/components/SearchableSelect`** — single-select shell.
+- **`shared/components/SearchableMultiSelect`** — chip-accumulating
+  multi-select shell. Each pick (or create) adds a chip and resets the
+  query. Per-consumer chip differences come through `renderToken`
+  (default = a plain removable accent pill; categorization tags pass a
+  primary-badge + promote variant).
+- **`shared/components/TypeaheadPanel`** + `CreateOptionCTA` — the
+  shared dropdown surface (create CTA + listbox + empty state) both
+  shells render.
+
+**Two distinct kinds of "create" — do not conflate them:**
+
+- **Type A — create a new selectable OPTION** (`onCreate` slot, the
+  "+ Add new" CTA). Present **only** when the option list is a
+  user-CRUD-managed list (tags, beneficiaries) — never for fixed /
+  system lists (countries, currencies, timezones). The shell only
+  renders the CTA and fires `onCreate`; the consumer owns its own
+  create modal (`TagFormDialog` / `BeneficiaryFormDialog`) so feature
+  boundaries stay intact. The new entity becomes an option (and is
+  typically auto-selected).
+- **Type B — add a SELECTION to the multi-select chip set.** Picking
+  an existing option appends a chip. This is just what
+  `SearchableMultiSelect` does; it mutates the selected values (local
+  form state), not the option source.
+
+They compose: the categorization-rule tag picker is multi-select
+(Type B) **and** create (Type A).
+
+**Migration notes (T-typeahead-consolidation, 2026-06-21):**
+
+- The transaction **beneficiary** field is **pick-only** — typing only
+  filters; a brand-new beneficiary is created via the "+ Add new
+  beneficiary" CTA, not by free-typing a name and submitting (the old
+  free-text-create affordance was removed for a single shared model).
+- **`AdminUserPicker`** stays bespoke (async server-search carve-out, see
+  the matrix above).
+- **`SearchableSelect` keeps its own internals** (draft↔value sync,
+  click-to-clear-on-focus) rather than being refactored onto the
+  `useTypeahead` engine — its single-select external-value sync differs
+  enough from the multi-select that converging would complicate the
+  engine for no real payoff. The engine backs `SearchableMultiSelect`;
+  the two shells share the dropdown surface (`TypeaheadPanel`) and
+  keyboard hook (`useTypeaheadKeyboard`), which is where the duplication
+  actually mattered.
 
 ## DetailModal (canonical view + edit surface)
 

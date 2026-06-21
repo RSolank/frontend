@@ -9,6 +9,13 @@ import { useAdminUsersInfiniteQuery, type AdminUserRow } from '../api/users';
 // arbitrarily large. Reuses the existing A2 endpoint via
 // `useAdminUsersInfiniteQuery` so the debounce + <=2-char gate + 25-
 // row limit are inherited.
+//
+// Deliberate carve-out from the shared typeahead family
+// (T-typeahead-consolidation): async server-search + the selected-user
+// card (with "Change") is a distinct pattern. Folding it would push
+// debounce / min-char / loading-state concerns into the shared
+// SearchableSelect (8 pick-only consumers) for a single admin screen —
+// not worth the added surface. See docs/conventions.md §6.
 
 interface AdminUserPickerProps {
   // The selected user (the chosen row). Lifting up keeps the form

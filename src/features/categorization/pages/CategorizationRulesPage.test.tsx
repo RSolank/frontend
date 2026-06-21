@@ -169,7 +169,8 @@ describe('CategorizationRulesPage', () => {
     // item; tag options follow.
     const tagSearch = screen.getByPlaceholderText(/Search tags/i);
     fireEvent.focus(tagSearch);
-    const tagOption = await screen.findByRole('button', {
+    // Tag options now carry role="option" (combobox ARIA + keyboard nav).
+    const tagOption = await screen.findByRole('option', {
       name: 'Food (Groceries)',
     });
     fireEvent.mouseDown(tagOption);
@@ -322,7 +323,7 @@ describe('CategorizationRulesPage', () => {
     const tagSearch = screen.getByPlaceholderText(/Search tags/i);
     fireEvent.focus(tagSearch);
     fireEvent.mouseDown(
-      await screen.findByRole('button', { name: 'Food (Groceries)' })
+      await screen.findByRole('option', { name: 'Food (Groceries)' })
     );
     expect(
       await screen.findByText('NewShop -> Food (Groceries)')
@@ -331,7 +332,7 @@ describe('CategorizationRulesPage', () => {
     // Add a second tag — rule name MUST stay on the primary (12).
     fireEvent.focus(tagSearch);
     fireEvent.mouseDown(
-      await screen.findByRole('button', { name: 'Food (Dining)' })
+      await screen.findByRole('option', { name: 'Food (Dining)' })
     );
     expect(
       await screen.findByText('NewShop -> Food (Groceries)')

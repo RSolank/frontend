@@ -1,91 +1,75 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 
+import { SearchableSelect } from '../../../shared/components/SearchableSelect';
 import type { Beneficiary } from '../../beneficiaries/api/queries';
 
 interface BeneficiarySearchProps {
+  // Display name of the currently-selected beneficiary (a fallback label so
+  // the selection still shows when the loaded list doesn't include it yet).
   value: string;
   beneficiaryId: number | string;
   beneficiaries: Beneficiary[];
+  // Emits the chosen (name, id) pair, or ('', '') when cleared.
   onChange: (name: string, id: number | string) => void;
-  // Optional handler for the "+ Add new" CTA. When provided the
-  // dropdown surfaces a button that calls it (typical pattern: the
-  // parent opens a <BeneficiaryFormDialog /> inline). When omitted the
-  // CTA is hidden — useful for surfaces that don't support inline
-  // creation.
+  // Optional "+ Add new beneficiary" CTA (Type A). The parent opens a
+  // <BeneficiaryFormDialog /> inline; omit to hide the affordance.
   onRequestAddBeneficiary?: () => void;
+  // Kept for call-site compatibility — pick-only has no free-text field to
+  // mark required (the form validates the selected id on submit).
   required?: boolean;
   disabled?: boolean;
 }
 
-// Type-ahead picker shared by Add + Edit transaction forms. Emits the
-// chosen (name, id) pair; the page is responsible for nulling the id
-// when the user types a new name (so the backend creates a fresh
-// beneficiary).
+// Transaction beneficiary picker — a thin domain wrapper over the shared
+// pick-only `SearchableSelect`. Selecting an option emits (name, id); typing
+// only filters (free-text entry no longer commits a new beneficiary — use the
+// "+ Add new beneficiary" CTA to create one). A synthetic option for the
+// current selection guarantees the chosen name shows even when the loaded
+// `beneficiaries` list doesn't contain it (e.g. on Edit before it resolves).
 export function BeneficiarySearch({
   value,
   beneficiaryId,
   beneficiaries,
   onChange,
   onRequestAddBeneficiary,
-  required,
   disabled,
 }: BeneficiarySearchProps) {
-  const [focused, setFocused] = useState(false);
-  const filtered = beneficiaries.filter(
-    (b) => !value || b.name.toLowerCase().includes(value.toLowerCase())
-  );
+  const options = useMemo(() => {
+    const base = beneficiaries.map((b) => ({
+      value: String(b.uid),
+      label: b.name,
+    }));
+    if (beneficiaryId && !base.some((o) => o.value === String(beneficiaryId))) {
+      base.unshift({ value: String(beneficiaryId), label: value || 'Selected' });
+    }
+    return base;
+  }, [beneficiaries, beneficiaryId, value]);
 
   return (
-    <div className="relative">
+    <div>
       <label htmlFor="beneficiary_name" className="form-label">
         Beneficiary
       </label>
-      <input
+      <SearchableSelect
         id="beneficiary_name"
-        value={value}
-        onChange={(e) => onChange(e.target.value, '')}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 200)}
+        ariaLabel="Beneficiary"
         placeholder="Search beneficiary..."
-        required={required}
-        disabled={disabled}
-        autoComplete="off"
-        className="form-input"
+        value={beneficiaryId ? String(beneficiaryId) : ''}
+        options={options}
+        searchable={!disabled}
+        onChange={(next) => {
+          if (!next) {
+            onChange('', '');
+            return;
+          }
+          const b = beneficiaries.find((x) => String(x.uid) === next);
+          if (b) onChange(b.name, b.uid);
+        }}
+        onCreate={
+          onRequestAddBeneficiary ? () => onRequestAddBeneficiary() : undefined
+        }
+        createLabel="Add new beneficiary"
       />
-      {focused && (
-        <div className="absolute right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
-          {onRequestAddBeneficiary && (
-            <button
-              type="button"
-              onMouseDown={onRequestAddBeneficiary}
-              className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
-            >
-              <span aria-hidden="true">＋</span>
-              Add new beneficiary
-            </button>
-          )}
-          {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-              No matches
-            </div>
-          ) : (
-            filtered.map((b) => (
-              <button
-                key={b.uid}
-                type="button"
-                onMouseDown={() => onChange(b.name, b.uid)}
-                className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                  b.uid === beneficiaryId
-                    ? 'bg-accent-50 text-accent-800 dark:bg-accent-950/40 dark:text-accent-200'
-                    : 'text-slate-700 dark:text-slate-200'
-                }`}
-              >
-                {b.name}
-              </button>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }

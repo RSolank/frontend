@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { SearchableMultiSelect } from '../../../shared/components/SearchableMultiSelect';
 
 interface FlatTag {
   tag_id: number;
@@ -12,20 +12,17 @@ interface TagSelectorProps {
   totalTagId?: number;
   onAdd: (tagId: number) => void;
   onRemove: (tagId: number) => void;
-  // Optional handler for the "+ Add new tag" CTA. When provided the
-  // dropdown surfaces a sticky first item that calls it (parent opens
-  // a <TagFormDialog /> inline). Mirrors BeneficiarySearch's
-  // onRequestAddBeneficiary; see CONTRIBUTING.md §6 "Searchable list
-  // with inline create" for the pattern contract.
+  // Optional "+ Add new tag" CTA (Type A). When provided the dropdown
+  // surfaces it and the parent opens a <TagFormDialog /> inline.
   onRequestAddTag?: () => void;
 }
 
-// SearchableList pattern (CONTRIBUTING.md §6). Search input + dropdown
-// of filtered matches + sticky "+ Add new tag" first item (when
-// `onRequestAddTag` is provided). Multi-select; chips render below.
-// The miscellaneous-tag rule (if any non-misc tag is present, misc is
-// dropped; if no tags remain, misc is re-added) lives in the parent's
-// `onAdd` / `onRemove`. This component just emits intents.
+// Transaction tag picker — a thin domain wrapper over the shared
+// `SearchableMultiSelect`. The only feature-specific logic is which tags are
+// offered: never the Total tag, and the Miscellaneous tag only while nothing
+// else is selected (its presence/absence is otherwise managed by the parent's
+// onAdd / onRemove). Plain removable chips (the default token) — no
+// primary/promote affordance, unlike the categorization-rule tag picker.
 export function TagSelector({
   tags,
   selectedTagIds,
@@ -35,94 +32,38 @@ export function TagSelector({
   onRemove,
   onRequestAddTag,
 }: TagSelectorProps) {
-  const [search, setSearch] = useState('');
-  const [focused, setFocused] = useState(false);
+  const options = tags
+    .filter((t) => {
+      if (selectedTagIds.includes(t.tag_id)) return false;
+      if (t.tag_id === totalTagId) return false;
+      if (
+        miscellaneousTagId &&
+        t.tag_id === miscellaneousTagId &&
+        selectedTagIds.some((id) => id !== miscellaneousTagId)
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .map((t) => ({ value: String(t.tag_id), label: t.tag_name }));
 
-  const available = tags.filter((t) => {
-    if (selectedTagIds.includes(t.tag_id)) return false;
-    if (t.tag_id === totalTagId) return false;
-    if (
-      miscellaneousTagId &&
-      t.tag_id === miscellaneousTagId &&
-      selectedTagIds.some((id) => id !== miscellaneousTagId)
-    ) {
-      return false;
-    }
-    return !search || t.tag_name.toLowerCase().includes(search.toLowerCase());
-  });
+  const tagName = (id: number) =>
+    tags.find((t) => t.tag_id === id)?.tag_name ?? `Tag ${id}`;
 
   return (
-    <div>
-      <label htmlFor="tags_search" className="form-label">
-        Tags
-      </label>
-      <div className="relative">
-        <input
-          id="tags_search"
-          type="text"
-          placeholder="Search tags..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 200)}
-          className="form-input"
-          autoComplete="off"
-        />
-        {focused && (
-          <div className="absolute right-0 left-0 z-10 mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
-            {onRequestAddTag && (
-              <button
-                type="button"
-                onMouseDown={onRequestAddTag}
-                className="bg-accent-50/40 text-accent-700 hover:bg-accent-100 dark:bg-accent-950/30 dark:text-accent-300 dark:hover:bg-accent-950/50 flex w-full items-center gap-1.5 border-b border-slate-200 px-3 py-2 text-left text-sm font-semibold dark:border-slate-700"
-              >
-                <span aria-hidden="true">＋</span>
-                Add new tag
-              </button>
-            )}
-            {available.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
-                No matches
-              </div>
-            ) : (
-              available.map((t) => (
-                <button
-                  key={t.tag_id}
-                  type="button"
-                  onMouseDown={() => {
-                    onAdd(t.tag_id);
-                    setSearch('');
-                  }}
-                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  {t.tag_name}
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {selectedTagIds.map((tid) => {
-          const tag = tags.find((tg) => tg.tag_id === tid);
-          return (
-            <span
-              key={tid}
-              className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium"
-            >
-              {tag?.tag_name ?? `Tag ${tid}`}
-              <button
-                type="button"
-                aria-label={`Remove ${tag?.tag_name ?? tid}`}
-                onClick={() => onRemove(tid)}
-                className="text-accent-500 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-200"
-              >
-                ×
-              </button>
-            </span>
-          );
-        })}
-      </div>
-    </div>
+    <SearchableMultiSelect
+      id="tags"
+      label="Tags"
+      ariaLabel="Tags"
+      placeholder="Search tags..."
+      options={options}
+      selectedValues={selectedTagIds.map(String)}
+      onAdd={(v) => onAdd(Number(v))}
+      onRemove={(v) => onRemove(Number(v))}
+      tokenLabel={(v) => tagName(Number(v))}
+      onCreate={onRequestAddTag ? () => onRequestAddTag() : undefined}
+      createLabel="Add new tag"
+      emptyTokensLabel="No tags selected"
+    />
   );
 }

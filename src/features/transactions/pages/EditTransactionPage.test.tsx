@@ -91,6 +91,7 @@ describe('EditTransactionPage', () => {
             txn_id: 1,
             amount: 50.5,
             debit_credit: 'debit',
+            beneficiary_id: 5,
             beneficiary_name: 'Store',
             beneficiary: 'Store',
             txn_date: '2023-10-10',
@@ -243,7 +244,9 @@ describe('EditTransactionPage', () => {
     );
 
     fireEvent.focus(screen.getByPlaceholderText('Search tags...'));
-    fireEvent.mouseDown(screen.getByRole('button', { name: 'Groceries' }));
+    // Tag options now carry role="option" (shared SearchableMultiSelect
+    // combobox ARIA), not the implicit button role.
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'Groceries' }));
 
     await waitFor(() =>
       expect(screen.queryByText('Miscellaneous')).not.toBeInTheDocument()

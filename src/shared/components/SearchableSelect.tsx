@@ -1,6 +1,8 @@
 import { ChevronDown, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { CreateOptionCTA } from './TypeaheadPanel';
+
 export interface SearchableSelectOption {
   value: string;
   label: string;
@@ -21,6 +23,13 @@ interface SearchableSelectProps {
   // When false, the input is a plain readonly affordance — no typing.
   // Defaults to true (the whole point of this component is typeahead).
   searchable?: boolean;
+  // Type A inline create: renders a sticky "+ {createLabel}" CTA at the top
+  // of the dropdown and fires `onCreate(query)` with the current search text
+  // (so the create modal can pre-fill the typed name). The consumer opens its
+  // own create modal, persists a new entity, then selects it. Omit for fixed /
+  // system option lists — the 8 pick-only consumers pass nothing.
+  onCreate?: (query: string) => void;
+  createLabel?: string;
 }
 
 // Generic single-select dropdown with built-in typeahead filtering.
@@ -28,10 +37,9 @@ interface SearchableSelectProps {
 // options, be data-driven, or have no inherent scan order — see
 // CONTRIBUTING.md §6 "Searchable dropdowns".
 //
-// Pick-or-create flows (beneficiaries, tag picker on Add Transaction)
-// continue to use the dedicated `SearchableList`-style components
-// from the §6 "Searchable list with inline create" convention; this
-// component is the pick-only complement (no `+ Add new` CTA).
+// Pick-only by default; pass `onCreate` for a "pick or create" flow
+// (Type A — beneficiary pickers) that surfaces a "+ Add new" CTA. The
+// chip-accumulating multi-select complement is `SearchableMultiSelect`.
 //
 // Keyboard nav: ↑/↓ moves highlight, Enter selects, Esc closes,
 // hover updates the highlight so click + keyboard don't conflict.
@@ -58,6 +66,8 @@ export function SearchableSelect({
   placeholder = '',
   id,
   searchable = true,
+  onCreate,
+  createLabel = 'Add new',
 }: SearchableSelectProps) {
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -109,14 +119,23 @@ export function SearchableSelect({
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [draft, options, selected]);
 
-  // Reset / pin highlight when the filtered list changes or the
-  // dropdown opens — preselect the currently-selected option's
-  // index when present so arrow-down moves to the next option.
+  // Pin the highlight to the selected option (or 0) when the dropdown
+  // opens, the user types, the external value changes, or the list's
+  // length changes (filter/async load). Deliberately keyed on
+  // `filtered.length` — NOT the `filtered` array reference: a consumer
+  // that rebuilds its `options` prop each render makes `filtered` a fresh
+  // ref every render, so keying on the ref would re-pin (and clobber each
+  // ArrowDown) on every unrelated parent re-render — freezing keyboard
+  // navigation. Length covers the cases that actually need a re-pin while
+  // staying stable across pure ref churn.
   useEffect(() => {
     if (!focused) return;
     const selectedIdx = filtered.findIndex((o) => o.value === value);
     setHighlightIdx(selectedIdx >= 0 ? selectedIdx : 0);
-  }, [focused, filtered, value]);
+    // `filtered` (the array) is read but intentionally excluded; we trigger
+    // on `filtered.length` instead — see the comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused, draft, value, filtered.length]);
 
   // Scroll the highlighted item into view.
   useEffect(() => {
@@ -237,41 +256,90 @@ export function SearchableSelect({
           />
         </button>
       </div>
-      {focused && filtered.length > 0 && (
+      {focused && (
+        <SelectDropdown
+          id={id}
+          listRef={listRef}
+          filtered={filtered}
+          highlightIdx={highlightIdx}
+          value={value}
+          createLabel={createLabel}
+          onCreate={
+            onCreate
+              ? () => {
+                  onCreate(draft);
+                  setFocused(false);
+                }
+              : undefined
+          }
+          onPick={pick}
+          onHighlight={setHighlightIdx}
+        />
+      )}
+    </div>
+  );
+}
+
+interface SelectDropdownProps {
+  id?: string;
+  listRef: React.RefObject<HTMLDivElement>;
+  filtered: SearchableSelectOption[];
+  highlightIdx: number;
+  value: string;
+  createLabel: string;
+  // Already wrapped to also collapse the dropdown; undefined = no CTA.
+  onCreate?: () => void;
+  onPick: (option: SearchableSelectOption) => void;
+  onHighlight: (idx: number) => void;
+}
+
+// The dropdown surface (create CTA + listbox + empty state). Split out of
+// SearchableSelect so the main component stays under the line-count gate;
+// SearchableSelect still owns the highlight/pick state and passes it down.
+function SelectDropdown({
+  id,
+  listRef,
+  filtered,
+  highlightIdx,
+  value,
+  createLabel,
+  onCreate,
+  onPick,
+  onHighlight,
+}: SelectDropdownProps) {
+  return (
+    <div className="absolute right-0 left-0 z-20 mt-1 rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
+      {onCreate && <CreateOptionCTA label={createLabel} onSelect={onCreate} />}
+      {filtered.length === 0 ? (
+        <div className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+          No matches
+        </div>
+      ) : (
         <div
           ref={listRef}
           id={`${id ?? 'sselect'}-listbox`}
           role="listbox"
-          className="absolute right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900"
+          className="max-h-64 overflow-y-auto"
         >
-          {filtered.map((o, idx) => {
-            const isHighlighted = idx === highlightIdx;
-            const isSelected = o.value === value;
-            return (
-              <button
-                key={o.value || '__empty__'}
-                id={`${id ?? 'sselect'}-opt-${o.value || 'empty'}`}
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                onMouseDown={(e) => {
-                  // Prevent the input from blurring before click
-                  // registers — onMouseDown fires before onBlur.
-                  e.preventDefault();
-                  pick(o);
-                }}
-                onMouseEnter={() => setHighlightIdx(idx)}
-                className={optionClassName(isHighlighted, isSelected)}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {focused && filtered.length === 0 && (
-        <div className="absolute right-0 left-0 z-20 mt-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
-          No matches
+          {filtered.map((o, idx) => (
+            <button
+              key={o.value || '__empty__'}
+              id={`${id ?? 'sselect'}-opt-${o.value || 'empty'}`}
+              type="button"
+              role="option"
+              aria-selected={o.value === value}
+              onMouseDown={(e) => {
+                // Prevent the input from blurring before click registers —
+                // onMouseDown fires before onBlur.
+                e.preventDefault();
+                onPick(o);
+              }}
+              onMouseEnter={() => onHighlight(idx)}
+              className={optionClassName(idx === highlightIdx, o.value === value)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
       )}
     </div>

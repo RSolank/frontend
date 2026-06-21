@@ -119,6 +119,13 @@ describe('AddTransactionPage', () => {
   it('submits the form successfully and navigates', async () => {
     let body: unknown = null;
     server.use(
+      // Pick-only beneficiary: the option must exist to be selected (free-text
+      // entry was removed in the typeahead-consolidation).
+      http.get(`${API_BASE}/beneficiaries`, () =>
+        HttpResponse.json([
+          { uid: 7, name: 'Store', aliases: [], beneficiary_type: 'merchant' },
+        ])
+      ),
       http.post(`${API_BASE}/transactions`, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ transaction: { txn_id: 1, amount: 50.5 } });
@@ -133,9 +140,8 @@ describe('AddTransactionPage', () => {
     fireEvent.change(screen.getByLabelText(/Amount/), {
       target: { value: '50.50' },
     });
-    fireEvent.change(screen.getByLabelText('Beneficiary'), {
-      target: { value: 'Store' },
-    });
+    fireEvent.focus(screen.getByLabelText('Beneficiary'));
+    fireEvent.mouseDown(await screen.findByText('Store'));
     fireEvent.change(screen.getByLabelText('Notes'), {
       target: { value: 'Test note' },
     });
