@@ -85,7 +85,9 @@ export interface BillItem {
   txn_id?: number | null;
   date?: string | null;
   beneficiary?: string | null;
-  txn_type: string;
+  // Null on adjustment rows (a net week-level delta has no single
+  // classification); a real TxnType on base rows.
+  txn_type: string | null;
   // Raw transaction amount + side. Backend's `get_bill` already
   // returns both; the legacy UI ignored them. Surfaced now so the
   // bill detail modal can show "you spent X, taxed Y".
@@ -226,7 +228,7 @@ function deriveTrackerFromBill(bill: BillDetail): TrackerCurrentWeekResponse {
       foldInto(byTag, {
         tag_id: item.tag_id ?? 0,
         tag_name: item.tag_name ?? 'Uncategorized',
-        txn_type: item.txn_type,
+        txn_type: item.txn_type as string, // non-adjustment rows: always set
         tax_amount: item.tax_amount,
         penalty: 0,
       });
@@ -235,7 +237,7 @@ function deriveTrackerFromBill(bill: BillDetail): TrackerCurrentWeekResponse {
       foldInto(byTag, {
         tag_id: item.penalty_tag_id ?? item.tag_id ?? 0,
         tag_name: item.penalty_tag_name ?? item.tag_name ?? 'Uncategorized',
-        txn_type: item.txn_type,
+        txn_type: item.txn_type as string, // non-adjustment rows: always set
         tax_amount: 0,
         penalty: item.penalty,
       });

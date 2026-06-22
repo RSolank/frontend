@@ -168,7 +168,7 @@ Endpoints touched:
 | `GET /api/v1/transactions/:id`               | EditTransactionPage load                                                                                                      |
 | `POST /api/v1/transactions[?rule_id=…]`      | AddTransactionPage                                                                                                            |
 | `PATCH /api/v1/transactions/:id[?rule_id=…]` | EditTransactionPage                                                                                                           |
-| `DELETE /api/v1/transactions/:id`            | TransactionsPage row action menu                                                                                              |
+| `DELETE /api/v1/transactions/:id[?on_payment=reopen\|preserve]` | TransactionsPage row action menu; `on_payment` sent only for a Consumption-Tax-tagged row via `<DeleteTransactionDialog>` |
 | `POST /api/v1/statement-uploads`             | UploadStatementPage submit (sends `parser_override` form field)                                                               |
 | `GET /api/v1/statement-uploads/{job_id}`     | UploadStatementPage + StatementUploadDock poll                                                                                |
 | `GET /api/v1/statement-uploads/parsers`      | UploadStatementPage parser-picker (graceful 404 fallback to `HARDCODED_PARSER_CATALOG`; BE handoff — pending route signature) |
@@ -283,7 +283,14 @@ handler if convergence emerges.
 - **Edit** — row Edit button calls `useUrlValueModal('edit').openWith(txn_id)`.
   Modal mounts `<EditTransactionPage embedded idOverride={...} onClose={...} />`.
 - **Delete** — `<ConfirmDialog intent="danger" />` replaces
-  `window.confirm()`.
+  `window.confirm()`. **Exception (T-orphan-proofing):** when the row carries the
+  reserved Consumption Tax tag (`CONSUMPTION_TAX_TAG_ID` — i.e. it's a
+  tax-payment transfer that may back one or more bills), delete instead opens
+  `components/DeleteTransactionDialog.tsx`, a two-path dialog — **"Keep bill paid"**
+  (sends `?on_payment=preserve`; the bill stays paid via the BE allocation
+  `SET NULL`) vs **"Reopen & delete"** (sends `?on_payment=reopen`; the BE drops
+  the allocations, recomputes `amount_paid` and re-derives bill status across all
+  backed bills). Triggers purely on tag presence — no allocation pre-read.
 
 The legacy routes `/add-transaction` and `/transactions/:id/edit`
 have become **redirects** (`transactions.routes.tsx`) that bounce to

@@ -164,7 +164,7 @@ Read endpoints consumed (under `/api`):
 
 - `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default, is_system }`. `is_system` (provenance) drives the `<SystemChip>`; it's `true` for all seeded rules.
 - `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
-- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO).
+- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO). `BillItem.txn_type` is `string | null` — adjustment rows surface `null` (BE made it `Optional[TxnType]` in T-orphan-proofing, fixing a 500 on any bill with an adjustment row); items also carry `applied_rate`.
 - (no standalone tracker endpoint — see Tax Tracker section for the FE-derive contract.)
 
 Write endpoints consumed:

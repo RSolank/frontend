@@ -11,12 +11,12 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useCapabilities } from '../../../shared/api/capabilities';
-import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Modal } from '../../../shared/components/Modal';
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
+import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
 import { useTagsQuery, type TagNode } from '../../tags/api/queries';
@@ -30,6 +30,11 @@ import {
 import type { MerchantGroup, TransactionDTO } from '../api/schemas';
 import { CalendarView } from '../components/CalendarView';
 import { DaySidePanel } from '../components/DaySidePanel';
+import {
+  DeleteTransactionDialog,
+  pendingTxnIsTaxPayment,
+  type OnPaymentChoice,
+} from '../components/DeleteTransactionDialog';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { MerchantRow } from '../components/MerchantRow';
 import { MerchantSearchBar } from '../components/MerchantSearchBar';
@@ -327,15 +332,31 @@ export function TransactionsPage() {
   }, [editModal.value, transactions]);
   const editingIsManual = editingTxn?.source === 'manual';
 
+  // A txn carrying the reserved Consumption Tax tag settles a tax bill, so its
+  // deletion needs the two-path prompt (reopen the bill vs keep it paid). The
+  // backend handles whichever bills it actually backed (FIFO can back several;
+  // no-op if it backed none).
+  const consumptionTaxTagId = useAuthStore(
+    (s) => s.constants?.CONSUMPTION_TAX_TAG_ID
+  );
+  const pendingIsTaxPayment = pendingTxnIsTaxPayment(
+    transactions,
+    confirmDeleteId,
+    consumptionTaxTagId
+  );
+
   function handleEdit(id: number) {
     editModal.openWith(String(id));
   }
-  async function handleConfirmDelete() {
+  async function handleConfirmDelete(onPayment?: OnPaymentChoice) {
     if (confirmDeleteId == null) return;
     setDeleteError(null);
     setDeleting(true);
     try {
-      await deleteTransactionRequest(confirmDeleteId);
+      await deleteTransactionRequest(
+        confirmDeleteId,
+        onPayment ? { onPayment } : undefined
+      );
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       setConfirmDeleteId(null);
       editModal.close();
@@ -502,15 +523,13 @@ export function TransactionsPage() {
         onOrderChange={(next) => set({ order: next })}
         onClearAll={clearAll}
       />
-      <ConfirmDialog
+      <DeleteTransactionDialog
         open={confirmDeleteId != null}
-        onClose={() => setConfirmDeleteId(null)}
-        onConfirm={handleConfirmDelete}
-        intent="danger"
-        title="Delete transaction"
-        message="Are you sure you want to delete this transaction? This cannot be undone."
-        confirmLabel="Delete"
+        isTaxPayment={pendingIsTaxPayment}
         busy={deleting}
+        error={deleteError}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={(onPayment) => void handleConfirmDelete(onPayment)}
       />
     </div>
   );

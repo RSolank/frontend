@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
@@ -322,5 +323,61 @@ describe('TransactionsPage', () => {
     expect(
       screen.queryByRole('button', { name: /open filters \(1 active\)/i })
     ).toBeNull();
+  });
+
+  it('deleting a tax-payment txn prompts reopen-vs-keep-paid and passes the choice', async () => {
+    useAuthStore.getState().setConstants({
+      TOTAL_TAG_ID: 1,
+      MISCELLANEOUS_TAG_ID: 2,
+      MISC_CREDIT_TAG_ID: 4,
+      CONSUMPTION_TAX_TAG_ID: 3,
+      TAXABLE_TXN_TYPES: [],
+      VALID_TAG_TYPES: [],
+      VALID_TXN_TYPES: [],
+      RELATIONSHIP_TYPES: [],
+      SYSTEM_USER_ID: null,
+    });
+
+    const payment = {
+      txn_id: 1,
+      txn_date: '2026-02-05',
+      beneficiary_name: 'Savings transfer',
+      beneficiary: 'Savings transfer',
+      amount: 100,
+      debit_credit: 'debit',
+      source: 'manual',
+      tag_ids: [3], // carries the Consumption Tax tag → a bill payment
+    };
+    let deletedWith: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/transactions`, () =>
+        HttpResponse.json({ transactions: [payment], returned_count: 1 })
+      ),
+      http.get(`${API_BASE}/transactions/1`, () =>
+        HttpResponse.json({ transaction: payment })
+      ),
+      http.delete(`${API_BASE}/transactions/1`, ({ request }) => {
+        deletedWith = new URL(request.url).searchParams.get('on_payment');
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+
+    renderWithProviders(<TransactionsPage />, {
+      initialEntries: ['/transactions?edit=1'],
+    });
+
+    // Remove from the edit modal → the tax-payment two-path prompt, not the
+    // plain confirm dialog.
+    fireEvent.click(
+      await screen.findByRole('button', { name: /remove transaction/i })
+    );
+    await screen.findByText(/settles a consumption-tax bill/i);
+    expect(
+      screen.getByRole('button', { name: /keep bill paid/i })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /reopen & delete/i }));
+
+    await waitFor(() => expect(deletedWith).toBe('reopen'));
   });
 });

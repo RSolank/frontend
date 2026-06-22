@@ -39,10 +39,18 @@ export function updateTransactionRequest(
   });
 }
 
+// `onPayment` only matters when the deleted txn settled a consumption-tax
+// bill: 'reopen' un-settles the bill(s) it backed; 'preserve' (default) keeps
+// them paid (the backend's allocation survives via FK SET NULL). Omitted for
+// ordinary txns.
 export function deleteTransactionRequest(
-  id: number | string
+  id: number | string,
+  opts?: { onPayment?: 'reopen' | 'preserve' }
 ): Promise<unknown> {
-  return apiFetch<unknown>(routes.transactions.byId(id), { method: 'DELETE' });
+  const qs = opts?.onPayment ? `?on_payment=${opts.onPayment}` : '';
+  return apiFetch<unknown>(`${routes.transactions.byId(id)}${qs}`, {
+    method: 'DELETE',
+  });
 }
 
 // BE Phase 2.2 (`ac4ad00`) — the legacy 4-step synchronous upload
