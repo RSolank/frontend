@@ -51,13 +51,13 @@ export interface PreferencesResponse {
   default_txn_kind?: string | null;
   underline_links?: boolean | null;
   focus_ring_always?: boolean | null;
-  // BE Phase 2.6 — taxation auto-mode toggle (Decision 26). When
-  // true, the Monday worker finalizes ACCRUING→BILLED on schedule;
-  // when false, bills stay ACCRUING for visibility and the user
-  // drives generation via `POST /consumption-tax/bills/generate`.
-  // The stacking-defense `STALE_BILL_THRESHOLD` worker flips this
-  // off when the unpaid-bill count crosses the threshold.
-  auto_enabled?: boolean | null;
+  // T-treasury — 3-state taxation mode. `auto`: the Monday worker
+  // finalizes ACCRUING→BILLED on schedule; `manual`: bills stay
+  // ACCRUING and the user drives generation via
+  // `POST /consumption-tax/bills/generate`; `off`: the engine is
+  // disabled (expense-tracker only). The stacking-defense worker flips
+  // `auto`→`manual` when the unpaid-bill count crosses the threshold.
+  tax_mode?: 'off' | 'manual' | 'auto' | null;
 }
 
 export interface RecoveryQuestionItem {

@@ -90,11 +90,11 @@ function autoDisabledEvent(): ActivityFeedItem {
 
 describe('TaxTrackerCard', () => {
   beforeEach(() => {
-    useTaxModeStore.setState({ enabled: true });
+    useTaxModeStore.setState({ mode: 'auto' });
     setDomain([]);
   });
   afterEach(() => {
-    useTaxModeStore.setState({ enabled: true });
+    useTaxModeStore.setState({ mode: 'auto' });
     vi.clearAllMocks();
   });
 
@@ -125,7 +125,7 @@ describe('TaxTrackerCard', () => {
   });
 
   it('shows the persistent off-banner but keeps stats when off in the current week', () => {
-    useTaxModeStore.setState({ enabled: false });
+    useTaxModeStore.setState({ mode: 'manual' });
     setTracker(POPULATED_CURRENT);
     renderWithProviders(<TaxTrackerCard />);
     expect(screen.getByTestId('dashboard-tax-mode-off')).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('TaxTrackerCard', () => {
   });
 
   it('suppresses projection/progress and labels the period when off + stale', () => {
-    useTaxModeStore.setState({ enabled: false });
+    useTaxModeStore.setState({ mode: 'manual' });
     setTracker(POPULATED);
     renderWithProviders(<TaxTrackerCard />);
     expect(screen.getByTestId('dashboard-tax-mode-off')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('TaxTrackerCard', () => {
   });
 
   it('renders the loud auto-disabled notice above the persistent banner', () => {
-    useTaxModeStore.setState({ enabled: false });
+    useTaxModeStore.setState({ mode: 'manual' });
     setTracker(POPULATED);
     setDomain([autoDisabledEvent()]);
     renderWithProviders(<TaxTrackerCard />);

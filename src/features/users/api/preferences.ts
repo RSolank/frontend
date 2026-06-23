@@ -132,9 +132,9 @@ function applyHydratedPreferences(prefs: PreferencesResponse): void {
   if (typeof prefs.focus_ring_always === 'boolean') {
     useFocusRingStore.getState().setAlwaysVisible(prefs.focus_ring_always);
   }
-  // auto_enabled — taxation auto-mode toggle (BE Phase 2.6).
-  if (typeof prefs.auto_enabled === 'boolean') {
-    useTaxModeStore.getState().setEnabled(prefs.auto_enabled);
+  // tax_mode — 3-state taxation mode (off | manual | auto).
+  if (prefs.tax_mode) {
+    useTaxModeStore.getState().setMode(prefs.tax_mode);
   }
 }
 
@@ -180,8 +180,8 @@ export function subscribeToPreferenceStores(): void {
   });
 
   useTaxModeStore.subscribe((state, prev) => {
-    if (hydrating || state.enabled === prev.enabled) return;
-    void updatePreferencesRequest({ auto_enabled: state.enabled });
+    if (hydrating || state.mode === prev.mode) return;
+    void updatePreferencesRequest({ tax_mode: state.mode });
   });
 }
 

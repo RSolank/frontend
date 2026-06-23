@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { validatePassword } from '../../../shared/utils/validation';
+import type { TaxMode } from '../../../shared/state/taxMode.store';
 
 // Form / payload schemas for the users feature. Server-shape interfaces
 // mirror the OpenAPI types in src/shared/types/api.ts; form-shape
@@ -56,9 +57,9 @@ export interface PreferencesUpdatePayload {
   default_txn_kind?: string;
   underline_links?: boolean;
   focus_ring_always?: boolean;
-  // BE Phase 2.6 — taxation auto-mode toggle. See PreferencesResponse
-  // in queries.ts for the semantics.
-  auto_enabled?: boolean;
+  // T-treasury — 3-state taxation mode (off | manual | auto). See
+  // PreferencesResponse in queries.ts for the semantics.
+  tax_mode?: TaxMode;
 }
 
 export const changePasswordSchema = z.object({

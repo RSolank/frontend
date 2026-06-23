@@ -4013,8 +4013,8 @@ export interface components {
             underline_links: boolean;
             /** Focus Ring Always */
             focus_ring_always: boolean;
-            /** Auto Enabled */
-            auto_enabled: boolean;
+            /** Tax Mode */
+            tax_mode: "off" | "manual" | "auto";
         };
         /**
          * UserPreferencesUpdate
@@ -4034,8 +4034,8 @@ export interface components {
             underline_links?: boolean | null;
             /** Focus Ring Always */
             focus_ring_always?: boolean | null;
-            /** Auto Enabled */
-            auto_enabled?: boolean | null;
+            /** Tax Mode */
+            tax_mode?: "off" | "manual" | "auto" | null;
         };
         /**
          * UserPrivateResponse

@@ -53,7 +53,7 @@ const TOP_CONTRIBUTORS_LIMIT = 3;
 export function TaxTrackerCard() {
   const timezone = usePreferencesStore((s) => s.timezone);
   const { money } = useMoneyFormatter();
-  const taxModeEnabled = useTaxModeStore((s) => s.enabled);
+  const taxMode = useTaxModeStore((s) => s.mode);
 
   const { data, isLoading } = useTrackerCurrentWeekQuery();
   // One domain-scoped fetch shared (via the react-query cache) with
@@ -68,13 +68,15 @@ export function TaxTrackerCard() {
     [timezone]
   );
 
-  // Gate the loud notice on the *live* off-state so a `tax_mode_auto_disabled`
-  // event lingering after the user re-enables never re-shows.
-  const autoDisabledNotice = !taxModeEnabled
-    ? ((domainFeed.data?.items ?? []).find(
-        (i) => i.kind === 'tax_mode_auto_disabled'
-      ) ?? null)
-    : null;
+  // Gate the loud notice on the *live* manual-state so a `tax_mode_auto_disabled`
+  // event lingering after the user re-enables auto never re-shows. Only manual
+  // mode nudges to re-enable auto — `off` is a deliberate full-disable.
+  const autoDisabledNotice =
+    taxMode === 'manual'
+      ? ((domainFeed.data?.items ?? []).find(
+          (i) => i.kind === 'tax_mode_auto_disabled'
+        ) ?? null)
+      : null;
 
   if (isLoading && data == null) {
     return (
@@ -103,7 +105,7 @@ export function TaxTrackerCard() {
         pending
         testId="dashboard-tax-card"
       >
-        <TaxModeBanners off={!taxModeEnabled} notice={autoDisabledNotice} />
+        <TaxModeBanners off={taxMode !== 'auto'} notice={autoDisabledNotice} />
         <DashboardCardEmpty
           headline="No tax accrual yet this week"
           body="Tax accrues automatically as you add transactions. Add one to start the week's running total."
@@ -119,7 +121,7 @@ export function TaxTrackerCard() {
   // by *this* week's elapsed fraction against an *old* period, so they
   // are invalid — the populated body drops them and labels the accrued
   // figure honestly.
-  const isStale = !taxModeEnabled && periodEnd < fallbackWeek.period_start;
+  const isStale = taxMode !== 'auto' && periodEnd < fallbackWeek.period_start;
 
   return (
     <DashboardCard
@@ -129,7 +131,7 @@ export function TaxTrackerCard() {
       footerLabel="View bills + week detail"
       testId="dashboard-tax-card"
     >
-      <TaxModeBanners off={!taxModeEnabled} notice={autoDisabledNotice} />
+      <TaxModeBanners off={taxMode !== 'auto'} notice={autoDisabledNotice} />
       <PopulatedTaxBody
         data={data}
         money={money}

@@ -7,26 +7,31 @@ import { TaxModeToggle } from './TaxModeToggle';
 
 describe('<TaxModeToggle>', () => {
   beforeEach(() => {
-    useTaxModeStore.setState({ enabled: true });
+    useTaxModeStore.setState({ mode: 'auto' });
   });
 
   afterEach(() => {
-    useTaxModeStore.setState({ enabled: true });
+    useTaxModeStore.setState({ mode: 'auto' });
   });
 
   it('reflects the store value and the helper copy adapts', () => {
     render(<TaxModeToggle />);
-    expect(screen.getByTestId('tax-mode-toggle')).toHaveAttribute(
+    expect(screen.getByTestId('tax-mode-auto')).toHaveAttribute(
       'aria-checked',
       'true'
     );
     expect(screen.getByText(/Monday worker finalizes/i)).toBeInTheDocument();
   });
 
-  it('toggles the store on click and swaps the helper copy', () => {
+  it('selecting a mode updates the store and swaps the helper copy', () => {
     render(<TaxModeToggle />);
-    fireEvent.click(screen.getByTestId('tax-mode-toggle'));
-    expect(useTaxModeStore.getState().enabled).toBe(false);
-    expect(screen.getByText(/Bills stay in Accruing/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('tax-mode-manual'));
+    expect(useTaxModeStore.getState().mode).toBe('manual');
+    expect(screen.getByText(/finalize them yourself/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('tax-mode-off'));
+    expect(useTaxModeStore.getState().mode).toBe('off');
+    expect(screen.getByText(/Expense tracker only/i)).toBeInTheDocument();
   });
 });
