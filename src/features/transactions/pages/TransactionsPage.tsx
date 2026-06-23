@@ -330,7 +330,6 @@ export function TransactionsPage() {
     const id = Number(editModal.value);
     return transactions.find((t) => t.txn_id === id) ?? null;
   }, [editModal.value, transactions]);
-  const editingIsManual = editingTxn?.source === 'manual';
 
   // A txn carrying the reserved Consumption Tax tag settles a tax bill, so its
   // deletion needs the two-path prompt (reopen the bill vs keep it paid). The
@@ -466,7 +465,9 @@ export function TransactionsPage() {
         size="lg"
         title="Edit transaction"
         headerActions={
-          editingIsManual && editingTxn ? (
+          editingTxn ? (
+            // Statement rows are voidable too now (T-treasury soft-void) — the
+            // amount stays immutable, but the txn can be removed (voided).
             <button
               type="button"
               onClick={() => setConfirmDeleteId(editingTxn.txn_id)}
