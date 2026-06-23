@@ -23,6 +23,8 @@ readers should be able to open the page on either side and map it
 - [`categorization.md`](categorization.md) — rules, grouped rule
   list, beneficiary→tag pipeline.
 - [`taxation.md`](taxation.md) — rules + bills + tax tracker page.
+- [`treasury.md`](treasury.md) — the **Savings** page (income side of
+  the committee's revenue books); reads `/treasury/summary`.
 - [`budgets.md`](budgets.md) — budget limits + expense tracker.
 - [`recurring.md`](recurring.md) — recurring-transaction inference
   engine surface (`/recurring` management page + dashboard

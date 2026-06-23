@@ -10,6 +10,7 @@ import { recurringHandlers } from './recurring';
 import { statementUploadHandlers } from './statement-upload';
 import { tagsHandlers } from './tags';
 import { taxationHandlers } from './taxation';
+import { treasuryHandlers } from './treasury';
 import { usersHandlers } from './users';
 
 // Add per-feature handler arrays here as Batches 2-8 land. Tests can
@@ -24,6 +25,7 @@ export const handlers = [
   ...activityHandlers,
   ...expenseTrackerHandlers,
   ...taxationHandlers,
+  ...treasuryHandlers,
   ...recurringHandlers,
   ...statementUploadHandlers,
   ...bankAccountHandlers,

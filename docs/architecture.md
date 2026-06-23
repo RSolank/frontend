@@ -68,7 +68,7 @@ viewport — there is **no desktop sidebar**.
 **Desktop (≥1024 px)** layout:
 
 ```
-[Brand] Transactions  Expense Tracker  Tax Tracker  Recurring   [☼] [About] [⚙▾] [👤▾]
+[Brand] Transactions  Expense Tracker  Tax Tracker  Savings  Recurring   [☼] [About] [⚙▾] [👤▾]
 ```
 
 - **Brand** (left). 3-state link target:
@@ -77,8 +77,12 @@ viewport — there is **no desktop sidebar**.
     session expired) → also `/dashboard`; apiClient's 401-then-refresh
     chain converts that into `/login` automatically
   - no tokens → `/`
-- **Main feature links** (Group 2). Three inline `NavLink`s; the active
-  route gets an accent bottom border per the accent-token contract (see [`conventions.md`](conventions.md)).
+- **Main feature links** (Group 2). Inline `NavLink`s (Transactions,
+  Expense Tracker, Tax Tracker, Savings, Recurring, Beneficiaries); the
+  active route gets an accent bottom border per the accent-token contract
+  (see [`conventions.md`](conventions.md)). "Savings" is the user-facing
+  label for the `treasury` feature — the route + feature dir stay
+  `/treasury`.
 - **ThemeToggle** (☼).
 - **About** link → `/`.
 - **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.

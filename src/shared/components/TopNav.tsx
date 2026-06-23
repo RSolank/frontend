@@ -54,6 +54,10 @@ const MAIN_LINKS: NavLinkSpec[] = [
   { to: '/transactions', label: 'Transactions' },
   { to: '/budgets', label: 'Expense Tracker' },
   { to: '/consumption-tax', label: 'Tax Tracker' },
+  // "Savings" is the user-facing label; the route + feature stay `treasury`.
+  // Sits after Tax Tracker — it's the savings side of the taxation → savings
+  // → investments spine.
+  { to: '/treasury', label: 'Savings' },
   { to: '/recurring', label: 'Recurring' },
   { to: '/beneficiaries', label: 'Beneficiaries' },
 ];

@@ -11,6 +11,7 @@ import { recurringRoutes } from '../features/recurring/recurring.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
+import { treasuryRoutes } from '../features/treasury/treasury.routes';
 
 import { App } from './App';
 import { HomePage } from './pages/Home';
@@ -66,6 +67,7 @@ const authedRoutes: RouteObject[] = protectedRoutes([
   ...beneficiariesRoutes,
   ...transactionsRoutes,
   ...taxationRoutes,
+  ...treasuryRoutes,
   ...budgetsRoutes,
   ...recurringRoutes,
   ...settingsRoutes,

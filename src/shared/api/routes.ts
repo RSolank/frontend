@@ -286,4 +286,14 @@ export const routes = {
     // `features/taxation/api/queries.ts`. Route intentionally
     // removed 2026-06-06.
   },
+
+  // BE T-treasury — the committee's revenue books (savings domain on the
+  // taxation → savings → investments spine). `summary` is reconcile-on-read:
+  // it materializes the append-only journal then returns the set-aside view
+  // (funded balance + recognized/deferred split + provisioned + weekly
+  // cumulative trend). User-facing label is "Savings"; the infra stays
+  // `treasury`. `?weeks=1..52` (default 12) sizes the trend window.
+  treasury: {
+    summary: () => `${V}/treasury/summary`,
+  },
 } as const;

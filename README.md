@@ -51,7 +51,8 @@ src/
 ├── app/            # router + providers + App shell
 ├── features/       # auth, users, tags, beneficiaries,
 │                   #   transactions (+ statement_upload/),
-│                   #   categorization, taxation, budgets,
+│                   #   categorization, taxation, treasury
+│                   #   (the "Savings" page), budgets,
 │                   #   recurring, bankAccounts,
 │                   #   dashboard, account, settings, admin —
 │                   #   each owns pages / components / state /
