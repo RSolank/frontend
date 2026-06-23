@@ -108,6 +108,16 @@ optional `confirmOnDirty` interception, and a responsive default
 modal (replaces every `window.confirm()` across the retrofitted
 features). Intent is `'primary'` (accent) or `'danger'`.
 
+### Chart primitives
+
+`shared/components/charts/trendCharts.tsx` holds the feature-agnostic
+inline-SVG trend primitives (`MiniBars` / `MiniLine` / `MiniDonut` + the
+slice palette) — no chart library, pure/presentational, data + a `money`
+formatter in via props. Shared because they back multiple surfaces
+(Expense Tracker `SpendTrendCard`, Savings `SavingsTrend`, the landing
+showcases); colour defaults to `accent` with per-instance `*Class`
+overrides so each consumer re-themes without forking.
+
 `shared/hooks/useModal.ts`:
 
 - **`useModal({ urlKey })`** — boolean modal whose open-state mirrors

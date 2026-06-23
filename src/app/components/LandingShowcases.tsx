@@ -1,12 +1,12 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 
+import type { TrackerCurrentWeekResponse } from '../../features/taxation/api/queries';
 import {
   OTHERS_SLICE,
   SLICE_PALETTE,
   type DonutSlice,
   type TrendPoint,
-} from '../../features/budgets/components/trendCharts';
-import type { TrackerCurrentWeekResponse } from '../../features/taxation/api/queries';
+} from '../../shared/components/charts/trendCharts';
 
 // Landing feature-showcase strip — sits below the hero. The first two showcases
 // reuse the REAL app components (rendered with fabricated data, lazy-loaded) so

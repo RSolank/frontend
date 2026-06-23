@@ -79,14 +79,19 @@ wrapped by `protectedRoutes()`).
   That baseline is read off the **latest displayed bucket's stored stats**
   (the BE computes `avg/min/max_net_expense` per grain), so a weekly view
   never shows a `/mo` figure.
-- `components/trendCharts.tsx` — hand-rolled inline-SVG `MiniBars` /
-  `MiniLine` / `MiniDonut` primitives (no chart library — recharts would
-  punch the bundle ceiling) + the categorical slice palette. Bars/line
-  carry a y-axis (gridlines + compact money labels) and **controlled
-  hover** (`hovered` / `onHover`): the chart-area owns the index and
-  renders the value as an **HTML readout** above the chart (the SVG is
-  scaled non-uniformly, so in-chart value text would distort); hovering
-  emphasises the bar / point + drops a guide line.
+- `shared/components/charts/trendCharts.tsx` — hand-rolled inline-SVG
+  `MiniBars` / `MiniLine` / `MiniDonut` primitives (no chart library —
+  recharts would punch the bundle ceiling) + the categorical slice palette.
+  Bars/line carry a y-axis (gridlines + compact money labels) and
+  **controlled hover** (`hovered` / `onHover`): the chart-area owns the
+  index and renders the value as an **HTML readout** above the chart (the
+  SVG is scaled non-uniformly, so in-chart value text would distort);
+  hovering emphasises the bar / point + drops a guide line. **Relocated to
+  `shared/`** (they were never budget-specific) so the Savings page
+  (`features/treasury`) and the landing showcases consume the same
+  primitives; colour defaults to `accent` and each chart takes per-instance
+  `*Class` overrides (`MiniBars.barClass`, `MiniLine.{line,area,dot}Class`,
+  `MiniDonut` per-slice `strokeClass`).
 - `components/BudgetCategoryCard.tsx` — **Zone 3** read-only card:
   label/value pairs (Spent / Limit / Avg) + a `<SpendGauge>` + a
   `<BudgetSignal>` in the header + a penalty-rate footnote. Min/Max no

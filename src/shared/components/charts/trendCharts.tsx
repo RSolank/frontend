@@ -4,6 +4,11 @@
 // landing mock can render them with fabricated data. Hover is *controlled*
 // (the chart-area owns the index + renders an HTML readout) so the value text
 // never lives inside the non-uniformly-scaled SVG.
+//
+// Feature-agnostic shared primitives (relocated from features/budgets — they
+// were never budget-specific). Consumed by the Expense Tracker (SpendTrendCard),
+// the Savings page (SavingsTrend), and the landing showcases. Colour defaults to
+// the brand `accent` palette; callers override per-instance via the *Class props.
 
 type Money = (n: number | null | undefined) => string;
 type Compact = (n: number) => string;
@@ -142,6 +147,8 @@ export function MiniBars({
 // Line + soft area + a dashed average reference. Used for windows with enough
 // points (>5) to read as a trend. Transparent hit-bands make the (small) points
 // easy to hover/tap; the active point enlarges + a guide line drops to the axis.
+// Colour defaults to `accent`; pass lineClass/areaClass/dotClass to re-theme
+// (e.g. the Savings trend renders emerald).
 export function MiniLine({
   data,
   money,
@@ -149,11 +156,17 @@ export function MiniLine({
   avg,
   hovered = null,
   onHover,
+  lineClass = 'stroke-accent-500 dark:stroke-accent-400',
+  areaClass = 'fill-accent-500/10 dark:fill-accent-400/10',
+  dotClass = 'fill-accent-600 dark:fill-accent-300',
 }: {
   data: TrendPoint[];
   money: Money;
   compact: Compact;
   avg?: number | null;
+  lineClass?: string;
+  areaClass?: string;
+  dotClass?: string;
 } & HoverProps) {
   const max = niceCeil(Math.max(...data.map((d) => d.value), 1));
   const padX = 10;
@@ -176,10 +189,7 @@ export function MiniLine({
       onMouseLeave={() => onHover?.(null)}
     >
       <YAxis max={max} compact={compact} />
-      <polygon
-        points={area}
-        className="fill-accent-500/10 dark:fill-accent-400/10"
-      />
+      <polygon points={area} className={areaClass} />
       {avg != null && avg > 0 && avg <= max && (
         <line
           x1={GUTTER + padX}
@@ -194,7 +204,7 @@ export function MiniLine({
       <polyline
         points={line}
         fill="none"
-        className="stroke-accent-500 dark:stroke-accent-400"
+        className={lineClass}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -215,7 +225,7 @@ export function MiniLine({
             cx={x(i)}
             cy={y(d.value)}
             r={hovered === i ? 5 : 3}
-            className="fill-accent-600 dark:fill-accent-300"
+            className={dotClass}
           />
           {i % step === 0 && (
             <text

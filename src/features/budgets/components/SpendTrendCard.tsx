@@ -1,11 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
 
-import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
-import { useAuthStore } from '../../../shared/state/auth.store';
-import { formatYearMonth } from '../../../shared/utils/dateUtils';
-import { useExpenseTrendQuery } from '../../dashboard/api/queries';
-import type { TrendPeriod } from '../../dashboard/api/schemas';
-
 import {
   MiniBars,
   MiniDonut,
@@ -14,7 +8,12 @@ import {
   SLICE_PALETTE,
   type DonutSlice,
   type TrendPoint,
-} from './trendCharts';
+} from '../../../shared/components/charts/trendCharts';
+import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
+import { useAuthStore } from '../../../shared/state/auth.store';
+import { formatYearMonth } from '../../../shared/utils/dateUtils';
+import { useExpenseTrendQuery } from '../../dashboard/api/queries';
+import type { TrendPeriod } from '../../dashboard/api/schemas';
 
 // Zone 2 — the analytical heart. Total trend (bars for short windows, line for
 // longer) beside a category-breakdown donut, both for the selected window, with
