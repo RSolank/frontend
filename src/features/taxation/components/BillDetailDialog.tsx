@@ -7,6 +7,7 @@ import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatBillDate } from '../api/billPeriod';
 import { useBillQuery, type BillDetail, type BillItem } from '../api/queries';
 
+import { AdjustmentDiffList } from './AdjustmentDiffList';
 import { BillStatusPill, isPayable, isUnpayable } from './billStatus';
 
 interface BillDetailDialogProps {
@@ -150,7 +151,7 @@ function BillDetailBody({
         onViewTransaction={onViewTransaction}
       />
       {adjustments.length > 0 && (
-        <AdjustmentsTable
+        <AdjustmentDiffList
           items={adjustments}
           money={money}
           timezone={timezone}
@@ -442,67 +443,3 @@ function ItemsTable({
   );
 }
 
-// BE Phase 2.6 (Decision 23) — historical edits to past BILLED bills
-// post deltas to the current ACCRUING bill as `is_adjustment=true`
-// rows that point back at the originating bill. The user sees them as
-// a dedicated section because they are NOT transactions they made
-// this week — they are corrections to past tax owed.
-function AdjustmentsTable({
-  items,
-  money,
-  timezone,
-}: {
-  items: BillItem[];
-  money: (n: number | null | undefined) => string;
-  timezone: string;
-}) {
-  return (
-    <section data-testid="bill-adjustments">
-      <h4 className="text-warning-700 dark:text-warning-300 mb-2 text-sm font-semibold">
-        Adjustments (from past bills)
-      </h4>
-      <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-        Edits to transactions from past finalized bills land here as corrections
-        — the original bill isn&apos;t mutated.
-      </p>
-      <div className="border-warning-200 dark:border-warning-900/40 overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[44rem] text-sm">
-          <thead className="bg-warning-50 dark:bg-warning-950/30">
-            <tr className="text-warning-800 dark:text-warning-200 text-left text-xs font-semibold tracking-wide uppercase">
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Source bill</th>
-              <th className="px-3 py-2">Type</th>
-              <th className="px-3 py-2 text-right">Tax delta</th>
-              <th className="px-3 py-2 text-right">Penalty delta</th>
-            </tr>
-          </thead>
-          <tbody className="divide-warning-100 dark:divide-warning-900/40 divide-y">
-            {items.map((it, idx) => (
-              <tr
-                key={`adj-${it.txn_id ?? idx}-${it.adjustment_for_bill_id ?? 0}`}
-              >
-                <td className="px-3 py-2 whitespace-nowrap text-slate-700 dark:text-slate-200">
-                  {formatBillDate(it.date, timezone)}
-                </td>
-                <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
-                  {it.adjustment_for_bill_id != null
-                    ? `Bill #${it.adjustment_for_bill_id}`
-                    : '—'}
-                </td>
-                <td className="px-3 py-2 text-slate-600 capitalize dark:text-slate-300">
-                  {it.txn_type}
-                </td>
-                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
-                  {money(it.tax_amount)}
-                </td>
-                <td className="money px-3 py-2 text-right text-slate-900 tabular-nums dark:text-slate-100">
-                  {money(it.penalty)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}

@@ -81,12 +81,39 @@ export interface BillTotals {
 // (Decision 23); they carry a back-reference to the originating bill
 // (`adjustment_for_bill_id`). The FE separates them visually from
 // real items.
+// T-tax-adjustment-transparency — a frozen tag id + its live name (null if the
+// tag was since deleted, so the chip falls back to the id).
+export interface AdjustmentTagRef {
+  tag_id: number;
+  name?: string | null;
+}
+
+// One side (before / after) of a per-txn adjustment diff. `after` is null on the
+// parent diff when the txn was removed / recategorized to a non-taxable type.
+export interface AdjustmentSide {
+  amount?: number | null;
+  txn_type?: string | null;
+  applied_rate?: number | null;
+  tax_amount: number;
+  tags: AdjustmentTagRef[];
+}
+
+// The per-txn before→after diff carried by an adjustment item — what changed on
+// a frozen-week txn and why (the tag drift that drove any txn_type change).
+export interface AdjustmentDiff {
+  before?: AdjustmentSide | null;
+  after?: AdjustmentSide | null;
+  txn_alive?: boolean;
+  added_tags: AdjustmentTagRef[];
+  removed_tags: AdjustmentTagRef[];
+}
+
 export interface BillItem {
   txn_id?: number | null;
   date?: string | null;
   beneficiary?: string | null;
-  // Null on adjustment rows (a net week-level delta has no single
-  // classification); a real TxnType on base rows.
+  // Null on adjustment rows (a removal/untaxed correction has no classification);
+  // a real TxnType on base rows and on edit/recat adjustments (the new type).
   txn_type: string | null;
   // Raw transaction amount + side. Backend's `get_bill` already
   // returns both; the legacy UI ignored them. Surfaced now so the
@@ -97,6 +124,8 @@ export interface BillItem {
   penalty: number;
   is_adjustment?: boolean;
   adjustment_for_bill_id?: number | null;
+  // Present only on adjustment items — the per-txn before→after detail.
+  diff?: AdjustmentDiff | null;
   penalty_tag_id?: number | null;
   penalty_tag_name?: string | null;
   tag_name?: string | null;

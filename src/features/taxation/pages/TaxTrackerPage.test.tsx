@@ -227,30 +227,15 @@ describe('TaxTrackerPage', () => {
     );
   });
 
-  it('renders adjustment rows in a separate section in the detail modal', async () => {
+  async function openBillWithAdjustments(...extra: Record<string, unknown>[]) {
     server.use(
       http.get(`${API_BASE}/consumption-tax/bills/101`, () =>
         HttpResponse.json({
           ...billDetailResponse,
-          items: [
-            ...billDetailResponse.items,
-            {
-              txn_id: null,
-              date: '2026-02-20',
-              beneficiary: null,
-              txn_type: 'discretionary',
-              amount: null,
-              debit_credit: null,
-              tax_amount: 5.0,
-              penalty: 1.0,
-              is_adjustment: true,
-              adjustment_for_bill_id: 95,
-            },
-          ],
+          items: [...billDetailResponse.items, ...extra],
         })
       )
     );
-
     renderWithProviders(<TaxTrackerPage />);
     await waitFor(() =>
       expect(screen.getByTestId('bill-row-101')).toBeInTheDocument()
@@ -260,10 +245,141 @@ describe('TaxTrackerPage', () => {
         name: /View/,
       })
     );
+    return screen.findByTestId('bill-adjustments');
+  }
 
-    const adj = await screen.findByTestId('bill-adjustments');
+  const openBillWithAdjustment = (item: Record<string, unknown>) =>
+    openBillWithAdjustments(item);
+
+  // A recat correction on a given source bill, uniquely labelled for assertions.
+  const mkAdj = (billId: number, idx: number) => ({
+    txn_id: null,
+    date: '2026-02-20',
+    beneficiary: `Txn ${billId}-${idx}`,
+    txn_type: 'discretionary',
+    amount: 100,
+    debit_credit: 'debit',
+    tax_amount: 5.0,
+    penalty: 0,
+    is_adjustment: true,
+    adjustment_for_bill_id: billId,
+    diff: {
+      before: { amount: 100, txn_type: 'essential', applied_rate: 0.05, tax_amount: 5, tags: [{ tag_id: 81, name: 'Groceries' }] },
+      after: { amount: 100, txn_type: 'discretionary', applied_rate: 0.1, tax_amount: 10, tags: [{ tag_id: 80, name: 'Food' }] },
+      txn_alive: true,
+      added_tags: [{ tag_id: 80, name: 'Food' }],
+      removed_tags: [{ tag_id: 81, name: 'Groceries' }],
+    },
+  });
+
+  it('renders a recategorization as a change-driven diff (only changed fields + tag drift)', async () => {
+    const adj = await openBillWithAdjustment({
+      txn_id: null,
+      date: '2026-02-20',
+      beneficiary: 'Cafe Aroma',
+      txn_type: 'discretionary',
+      amount: 100,
+      debit_credit: 'debit',
+      tax_amount: 5.0,
+      penalty: 0,
+      is_adjustment: true,
+      adjustment_for_bill_id: 95,
+      diff: {
+        before: { amount: 100, txn_type: 'essential', applied_rate: 0.05, tax_amount: 5, tags: [{ tag_id: 81, name: 'Groceries' }] },
+        after: { amount: 100, txn_type: 'discretionary', applied_rate: 0.1, tax_amount: 10, tags: [{ tag_id: 80, name: 'Food' }] },
+        txn_alive: true,
+        added_tags: [{ tag_id: 80, name: 'Food' }],
+        removed_tags: [{ tag_id: 81, name: 'Groceries' }],
+      },
+    });
+
     expect(adj).toHaveTextContent('Bill #95');
-    expect(adj).toHaveTextContent('Adjustments');
+    expect(adj).toHaveTextContent('Cafe Aroma');
+    expect(adj).toHaveTextContent('Recategorized');
+    // Changed fields surface...
+    expect(adj).toHaveTextContent('Essential');
+    expect(adj).toHaveTextContent('Discretionary');
+    expect(adj).toHaveTextContent('5%');
+    expect(adj).toHaveTextContent('10%');
+    expect(adj).toHaveTextContent('Food');
+    expect(adj).toHaveTextContent('Groceries');
+    // ...but the UNCHANGED amount is NOT rendered in the diff (change-driven).
+    expect(adj).not.toHaveTextContent('Amount');
+  });
+
+  it('renders a deleted frozen-week txn as a removal (after → Removed)', async () => {
+    const adj = await openBillWithAdjustment({
+      txn_id: null,
+      date: '2026-02-20',
+      beneficiary: 'Gone Shop',
+      txn_type: null,
+      amount: 100,
+      debit_credit: 'debit',
+      tax_amount: -5.0,
+      penalty: 0,
+      is_adjustment: true,
+      adjustment_for_bill_id: 95,
+      diff: {
+        before: { amount: 100, txn_type: 'essential', applied_rate: 0.05, tax_amount: 5, tags: [{ tag_id: 81, name: 'Groceries' }] },
+        after: null,
+        txn_alive: false,
+        added_tags: [],
+        removed_tags: [{ tag_id: 81, name: 'Groceries' }],
+      },
+    });
+
+    expect(adj).toHaveTextContent('Gone Shop');
+    expect(adj).toHaveTextContent('Deleted');
+    expect(adj).toHaveTextContent('Removed');
+    expect(adj).toHaveTextContent('Groceries');
+  });
+
+  it('collapses the whole section to one drill-down row when >3 bills are affected', async () => {
+    const adj = await openBillWithAdjustments(
+      mkAdj(91, 0),
+      mkAdj(92, 0),
+      mkAdj(93, 0),
+      mkAdj(94, 0)
+    );
+    // Section collapsed: a summary row, no diff content yet.
+    expect(adj).toHaveTextContent('4 bills');
+    expect(screen.queryByText('Txn 91-0')).not.toBeInTheDocument();
+    // Drill down → the per-bill groups (and their inline diffs) appear.
+    fireEvent.click(screen.getByRole('button', { name: /4 bills/ }));
+    expect(await screen.findByText('Txn 91-0')).toBeInTheDocument();
+  });
+
+  it('keeps the section open but collapses a busy bill (>3 corrections)', async () => {
+    const adj = await openBillWithAdjustments(
+      mkAdj(95, 0),
+      mkAdj(95, 1),
+      mkAdj(95, 2),
+      mkAdj(95, 3)
+    );
+    // One bill, 4 corrections: section open (explainer visible), bill collapsed.
+    expect(adj).toHaveTextContent('4 corrections');
+    expect(screen.queryByText('Txn 95-0')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /4 corrections/ }));
+    expect(await screen.findByText('Txn 95-0')).toBeInTheDocument();
+  });
+
+  it('collapses ALL bills together when one is busy (consistent siblings)', async () => {
+    // 2 bills (≤3, so section open): one busy (4 corrections), one with a single
+    // correction. The small bill collapses WITH the busy one — no sandwiched
+    // odd-one-out — so its diff is hidden until drilled into.
+    await openBillWithAdjustments(
+      mkAdj(96, 0),
+      mkAdj(96, 1),
+      mkAdj(96, 2),
+      mkAdj(96, 3),
+      mkAdj(97, 0)
+    );
+    expect(screen.getByRole('button', { name: /4 corrections/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 correction/ })).toBeInTheDocument();
+    // The lone-correction bill is collapsed too — its card not shown inline.
+    expect(screen.queryByText('Txn 97-0')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /1 correction/ }));
+    expect(await screen.findByText('Txn 97-0')).toBeInTheDocument();
   });
 
   it('derives the running tracker from the ACCRUING bill (per-tag + totals)', async () => {

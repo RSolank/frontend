@@ -124,7 +124,17 @@ Bill detail modal (`components/BillDetailDialog.tsx`):
   splits the items into a real-transactions table + a separate
   **Adjustments** section for `is_adjustment=true` rows (corrections
   to past finalized bills that landed on the current ACCRUING bill
-  per Decision 23). The header strip shows the per-state pill and
+  per Decision 23), rendered by `components/AdjustmentDiffList.tsx`.
+- `components/AdjustmentDiffList.tsx` — the per-txn **change-driven diff**
+  (T-tax-adjustment-transparency). Each adjustment is a card: a header with the
+  corrected txn's beneficiary + date, a derived **reason badge** (Recategorized /
+  Amount adjusted / Deleted / No longer taxed), and the signed tax delta; a body
+  that renders **only the fields that changed** (amount / type / tax-rate
+  before→after + the `tax` line, plus the tag drift via the shared
+  `shared/components/TagDiffPreview`). A removal renders `after` as **Removed**.
+  Unchanged fields never appear — the txn's static state lives on the base
+  line-item, not in the diff. `txn_id` is always null on adjustment rows and is
+  never shown. The header strip shows the per-state pill and
   the `amount_paid / amount` progress when partial. When the bill is
   in a settleable state (`BILLED` / `OVERDUE`) and the caller passes
   `onMarkPaid`, a **Mark paid** action appears in the footer; for
@@ -164,7 +174,7 @@ Read endpoints consumed (under `/api`):
 
 - `GET /api/v1/taxation-rules/` → list of `{ txn_type, tax_rate, default_penalty_rate, is_default, is_system }`. `is_system` (provenance) drives the `<SystemChip>`; it's `true` for all seeded rules.
 - `GET /api/v1/consumption-tax/bills` → list of `{ bill_id, period_start, period_end, status, amount, amount_paid, billed_at?, due_date?, paid_at?, last_modified? }`. The `status` enum is the 5-state machine (`ACCRUING | BILLED | PAID | OVERDUE | EXPIRED`); the old 2-state `'pending' | 'paid'` shape was retired in BE Phase 2.6.
-- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO). `BillItem.txn_type` is `string | null` — adjustment rows surface `null` (BE made it `Optional[TxnType]` in T-orphan-proofing, fixing a 500 on any bill with an adjustment row); items also carry `applied_rate`.
+- `GET /api/v1/consumption-tax/bills/:id` → bill summary + `totals` + `items[]` (with `is_adjustment` + `adjustment_for_bill_id` per Decision 23) + `allocations[]` (manual / auto-FIFO). `BillItem.txn_type` is `string | null` — adjustment rows surface `null` when the txn was removed/untaxed. An adjustment item also carries a per-txn **`diff: AdjustmentDiff`** (`before` / `after` `AdjustmentSide` + `added_tags` / `removed_tags` + `txn_alive`) that drives the change-driven diff UI (T-tax-adjustment-transparency); items also carry `applied_rate`.
 - (no standalone tracker endpoint — see Tax Tracker section for the FE-derive contract.)
 
 Write endpoints consumed:
@@ -186,7 +196,7 @@ Preferences:
 | Test file                                  | What it covers                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pages/TaxationRulesPage.test.tsx`         | Renders one card per `TAXABLE_TXN_TYPE`; inline edit submits the fractional `tax_rate` (humanizing `7.5%` → `0.075`); invalid input surfaces the validation alert.                                                                                                                                                                                                                                                                              |
-| `pages/TaxTrackerPage.test.tsx`            | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section; tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
+| `pages/TaxTrackerPage.test.tsx`            | Bills list renders with the 5-state status pills + formatted money + the per-row Mark paid / Reopen action gated on state; opening a row shows the bill detail modal with penalty breakdown by tag; `bill-modal-mark-paid` POSTs to `/mark-paid`; adjustment rows render in a separate `bill-adjustments` section as per-txn change-driven diffs (recat shows type/rate/tag drift with the unchanged amount omitted; a delete renders as **Removed**); tracker card falls back to pending empty state on 404; tracker card renders top-contributors when the endpoint returns data. |
 | `components/billStatus.test.tsx`           | Per-state pill renders the human label; `isPayable` / `isUnpayable` predicates gate on the right states.                                                                                                                                                                                                                                                                                                                                        |
 | `shared/components/TaxModeToggle.test.tsx` | Toggle reflects + flips the `useTaxModeStore` value; helper copy adapts to the new state.                                                                                                                                                                                                                                                                                                                                                       |
 | `api/billPeriod.test.ts`                   | ISO Mon → Sun week range in UTC + Asia/Kolkata; preceding-week-start guard; `fractionOfWeekElapsed` returns ~0 at the start of Monday, ~1 at the end of Sunday, ~0.5 mid-week.                                                                                                                                                                                                                                                                  |
