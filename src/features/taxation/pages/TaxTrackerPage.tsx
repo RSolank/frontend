@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { useTaxModeStore } from '../../../shared/state/taxMode.store';
 import { highlightClass } from '../../../shared/utils/highlight';
 import { formatBillDate } from '../api/billPeriod';
 import { taxationKeys } from '../api/keys';
@@ -88,6 +90,22 @@ export function TaxTrackerPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { id: highlightBillId, flash } = useRowHighlight<number>();
+
+  // Deep-link landing from the dashboard's "Generate bills →" nudge:
+  // /consumption-tax?highlight=generate-bills flashes the Generate button.
+  const { id: ctaHighlight, flash: flashCta } = useRowHighlight<string>();
+  useDeepLinkHighlight({
+    param: 'highlight',
+    flash: flashCta,
+    accept: (v) => v === 'generate-bills',
+    ready: !isLoading,
+  });
+
+  // Off mode disables the taxation engine entirely — no bills accrue, and the
+  // BE rejects manual generate — so the Generate button is meaningless. Hidden
+  // in `off`; shown in `auto` (a manual refresh/backfill on top of the worker)
+  // and `manual` (the primary generate path).
+  const taxMode = useTaxModeStore((s) => s.mode);
 
   async function handleGenerated(billIds: number[]) {
     setActionError(null);
@@ -194,14 +212,18 @@ export function TaxTrackerPage() {
             on finalized bills, and generate bills for past weeks.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setGenerateOpen(true)}
-          className="btn-primary !w-auto"
-          data-testid="generate-bills-button"
-        >
-          Generate / refresh bills
-        </button>
+        {taxMode !== 'off' && (
+          <button
+            type="button"
+            onClick={() => setGenerateOpen(true)}
+            className={`btn-primary !w-auto ${highlightClass(
+              ctaHighlight === 'generate-bills'
+            )}`}
+            data-testid="generate-bills-button"
+          >
+            Generate / refresh bills
+          </button>
+        )}
       </header>
 
       {(error || actionError) && (

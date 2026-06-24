@@ -87,11 +87,14 @@ export function MiniBars({
   hovered = null,
   onHover,
   barClass = 'fill-accent-500 dark:fill-accent-400',
+  heightClass = 'h-52 w-full sm:h-56',
 }: {
   data: TrendPoint[];
   money: Money;
   compact: Compact;
   barClass?: string;
+  // Override the SVG height — heroes render a compact spark (e.g. 'h-24 w-full').
+  heightClass?: string;
 } & HoverProps) {
   const max = niceCeil(Math.max(...data.map((d) => Math.max(0, d.value)), 1));
   const gap = 16;
@@ -103,7 +106,7 @@ export function MiniBars({
       aria-label="Spending by period"
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="h-52 w-full sm:h-56"
+      className={heightClass}
       onMouseLeave={() => onHover?.(null)}
     >
       <YAxis max={max} compact={compact} />
@@ -159,6 +162,7 @@ export function MiniLine({
   lineClass = 'stroke-accent-500 dark:stroke-accent-400',
   areaClass = 'fill-accent-500/10 dark:fill-accent-400/10',
   dotClass = 'fill-accent-600 dark:fill-accent-300',
+  heightClass = 'h-52 w-full sm:h-56',
 }: {
   data: TrendPoint[];
   money: Money;
@@ -167,6 +171,8 @@ export function MiniLine({
   lineClass?: string;
   areaClass?: string;
   dotClass?: string;
+  // Override the SVG height — heroes render a compact spark (e.g. 'h-24 w-full').
+  heightClass?: string;
 } & HoverProps) {
   const max = niceCeil(Math.max(...data.map((d) => d.value), 1));
   const padX = 10;
@@ -185,7 +191,7 @@ export function MiniLine({
       aria-label="Spending trend"
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="h-52 w-full sm:h-56"
+      className={heightClass}
       onMouseLeave={() => onHover?.(null)}
     >
       <YAxis max={max} compact={compact} />

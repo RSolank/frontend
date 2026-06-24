@@ -19,6 +19,7 @@
 - [**Activity callouts**](#activity-callouts-surfacing-feed-items-outside-the-bell) — surfacing feed items outside the TopNav bell.
 - [**Idle-time prefetch**](#idle-time-prefetch) — warm click-gated chunks during the browser idle window.
 - [**Accessibility vs Preferences**](#accessibility-vs-preferences) — device a11y toggle vs backend-persisted preference.
+- [**Motion**](#motion) — framer-motion via the shared `m`/`LazyMotion` foundation, load-first, reduced-motion-honoring.
 - [**Week convention**](#week-convention) — ISO Mon→Sun, app-wide.
 
 ---
@@ -978,6 +979,32 @@ Severity is low (the bar height already conveys magnitude) and
 working around it would require a `<foreignObject>` overlay that
 costs more bundle than the privacy delta. Documented here so
 future readers don't flag it as a violation.
+
+## Motion
+
+Locked 2026-06-24 (first consumer: the dashboard redesign; later, every page).
+JS-driven animation goes through **framer-motion**, wrapped by the shared
+foundation in [`src/shared/motion/`](../src/shared/motion/):
+
+- **Always `m.*`, never `motion.*`.** `MotionProvider` runs `LazyMotion` in
+  `strict` mode and code-splits the `domAnimation` feature bundle, so the base
+  chunk pays only for the lightweight `m` shell. `strict` makes a stray
+  `motion.*` throw, keeping the discipline enforced.
+- **Load-first — motion never gates the paint.** Content renders immediately and
+  unanimated; motion is entrance/enhancement only. Mount `MotionProvider` inside
+  a **lazy route** (not the app root) until a second page needs it, so framer
+  stays out of the initial-paint bundle — busting the `size-limit` budget to add
+  root-level motion for one page is the wrong trade (the dashboard does this; see
+  [dashboard.md](modules/dashboard.md#motion)).
+- **Reduced motion is a hard contract.** `MotionConfig reducedMotion` bridges
+  both signals: the in-app `useMotionStore` toggle forces `'always'`, otherwise
+  `'user'` follows the OS `prefers-reduced-motion`. Any custom motion hook (e.g.
+  `useCountUp`) must honor the same pair and snap to the final state — a value
+  must be correct on first paint with motion off. This extends the CSS
+  `.reduce-motion` contract (see [Accessibility vs Preferences](#accessibility-vs-preferences))
+  to JS animation.
+- **`useCountUp(target, opts?)`** animates a number to `target` (tweening on
+  refresh), snapping under reduced motion. Used by the dashboard hero counters.
 
 ## Week convention
 

@@ -1,8 +1,9 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
+import { useTaxModeStore } from '../../../shared/state/taxMode.store';
 import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
@@ -94,7 +95,11 @@ describe('TaxTrackerPage', () => {
       country: 'US',
       timezone: 'UTC',
     });
+    useTaxModeStore.setState({ mode: 'auto' });
     installHandlers();
+  });
+  afterEach(() => {
+    useTaxModeStore.setState({ mode: 'auto' });
   });
 
   it('renders the bills list with dd/mon/yyyy dates, BE Phase 2.6 status pills, and money', async () => {
@@ -151,6 +156,26 @@ describe('TaxTrackerPage', () => {
         screen.queryByRole('dialog', { name: /Generate bills/ })
       ).not.toBeInTheDocument()
     );
+  });
+
+  it('hides the Generate button in off mode (taxation disabled)', async () => {
+    useTaxModeStore.setState({ mode: 'off' });
+    renderWithProviders(<TaxTrackerPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('bill-row-101')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByTestId('generate-bills-button')
+    ).not.toBeInTheDocument();
+  });
+
+  it('flashes the Generate button when deep-linked with ?highlight=generate-bills', async () => {
+    renderWithProviders(<TaxTrackerPage />, {
+      initialEntries: ['/consumption-tax?highlight=generate-bills'],
+    });
+    const btn = await screen.findByTestId('generate-bills-button');
+    // useDeepLinkHighlight fires post-mount → the shared highlight pulse class.
+    await waitFor(() => expect(btn).toHaveClass('highlight-pulse'));
   });
 
   it('opens the bill detail modal, shows the Amount column, and exposes Pay inside the modal', async () => {

@@ -120,7 +120,22 @@ slice palette) — no chart library, pure/presentational, data + a `money`
 formatter in via props. Shared because they back multiple surfaces
 (Expense Tracker `SpendTrendCard`, Savings `SavingsTrend`, the landing
 showcases); colour defaults to `accent` with per-instance `*Class`
-overrides so each consumer re-themes without forking.
+overrides so each consumer re-themes without forking. `heightClass`
+overrides the SVG height so heroes can render a compact spark.
+
+### Motion foundation
+
+`shared/motion/` is the app-wide animation surface (framer-motion):
+`MotionProvider` (LazyMotion `strict` + a `MotionConfig` reduced-motion bridge)
+and `useCountUp`. Always import `m.*` (never `motion.*`). Motion is load-first —
+the provider mounts inside a lazy route until a second page adopts it, keeping
+framer out of the initial bundle — and reduced-motion-honoring (OS + the in-app
+`useMotionStore` toggle). First consumer: the dashboard. See
+[conventions.md → Motion](conventions.md#motion).
+
+`shared/lib/` holds pure, presentation-agnostic logic shared across features
+(e.g. `budgetSignal.ts`, the spend/budget classifier used by both the budgets
+feature and the dashboard analytics zone).
 
 `shared/hooks/useModal.ts`:
 

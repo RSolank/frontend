@@ -1,246 +1,194 @@
 # Dashboard feature
 
 > Cross-feature aggregator surface — the authenticated home. Owns
-> `/dashboard` and renders a glance view of every major feature
-> (Transactions, Expense Tracker, Tax Tracker) plus a secondary
-> widgets cluster on desktop. Lives at
+> `/dashboard` and renders a narrative, zoned glance view over every major
+> feature (taxation/treasury, budgets, transactions, recurring). Lives at
 > [`src/features/dashboard/`](../../src/features/dashboard/).
 
 ## Purpose
 
-- Render `/dashboard` as the post-login home — the user lands here
-  after login, after a tab refresh on any authenticated route, and
-  via the TopNav brand link (the brand routes → `/dashboard` when
-  authenticated).
-- Surface enough at-a-glance signal that the user can answer "what
-  did I spend, how close am I to a breach, what's my current tax
-  burden" without navigating into any feature page.
-- Deep-link to each feature page (and to its modal-first CRUD entry
-  points) so every card has a clear "next step" affordance.
+- Render `/dashboard` as the post-login home — the user lands here after
+  login, after a tab refresh on any authenticated route, and via the TopNav
+  brand link.
+- Answer four questions in priority order, top→bottom: **where do I stand now**
+  → **what needs my attention** → **how am I trending** → **what's recent +
+  coming** — without navigating into any feature page.
+- Deep-link each zone to its feature page so every surface has a clear next
+  step.
 
-The dashboard owns no backend endpoints of its own — every card
-reuses query hooks from the underlying feature modules so the
-React-Query cache is shared (the user pre-loads `/transactions`,
-`/budgets`, `/consumption-tax` content while sitting on the
-dashboard).
+The dashboard owns no backend endpoints of its own — every zone reuses query
+hooks from the underlying feature modules (through their public `api/`
+surfaces), so the React-Query cache is shared. The feature-boundary rule
+(`eslint-plugin-boundaries`) forbids importing another feature's components, so
+every card here is **dashboard-owned**, composing other features only via their
+`api/` hooks + the shared primitives.
 
 ## Pages
 
-| Path         | Component                 | Notes                                         |
-| ------------ | ------------------------- | --------------------------------------------- |
-| `/dashboard` | `pages/DashboardPage.tsx` | Lazy-loaded. URL preserved from pre-refactor. |
+| Path         | Component                 | Notes                                          |
+| ------------ | ------------------------- | ---------------------------------------------- |
+| `/dashboard` | `pages/DashboardPage.tsx` | Lazy-loaded. URL preserved from pre-refactor.  |
 
 Routes are exported from
-[`dashboard.routes.tsx`](../../src/features/dashboard/dashboard.routes.tsx)
-and composed into the root router by `src/app/routes.tsx` (wrapped
-by `protectedRoutes()` like every authenticated surface).
+[`dashboard.routes.tsx`](../../src/features/dashboard/dashboard.routes.tsx) and
+composed into the root router by `src/app/routes.tsx` (wrapped by
+`protectedRoutes()`). The page is a lazy chunk and delegates all header chrome
+to the shared `<TopNav />`.
 
-The page is a lazy chunk and delegates all header chrome to the shared
-`<TopNav />`.
+## Composition — the four zones
 
-## Composition
+`DashboardPage` lays the zones in a single `flex flex-col gap-6` column and
+choreographs a gentle staggered entrance (see [Motion](#motion)).
 
-### Primary cards (always visible)
+### ❶ Hero — `components/hero/DashboardHero.tsx`
 
-Three glance cards arranged as `grid-cols-1 lg:grid-cols-3`. Each
-card is `h-full` so the row aligns at every viewport even when one
-card is in its empty state.
+The signature surface, **swapped by taxation mode** (`useTaxModeStore`):
 
-| Card                                | Hook(s)                                                                | Content                                                                                                                                                                                                                                                                                                                                                               |
-| ----------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `components/TransactionsCard.tsx`   | `useTransactionsQuery` (recent + week-bounded)                         | Weekly stat strip (spend + debit count) → 5 most recent rows → "Add transaction" inline CTA → footer link to `/transactions`.                                                                                                                                                                                                                                         |
-| `components/ExpenseTrackerCard.tsx` | `useBudgetStatusQuery(null)` + `useTransactionsQuery` + `useTagsQuery` | Total Spent / Limit rollup with gradient progress bar → top 3 monthly categories with mini progress bars → **week-by-category strip** (top 3 tags by spend this week, aggregated client-side from the same weekly transactions slice TransactionsCard uses; React Query dedupes the fetch) → breach count chip when any category is over → footer link to `/budgets`. |
-| `components/TaxTrackerCard.tsx`     | `useTrackerCurrentWeekQuery` + `useTaxModeStore` + `useDomainActivityQuery('taxation')` | Accrued + projected stat pair → week progress bar → top 3 contributors → footer link to `/consumption-tax`. **Tax-mode banner (B1):** when auto-finalize is off (`!useTaxModeStore.enabled`), a two-layer banner shows — Layer A is a live, persistent "turn it back on" nudge driven by the `auto_enabled` flag (covers auto _and_ manual disable); Layer B is the louder, dismissible `tax_mode_auto_disabled` notice (hard-ack DELETEs it, leaving Layer A). **Stale guard:** the tracker derives from the first ACCRUING bill, which in manual mode drifts to a past, closed week — when `period_end < currentWeek.period_start` the projection + week-progress are date-relative garbage, so they're dropped and only the accrued figure (labelled with its real period) + contributors render. |
+| Mode            | Hero content                                                                 |
+| --------------- | ---------------------------------------------------------------------------- |
+| `auto` / `manual` | `ProvisionHeroCard` (left) + `SavingsHeroCard` (right), a 2-up grid.        |
+| `off`           | `SpendHeroCard` (full width) — Aevum reads as a plain expense tracker.       |
 
-Empty states (fresh signup) — each card shows a friendly headline
+| Card                            | Hook(s)                                              | Content                                                                                                        |
+| ------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `hero/ProvisionHeroCard.tsx`    | `useTrackerCurrentWeekQuery`                         | Accrued self-tax this week (count-up) → projection to Sunday → week-progress bar. The signature provision metric. Stale-week guard (manual mode) drops the projection. |
+| `hero/SavingsHeroCard.tsx`      | `useTreasurySummaryQuery` (treasury `api/`)          | Funded balance (count-up, emerald) → coverage of the levied provision → this-week delta → compact emerald set-aside spark. Deep-links to the Savings page. |
+| `hero/SpendHeroCard.tsx`        | `useBudgetStatusQuery` + `useExpenseTrendQuery`      | This month's spend (count-up) → budget headroom → weekly spend spark. The off-mode lead. |
 
-- body copy + primary CTA routing to the relevant feature page
-  (with the appropriate `?add=true` / `?edit=…` modal trigger where
-  applicable). See the per-card source for the exact copy.
+Shared hero chrome: `hero/HeroShell.tsx` (panel + eyebrow + optional deep-link)
+and `hero/HeroNumber.tsx` (the count-up money figure — see [Motion](#motion)).
 
-### Secondary widgets (always visible, ordered by priority)
+### ❷ Needs attention — `components/NeedsAttentionRail.tsx`
 
-Three smaller cards in `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`
-that cluster cross-feature signals. They reuse the same query
-slices as the primary cards, so no extra network cost.
+One prioritized rail that **merges** the three alert surfaces the old dashboard
+scattered (breach alerts, overdue bills, the tax-mode banner). Priority
+top→bottom: overdue bills (money owed) → budget breaches → the tax-mode nudge.
 
-Ordered by priority (left → right on desktop, top → bottom on
-mobile) so the most actionable signal lands first either way.
-By design, the dashboard only carries signal worth glancing at —
-what's worth desktop space is worth mobile space too.
+**Renders nothing when all-clear** — zero DOM when there's no breach, no overdue
+bill, and auto-finalize is on. The loud `tax_mode_auto_disabled` notice only
+shows in `manual` mode (an `off` user opted out deliberately). Composes
+`useBudgetStatusQuery` (budgets `api/`) + `useDomainActivityQuery('taxation')` +
+`useTaxModeStore`.
 
-| Widget                               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `components/BreachAlertsWidget.tsx`  | Lists every category currently over its monthly limit (sorted by % over). Renders nothing when no breaches exist — empty space beats an empty alert.                                                                                                                                                                                                                                                                                      |
-| `components/WeekSummaryWidget.tsx`   | "This week" mini-summary — date range + spend + debit count + tax accrued.                                                                                                                                                                                                                                                                                                                                                                |
-| `components/UpcomingBillsWidget.tsx` | BE Phase 1.5 (`f369ce2`) — next 7 days of forecast recurring bills from `GET /api/v1/recurring/upcoming?days=7`. Capped at 5 rows with a "more in /recurring" hint when the cap clips; "Manage" button deep-links to the full `/recurring` page. Inlines its row markup (does not reuse `features/recurring/components/UpcomingBillsList`) because the eslint boundaries rule restricts dashboard to other features' `api/` surface only. |
-| `components/OverdueBillsWidget.tsx`   | **B1 activity enrichment.** The one taxation activity signal no other card carries (TaxTracker shows accrual, UpcomingBills shows the forward forecast). Filters `useDomainActivityQuery('taxation')` to `bill_overdue` and renders a dismissible `<ActivityCallout>` per overdue committee bill; renders nothing when none (conditional, like BreachAlertsWidget). `bill_overdue` is an ALERT/P1, so dismissing hard-acks → BE MUTEs + resurfaces later (snooze ladder), not a permanent delete. |
+### ❸ Analytics — `components/analytics/AnalyticsZone.tsx`
 
-> **Activity feed moved to the TopNav bell in Batch 18.** The
-> previous `RecentActivityWidget` was removed; the secondary grid
-> flipped from `xl:grid-cols-4` back to `xl:grid-cols-3`. The bell
-> renders a lazy modal with Alerts + Notifications as two sections
-> in the same surface, capped at 10, preserving BE rank order. See
-> [activity.md](activity.md) for the full contract.
->
-> **B1 (per-card enrichment) keeps the bell as the primary inbox** and
-> only splices the _additive_ activity signals into cards — the ones no
-> card already renders from its own live data (`tax_mode_auto_disabled`
-> on the Tax Tracker, `bill_overdue` in `OverdueBillsWidget`). The
-> redundant splices the 2026-06-04 spec sketched (breach / near-limit /
-> recurring-upcoming) were dropped because each card already computes
-> them. Per-card callouts **hard-ack on dismiss only** — the bell stays
-> the sole owner of the soft-ack-on-render lifecycle. The shared
-> machinery (`useDomainActivityQuery`, `iconForKind`, `ActivityCallout`)
-> lives in `shared/` — see [activity.md](activity.md).
+The counterpart of the hero swap:
+
+| Mode              | Zone content                                                                 |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `auto` / `manual` | `SpendAnalyticsCard` — weekly spend trend (`MiniBars`/`MiniLine`) + category donut (`MiniDonut`) + `BudgetSignal` pills on the top categories. |
+| `off`             | `ProvisionSavingsPlaceholder` — a calm, **dataless** re-enable nudge (the spend story has been promoted to the hero). |
+
+`SpendAnalyticsCard` composes `useBudgetStatusQuery` + `useExpenseTrendQuery` +
+the shared chart primitives + `shared/lib/budgetSignal` (the spend classifier,
+relocated from `features/budgets/lib` to `shared/lib` so both surfaces classify
+identically — the budgets copy now re-exports it). Donut math lives in the pure,
+unit-tested `analytics/spendDonut.ts`.
+
+### ❹ Activity & forecast — the `dashboard-activity-zone` grid
+
+`TransactionsCard` (recent + week-bounded) beside `UpcomingBillsWidget`. The
+upcoming-bills widget (`GET /recurring/upcoming?days=7`) **is** the recurring
+forecast — one source, no separate "recurring forecast" card (>7 days forward
+has no glance value; the widget's "Manage" link goes to the full `/recurring`
+page for the 30-day view).
 
 ### Shared chrome
 
-`components/DashboardCard.tsx` exports two helpers used by every
-primary card:
+`components/DashboardCard.tsx` exports `<DashboardCard>` + `<DashboardCardEmpty>`,
+still used by `TransactionsCard` (and `DashboardCardEmpty`'s friendly empty
+interior).
 
-- `<DashboardCard title titleChip footerHref footerLabel pending>` —
-  the chrome (border + header + footer slot). `pending` flips to a
-  dashed border for empty states.
-- `<DashboardCardEmpty headline body ctaHref ctaLabel>` — the
-  friendly empty-state interior (icon-less by design — copy + CTA,
-  no illustration).
+## Motion
+
+The dashboard is the **first consumer of the app-wide motion foundation**
+(`src/shared/motion/`, see [conventions.md](../conventions.md#motion)):
+
+- **`MotionProvider`** (LazyMotion + MotionConfig) is mounted **inside this lazy
+  route** — not at the app root — so framer-motion stays entirely in the
+  dashboard chunk and adds **nothing** to the initial-paint bundle (load-first).
+  It hoists to a shared boundary once a second page adopts motion.
+- **Entrance** — a staggered fade/rise on the zones via the lightweight `m`
+  component (LazyMotion `strict` forbids `motion.*`). The attention rail sits
+  _outside_ the stagger so urgent signals appear immediately.
+- **`useCountUp`** animates the hero figures (`HeroNumber`), tweening on data
+  refresh.
+- **Reduced motion** — both the in-app toggle (`useMotionStore`) and the OS
+  `prefers-reduced-motion` collapse all of the above; count-ups snap to their
+  final value, so numbers are correct on first paint regardless. Content is
+  always fully rendered — motion never gates the paint.
 
 ## Hooks
 
-Dashboard owns the expense-trend hook because the underlying
-endpoint is dashboard-shaped; every other query consumed by a
-card lives in the feature module it pulls data from. (The
-activity-feed hooks moved out of dashboard in Batch 18 — they
-now live in `shared/api/activity*.ts` since the bell consumes
-them from cross-feature TopNav. See [activity.md](activity.md).)
+The dashboard owns the expense-trend hook (the endpoint is dashboard-shaped);
+every other query is consumed from the feature module it reads, through that
+module's public `api/` surface.
 
 | Hook                                      | Feature module                                                                  |
 | ----------------------------------------- | ------------------------------------------------------------------------------- |
 | `useExpenseTrendQuery`                    | `features/dashboard/api/queries.ts` (this module — also consumed by `/budgets`) |
+| `useTreasurySummaryQuery`                 | `features/treasury/api/queries.ts`                                              |
 | `useTransactionsQuery`                    | `features/transactions/api/queries.ts`                                          |
 | `useBudgetStatusQuery`                    | `features/budgets/api/queries.ts`                                               |
 | `useTrackerCurrentWeekQuery`              | `features/taxation/api/queries.ts`                                              |
-| `useCurrenciesQuery`                      | `shared/api/referenceData.ts`                                                   |
-| `weekRangeInTz` / `fractionOfWeekElapsed` | `features/taxation/api/billPeriod.ts`                                           |
+| `useRecurringUpcomingQuery`               | `features/recurring/api/queries.ts`                                             |
+| `useDomainActivityQuery`                  | `shared/api/activityFeed.ts`                                                     |
+| `useTaxModeStore`                         | `shared/state/taxMode.store.ts`                                                  |
+| `useCountUp` / `MotionProvider`           | `shared/motion`                                                                  |
+| `weekRangeInTz` / `fractionOfWeekElapsed` | `features/taxation/api/billPeriod.ts`                                            |
 
-`usePreferencesStore.currency` + `.timezone` are the source of
-truth for money + date rendering across every card; the dashboard
-feature does not define its own preferences.
+`usePreferencesStore.currency` + `.timezone` are the source of truth for money +
+date rendering across every card.
 
 ## API
 
-One endpoint rooted in the dashboard module (because consumers
-span multiple feature pages):
+- `GET /api/v1/expense-tracker` — per-(tag, bucket) spend trend (T-aggregates-
+  engine), consumed by the hero/analytics sparks + the `/budgets` SpendTrendCard.
+- `GET /api/v1/treasury/summary` — the set-aside view (T-treasury, reconcile-on-
+  read) backing the Savings hero.
 
-- `GET /api/v1/expense-tracker` — BE Phase 1.7 (`3252ca4`,
-  T-aggregates-engine). Per-(tag, bucket) trend; consumed by both
-  the dashboard and the `/budgets` Zone 2 `<SpendTrendCard>`. Takes an
-  optional `end=YYYY-MM-DD` to anchor the window's last bucket (so the
-  trend can follow the expense-tracker page's month selector).
-
-Every other card consumes the same `/api/v1/transactions`,
-`/api/v1/budget-limits/status`, and `/api/v1/consumption-tax/…` endpoints
-the feature pages call. React Query dedupes the requests across
-cards.
+Every other zone consumes the `/transactions`, `/budget-limits/status`,
+`/consumption-tax/…`, and `/recurring/upcoming` endpoints the feature pages call;
+React Query dedupes across zones.
 
 ## Filtering / display rules
 
-- **Active week** — every "this week" surface uses `weekRangeInTz`
-  in the user's tz (ISO 8601, Mon → Sun — see the project-wide
-  [ISO week convention](../conventions.md#week-convention)). The
-  TransactionsCard + WeekSummaryWidget
-  filter transactions client-side using `txn_date >= period_start`
-  and `txn_date <= period_end + 'T23:59:59'` so any ISO timestamp
-  inside the active week is counted.
-- **Month boundary edge case** — when the active week straddles a
-  month boundary the transactions card falls back to an unbounded
-  (`limit: 200`) fetch instead of the `month=YYYY-MM` filter, so
-  neither half is missed. Cheap insurance.
-- **Top categories** — Expense Tracker card filters out any
-  category with no spend AND no configured limit, then sorts by
-  current spend desc, then takes the top 3. Matches the
-  ExpenseTracker page's category filter (legacy parity).
-- **Top contributors** — Tax Tracker card takes the first 3 of the
-  backend's `per_tag` array (already sorted by `tax_amount + penalty`
-  desc per the §1 contract in the BE→FE handoff).
-- **Breach detection** — a category is "over budget" when
-  `current_net_expense > limit_amt > 0` (BE Phase 1.7 contract:
-  `net_expense = total_debit − total_credit`, expense-positive).
-  Categories with no limit are never counted as breaches regardless
-  of spend.
-
-## Empty states
-
-- **Transactions** — fresh user with zero transactions sees
-  "No transactions yet" + Add CTA pointing at `/transactions?add=true`.
-- **Expense Tracker** — only when both `total_budget` spend and
-  every category's spend are 0 AND no limits are configured does
-  the card flip to the "No budgets configured" empty. If the user
-  has spend but no limits, the populated view renders with a
-  "set one to track headroom" inline hint.
-- **Tax Tracker** — when the backend endpoint 404s OR `data ==
-null`, renders the friendly "No tax accrual yet this week" empty
-  with an Add transaction CTA. The
-  `GET /api/v1/consumption-tax/tracker/current-week` endpoint shipped
-  in BE Phase 2.6 (`e7c05aa`), so the populated path is live; the
-  404-tolerant fallback stays for accounts with zero accrual.
+- **Active week** — every "this week" surface uses `weekRangeInTz` in the user's
+  tz (ISO 8601, Mon → Sun — [ISO week convention](../conventions.md#week-convention)).
+- **Month boundary edge case** — `TransactionsCard` falls back to an unbounded
+  fetch when the active week straddles a month boundary.
+- **Breach detection** — a category is over budget when
+  `current_net_expense > limit_amt > 0`. No-limit categories are never breaches.
+- **Coverage** — `funded_balance / provisioned_total`; `—` when nothing has been
+  provisioned (ratio undefined, not 0%).
 
 ## Responsive design
 
-- Page container: `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6
-lg:px-8`. Wider than feature pages (`max-w-5xl`) so the 3-column
-  primary grid breathes on desktop.
-- Primary grid: `grid-cols-1 lg:grid-cols-3 items-stretch` so cards
-  align in a row at `lg+`, stack on mobile.
-- Secondary grid: `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` —
-  always visible. Priority order (BreachAlerts → WeekSummary →
-  UpcomingBills) flows left-to-right on desktop and top-to-bottom
-  on mobile via the same grid; mobile keeps every signal the
-  desktop carries.
-- All interactive controls (CTAs, links) keep a ≥ 44 px tap target.
+- Page container `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`; zones in a
+  single `flex flex-col gap-6` column.
+- Hero 2-up grid `lg:grid-cols-2`; activity zone `lg:grid-cols-2`; both stack on
+  mobile. All interactive controls keep a ≥ 44 px tap target.
 
 ## Dark mode
 
-- Every text/border/bg utility carries a `dark:` variant. Saturated
-  fills on progress-bar inners (`bg-accent-500`, `bg-success-500`)
-  read well in both themes — mirrors the pattern in
-  `BudgetCategoryCard` and `CurrentWeekTracker`.
-- Money values carry `class="money"` for privacy-mask compatibility
-  per [`docs/conventions.md`](../conventions.md). Non-money values (counts) opt out of the
-  `money` class so the privacy toggle doesn't blur them.
-- Empty-state variant uses a dashed `border-slate-300
-dark:border-slate-700` so the "fresh signup" cards visually stand
-  apart from populated ones in both themes.
-
-## URL state
-
-No URL params. Each card's CTAs deep-link to the destination
-feature page with the appropriate query string (`?add=true`,
-`?edit=<id>`) so the destination's `useUrlValueModal` picks the
-modal open. Bookmark → `/dashboard` always lands on the same
-overview.
+Every text/border/bg utility carries a `dark:` variant; money values carry
+`class="money"` for privacy-mask compatibility; the off-mode placeholder uses a
+dashed border to read as a calm, dataless state.
 
 ## Tests
 
-| Test file                                 | What it covers                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages/DashboardPage.test.tsx`            | Welcome heading reads the user first name; the three primary cards render in the primary grid with the right stat values; breach chip appears when any category is over; Top-3 categories filtered + sorted; Tax Tracker renders accrued + projected + contributors; secondary widgets render with the correct stats; empty-state copy + CTAs render when each underlying dataset is empty; BreachAlertsWidget hides itself when no breach exists. |
-| `components/ExpenseTrackerCard.test.tsx`  | Per-card rollup of Total Spent / Limit + top 3 categories + breach chip; week-by-category strip aggregation; empty + populated branches.                                                                                                                                                                                                                                                                                                           |
-| `components/TaxTrackerCard.test.tsx`      | Accrued + projected stat pair, top-3 contributors, 404-tolerant empty branch, populated state via the BE Phase 2.6 endpoint. **B1:** no banner while on; persistent off-banner + kept stats when off-but-current-week; off + stale suppresses projection/progress and labels the period; loud `tax_mode_auto_disabled` notice above the persistent banner; notice hidden once mode is back on (lingering event).                                       |
-| `components/UpcomingBillsWidget.test.tsx` | 7-day forecast render, "more in /recurring" cap hint, empty + populated branches.                                                                                                                                                                                                                                                                                                                                                                  |
-| `components/OverdueBillsWidget.test.tsx`  | Renders nothing when no `bill_overdue`; one callout per overdue bill with the count; ignores non-overdue kinds in the taxation domain.                                                                                                                                                                                                                                                                                                              |
+| Test file                                        | What it covers                                                                                                                                |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages/DashboardPage.test.tsx`                   | Welcome heading + week label; auto-mode hero (provision + savings, balance from `/treasury/summary`) + analytics + activity zones; attention rail shows on breach / hides when clear; off-mode swap (spend hero up, savings demoted to the placeholder, analytics zone gone, tax-mode nudge shown). |
+| `components/hero/DashboardHero.test.tsx`         | The mode swap across auto / manual / off + the hero count-up figures (provision accrued, savings balance, coverage, off-mode spend / %).        |
+| `components/NeedsAttentionRail.test.tsx`         | Renders nothing when all-clear; surfaces breaches / overdue bills / the tax-mode nudge; loud auto-disabled notice in manual but not in off.     |
+| `components/UpcomingBillsWidget.test.tsx`        | 7-day forecast render, "more in /recurring" cap hint, empty + populated branches.                                                              |
+| `shared/motion/useCountUp.test.tsx`             | Reduced-motion snap, changed-target snap, animate-to-target, no-overshoot.                                                                      |
 
 ## Future polish (queued)
 
-- **Personalization / drag-to-reorder cards** — out of scope by design.
-- **Bill state surfacing** — once [[taxation.bill-state-machine]]
-  FE wiring lands, the Tax Tracker card can surface ACCRUING /
-  BILLED / OVERDUE counts in the title chip.
-- **Per-card activity enrichment** — ✅ **shipped as B1** (targeted).
-  Re-reviewing the 2026-06-04 scope against the current cards showed
-  most of its examples now duplicate live data each card already
-  renders, so B1 wired only the _additive_ signals: the Tax Tracker
-  two-layer tax-mode banner + the `OverdueBillsWidget`, on a shared
-  `useDomainActivityQuery` / `ActivityCallout` / `iconForKind`
-  foundation. The bell stays the primary inbox.
+- **Hoist `MotionProvider` to a shared boundary** once a second page adopts
+  motion (today it's dashboard-local to protect the initial bundle).
+- **Personalization / drag-to-reorder zones** — out of scope by design.
+- **Bill-state counts** in the provision hero chip once the bill-state-machine FE
+  wiring lands.
