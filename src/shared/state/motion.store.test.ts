@@ -9,6 +9,9 @@ describe('motion.store', () => {
   });
 
   it('toggle flips the flag', () => {
+    // Establish a known baseline — the global test setup defaults the store
+    // to reduced-motion (so animations snap in tests).
+    useMotionStore.setState({ reducedMotion: false });
     expect(useMotionStore.getState().reducedMotion).toBe(false);
     useMotionStore.getState().toggle();
     expect(useMotionStore.getState().reducedMotion).toBe(true);

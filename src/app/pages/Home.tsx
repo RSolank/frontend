@@ -9,7 +9,7 @@ import {
   useIdlePrefetch,
   type PrefetchEntry,
 } from '../../shared/utils/prefetchOnIdle';
-import { LandingShowcases } from '../components/LandingShowcases';
+import { useLoadOnApproach } from '../../shared/utils/useLoadOnApproach';
 
 // Lazy-load the AuthModal so the (~30 KB) `countries-and-timezones`
 // bundle stays in the auth chunk rather than first-paint. Home is
@@ -18,6 +18,16 @@ import { LandingShowcases } from '../components/LandingShowcases';
 const AuthModal = lazy(() =>
   import('../../features/auth/components/AuthModal').then((m) => ({
     default: m.AuthModal,
+  }))
+);
+
+// Below-the-fold showcase strip — lazy so its framer-motion + chart code
+// stays OUT of the landing's first-paint chunk. Warmed on idle (prefetch
+// below) so it's ready by the time the visitor scrolls; it scroll-reveals
+// via <Reveal> once on screen.
+const LandingShowcases = lazy(() =>
+  import('../components/LandingShowcases').then((m) => ({
+    default: m.LandingShowcases,
   }))
 );
 
@@ -80,6 +90,10 @@ export function HomePage() {
   // Warm the AuthModal chunk for unauthenticated visitors so the Sign
   // in / Register clicks open the modal without a network round-trip.
   useIdlePrefetch(ANON_PREFETCH, !user);
+  // Load the below-the-fold showcases on first-of { a timer from page-load,
+  // the strip scrolling near view } — so they're ready before the scroll
+  // without weighing on first paint, and never gated purely on the scroll.
+  const showcases = useLoadOnApproach();
   // BE Phase 2.11 — single-source brand identity. Empty strings on
   // first-ever visit; localStorage cache replays the last-seen brand
   // on repeat visits. See `shared/api/branding.ts`.
@@ -103,7 +117,11 @@ export function HomePage() {
          * underscore.
          */}
         <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-          <div>
+          {/* CSS-driven entrance — zero JS, so the above-the-fold hero never
+              waits on (or flashes before) framer's lazily-loaded features.
+              The `.reduce-motion` override + `motion-safe:` honor both the
+              in-app toggle and the OS prefers-reduced-motion. */}
+          <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-700">
             {brandTagline ? (
               <div className="bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300 mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wider uppercase">
                 {brandTagline}
@@ -163,7 +181,7 @@ export function HomePage() {
             </p>
           </div>
 
-          <div className="relative p-5">
+          <div className="relative p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:[animation-delay:150ms]">
             <div
               aria-hidden="true"
               className="via-success-200/20 absolute inset-[10%] rounded-3xl bg-gradient-to-br from-sky-200/30 to-cyan-300/30 blur-2xl"
@@ -189,7 +207,13 @@ export function HomePage() {
         </div>
       </div>
 
-      <LandingShowcases />
+      <div ref={showcases.ref}>
+        {showcases.ready ? (
+          <Suspense fallback={null}>
+            <LandingShowcases />
+          </Suspense>
+        ) : null}
+      </div>
 
       {authMode != null && (
         <Suspense fallback={null}>

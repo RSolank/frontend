@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
+import { ProgressBar } from '../../../../shared/components/charts/ProgressBar';
+import { CountUpNumber } from '../../../../shared/components/CountUpNumber';
 import { useMoneyFormatter } from '../../../../shared/hooks/useMoneyFormatter';
+import { useCountUp } from '../../../../shared/motion';
 import { usePreferencesStore } from '../../../../shared/state/preferences.store';
 import {
   fractionOfWeekElapsed,
@@ -24,7 +27,6 @@ function safeDivide(numerator: number, fraction: number): number {
 // stays purely about the number. Reads the same current-week tracker the Tax
 // Tracker page uses; deep-links there.
 export function ProvisionHeroCard() {
-  const { money } = useMoneyFormatter();
   const timezone = usePreferencesStore((s) => s.timezone);
   const { data, isLoading } = useTrackerCurrentWeekQuery();
 
@@ -114,10 +116,7 @@ export function ProvisionHeroCard() {
             className="mt-2 text-xs text-slate-500 dark:text-slate-400"
             data-testid="dashboard-hero-provision-projected"
           >
-            Projected by Sunday{' '}
-            <span className="money font-semibold text-slate-700 tabular-nums dark:text-slate-200">
-              {money(projectedTotal)}
-            </span>
+            Projected by Sunday <ProjectedAmount value={projectedTotal} />
           </p>
           <WeekProgress fraction={elapsedFraction} />
         </>
@@ -126,20 +125,38 @@ export function ProvisionHeroCard() {
   );
 }
 
+// The "projected by Sunday" figure — a count-up, mirroring HeroNumber, so it
+// runs to its target as a second beat after the card lands (it sits inside
+// the hero's <StaggerItem>). Snaps under reduced motion.
+function ProjectedAmount({ value }: { value: number }) {
+  const { money } = useMoneyFormatter();
+  return (
+    <CountUpNumber
+      value={value}
+      format={money}
+      className="money font-semibold text-slate-700 tabular-nums dark:text-slate-200"
+    />
+  );
+}
+
 function WeekProgress({ fraction }: { fraction: number }) {
   const pct = Math.round(fraction * 100);
+  // Grow the bar (and its label) from 0 to the elapsed fraction as the
+  // second beat — driven by the framer-free count-up (gated on the card
+  // landing, snaps under reduced motion), so the fill actually runs rather
+  // than appearing at its final width.
+  const shown = Math.round(useCountUp(pct));
   return (
-    <div className="mt-3" aria-label={`Week ${pct}% elapsed`}>
+    <div className="mt-3">
       <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
         <span>Week progress</span>
-        <span className="tabular-nums">{pct}%</span>
+        <span className="tabular-nums">{shown}%</span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-        <div
-          className="bg-accent-500 h-full transition-[width] duration-500"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <ProgressBar
+        value={pct}
+        className="mt-1"
+        ariaLabel={`Week ${pct}% elapsed`}
+      />
     </div>
   );
 }

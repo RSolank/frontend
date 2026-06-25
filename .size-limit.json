@@ -1,14 +1,14 @@
 [
   {
-    "name": "initial JS (first paint)",
+    "name": "initial JS (first paint) — incl. app-wide framer-motion core; ceiling sized for the eager landing, fe-perf (B8) ratchets back down",
     "path": "dist/assets/index-*.js",
-    "limit": "125 kB",
+    "limit": "135 kB",
     "gzip": true
   },
   {
-    "name": "initial CSS",
+    "name": "initial CSS — incl. the tw-animate-css shared animation system; temp headroom for the motion rollout, fe-perf (B8) revisits",
     "path": "dist/assets/index-*.css",
-    "limit": "15 kB",
+    "limit": "16 kB",
     "gzip": true
   }
 ]

@@ -1,4 +1,9 @@
-import { LazyMotion, MotionConfig } from 'framer-motion';
+import {
+  type FeatureBundle,
+  LazyMotion,
+  type LazyFeatureBundle,
+  MotionConfig,
+} from 'framer-motion';
 import type { ReactNode } from 'react';
 
 import { useMotionStore } from '../state/motion.store';
@@ -27,11 +32,21 @@ import { useMotionStore } from '../state/motion.store';
 const loadFeatures = () =>
   import('./domFeatures').then((mod) => mod.default);
 
-export function MotionProvider({ children }: { children: ReactNode }) {
+// `features` is overridable so tests can inject the feature bundle
+// SYNCHRONOUSLY (see `renderWithProviders`) — a dynamic import resolving
+// after a test unmounts is a cross-test flake source. Production keeps the
+// lazy loader so the feature chunk stays off the critical path.
+export function MotionProvider({
+  children,
+  features = loadFeatures,
+}: {
+  children: ReactNode;
+  features?: FeatureBundle | LazyFeatureBundle;
+}) {
   const appReduced = useMotionStore((s) => s.reducedMotion);
 
   return (
-    <LazyMotion features={loadFeatures} strict>
+    <LazyMotion features={features} strict>
       <MotionConfig reducedMotion={appReduced ? 'always' : 'user'}>
         {children}
       </MotionConfig>

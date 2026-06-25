@@ -1,4 +1,10 @@
 @import 'tailwindcss';
+/* The shared CSS-animation system (enter/exit · fade/zoom/slide utilities) —
+   the Tailwind v4 successor to tailwindcss-animate. The codebase referenced
+   `animate-in`/`fade-in` before this existed (silent no-ops); this makes them
+   real, and is what the Radix/shadcn modal emerge/collapse pattern builds on.
+   Reduced motion: the `.reduce-motion` override below + `motion-safe:` apply. */
+@import 'tw-animate-css';
 
 /*
  * Class-based dark variant. Pairs with the no-FOUC inline script in
@@ -223,7 +229,11 @@ html.dark {
   html.reduce-motion *::before,
   html.reduce-motion *::after {
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     animation-duration: 0.01ms !important;
+    /* Zero delays too, so a CSS-staggered entrance (e.g. the landing hero)
+       doesn't sit invisible through its delay before snapping in. */
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }

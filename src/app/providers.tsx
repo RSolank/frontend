@@ -7,6 +7,7 @@ import {
   useCurrenciesQuery,
 } from '../shared/api/referenceData';
 import { ErrorBoundary } from '../shared/components/ErrorBoundary';
+import { MotionProvider } from '../shared/motion';
 import {
   applyContrast,
   useContrastStore,
@@ -139,7 +140,15 @@ export function Providers({ children }: ProvidersProps) {
         <ContrastBridge />
         <LinkUnderlineBridge />
         <FocusRingBridge />
-        <Suspense fallback={null}>{children}</Suspense>
+        {/* App-wide motion foundation. Mounted here (not in a feature
+            route) so every surface — incl. the pre-auth landing / auth /
+            onboarding flow — shares one LazyMotion context. The `m` shell
+            is the light part of framer; the animation feature chunk only
+            loads once an actual `m.*` component mounts, so wrapping the
+            whole tree is cheap and never weighs on first paint. */}
+        <MotionProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+        </MotionProvider>
         {import.meta.env.DEV ? (
           <ReactQueryDevtools initialIsOpen={false} />
         ) : null}

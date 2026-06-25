@@ -1,6 +1,7 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 
+import { ProgressBar } from '../../../shared/components/charts/ProgressBar';
 import { Modal } from '../../../shared/components/Modal';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
@@ -239,12 +240,12 @@ function BillHeaderStrip({
         </span>
       )}
       {showProgress && (
-        <div className="ml-auto h-1.5 w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-          <div
-            className="bg-success-500 dark:bg-success-400 h-full"
-            style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
-          />
-        </div>
+        <ProgressBar
+          value={(paid / total) * 100}
+          className="ml-auto w-32"
+          fillClass="bg-success-500 dark:bg-success-400"
+          ariaLabel="Amount settled"
+        />
       )}
     </div>
   );

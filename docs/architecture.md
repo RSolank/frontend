@@ -125,12 +125,40 @@ overrides the SVG height so heroes can render a compact spark.
 
 ### Motion foundation
 
-`shared/motion/` is the app-wide animation surface (framer-motion):
-`MotionProvider` (LazyMotion `strict` + a `MotionConfig` reduced-motion bridge)
-and `useCountUp`. Always import `m.*` (never `motion.*`). Motion is load-first —
-the provider mounts inside a lazy route until a second page adopts it, keeping
-framer out of the initial bundle — and reduced-motion-honoring (OS + the in-app
-`useMotionStore` toggle). First consumer: the dashboard. See
+`shared/motion/` is the app-wide animation surface (framer-motion@12), mounted
+once in `app/providers.tsx`. Always import `m.*` (never `motion.*` — LazyMotion
+`strict`); reduced-motion is a hard contract (OS + the in-app `useMotionStore`
+toggle). Consumers: the **dashboard** and the **landing**. Surface:
+
+- **Entrance** — `<Stagger>/<StaggerItem>` (staggered fade/rise) and `<Reveal>`
+  (scroll-into-view, framer `useInView`). Both publish a **two-beat** signal
+  (`useEntrancePhase`: `static | hold | go`): in-card data animates a beat AFTER
+  its card lands, and **only inside a `<Stagger>`/`<Reveal>`** — outside one a
+  mark renders **static** (final, no animation, no timers), so a page adopts
+  motion just by wrapping its zones (zero rework) and un-adopted pages are
+  untouched.
+- **Numbers** — `useCountUp` (framer-free rAF) + `shared/components/CountUpNumber`
+  (headline/summary figures only — never lists).
+- **Marks** — `shared/components/charts/ProgressBar` (animated fill) and the
+  `trendCharts` draw-ins via `useDrawIn` (bars/line/donut).
+- **CSS animations** — `tw-animate-css` (`@import` in `index.css`; the Tailwind v4
+  successor to `tailwindcss-animate`) is the shared, framer-free animation system
+  (`animate-in`/`animate-out`, `fade`/`zoom`/`slide`) for surfaces that must stay off
+  framer — chiefly the **entry chunk** (the landing hero). Don't hand-roll keyframes.
+- **Modal** — the shared `Modal` animates with **framer** (`forceMount` +
+  `AnimatePresence`): the panel rises + fades in like a card and collapses on close,
+  centering-safe (CSS centering on a wrapper, framer animates the inner panel), reduced
+  motion → instant. It publishes a `StaggerSettledContext` settled-after-open signal so
+  a later task can wrap each modal's fields in `<StaggerItem>` to rise as a second beat.
+- **Bundle** — framer's ~11 kB core is in the entry chunk (provider); features
+  are lazy. The **landing** keeps first paint lean: above-the-fold uses **CSS**
+  (tw-animate-css, no framer), the below-fold showcases are lazy + `<Reveal>`
+  (framer leaves the entry), loaded via `shared/utils/useLoadOnApproach`
+  (timer-from-load ∨ scroll). `size-limit` bumped JS 125→135 / CSS 15→16
+  (temporary; `T-fe-perf` ratchets down).
+
+Per-page rollout + the emerge-from-origin **modal** motion + route transitions
+live in `T-motion-rollout-appwide`. See
 [conventions.md → Motion](conventions.md#motion).
 
 `shared/lib/` holds pure, presentation-agnostic logic shared across features

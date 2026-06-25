@@ -1,8 +1,7 @@
-import { m, type Variants } from 'framer-motion';
 import { useMemo } from 'react';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
-import { MotionProvider } from '../../../shared/motion';
+import { Stagger, StaggerItem } from '../../../shared/motion';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
@@ -24,22 +23,13 @@ import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
 //                       (which IS the recurring forecast — one source, no
 //                       separate widget).
 //
-// Entrance motion is a gentle staggered fade/rise via framer-motion's `m`.
-// MotionProvider (LazyMotion) is mounted *here*, inside this lazy route, rather
-// than at the app root — so framer stays entirely in the dashboard chunk and
-// never weighs on the initial-paint bundle (load-first: it hoists to a shared
-// boundary once a second page adopts motion). Animation collapses to nothing
-// under reduced motion, and content is fully rendered regardless — motion never
-// gates the paint. The attention rail sits outside the stagger so urgent
-// signals appear immediately.
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-};
-const item: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-};
+// Entrance motion is a gentle staggered fade/rise via the shared
+// `<Stagger>/<StaggerItem>` scaffold (`shared/motion`); the MotionProvider
+// is now mounted app-wide (`app/providers.tsx`), so this route just
+// consumes the vocabulary. Animation collapses to nothing under reduced
+// motion, and content is fully rendered regardless — motion never gates the
+// paint. The attention rail sits outside the stagger so urgent signals
+// appear immediately.
 
 export function DashboardPage() {
   const firstName = useAuthStore((s) => s.user?.first_name);
@@ -55,44 +45,36 @@ export function DashboardPage() {
   const weekLabel = `${dayMonth(week.period_start)} – ${dayMonth(week.period_end)}`;
 
   return (
-    <MotionProvider>
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Welcome back{firstName ? `, ${firstName}` : ''}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Week of {weekLabel}
-          </p>
-        </header>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <header className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Welcome back{firstName ? `, ${firstName}` : ''}
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Week of {weekLabel}
+        </p>
+      </header>
 
-        <m.div
-          className="flex flex-col gap-6"
-          variants={container}
-          initial="hidden"
-          animate="show"
+      <Stagger className="flex flex-col gap-6">
+        <StaggerItem>
+          <DashboardHero />
+        </StaggerItem>
+
+        {/* Outside the stagger — urgent, shows immediately (or not at all). */}
+        <NeedsAttentionRail />
+
+        <StaggerItem>
+          <AnalyticsZone />
+        </StaggerItem>
+
+        <StaggerItem
+          className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
+          data-testid="dashboard-activity-zone"
         >
-          <m.div variants={item}>
-            <DashboardHero />
-          </m.div>
-
-          {/* Outside the stagger — urgent, shows immediately (or not at all). */}
-          <NeedsAttentionRail />
-
-          <m.div variants={item}>
-            <AnalyticsZone />
-          </m.div>
-
-          <m.div
-            variants={item}
-            className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
-            data-testid="dashboard-activity-zone"
-          >
-            <TransactionsCard />
-            <UpcomingBillsWidget />
-          </m.div>
-        </m.div>
-      </div>
-    </MotionProvider>
+          <TransactionsCard />
+          <UpcomingBillsWidget />
+        </StaggerItem>
+      </Stagger>
+    </div>
   );
 }

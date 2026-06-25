@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { ProgressBar } from '../../../shared/components/charts/ProgressBar';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
 import { useUrlValueModal } from '../../../shared/hooks/useModal';
@@ -341,12 +342,12 @@ function BillRow({
           )}
         </div>
         {showProgress && (
-          <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-            <div
-              className="bg-success-500 dark:bg-success-400 h-full"
-              style={{ width: `${Math.min((paid / total) * 100, 100)}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={(paid / total) * 100}
+            className="mt-1.5 max-w-xs"
+            fillClass="bg-success-500 dark:bg-success-400"
+            ariaLabel="Amount settled"
+          />
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2">

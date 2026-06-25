@@ -1,3 +1,7 @@
+import { m } from 'framer-motion';
+
+import { useDrawIn } from '../../motion';
+
 // Hand-rolled inline-SVG trend primitives. Deliberately no chart library
 // (recharts is ~50 kB gz and would punch the bundle ceiling). Pure /
 // presentational — data + a `money` formatter come in via props, so the
@@ -100,6 +104,7 @@ export function MiniBars({
   const gap = 16;
   const barWidth = (PLOT_W - gap * (data.length + 1)) / data.length;
   const barX = (i: number) => GUTTER + gap + i * (barWidth + gap);
+  const draw = useDrawIn();
   return (
     <svg
       role="img"
@@ -124,13 +129,26 @@ export function MiniBars({
             onClick={() => onHover?.(hovered === i ? null : i)}
           >
             <title>{`${d.label}: ${money(value)}`}</title>
-            <rect
+            <m.rect
               x={x}
-              y={y}
               width={barWidth}
+              // Resting geometry as direct attrs so the first paint (before
+              // framer hydrates the variant) is already correct — no flash of
+              // a wrong state when static (page hasn't adopted motion).
               height={barHeight}
+              y={y}
               rx={3}
               className={`${barClass} transition-opacity ${dim ? 'opacity-40' : ''}`}
+              initial={draw.initial}
+              animate={draw.animate}
+              variants={{
+                hidden: { height: 0, y: TOP + INNER },
+                show: {
+                  height: barHeight,
+                  y,
+                  transition: { duration: 0.5, ease: 'easeOut', delay: i * 0.05 },
+                },
+              }}
             />
             <text
               x={x + barWidth / 2}
@@ -185,6 +203,7 @@ export function MiniLine({
   // Label ~6 evenly-spaced ticks so a 24-point line doesn't crowd the axis.
   const step = Math.max(1, Math.ceil(n / 6));
   const bandW = (PLOT_W - padX) / Math.max(1, n);
+  const draw = useDrawIn();
   return (
     <svg
       role="img"
@@ -195,7 +214,16 @@ export function MiniLine({
       onMouseLeave={() => onHover?.(null)}
     >
       <YAxis max={max} compact={compact} />
-      <polygon points={area} className={areaClass} />
+      <m.polygon
+        points={area}
+        className={areaClass}
+        initial={draw.initial}
+        animate={draw.animate}
+        variants={{
+          hidden: { opacity: 0 },
+          show: { opacity: 1, transition: { duration: 0.5, delay: 0.25 } },
+        }}
+      />
       {avg != null && avg > 0 && avg <= max && (
         <line
           x1={GUTTER + padX}
@@ -207,13 +235,19 @@ export function MiniLine({
           strokeWidth={1}
         />
       )}
-      <polyline
+      <m.polyline
         points={line}
         fill="none"
         className={lineClass}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
+        initial={draw.initial}
+        animate={draw.animate}
+        variants={{
+          hidden: { pathLength: 0 },
+          show: { pathLength: 1, transition: { duration: 0.8, ease: 'easeOut' } },
+        }}
       />
       {hovered != null && data[hovered] && (
         <line
@@ -227,11 +261,17 @@ export function MiniLine({
       )}
       {data.map((d, i) => (
         <g key={`pt-${d.label}-${i}`}>
-          <circle
+          <m.circle
             cx={x(i)}
             cy={y(d.value)}
             r={hovered === i ? 5 : 3}
             className={dotClass}
+            initial={draw.initial}
+            animate={draw.animate}
+            variants={{
+              hidden: { opacity: 0 },
+              show: { opacity: 1, transition: { duration: 0.4, delay: 0.3 } },
+            }}
           />
           {i % step === 0 && (
             <text
@@ -285,6 +325,14 @@ export function MiniDonut({
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   let acc = 0;
+  const draw = useDrawIn();
+  // Seconds for the whole ring to fill. Every arc animates over the SAME
+  // window with NO delay, so they grow simultaneously and in lockstep: each
+  // arc's start (strokeDashoffset) and length (strokeDasharray) both scale
+  // with the shared progress, so an arc's start rides the growing end of the
+  // one before it — the ring fills seamlessly as one body rather than a
+  // relay of fixed-position arcs.
+  const DONUT_DRAW = 0.9;
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
@@ -295,24 +343,54 @@ export function MiniDonut({
       <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
         {slices.map((s) => {
           const len = (s.pct / 100) * c;
-          const el = (
-            <circle
-              key={s.label}
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke="currentColor"
-              className={s.strokeClass}
-              strokeWidth={stroke}
-              strokeDasharray={`${len} ${c - len}`}
-              strokeDashoffset={-acc}
-            >
-              <title>{`${s.label}: ${money(s.value)} (${Math.round(s.pct)}%)`}</title>
-            </circle>
-          );
+          const offset = acc;
           acc += len;
-          return el;
+          // Resting arc as direct attrs — the correct first paint when static
+          // (plain <circle>, no framer) and the resting target when animated.
+          const common = {
+            cx: size / 2,
+            cy: size / 2,
+            r,
+            fill: 'none',
+            stroke: 'currentColor',
+            className: s.strokeClass,
+            strokeWidth: stroke,
+            strokeDasharray: `${len} ${c - len}`,
+            strokeDashoffset: -offset,
+          };
+          const title = (
+            <title>{`${s.label}: ${money(s.value)} (${Math.round(s.pct)}%)`}</title>
+          );
+          // Static page → plain SVG so framer never animates it (no relay flash
+          // when lazy features arrive late on a cold load).
+          if (!draw.animated) {
+            return (
+              <circle key={s.label} {...common}>
+                {title}
+              </circle>
+            );
+          }
+          return (
+            <m.circle
+              key={s.label}
+              {...common}
+              initial={draw.initial}
+              animate={draw.animate}
+              variants={{
+                hidden: { strokeDasharray: `0 ${c}`, strokeDashoffset: 0 },
+                show: {
+                  // Offset AND length both grow with the same progress, no
+                  // delay — every arc's start is pushed along by the one before
+                  // it as they all fill together.
+                  strokeDasharray: `${len} ${c - len}`,
+                  strokeDashoffset: -offset,
+                  transition: { duration: DONUT_DRAW, ease: 'easeOut' },
+                },
+              }}
+            >
+              {title}
+            </m.circle>
+          );
         })}
       </g>
     </svg>

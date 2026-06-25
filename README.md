@@ -59,8 +59,10 @@ src/
 │                   #   api / <feature>.routes.tsx
 └── shared/         # api (apiClient + routes registry + activity*,
                     #   branding, adminGate), components (TopNav bell
-                    #   + ActivityFeedModal + SignalSettingsEditor),
-                    #   hooks, state (Zustand stores), utils
+                    #   + ActivityFeedModal + SignalSettingsEditor +
+                    #   CountUpNumber/ProgressBar/charts), motion
+                    #   (Stagger/Reveal/useCountUp/useDrawIn), hooks,
+                    #   state (Zustand stores), utils
 ```
 
 Key conventions:
@@ -86,6 +88,15 @@ Key conventions:
   the user lands, staggered 2–8 s by most-clicked-first. Trades a
   slightly hotter idle window for zero click latency. See
   [`docs/conventions.md` §Idle-time prefetch](docs/conventions.md#idle-time-prefetch).
+- **Motion** — app-wide framer-motion (`shared/motion/`, mounted in
+  `app/providers.tsx`): `<Stagger>`/`<StaggerItem>` + `<Reveal>` entrances
+  with a **two-beat** (a card lands, then its data animates — `<CountUpNumber>`
+  count-ups, `<ProgressBar>` fills, chart draw-ins via `useDrawIn`). A mark
+  animates only inside a `<Stagger>`/`<Reveal>`, **static otherwise**, so a page
+  adopts motion by wrapping its zones. Consumers: dashboard + landing (the
+  landing keeps first paint lean — CSS entrances above the fold, lazy framer
+  below; loaded via `useLoadOnApproach`). See
+  [`docs/conventions.md` §Motion](docs/conventions.md#motion).
 
 Full detail:
 

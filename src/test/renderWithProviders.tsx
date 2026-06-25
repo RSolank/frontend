@@ -3,6 +3,9 @@ import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
+import { MotionProvider } from '../shared/motion';
+import domAnimation from '../shared/motion/domFeatures';
+
 // react-router-dom doesn't re-export its `InitialEntry` history type;
 // it's `string | Partial<Location>` upstream. Inlined structurally
 // so tests can pass either a plain path or `{ pathname, state }` to
@@ -18,8 +21,10 @@ type InitialEntry =
 
 // Test wrapper that mirrors the production provider tree without paying
 // for the full router config: a fresh QueryClient (retries disabled so
-// MSW error overrides surface immediately) and a MemoryRouter so any
-// <Link>/useNavigate inside the unit under test composes correctly.
+// MSW error overrides surface immediately), a MemoryRouter so any
+// <Link>/useNavigate inside the unit under test composes correctly, and
+// the app-wide MotionProvider so any `m.*` component (LazyMotion is
+// `strict`) has its context — mirroring the real mount in `app/providers`.
 
 function makeClient() {
   return new QueryClient({
@@ -46,7 +51,11 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>
+          {/* Sync features: a dynamic import resolving after a test unmounts
+              is a cross-test flake source — load them eagerly in tests. */}
+          <MotionProvider features={domAnimation}>{children}</MotionProvider>
+        </MemoryRouter>
       </QueryClientProvider>
     );
   }

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import { ProgressBar } from '../../../shared/components/charts/ProgressBar';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { fractionOfWeekElapsed } from '../api/billPeriod';
@@ -189,12 +190,11 @@ function WeekProgress({ fraction }: { fraction: number }) {
         <span>Week progress</span>
         <span className="tabular-nums">{pct}%</span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-        <div
-          className="bg-accent-500 h-full transition-[width] duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <ProgressBar
+        value={pct}
+        className="mt-1"
+        ariaLabel={`Week ${pct}% elapsed`}
+      />
     </div>
   );
 }

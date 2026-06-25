@@ -7,6 +7,7 @@ import {
   type DonutSlice,
   type TrendPoint,
 } from '../../shared/components/charts/trendCharts';
+import { Reveal } from '../../shared/motion';
 
 // Landing feature-showcase strip — sits below the hero. The first two showcases
 // reuse the REAL app components (rendered with fabricated data, lazy-loaded) so
@@ -109,7 +110,7 @@ const TREND_STATS = {
 export function LandingShowcases() {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6">
-      <div className="mb-12 text-center">
+      <Reveal className="mb-12 text-center">
         <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           Budgeting with built-in accountability
         </h2>
@@ -117,7 +118,7 @@ export function LandingShowcases() {
           Every expense sets a little aside for your future self — and Aevum
           shows you exactly where it goes.
         </p>
-      </div>
+      </Reveal>
 
       <div className="flex flex-col gap-16">
         <ShowcaseRow
@@ -191,7 +192,7 @@ function ShowcaseRow({
   reverse?: boolean;
 }) {
   return (
-    <div className="grid items-center gap-8 lg:grid-cols-2">
+    <Reveal className="grid items-center gap-8 lg:grid-cols-2">
       <div className={reverse ? 'lg:order-2' : ''}>
         <div className="text-accent-700 dark:text-accent-300 text-xs font-semibold tracking-wider uppercase">
           {eyebrow}
@@ -204,7 +205,7 @@ function ShowcaseRow({
         </p>
       </div>
       <div className={reverse ? 'lg:order-1' : ''}>{visual}</div>
-    </div>
+    </Reveal>
   );
 }
 

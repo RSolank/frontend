@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
+import { CountUpNumber } from '../../../shared/components/CountUpNumber';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
@@ -122,14 +123,15 @@ export function TransactionsCard() {
       <dl className="mb-3 grid grid-cols-2 gap-2">
         <Stat
           label="Spent this week"
-          value={money(weekTotal)}
+          value={weekTotal}
+          format={money}
           accent
           isMoney
           testId="dashboard-transactions-week-total"
         />
         <Stat
           label="Debits this week"
-          value={String(weekCount)}
+          value={weekCount}
           testId="dashboard-transactions-week-count"
         />
       </dl>
@@ -188,7 +190,10 @@ export function TransactionsCard() {
 
 interface StatProps {
   label: string;
-  value: string;
+  // A summary accumulation (weekly spend, debit count) — counts up. These are
+  // headline figures, not a list, so the count-up reads as meaningful.
+  value: number;
+  format?: (n: number) => string;
   accent?: boolean;
   // Money values get the `money` class so the privacy-mask toggle
   // blurs them. Non-money values (counts) opt out.
@@ -196,7 +201,7 @@ interface StatProps {
   testId?: string;
 }
 
-function Stat({ label, value, accent, isMoney, testId }: StatProps) {
+function Stat({ label, value, format, accent, isMoney, testId }: StatProps) {
   return (
     <div
       className={`rounded-md px-3 py-2 ${
@@ -209,17 +214,17 @@ function Stat({ label, value, accent, isMoney, testId }: StatProps) {
       <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {label}
       </div>
-      <div
-        className={`mt-0.5 text-base font-semibold tabular-nums ${
+      <CountUpNumber
+        value={value}
+        format={format}
+        className={`mt-0.5 block text-base font-semibold tabular-nums ${
           isMoney ? 'money' : ''
         } ${
           accent
             ? 'text-accent-700 dark:text-accent-200'
             : 'text-slate-900 dark:text-slate-100'
         }`}
-      >
-        {value}
-      </div>
+      />
     </div>
   );
 }

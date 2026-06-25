@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
+import { ProgressBar } from '../../../shared/components/charts/ProgressBar';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
 import { useAuthStore } from '../../../shared/state/auth.store';
 import { formatYearMonth } from '../../../shared/utils/dateUtils';
@@ -163,12 +164,13 @@ function CategoriesColumn({
                   {Math.round(c.pctOfTotal)}%
                 </span>
               </div>
-              <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                <div
-                  className="bg-accent-500 dark:bg-accent-400 h-full rounded-full"
-                  style={{ width: `${Math.min(100, c.pctOfTotal)}%` }}
-                />
-              </div>
+              <ProgressBar
+                value={c.pctOfTotal}
+                className="mt-1"
+                trackClass="bg-slate-100 dark:bg-slate-800"
+                fillClass="bg-accent-500 dark:bg-accent-400"
+                ariaLabel={`${c.tag_name} ${Math.round(c.pctOfTotal)}% of total`}
+              />
             </li>
           ))}
         </ul>

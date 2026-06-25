@@ -982,20 +982,24 @@ future readers don't flag it as a violation.
 
 ## Motion
 
-Locked 2026-06-24 (first consumer: the dashboard redesign; later, every page).
-JS-driven animation goes through **framer-motion**, wrapped by the shared
+Locked 2026-06-24; hoisted app-wide 2026-06-25 (consumers: the dashboard
+redesign, then every page — incl. the pre-auth landing / auth / onboarding
+flow). JS-driven animation goes through **framer-motion**, wrapped by the shared
 foundation in [`src/shared/motion/`](../src/shared/motion/):
 
 - **Always `m.*`, never `motion.*`.** `MotionProvider` runs `LazyMotion` in
-  `strict` mode and code-splits the `domAnimation` feature bundle, so the base
-  chunk pays only for the lightweight `m` shell. `strict` makes a stray
-  `motion.*` throw, keeping the discipline enforced.
-- **Load-first — motion never gates the paint.** Content renders immediately and
-  unanimated; motion is entrance/enhancement only. Mount `MotionProvider` inside
-  a **lazy route** (not the app root) until a second page needs it, so framer
-  stays out of the initial-paint bundle — busting the `size-limit` budget to add
-  root-level motion for one page is the wrong trade (the dashboard does this; see
-  [dashboard.md](modules/dashboard.md#motion)).
+  `strict` mode and code-splits the `domAnimation` **feature** bundle (~5 kB,
+  loaded on the first `m.*` mount). `strict` makes a stray `motion.*` throw,
+  keeping the discipline enforced. The LazyMotion + MotionConfig **core**
+  (~11 kB gz) is *not* free, though — see the mount bullet.
+- **Mounted app-wide** in [`app/providers.tsx`](../src/app/providers.tsx) so
+  every surface — including the pre-auth landing / auth / onboarding flow —
+  shares one context. This puts framer's ~11 kB core in the initial chunk; the
+  `size-limit` JS budget was bumped to **135 kB** to carry it (app-wide motion
+  is infrastructure, not a one-page flourish). That ceiling is **temporary** —
+  `T-fe-perf` (B8) ratchets it back down via the react-router chunk + an
+  analyzer-driven core trim. **Load-first still holds:** content renders fully
+  and unanimated; motion is entrance/enhancement only and never gates the paint.
 - **Reduced motion is a hard contract.** `MotionConfig reducedMotion` bridges
   both signals: the in-app `useMotionStore` toggle forces `'always'`, otherwise
   `'user'` follows the OS `prefers-reduced-motion`. Any custom motion hook (e.g.
@@ -1003,8 +1007,72 @@ foundation in [`src/shared/motion/`](../src/shared/motion/):
   must be correct on first paint with motion off. This extends the CSS
   `.reduce-motion` contract (see [Accessibility vs Preferences](#accessibility-vs-preferences))
   to JS animation.
-- **`useCountUp(target, opts?)`** animates a number to `target` (tweening on
-  refresh), snapping under reduced motion. Used by the dashboard hero counters.
+
+### How to add motion to a page
+
+The **two-beat** is the model: a card/section enters (beat 1), then its in-card
+data animates (beat 2). A data-viz mark animates **only inside a `<Stagger>` or
+`<Reveal>`**; outside one it renders **static** (final, no animation, no timers) —
+so a page "adopts motion" by wrapping its zones, and pages that haven't are
+untouched. Reduced motion → everything static.
+
+1. **Provider** — nothing to do; it's app-wide (`app/providers.tsx`).
+2. **Entrance** — wrap zones in the shared scaffold:
+   ```tsx
+   import { Stagger, StaggerItem } from '../../../shared/motion';
+
+   <Stagger className="flex flex-col gap-6">
+     <StaggerItem><ZoneA /></StaggerItem>
+     <StaggerItem><ZoneB /></StaggerItem>
+   </Stagger>
+   ```
+   `<Stagger>` fades/rises its `<StaggerItem>` children in sequence, and each
+   `<StaggerItem>` publishes a "settled" signal a beat after it lands — which is
+   what gates the second beat. Both forward every `m.div` prop. For bespoke needs
+   reach for the raw variants (`fadeRise`, `scaleIn`, `drawIn`, `staggerContainer`)
+   + `MOTION_TOKENS` (the single timing/easing source).
+3. **Below-the-fold** — use `<Reveal>` instead: it scroll-reveals (framer
+   `useInView`) AND drives the second beat, so charts/numbers animate as the
+   section comes into view, not off-screen. To defer a heavy below-fold subtree's
+   *load* to first-of { a from-mount timer, scrolling near it }, gate it with
+   `useLoadOnApproach()` (a plain timer — NOT idle — so it never starves).
+4. **Numbers** — `<CountUpNumber value format? />` (wrapping the `useCountUp`
+   hook) counts a number up. **Headline / summary figures only** — never a
+   list/table of values (slot-machine; list numbers ride their container's
+   entrance). Framer-free, so safe even in the entry chunk.
+5. **Progress / meters** — `<ProgressBar value />` fills from 0 (framer-free).
+6. **Charts** — the `trendCharts` primitives (bars / line / donut) already draw
+   in via `useDrawIn`; just render them inside a `<Stagger>`/`<Reveal>`. For a
+   custom SVG mark, key a `hidden`/`show` variant off `useDrawIn()`.
+7. **Reduced motion** — automatic; never branch on it manually (the `useCountUp`
+   / `useDrawIn` / `<Reveal>` primitives already do).
+
+**CSS animations** (framer-free — for the entry chunk + Radix data-state) use
+**`tw-animate-css`** (`@import` in `index.css`) — the Tailwind v4 successor to
+`tailwindcss-animate`, giving `animate-in`/`animate-out` + `fade`/`zoom`/`slide`
+utilities. The codebase referenced these before the import existed (silent
+no-ops); it's now the shared CSS-animation system every page wires into. Reduced
+motion: the `.reduce-motion` override + `motion-safe:` apply. **Don't hand-roll
+keyframes** for entrances — reach for this.
+
+**The landing** is the reference for a first-paint-critical surface: above-the-fold
+uses these CSS entrances (`motion-safe:animate-in fade-in slide-in-from-bottom-3` —
+no framer → no flash, zero JS weight) while the below-the-fold showcases are
+**lazy** + `<Reveal>` (their framer leaves the entry chunk). Defer a heavy
+below-fold load with `useLoadOnApproach()`. Mirror this for any entry-chunk page.
+
+**Modal motion** is a *central* scaffold: the shared `Modal` animates with **framer**
+(`forceMount` + `AnimatePresence`) — the panel **rises + fades** in like a card and
+**collapses** on close. Centering-safe by structure: the CSS centering lives on a
+positioning *wrapper* while framer animates the inner *panel*, so the rise never fights
+the `-translate` transform (the reason CSS-only failed here). Every dialog inherits it,
+no per-page wiring; reduced motion → instant. It also publishes a **settled-after-open**
+signal (`StaggerSettledContext`), so a modal's fields rise as a second beat once wrapped
+in `<StaggerItem>`. The **per-field rise + emerge-from-launch-site** is the per-modal
+work in `motion-rollout-appwide.md`.
+
+Out of scope for the scaffold: route/step **transitions** (AnimatePresence) — see
+`motion-rollout-appwide.md`.
 
 ## Week convention
 

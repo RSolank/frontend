@@ -104,15 +104,22 @@ interior).
 The dashboard is the **first consumer of the app-wide motion foundation**
 (`src/shared/motion/`, see [conventions.md](../conventions.md#motion)):
 
-- **`MotionProvider`** (LazyMotion + MotionConfig) is mounted **inside this lazy
-  route** — not at the app root — so framer-motion stays entirely in the
-  dashboard chunk and adds **nothing** to the initial-paint bundle (load-first).
-  It hoists to a shared boundary once a second page adopts motion.
-- **Entrance** — a staggered fade/rise on the zones via the lightweight `m`
-  component (LazyMotion `strict` forbids `motion.*`). The attention rail sits
-  _outside_ the stagger so urgent signals appear immediately.
-- **`useCountUp`** animates the hero figures (`HeroNumber`), tweening on data
-  refresh.
+- **`MotionProvider`** (LazyMotion + MotionConfig) is mounted **app-wide** in
+  `app/providers.tsx` (hoisted 2026-06-25 — the dashboard's original
+  dashboard-local mount moved up once motion became app-wide infrastructure).
+  The dashboard just consumes it.
+- **Two-beat entrance** — the zones fade/rise via `<Stagger>/<StaggerItem>`
+  (`motion.*` forbidden — LazyMotion `strict`); then, a beat after each card
+  lands, its **in-card data animates**: hero count-ups (`HeroNumber` /
+  `<CountUpNumber>`, incl. "projected by Sunday"), the week-progress
+  `<ProgressBar>`, the analytics donut/line/bars (`useDrawIn` — the donut fills
+  as one seamless body), and the recent-txn card's **summary** stats
+  ("spent / debits this week" — *not* the per-row amounts, which stay static).
+  The attention rail sits _outside_ the stagger so urgent signals appear
+  immediately.
+- **`useCountUp`** is framer-free (a tiny rAF loop), so count-ups carry no
+  animation-library weight. They animate only inside the stagger (the second
+  beat) and snap when not orchestrated / under reduced motion.
 - **Reduced motion** — both the in-app toggle (`useMotionStore`) and the OS
   `prefers-reduced-motion` collapse all of the above; count-ups snap to their
   final value, so numbers are correct on first paint regardless. Content is
@@ -187,8 +194,6 @@ dashed border to read as a calm, dataless state.
 
 ## Future polish (queued)
 
-- **Hoist `MotionProvider` to a shared boundary** once a second page adopts
-  motion (today it's dashboard-local to protect the initial bundle).
 - **Personalization / drag-to-reorder zones** — out of scope by design.
 - **Bill-state counts** in the provision hero chip once the bill-state-machine FE
   wiring lands.
