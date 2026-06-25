@@ -24,6 +24,7 @@ src/
 │   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal (+ originRef fly-from-trigger) / Menu + Popover (shared MENU_SURFACE) / Button (+ .tap-press) / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …
 │   #                            (the Country/Currency/Timezone pickers + reference data were the old "metadata" feature; they live in shared as infra, not a feature)
 │   ├── hooks/                 # cross-cutting hooks (useModal, useMoneyFormatter, useRowHighlight, …)
+│   ├── constants/             # FE-owned enum/taxonomy LABEL maps — securityQuestions / activity (ACTIVITY_DOMAIN_LABELS) — plain, side-effect-free exports (no React, no feature imports). The FE analog of the BE `app/constants/`: the BE emits raw enum axes and labels only reference data (via `metadata`), so the FE owns enum labels.
 │   ├── utils/                 # dateUtils (tz-aware) / validation / currency (formatMoney) / countryTimezones (pure helpers, BE-sourced) / deviceId / sessionRedirect
 │   ├── state/                 # Zustand stores — theme / preferences / auth + the a11y/on-device stores (zoom, motion, privacy, contrast, …)
 │   ├── forms/                 # zod smoke test (canonical RHF + Zod pattern)

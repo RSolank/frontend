@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import type { CatalogEntry, CatalogResponse } from '../api/activityCatalog';
+import { ACTIVITY_DOMAIN_LABELS } from '../constants/activity';
 
 // Shared editor for activity per-user signal-settings.
 //
@@ -37,18 +38,8 @@ interface SignalSettingsEditorProps {
   ) => void;
 }
 
-const DOMAIN_LABELS: Record<string, string> = {
-  tax: 'Tax & bills',
-  budget: 'Budgets',
-  transaction: 'Transactions',
-  recurring: 'Recurring',
-  statement_upload: 'Statement uploads',
-  account: 'Account',
-  auth: 'Sign-in & security',
-};
-
 function domainLabel(d: string): string {
-  return DOMAIN_LABELS[d] ?? d;
+  return ACTIVITY_DOMAIN_LABELS[d] ?? d;
 }
 
 function kindLabel(entry: CatalogEntry): string {

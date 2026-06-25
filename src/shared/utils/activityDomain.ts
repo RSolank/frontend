@@ -1,24 +1,16 @@
 import type { ActivityFeedItem } from '../api/activityFeed';
+import { ACTIVITY_DOMAIN_LABELS } from '../constants/activity';
 
 // The `domain` axis carried on every activity signal (see the backend
 // `activity_registry` SignalSpec.domain — a FE-grouping label, NOT a
 // ranking axis). The bell uses it as the in-section group header.
 //
-// Known domains get a curated label; anything else (e.g. a new BE domain
-// shipped ahead of the FE) falls back to a title-cased form so the header
-// is always sensible rather than a raw snake_case token.
-const DOMAIN_LABELS: Record<string, string> = {
-  taxation: 'Taxation',
-  budgets: 'Budgets',
-  recurring: 'Recurring',
-  account: 'Account',
-  beneficiaries: 'Beneficiaries',
-  bank_accounts: 'Bank Accounts',
-  transactions: 'Transactions',
-};
-
+// Canonical labels live in `shared/constants/activity`; anything else
+// (e.g. a new BE domain shipped ahead of the FE) falls back to a
+// title-cased form so the header is always sensible rather than a raw
+// snake_case token.
 export function domainLabel(domain: string): string {
-  const known = DOMAIN_LABELS[domain];
+  const known = ACTIVITY_DOMAIN_LABELS[domain];
   if (known) return known;
   if (!domain) return 'Other';
   return domain

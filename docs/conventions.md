@@ -17,6 +17,7 @@
 - [**Modal-header destructive actions**](#modal-header-destructive-actions-remove-in-edit) — the Remove-in-edit convention.
 - [**Row highlight on save**](#row-highlight-on-save) — post-save feedback on the originating list.
 - [**Activity callouts**](#activity-callouts-surfacing-feed-items-outside-the-bell) — surfacing feed items outside the TopNav bell.
+- [**Enum labels (FE-owned)**](#enum-labels-fe-owned) — where enum/taxonomy display labels live.
 - [**Idle-time prefetch**](#idle-time-prefetch) — warm click-gated chunks during the browser idle window.
 - [**Accessibility vs Preferences**](#accessibility-vs-preferences) — device a11y toggle vs backend-persisted preference.
 - [**Motion**](#motion) — framer-motion via the shared `m`/`LazyMotion` foundation, load-first, reduced-motion-honoring.
@@ -641,6 +642,30 @@ Small pill/badge chips carry a **semantic tone**, not an arbitrary color:
   theme-stable "pay attention here"), so chip and flash speak one visual language.
 - **success / warning / danger** — status tones, reserved for state (e.g. a
   breach or low-balance pill), not for marker chips.
+
+## Enum labels (FE-owned)
+
+**The FE owns the human labels for enum/taxonomy axes; the backend emits
+the raw axis only.** The BE labels _reference_ data alone — currencies,
+countries, timezones, branding — via the `metadata` module. Every other
+axis (activity `domain`, signal `event_class`, `txn_type`, tag types,
+bill states, …) ships as a raw token, and the label is a FE concern.
+
+**Home rule — a label map lives in the lowest layer all its consumers
+share:**
+
+- shared / cross-feature → **`shared/constants/<domain>.ts`**
+  (e.g. `shared/constants/activity.ts` → `ACTIVITY_DOMAIN_LABELS`,
+  consumed by both the bell's `shared/utils/activityDomain` and
+  `shared/components/SignalSettingsEditor`).
+- single-feature → `features/<f>/constants.ts`.
+
+Keep each constants file a **plain, side-effect-free export surface** — no
+React, no feature imports (so `shared/` never reaches into a feature; the
+`eslint-plugin-boundaries` rule stays satisfied). It is the FE analog of
+the BE `app/constants/` single-import surface. Always keep a sensible
+fallback at the lookup site (title-cased snake→Title, raw key) so a
+domain shipped by the BE ahead of the FE never renders blank.
 
 ## System provenance chip
 

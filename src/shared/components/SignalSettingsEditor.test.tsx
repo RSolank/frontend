@@ -11,7 +11,7 @@ const sampleCatalog: CatalogResponse = {
     {
       kind: 'bill_generated',
       event_class: 'notification',
-      domain: 'tax',
+      domain: 'taxation',
       subject_type: 'bill',
       priority: 3,
       rank_order: 100,
@@ -22,7 +22,7 @@ const sampleCatalog: CatalogResponse = {
     {
       kind: 'budget_breached',
       event_class: 'alert',
-      domain: 'budget',
+      domain: 'budgets',
       subject_type: 'budget',
       priority: 1,
       rank_order: 10,
@@ -33,7 +33,7 @@ const sampleCatalog: CatalogResponse = {
     {
       kind: 'deprecated_kind',
       event_class: 'notification',
-      domain: 'auth',
+      domain: 'account',
       subject_type: 'session',
       priority: 3,
       rank_order: 500,
@@ -59,9 +59,12 @@ describe('SignalSettingsEditor', () => {
     expect(screen.getByText('Bill Generated')).toBeInTheDocument();
     expect(screen.getByText('Budget Breached')).toBeInTheDocument();
     expect(screen.getByText('Deprecated Kind')).toBeInTheDocument();
-    // Domain headers rendered.
-    expect(screen.getByText('Tax & bills')).toBeInTheDocument();
+    // Domain headers rendered with the canonical, registry-aligned labels
+    // (`taxation`/`budgets`/`account` — NOT the old stale `tax`/`budget`/`auth`
+    // keys, which never matched the registry and rendered raw tokens).
+    expect(screen.getByText('Taxation')).toBeInTheDocument();
     expect(screen.getByText('Budgets')).toBeInTheDocument();
+    expect(screen.getByText('Account')).toBeInTheDocument();
   });
 
   it('checkbox state matches the disabled list (enabled = NOT in disabled)', () => {
