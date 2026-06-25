@@ -26,22 +26,30 @@ same `/treasury/summary` data.
   (`savings-empty-state`) shows only when the user has *neither* set anything
   aside *nor* had any tax levied (`funded_balance === 0 && provisioned_total
   === 0`); a non-zero on either side is a real in-progress state and renders the
-  zones.
+  zones. The loaded zones are wrapped in a `<Stagger>` (each zone a
+  `<StaggerItem>`), so they enter with the two-beat — the card rises, then its
+  count-up / chart draw-in fires — i.e. **motion is wired here at the source**,
+  not bolted on by the landing that reuses these same components.
 
 ## Components
 
 - `components/SavingsHeadline.tsx` — **Zone 1**. Hero number **"Set aside"**
   (`funded_balance`, emerald) beside the two framing stats **"Owed to your
   future self"** (`provisioned_total`) and **"Coverage"**
-  (`funded / provisioned`, suppressed to `—` when nothing is provisioned).
+  (`funded / provisioned`, suppressed to `—` when nothing is provisioned). All
+  three figures **count up** (`<CountUpNumber>`) as the card lands; the two
+  framing stats bottom-align so they stay level when a label wraps in a narrow
+  card.
 - `components/SavingsComposition.tsx` — **Zone 2**. A **stacked horizontal
-  bar** (not a donut) splitting **"Allocated to bills"** (`recognized_revenue`,
-  emerald) from **"Held in advance"** (`deferred_balance`, amber). In the
-  everyday case there is only recognized revenue, so it reads as a single solid
-  segment; the amber segment only appears when there is a genuine surplus (a
-  donut at a 98/2 split looks broken). The donut primitive is reserved for the
-  future treasury *expense* side. Local to the feature — promote to
-  `shared/charts` if the expense side reuses it.
+  bar** (not a donut) splitting **"Gained from self-tax"** (`recognized_revenue`,
+  emerald — the savings the self-tax mechanism built) from **"Surplus you
+  added"** (`deferred_balance`, amber — extra direct transfers on top). Both are
+  **gains** in the account, framed as such (the *liability* — what's owed to the
+  future self — lives on `SavingsHeadline`, never here). In the everyday case
+  there is only the self-tax portion, so it reads as a single solid segment; the
+  amber segment only appears once the user has added a surplus (a donut at a 98/2
+  split looks broken). The donut primitive is reserved for the future treasury
+  *expense* side. Reused by the landing's "cycle" showcase with fabricated data.
 - `components/SavingsTrend.tsx` — **Zone 3**. Cumulative set-aside trend
   (running funded balance per ISO week, oldest → newest). Bars for short windows
   (≤5 buckets), a line otherwise — both from the shared chart primitives
@@ -53,8 +61,8 @@ same `/treasury/summary` data.
 
 - `api/queries.ts` — `useTreasurySummaryQuery(weeks = 12)` over
   `GET /api/v1/treasury/summary?weeks=…`. Returns `TreasurySummary`:
-  `funded_balance`, `recognized_revenue` (→ "Allocated to bills"),
-  `deferred_balance` (→ "Held in advance"), `provisioned_total` (→ "Owed to your
+  `funded_balance`, `recognized_revenue` (→ "Gained from self-tax"),
+  `deferred_balance` (→ "Surplus you added"), `provisioned_total` (→ "Owed to your
   future self"), `currency`, and `trend: TreasuryTrendPoint[]`
   (`period_end` / `cumulative_balance` / `delta`). The BE reconciles the journal
   on read, so the figures are always fresh.

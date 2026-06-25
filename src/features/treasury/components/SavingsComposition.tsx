@@ -1,13 +1,17 @@
 type Money = (n: number | null | undefined) => string;
 
-// Zone 2 — how the set-aside cash splits between revenue *recognized*
-// against a levied bill and surplus *held in advance* (deferred revenue).
+// Zone 2 — how the set-aside cash splits by how it was *built*: savings the
+// self-tax mechanism accrued against levied bills (`recognized`), vs. a surplus
+// the user voluntarily transferred on top (`deferred`). Both are GAINS sitting
+// in the savings account — money earned, not owed. (What's *owed* to the future
+// self — the levied provision — lives on `SavingsHeadline`, never here; framing
+// these as a liability would invert the whole tax → savings story.)
 //
 // A stacked horizontal bar, deliberately NOT a donut: in the everyday case
-// there is only recognized revenue, so the bar reads as a single solid
-// segment; the second (amber) segment only appears in the rare surplus case.
-// A donut at a 98/2 split looks broken. (The donut primitive is reserved for
-// the future treasury *expense* side, where slices are genuinely multi-way.)
+// there is only the self-tax portion, so the bar reads as a single solid
+// segment; the second (amber) segment only appears once the user has added a
+// surplus on top. A donut at a 98/2 split looks broken. (The donut primitive is
+// reserved for the future treasury *expense* side, where slices are multi-way.)
 //
 // Pure / presentational — funded = recognized + deferred is asserted by the
 // caller's data; this just lays it out.
@@ -41,7 +45,7 @@ export function SavingsComposition({
       <div
         className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
         role="img"
-        aria-label={`Allocated to bills ${money(recognized)}, held in advance ${money(
+        aria-label={`Gained from self-tax ${money(recognized)}, surplus you added ${money(
           deferred
         )}`}
         data-testid="savings-composition-bar"
@@ -62,13 +66,13 @@ export function SavingsComposition({
       <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <LegendRow
           dotClass="bg-emerald-500 dark:bg-emerald-400"
-          label="Allocated to bills"
+          label="Gained from self-tax"
           value={money(recognized)}
           testid="savings-legend-recognized"
         />
         <LegendRow
           dotClass="bg-amber-500 dark:bg-amber-400"
-          label="Held in advance"
+          label="Surplus you added"
           value={money(deferred)}
           testid="savings-legend-deferred"
         />
@@ -92,7 +96,9 @@ function LegendRow({
     <div className="flex items-center gap-2" data-testid={testid}>
       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass}`} />
       <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className="font-medium text-slate-900 dark:text-slate-100">{value}</dd>
+      <dd className="font-medium text-slate-900 dark:text-slate-100">
+        {value}
+      </dd>
     </div>
   );
 }

@@ -31,11 +31,35 @@ interface RangePreset {
 const RANGES: RangePreset[] = [
   { key: '1w', label: '1W', longLabel: 'Last week', period: 'weekly', n: 1 },
   { key: '1mo', label: '1M', longLabel: 'Last month', period: 'weekly', n: 5 },
-  { key: '3mo', label: '3M', longLabel: 'Last 3 months', period: 'weekly', n: 13 },
-  { key: '6mo', label: '6M', longLabel: 'Last 6 months', period: 'monthly', n: 6 },
-  { key: 'ytd', label: 'YTD', longLabel: 'Year to date', period: 'monthly', n: 'ytd' },
+  {
+    key: '3mo',
+    label: '3M',
+    longLabel: 'Last 3 months',
+    period: 'weekly',
+    n: 13,
+  },
+  {
+    key: '6mo',
+    label: '6M',
+    longLabel: 'Last 6 months',
+    period: 'monthly',
+    n: 6,
+  },
+  {
+    key: 'ytd',
+    label: 'YTD',
+    longLabel: 'Year to date',
+    period: 'monthly',
+    n: 'ytd',
+  },
   { key: '1y', label: '1Y', longLabel: 'Last year', period: 'monthly', n: 12 },
-  { key: '2y', label: '2Y', longLabel: 'Last 2 years', period: 'monthly', n: 24 },
+  {
+    key: '2y',
+    label: '2Y',
+    longLabel: 'Last 2 years',
+    period: 'monthly',
+    n: 24,
+  },
 ];
 const BARS_MAX_POINTS = 5; // ≤ this → bars, else line
 const MAX_SLICES = 6; // top 5 + "Others"
@@ -212,7 +236,10 @@ export function SpendTrendView({
           Loading trend…
         </p>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        // Side-by-side from md up (tablets included); only phone-width stacks,
+        // where the chart would otherwise shrink too far. The breakdown takes
+        // its content width (`auto`) and the chart flexes into the rest.
+        <div className="grid gap-6 md:grid-cols-[1fr_auto]">
           <div className="min-w-0">
             <TrendChartArea
               points={points}
@@ -316,7 +343,7 @@ function TrendChartArea({
             <span className="font-medium text-slate-500 dark:text-slate-400">
               {active.label}
             </span>
-            <span className="font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+            <span className="font-semibold text-slate-900 tabular-nums dark:text-slate-100">
               {money(active.value)}
             </span>
           </>
@@ -367,9 +394,14 @@ function BreakdownArea({
     );
   }
   return (
+    // The legend takes only a bounded, legible width; the donut centers in the
+    // space that's left (rather than the legend stretching to fill and pinning
+    // the donut to the edge — which read badly on narrow / mobile widths).
     <div className="flex items-center gap-4">
-      <MiniDonut slices={slices} money={money} />
-      <ul className="min-w-0 flex-1 space-y-1 text-xs">
+      <div className="flex flex-1 justify-center">
+        <MiniDonut slices={slices} money={money} />
+      </div>
+      <ul className="w-36 shrink-0 space-y-1 text-xs">
         {legend.map((l) => (
           <li key={l.label} className="flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1.5">

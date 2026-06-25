@@ -93,6 +93,20 @@ forecast — one source, no separate "recurring forecast" card (>7 days forward
 has no glance value; the widget's "Manage" link goes to the full `/recurring`
 page for the 30-day view).
 
+Both cards follow the **pure-`View` split**: the fetching container computes its
+data, then renders an exported presentational `TransactionsCardView` /
+`UpcomingBillsView`. That's what the **landing showcases** mount with fabricated
+fixtures (no drift) — the upcoming-bills card replaced the old static
+`recurring-forecast.png` screenshot there.
+
+Both Views take a **`displayOnly`** prop for that landing mount: the navigating
+affordances (Transactions' "Add" + "View all", upcoming-bills' "Manage") stay
+**visible with their shared styling** (so they can't drift from the real
+widgets) but render **inert** — spans, not links/buttons, with `pointer-events-none`.
+The "View all" footer goes inert via `DashboardCard`'s **`footerAsText`** prop;
+the inline CTAs share a single `*_CLASS` constant between the live `<Link>`/`<button>`
+and the display-only `<span>`.
+
 ### Shared chrome
 
 `components/DashboardCard.tsx` exports `<DashboardCard>` + `<DashboardCardEmpty>`,

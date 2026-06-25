@@ -19,8 +19,8 @@ export interface TreasuryTrendPoint {
 // reconcile-on-read, over the append-only committee revenue journal:
 //
 // - `funded_balance`      — Σ income + Σ deferred_revenue (total cash set aside)
-// - `recognized_revenue`  — Σ income (matched to a levied bill) → "Allocated to bills"
-// - `deferred_balance`    — Σ deferred_revenue (surplus held in advance) → "Held in advance"
+// - `recognized_revenue`  — Σ income (matched to a levied bill) → "Gained from self-tax"
+// - `deferred_balance`    — Σ deferred_revenue (surplus the user added on top) → "Surplus you added"
 // - `provisioned_total`   — Σ levied bill amount (owed to your future self)
 // - `currency`            — the user's currency code (echoed for non-prefs surfaces)
 // - `trend`               — weekly cumulative funded balance, oldest → newest

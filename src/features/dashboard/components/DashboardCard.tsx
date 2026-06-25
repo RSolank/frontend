@@ -21,6 +21,10 @@ interface DashboardCardProps {
   // whose body already contains the relevant action (empty-state CTA).
   footerHref?: string;
   footerLabel?: string;
+  // Render the footer as inert text (a `<span>`, not a `<Link>`) keeping the
+  // identical look — for display-only mounts like the landing showcase, where
+  // the card must mirror the dashboard widget without navigating.
+  footerAsText?: boolean;
   // When `true` paints the dashed-border "pending / empty" variant.
   // Cards use this for the fresh-signup empty state.
   pending?: boolean;
@@ -34,6 +38,7 @@ export function DashboardCard({
   children,
   footerHref,
   footerLabel,
+  footerAsText = false,
   pending = false,
   testId,
 }: DashboardCardProps) {
@@ -56,14 +61,20 @@ export function DashboardCard({
         ) : null}
       </header>
       <div className="flex-1">{children}</div>
-      {footerHref && footerLabel ? (
+      {footerLabel && (footerHref || footerAsText) ? (
         <footer className="mt-4 text-right">
-          <Link
-            to={footerHref}
-            className="text-accent-600 dark:text-accent-300 text-sm font-semibold hover:underline"
-          >
-            {footerLabel} →
-          </Link>
+          {footerAsText || !footerHref ? (
+            <span className="text-accent-600 dark:text-accent-300 text-sm font-semibold">
+              {footerLabel} →
+            </span>
+          ) : (
+            <Link
+              to={footerHref}
+              className="text-accent-600 dark:text-accent-300 text-sm font-semibold hover:underline"
+            >
+              {footerLabel} →
+            </Link>
+          )}
         </footer>
       ) : null}
     </section>

@@ -32,10 +32,13 @@ import { useMotionStore } from '../state/motion.store';
 const loadFeatures = () =>
   import('./domFeatures').then((mod) => mod.default);
 
-// `features` is overridable so tests can inject the feature bundle
-// SYNCHRONOUSLY (see `renderWithProviders`) — a dynamic import resolving
-// after a test unmounts is a cross-test flake source. Production keeps the
-// lazy loader so the feature chunk stays off the critical path.
+// `features` is overridable, and both the app root and tests pass an EAGER
+// bundle: production injects `domAnimation` at `app/providers.tsx` so the
+// above-the-fold landing hero animates with framer on first paint (a lazy
+// chunk would leave the hero invisible until it streamed in); tests inject
+// synchronously (a dynamic import resolving after a test unmounts is a
+// cross-test flake source). The `loadFeatures` lazy default below is kept as
+// a fallback for any standalone mount that can tolerate deferred animation.
 export function MotionProvider({
   children,
   features = loadFeatures,

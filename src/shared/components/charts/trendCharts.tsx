@@ -1,4 +1,5 @@
 import { m } from 'framer-motion';
+import { useId } from 'react';
 
 import { useDrawIn } from '../../motion';
 
@@ -30,10 +31,39 @@ interface HoverProps {
 const W = 900;
 const H = 240;
 const TOP = 12;
-const BOTTOM = 34;
+// Small bottom inset now that the x-axis labels live in HTML below the SVG
+// (they used to sit inside this band as `<text>`). Keeping it tiny lets the plot
+// fill the height and sit just above the HTML label row.
+const BOTTOM = 10;
 const GUTTER = 72; // left space for the y-axis labels
 const INNER = H - TOP - BOTTOM;
 const PLOT_W = W - GUTTER;
+
+// X-axis labels rendered as HTML beneath the chart, NOT as SVG `<text>`. The
+// SVG uses `preserveAspectRatio="none"`, so anything inside it (including text)
+// is scaled non-uniformly — in a narrow container the labels get horizontally
+// crushed to the point of illegibility. Positioning them as absolutely-placed
+// HTML spans (left% mapped from the same 0–W coordinate space the marks use)
+// keeps them crisp at every width. Shared by MiniBars + MiniLine.
+function XAxisLabels({
+  ticks,
+}: {
+  ticks: { label: string; leftPct: number }[];
+}) {
+  return (
+    <div className="relative mt-1 h-4 w-full">
+      {ticks.map((t, i) => (
+        <span
+          key={`${t.label}-${i}`}
+          className="absolute -translate-x-1/2 text-[11px] whitespace-nowrap text-slate-500 tabular-nums dark:text-slate-400"
+          style={{ left: `${t.leftPct}%` }}
+        >
+          {t.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 // Round a max up to a "nice" axis ceiling (1/2/5 × 10ⁿ) so gridline labels read
 // cleanly (₹50k, not ₹47,312).
@@ -48,36 +78,52 @@ function niceCeil(v: number): number {
   return nice * pow;
 }
 
-// Three horizontal gridlines (0 / mid / max) with compact money labels in the
-// left gutter. aria-hidden — the values are announced via the HTML readout.
-function YAxis({ max, compact }: { max: number; compact: Compact }) {
+// Three horizontal gridlines (0 / mid / max). Lines ONLY — horizontal lines
+// survive the non-uniform scale fine, but the compact money labels render as
+// HTML (see YAxisLabels) so they don't get crushed like the old SVG `<text>`.
+function YAxisLines() {
   return (
     <g aria-hidden="true">
       {[0, 0.5, 1].map((f) => {
-        const t = f * max;
         const yy = TOP + INNER - f * INNER;
         return (
-          <g key={f}>
-            <line
-              x1={GUTTER}
-              x2={W}
-              y1={yy}
-              y2={yy}
-              className="stroke-slate-200 dark:stroke-slate-700"
-              strokeWidth={1}
-            />
-            <text
-              x={GUTTER - 8}
-              y={yy + 4}
-              textAnchor="end"
-              className="fill-slate-400 text-[11px] dark:fill-slate-500"
-            >
-              {compact(t)}
-            </text>
-          </g>
+          <line
+            key={f}
+            x1={GUTTER}
+            x2={W}
+            y1={yy}
+            y2={yy}
+            className="stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth={1}
+          />
         );
       })}
     </g>
+  );
+}
+
+// Compact money labels for the gridlines, as HTML in the left gutter (~8% =
+// GUTTER/W), positioned at each gridline's vertical fraction. Absolutely placed
+// inside the chart-area's relative box, so they stay crisp at any width.
+function YAxisLabels({ max, compact }: { max: number; compact: Compact }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-y-0 left-0 w-[8%]"
+    >
+      {[0, 0.5, 1].map((f) => {
+        const yy = TOP + INNER - f * INNER;
+        return (
+          <span
+            key={f}
+            className="absolute right-1 -translate-y-1/2 text-[11px] text-slate-400 tabular-nums dark:text-slate-500"
+            style={{ top: `${(yy / H) * 100}%` }}
+          >
+            {compact(f * max)}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -105,63 +151,69 @@ export function MiniBars({
   const barWidth = (PLOT_W - gap * (data.length + 1)) / data.length;
   const barX = (i: number) => GUTTER + gap + i * (barWidth + gap);
   const draw = useDrawIn();
+  const ticks = data.map((d, i) => ({
+    label: d.label,
+    leftPct: ((barX(i) + barWidth / 2) / W) * 100,
+  }));
   return (
-    <svg
-      role="img"
-      aria-label="Spending by period"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className={heightClass}
-      onMouseLeave={() => onHover?.(null)}
-    >
-      <YAxis max={max} compact={compact} />
-      {data.map((d, i) => {
-        const value = Math.max(0, d.value);
-        const barHeight = Math.max((value / max) * INNER, 2);
-        const x = barX(i);
-        const y = TOP + (INNER - barHeight);
-        const dim = hovered != null && hovered !== i;
-        return (
-          <g
-            key={`${d.label}-${i}`}
-            className="cursor-pointer"
-            onMouseEnter={() => onHover?.(i)}
-            onClick={() => onHover?.(hovered === i ? null : i)}
-          >
-            <title>{`${d.label}: ${money(value)}`}</title>
-            <m.rect
-              x={x}
-              width={barWidth}
-              // Resting geometry as direct attrs so the first paint (before
-              // framer hydrates the variant) is already correct — no flash of
-              // a wrong state when static (page hasn't adopted motion).
-              height={barHeight}
-              y={y}
-              rx={3}
-              className={`${barClass} transition-opacity ${dim ? 'opacity-40' : ''}`}
-              initial={draw.initial}
-              animate={draw.animate}
-              variants={{
-                hidden: { height: 0, y: TOP + INNER },
-                show: {
-                  height: barHeight,
-                  y,
-                  transition: { duration: 0.5, ease: 'easeOut', delay: i * 0.05 },
-                },
-              }}
-            />
-            <text
-              x={x + barWidth / 2}
-              y={H - 12}
-              textAnchor="middle"
-              className="fill-slate-500 text-[12px] dark:fill-slate-400"
-            >
-              {d.label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className="w-full">
+      <div className="relative">
+        <svg
+          role="img"
+          aria-label="Spending by period"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className={heightClass}
+          onMouseLeave={() => onHover?.(null)}
+        >
+          <YAxisLines />
+          {data.map((d, i) => {
+            const value = Math.max(0, d.value);
+            const barHeight = Math.max((value / max) * INNER, 2);
+            const x = barX(i);
+            const y = TOP + (INNER - barHeight);
+            const dim = hovered != null && hovered !== i;
+            return (
+              <g
+                key={`${d.label}-${i}`}
+                className="cursor-pointer"
+                onMouseEnter={() => onHover?.(i)}
+                onClick={() => onHover?.(hovered === i ? null : i)}
+              >
+                <title>{`${d.label}: ${money(value)}`}</title>
+                <m.rect
+                  x={x}
+                  width={barWidth}
+                  // Resting geometry as direct attrs so the first paint (before
+                  // framer hydrates the variant) is already correct — no flash of
+                  // a wrong state when static (page hasn't adopted motion).
+                  height={barHeight}
+                  y={y}
+                  rx={3}
+                  className={`${barClass} transition-opacity ${dim ? 'opacity-40' : ''}`}
+                  initial={draw.initial}
+                  animate={draw.animate}
+                  variants={{
+                    hidden: { height: 0, y: TOP + INNER },
+                    show: {
+                      height: barHeight,
+                      y,
+                      transition: {
+                        duration: 0.5,
+                        ease: 'easeOut',
+                        delay: i * 0.05,
+                      },
+                    },
+                  }}
+                />
+              </g>
+            );
+          })}
+        </svg>
+        <YAxisLabels max={max} compact={compact} />
+      </div>
+      <XAxisLabels ticks={ticks} />
+    </div>
   );
 }
 
@@ -204,103 +256,124 @@ export function MiniLine({
   const step = Math.max(1, Math.ceil(n / 6));
   const bandW = (PLOT_W - padX) / Math.max(1, n);
   const draw = useDrawIn();
+  const clipId = useId().replace(/:/g, '');
+  const ticks = data.flatMap((d, i) =>
+    i % step === 0 ? [{ label: d.label, leftPct: (x(i) / W) * 100 }] : []
+  );
   return (
-    <svg
-      role="img"
-      aria-label="Spending trend"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className={heightClass}
-      onMouseLeave={() => onHover?.(null)}
-    >
-      <YAxis max={max} compact={compact} />
-      <m.polygon
-        points={area}
-        className={areaClass}
-        initial={draw.initial}
-        animate={draw.animate}
-        variants={{
-          hidden: { opacity: 0 },
-          show: { opacity: 1, transition: { duration: 0.5, delay: 0.25 } },
-        }}
-      />
-      {avg != null && avg > 0 && avg <= max && (
-        <line
-          x1={GUTTER + padX}
-          x2={W - padX}
-          y1={y(avg)}
-          y2={y(avg)}
-          strokeDasharray="4 4"
-          className="stroke-slate-400/70 dark:stroke-slate-500"
-          strokeWidth={1}
-        />
-      )}
-      <m.polyline
-        points={line}
-        fill="none"
-        className={lineClass}
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        initial={draw.initial}
-        animate={draw.animate}
-        variants={{
-          hidden: { pathLength: 0 },
-          show: { pathLength: 1, transition: { duration: 0.8, ease: 'easeOut' } },
-        }}
-      />
-      {hovered != null && data[hovered] && (
-        <line
-          x1={x(hovered)}
-          x2={x(hovered)}
-          y1={TOP}
-          y2={TOP + INNER}
-          className="stroke-slate-300 dark:stroke-slate-600"
-          strokeWidth={1}
-        />
-      )}
-      {data.map((d, i) => (
-        <g key={`pt-${d.label}-${i}`}>
-          <m.circle
-            cx={x(i)}
-            cy={y(d.value)}
-            r={hovered === i ? 5 : 3}
-            className={dotClass}
+    <div className="w-full">
+      <div className="relative">
+        <svg
+          role="img"
+          aria-label="Spending trend"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className={heightClass}
+          onMouseLeave={() => onHover?.(null)}
+        >
+          <YAxisLines />
+          {/* The area is a static polygon revealed by an animated clip rect that
+              grows left-to-right in step with the line draw — so the fill widens
+              horizontally as the line advances, not fading in as a whole block. */}
+          <clipPath id={clipId}>
+            <m.rect
+              x={0}
+              y={0}
+              height={H}
+              width={W}
+              initial={draw.initial}
+              animate={draw.animate}
+              variants={{
+                hidden: { width: 0 },
+                show: {
+                  width: W,
+                  transition: { duration: 0.8, ease: 'easeOut' },
+                },
+              }}
+            />
+          </clipPath>
+          <polygon
+            points={area}
+            className={areaClass}
+            clipPath={`url(#${clipId})`}
+          />
+          {avg != null && avg > 0 && avg <= max && (
+            <line
+              x1={GUTTER + padX}
+              x2={W - padX}
+              y1={y(avg)}
+              y2={y(avg)}
+              strokeDasharray="4 4"
+              className="stroke-slate-400/70 dark:stroke-slate-500"
+              strokeWidth={1}
+            />
+          )}
+          <m.polyline
+            points={line}
+            fill="none"
+            className={lineClass}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
             initial={draw.initial}
             animate={draw.animate}
             variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { duration: 0.4, delay: 0.3 } },
+              hidden: { pathLength: 0 },
+              show: {
+                pathLength: 1,
+                transition: { duration: 0.8, ease: 'easeOut' },
+              },
             }}
           />
-          {i % step === 0 && (
-            <text
-              x={x(i)}
-              y={H - 12}
-              textAnchor="middle"
-              className="fill-slate-500 text-[12px] dark:fill-slate-400"
-            >
-              {d.label}
-            </text>
+          {hovered != null && data[hovered] && (
+            <line
+              x1={x(hovered)}
+              x2={x(hovered)}
+              y1={TOP}
+              y2={TOP + INNER}
+              className="stroke-slate-300 dark:stroke-slate-600"
+              strokeWidth={1}
+            />
           )}
-        </g>
-      ))}
-      {data.map((d, i) => (
-        <rect
-          key={`hit-${i}`}
-          x={x(i) - bandW / 2}
-          y={TOP}
-          width={bandW}
-          height={INNER}
-          fill="transparent"
-          className="cursor-pointer"
-          onMouseEnter={() => onHover?.(i)}
-          onClick={() => onHover?.(hovered === i ? null : i)}
-        >
-          <title>{`${d.label}: ${money(d.value)}`}</title>
-        </rect>
-      ))}
-    </svg>
+          {data.map((d, i) => (
+            <g key={`pt-${d.label}-${i}`}>
+              <m.circle
+                cx={x(i)}
+                cy={y(d.value)}
+                r={hovered === i ? 5 : 3}
+                className={dotClass}
+                initial={draw.initial}
+                animate={draw.animate}
+                variants={{
+                  hidden: { opacity: 0 },
+                  show: {
+                    opacity: 1,
+                    transition: { duration: 0.4, delay: 0.3 },
+                  },
+                }}
+              />
+            </g>
+          ))}
+          {data.map((d, i) => (
+            <rect
+              key={`hit-${i}`}
+              x={x(i) - bandW / 2}
+              y={TOP}
+              width={bandW}
+              height={INNER}
+              fill="transparent"
+              className="cursor-pointer"
+              onMouseEnter={() => onHover?.(i)}
+              onClick={() => onHover?.(hovered === i ? null : i)}
+            >
+              <title>{`${d.label}: ${money(d.value)}`}</title>
+            </rect>
+          ))}
+        </svg>
+        <YAxisLabels max={max} compact={compact} />
+      </div>
+      <XAxisLabels ticks={ticks} />
+    </div>
   );
 }
 
@@ -406,4 +479,7 @@ export const SLICE_PALETTE: { strokeClass: string; dotClass: string }[] = [
   { strokeClass: 'text-amber-500', dotClass: 'bg-amber-500' },
   { strokeClass: 'text-rose-500', dotClass: 'bg-rose-500' },
 ];
-export const OTHERS_SLICE = { strokeClass: 'text-slate-400', dotClass: 'bg-slate-400' };
+export const OTHERS_SLICE = {
+  strokeClass: 'text-slate-400',
+  dotClass: 'bg-slate-400',
+};

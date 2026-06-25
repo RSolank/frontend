@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { domAnimation } from 'framer-motion';
 import { Suspense, useEffect, type ReactNode } from 'react';
 
 import {
@@ -142,11 +143,16 @@ export function Providers({ children }: ProvidersProps) {
         <FocusRingBridge />
         {/* App-wide motion foundation. Mounted here (not in a feature
             route) so every surface — incl. the pre-auth landing / auth /
-            onboarding flow — shares one LazyMotion context. The `m` shell
-            is the light part of framer; the animation feature chunk only
-            loads once an actual `m.*` component mounts, so wrapping the
-            whole tree is cheap and never weighs on first paint. */}
-        <MotionProvider>
+            onboarding flow — shares one LazyMotion context. We inject the
+            `domAnimation` bundle EAGERLY (rather than the lazy loader) so the
+            above-the-fold landing hero animates with framer on first paint —
+            a lazily-loaded feature chunk would leave the hero's headline
+            invisible (StaggerItem `initial: hidden`) until it streamed in.
+            This folds ~14 kB gz into the entry chunk; `size-limit` accounts
+            for it and `T-fe-perf` (B8) revisits. `LazyMotion strict` still
+            forces the light `m.*` shell and ships only domAnimation (not the
+            heavier domMax). */}
+        <MotionProvider features={domAnimation}>
           <Suspense fallback={null}>{children}</Suspense>
         </MotionProvider>
         {import.meta.env.DEV ? (

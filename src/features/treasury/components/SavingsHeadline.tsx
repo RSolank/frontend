@@ -1,3 +1,5 @@
+import { CountUpNumber } from '../../../shared/components/CountUpNumber';
+
 type Money = (n: number | null | undefined) => string;
 
 // Zone 1 — the headline. The hero number is "Set aside" (the funded
@@ -39,12 +41,15 @@ export function SavingsHeadline({
             className="mt-1 text-4xl font-semibold text-emerald-600 dark:text-emerald-400"
             data-testid="savings-funded-balance"
           >
-            {money(fundedBalance)}
+            <CountUpNumber value={fundedBalance} format={money} />
           </div>
         </div>
 
-        <dl className="flex gap-6">
-          <div>
+        {/* `items-end` + per-column `justify-end` bottom-align the two values, so
+            they stay level even when a longer label ("Owed to your future self")
+            wraps to two lines in a narrow card while "Coverage" stays on one. */}
+        <dl className="flex items-end gap-6">
+          <div className="flex flex-col justify-end">
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Owed to your future self
             </dt>
@@ -52,10 +57,10 @@ export function SavingsHeadline({
               className="mt-0.5 text-lg font-semibold text-slate-900 dark:text-slate-100"
               data-testid="savings-provisioned-total"
             >
-              {money(provisionedTotal)}
+              <CountUpNumber value={provisionedTotal} format={money} />
             </dd>
           </div>
-          <div>
+          <div className="flex flex-col justify-end">
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Coverage
             </dt>
@@ -63,7 +68,11 @@ export function SavingsHeadline({
               className="mt-0.5 text-lg font-semibold text-slate-900 dark:text-slate-100"
               data-testid="savings-coverage"
             >
-              {coveragePct == null ? '—' : `${coveragePct}%`}
+              {coveragePct == null ? (
+                '—'
+              ) : (
+                <CountUpNumber value={coveragePct} format={(n) => `${n}%`} />
+              )}
             </dd>
           </div>
         </dl>

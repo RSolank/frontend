@@ -67,8 +67,11 @@ wrapped by `protectedRoutes()`).
   query. **Top categories rank ROOT tags only** (`rootTagIds` from the
   tag tree, `parent == null`) so a parent (Utilities) and its child
   (Phone) aren't double-counted — a root already includes its descendants
-  via tag-lineage. The landing hero imports the **View** with fabricated
-  data so the mock can't drift from the app.
+  via tag-lineage. The pure-`View` split is what lets the landing page mount
+  real components with fabricated data (no drift): `ExpenseOverviewView` is the
+  "spend" beat of the landing's cycle showcase (beside `CurrentWeekTracker`) and
+  `SpendTrendView` rides its own showcase row. The landing **hero** itself leads
+  with the Savings visuals (`features/treasury`).
 - `components/SpendTrendCard.tsx` — **Zone 2**. A range selector
   (1W / 1M / 3M / 6M / YTD / 1Y / 2Y, default 6M) drives two queries
   (Total series + all-tag breakdown) ending at the page anchor; renders
@@ -85,13 +88,26 @@ wrapped by `protectedRoutes()`).
   Bars/line carry a y-axis (gridlines + compact money labels) and
   **controlled hover** (`hovered` / `onHover`): the chart-area owns the
   index and renders the value as an **HTML readout** above the chart (the
-  SVG is scaled non-uniformly, so in-chart value text would distort);
-  hovering emphasises the bar / point + drops a guide line. **Relocated to
-  `shared/`** (they were never budget-specific) so the Savings page
-  (`features/treasury`) and the landing showcases consume the same
-  primitives; colour defaults to `accent` and each chart takes per-instance
-  `*Class` overrides (`MiniBars.barClass`, `MiniLine.{line,area,dot}Class`,
-  `MiniDonut` per-slice `strokeClass`).
+  SVG is scaled `preserveAspectRatio="none"`, so any text *inside* it distorts);
+  hovering emphasises the bar / point + drops a guide line. For the same
+  distortion reason **both axes' labels are HTML, not SVG `<text>`** — the
+  x-axis is an absolutely-positioned row beneath the SVG (`XAxisLabels`,
+  `left%` from the 0–`W` space) and the y-axis gridline labels overlay the left
+  gutter (`YAxisLabels`, `top%` from the 0–`H` space); the gridlines themselves
+  stay SVG (horizontal lines survive the scale). They were illegibly squished as
+  SVG text in narrow containers. **Line area draw-in**: the soft area under
+  `MiniLine` is a static polygon revealed by an **animated clip rect** that grows
+  left-to-right in step with the line's `pathLength`, so the fill widens with the
+  line instead of fading in as a block. **Relocated to `shared/`** (they were
+  never budget-specific) so the Savings page (`features/treasury`), the dashboard
+  hero/analytics cards and the landing showcases consume the same primitives;
+  colour defaults to `accent` and each chart takes per-instance `*Class` overrides
+  (`MiniBars.barClass`, `MiniLine.{line,area,dot}Class`, `MiniDonut` per-slice
+  `strokeClass`).
+  - `SpendTrendCard`'s **breakdown** (`BreakdownArea`) lays the donut beside a
+    bounded-width legend (`w-36`), with the donut **centered in the remaining
+    space**; chart + breakdown sit **side-by-side from `md` up** (`md:grid-cols-[1fr_auto]`)
+    and only stack on phone widths (where the chart would shrink too far).
 - `components/BudgetCategoryCard.tsx` — **Zone 3** read-only card:
   label/value pairs (Spent / Limit / Avg) + a `<SpendGauge>` + a
   `<BudgetSignal>` in the header + a penalty-rate footnote. Min/Max no

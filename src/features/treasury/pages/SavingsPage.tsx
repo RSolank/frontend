@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
+import { Stagger, StaggerItem } from '../../../shared/motion';
 import { useTreasurySummaryQuery } from '../api/queries';
 import { SavingsComposition } from '../components/SavingsComposition';
 import { SavingsHeadline } from '../components/SavingsHeadline';
@@ -21,9 +22,7 @@ export function SavingsPage() {
   // tax levied yet. (funded > 0 with provisioned 0, or vice versa, is a real
   // in-progress state and renders the zones.)
   const isEmpty =
-    data != null &&
-    data.funded_balance === 0 &&
-    data.provisioned_total === 0;
+    data != null && data.funded_balance === 0 && data.provisioned_total === 0;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
@@ -65,22 +64,32 @@ export function SavingsPage() {
 
       {isEmpty && <EmptyState />}
 
+      {/* Motion is wired HERE, at the source — the cards enter with the two-beat
+          (card rises, then its count-up / chart draw animates) the same way they
+          do when the landing reuses them. So the Savings page is durable, not a
+          static mount of motion-capable cards. */}
       {data && !isEmpty && (
-        <div className="flex flex-col gap-4">
-          <SavingsHeadline
-            fundedBalance={data.funded_balance}
-            provisionedTotal={data.provisioned_total}
-            money={money}
-          />
-          {data.funded_balance > 0 && (
-            <SavingsComposition
-              recognized={data.recognized_revenue}
-              deferred={data.deferred_balance}
+        <Stagger className="flex flex-col gap-4">
+          <StaggerItem>
+            <SavingsHeadline
+              fundedBalance={data.funded_balance}
+              provisionedTotal={data.provisioned_total}
               money={money}
             />
+          </StaggerItem>
+          {data.funded_balance > 0 && (
+            <StaggerItem>
+              <SavingsComposition
+                recognized={data.recognized_revenue}
+                deferred={data.deferred_balance}
+                money={money}
+              />
+            </StaggerItem>
           )}
-          <SavingsTrend trend={data.trend} />
-        </div>
+          <StaggerItem>
+            <SavingsTrend trend={data.trend} />
+          </StaggerItem>
+        </Stagger>
       )}
     </div>
   );

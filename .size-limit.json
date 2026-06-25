@@ -1,8 +1,8 @@
 [
   {
-    "name": "initial JS (first paint) — incl. app-wide framer-motion core; ceiling sized for the eager landing, fe-perf (B8) ratchets back down",
+    "name": "initial JS (first paint) — incl. framer's app-wide core + the EAGER domAnimation bundle (the landing hero animates with framer on first paint, so features can't be lazy); ceiling raised for that, fe-perf (B8) ratchets back down",
     "path": "dist/assets/index-*.js",
-    "limit": "135 kB",
+    "limit": "150 kB",
     "gzip": true
   },
   {

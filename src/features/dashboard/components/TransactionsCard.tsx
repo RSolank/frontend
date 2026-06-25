@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { CountUpNumber } from '../../../shared/components/CountUpNumber';
@@ -7,6 +7,7 @@ import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
 import { weekRangeInTz } from '../../taxation/api/billPeriod';
 import { useTransactionsQuery } from '../../transactions/api/queries';
+import type { TransactionDTO } from '../../transactions/api/schemas';
 
 import { DashboardCard, DashboardCardEmpty } from './DashboardCard';
 
@@ -111,11 +112,49 @@ export function TransactionsCard() {
   }
 
   return (
+    <TransactionsCardView
+      recentTxns={recentTxns}
+      weekTotal={weekTotal}
+      weekCount={weekCount}
+      money={money}
+      timezone={timezone}
+      titleChip={titleChip}
+    />
+  );
+}
+
+interface TxnViewProps {
+  recentTxns: TransactionDTO[];
+  weekTotal: number;
+  weekCount: number;
+  money: (n: number | string | null | undefined) => string;
+  timezone: string;
+  titleChip: ReactNode;
+  // Display-only (the landing showcase): drop the navigating affordances — the
+  // "View all" footer link and the inline "Add transaction" CTA — so the card is
+  // a pure, non-interactive mock.
+  displayOnly?: boolean;
+}
+
+// Pure populated card — split out of the fetching container so the landing
+// showcase can mount it with fabricated transactions (no-drift with the real
+// dashboard card). The empty/loading states stay in the container.
+export function TransactionsCardView({
+  recentTxns,
+  weekTotal,
+  weekCount,
+  money,
+  timezone,
+  titleChip,
+  displayOnly = false,
+}: TxnViewProps) {
+  return (
     <DashboardCard
       title="Transactions"
       titleChip={titleChip}
       footerHref="/transactions"
       footerLabel="View all"
+      footerAsText={displayOnly}
       testId="dashboard-transactions-card"
     >
       {/* Stat strip — weekly spend + count of debits. money class is
@@ -174,19 +213,36 @@ export function TransactionsCard() {
        * Inline "Add transaction" affordance — also surfaced via the
        * card footer's destination page, but having the CTA inline
        * matches the design choice 'every card gets a primary action'.
+       * In display-only mode (the landing mock) it stays VISIBLE — same shared
+       * classes, so no drift from the dashboard — but renders as an inert span
+       * (no navigation, no pointer interaction) instead of a Link.
        */}
       <div className="mt-3">
-        <Link
-          to="/transactions?add=true"
-          className="border-accent-200 bg-accent-50 text-accent-700 hover:border-accent-300 hover:bg-accent-100 focus-visible:ring-accent-500 dark:border-accent-900 dark:bg-accent-950/50 dark:text-accent-200 dark:hover:bg-accent-950/70 inline-flex w-full items-center justify-center rounded-md border px-3 py-1.5 text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none"
-          data-testid="dashboard-transactions-add-cta"
-        >
-          Add transaction
-        </Link>
+        {displayOnly ? (
+          <span
+            aria-disabled="true"
+            className={`${ADD_CTA_CLASS} pointer-events-none`}
+          >
+            Add transaction
+          </span>
+        ) : (
+          <Link
+            to="/transactions?add=true"
+            className={ADD_CTA_CLASS}
+            data-testid="dashboard-transactions-add-cta"
+          >
+            Add transaction
+          </Link>
+        )}
       </div>
     </DashboardCard>
   );
 }
+
+// Shared styling for the "Add transaction" affordance so the display-only span
+// (landing) and the real Link (dashboard) can never visually drift.
+const ADD_CTA_CLASS =
+  'border-accent-200 bg-accent-50 text-accent-700 hover:border-accent-300 hover:bg-accent-100 focus-visible:ring-accent-500 dark:border-accent-900 dark:bg-accent-950/50 dark:text-accent-200 dark:hover:bg-accent-950/70 inline-flex w-full items-center justify-center rounded-md border px-3 py-1.5 text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none';
 
 interface StatProps {
   label: string;

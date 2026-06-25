@@ -38,6 +38,79 @@ export function UpcomingBillsWidget() {
   const hasMore = (upcoming.data?.length ?? 0) > MAX_ROWS;
 
   return (
+    <UpcomingBillsView
+      isLoading={upcoming.isLoading}
+      bills={bills}
+      benNames={benNames}
+      money={money}
+      hasMore={hasMore}
+      timezone={timezone}
+      onManage={() => navigate('/recurring')}
+    />
+  );
+}
+
+interface ViewProps {
+  bills: RecurringBill[];
+  benNames: Map<number, string>;
+  money: (n: number | string | null | undefined) => string;
+  timezone: string;
+  isLoading?: boolean;
+  hasMore?: boolean;
+  // Header "Manage" affordance. The dashboard passes `onManage` (deep-links to
+  // /recurring). The landing showcase passes `displayOnly` so the same button
+  // (shared styling → no drift from the widget) stays VISIBLE but inert.
+  onManage?: () => void;
+  displayOnly?: boolean;
+}
+
+// Shared styling for the "Manage" affordance so the inert display-only span
+// (landing) and the real button (dashboard) can never visually drift.
+const MANAGE_CLASS =
+  'text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none';
+
+// The header "Manage" affordance: a real button on the dashboard (navigates via
+// `onManage`); an inert, identical-looking span on the display-only landing.
+function ManageAction({
+  onManage,
+  displayOnly,
+}: {
+  onManage?: () => void;
+  displayOnly: boolean;
+}) {
+  if (displayOnly) {
+    return (
+      <span
+        aria-disabled="true"
+        className={`${MANAGE_CLASS} pointer-events-none`}
+      >
+        Manage
+      </span>
+    );
+  }
+  if (onManage) {
+    return (
+      <button type="button" onClick={onManage} className={MANAGE_CLASS}>
+        Manage
+      </button>
+    );
+  }
+  return null;
+}
+
+// Pure card — header + the forecast list. Split out of the fetching widget
+// so the landing showcase can mount it with fabricated bills.
+export function UpcomingBillsView({
+  bills,
+  benNames,
+  money,
+  timezone,
+  isLoading = false,
+  hasMore = false,
+  onManage,
+  displayOnly = false,
+}: ViewProps) {
+  return (
     <section
       data-testid="dashboard-upcoming"
       aria-labelledby="upcoming-heading"
@@ -51,16 +124,10 @@ export function UpcomingBillsWidget() {
           <CalendarClock size={14} aria-hidden className="text-accent-500" />
           Upcoming bills · 7d
         </h3>
-        <button
-          type="button"
-          onClick={() => navigate('/recurring')}
-          className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-        >
-          Manage
-        </button>
+        <ManageAction onManage={onManage} displayOnly={displayOnly} />
       </header>
       <UpcomingBody
-        isLoading={upcoming.isLoading}
+        isLoading={isLoading}
         bills={bills}
         benNames={benNames}
         money={money}
