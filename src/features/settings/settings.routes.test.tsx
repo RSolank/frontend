@@ -6,8 +6,9 @@ import { describe, expect, it } from 'vitest';
 
 import { settingsRoutes } from './settings.routes';
 
-// Smoke tests for the Batch 9 settings shell:
-//  - /settings index redirects to /settings/categories
+// Smoke tests for the settings shell:
+//  - /settings index redirects to /settings/beneficiaries (T-nav-ia-reorg
+//    made Beneficiaries the first sidebar entry + default landing tab)
 //  - SettingsLayout breadcrumb + sidebar render around each child
 //
 // No tests for legacy /categories or /categorization-rules redirects —
@@ -55,9 +56,9 @@ async function expectActiveBreadcrumb(label: string) {
 }
 
 describe('settingsRoutes', () => {
-  it('/settings redirects to /settings/categories', async () => {
+  it('/settings redirects to /settings/beneficiaries', async () => {
     renderAt('/settings');
-    await expectActiveBreadcrumb('Categories');
+    await expectActiveBreadcrumb('Beneficiaries');
   });
 
   it('shell exposes all sidebar links at their canonical /settings/* paths', async () => {
@@ -68,6 +69,12 @@ describe('settingsRoutes', () => {
     });
     expect(navs).toHaveLength(2); // mobile + desktop, both in DOM
     for (const nav of navs) {
+      expect(
+        within(nav).getByRole('link', { name: 'Beneficiaries' })
+      ).toHaveAttribute('href', '/settings/beneficiaries');
+      expect(
+        within(nav).getByRole('link', { name: 'Recurring' })
+      ).toHaveAttribute('href', '/settings/recurring');
       expect(
         within(nav).getByRole('link', { name: 'Categories' })
       ).toHaveAttribute('href', '/settings/categories');

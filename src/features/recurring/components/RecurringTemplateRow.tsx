@@ -109,7 +109,7 @@ export function RecurringTemplateRow({
           <button
             type="button"
             onClick={onConfirm}
-            className="bg-success-600 hover:bg-success-700 focus-visible:ring-success-500 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="tap-press bg-success-600 hover:bg-success-700 focus-visible:ring-success-500 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
             data-testid={`recurring-confirm-${template.uid}`}
           >
             <CheckCircle2 size={14} aria-hidden />
@@ -119,7 +119,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onEdit}
-          className="focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="tap-press focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid={`recurring-edit-${template.uid}`}
         >
           <Pencil size={14} aria-hidden />
@@ -128,7 +128,7 @@ export function RecurringTemplateRow({
         <button
           type="button"
           onClick={onDismiss}
-          className="text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          className="tap-press text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
           data-testid={`recurring-dismiss-${template.uid}`}
         >
           <X size={14} aria-hidden />

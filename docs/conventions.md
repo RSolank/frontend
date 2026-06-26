@@ -1067,9 +1067,61 @@ below-fold load with `useLoadOnApproach()`. Mirror this for any entry-chunk page
 positioning *wrapper* while framer animates the inner *panel*, so the rise never fights
 the `-translate` transform (the reason CSS-only failed here). Every dialog inherits it,
 no per-page wiring; reduced motion → instant. It also publishes a **settled-after-open**
-signal (`StaggerSettledContext`), so a modal's fields rise as a second beat once wrapped
-in `<StaggerItem>`. The **per-field rise + emerge-from-launch-site** is the per-modal
-work in `motion-rollout-appwide.md`.
+signal (`StaggerSettledContext`) consumed by the field reveal below. T-nav-ia-reorg added
+the **`originRef` API**: pass the launching element's ref and the panel **flies out of it**
+and collapses back into it (center-screen fallback when omitted — every existing consumer
+is untouched). That's the *infra*; the per-surface wiring (each modal passing its trigger
+ref) is the plumbing job in `motion-rollout-appwide.md`.
+
+**Shared motion primitives (T-nav-ia-reorg — the rollout *consumes*, never re-authors).**
+Each motion is defined once and imported everywhere, so a change in one place reflects
+app-wide (DRY):
+
+- **In-modal field reveal (3-beat)** — `shared/motion`: wrap a modal's field groups in
+  **`<ModalReveal ready={…}>`** + **`<RevealField>`**. Panel lands → fields fade to 0 timed
+  to the land → fields rise once **settled AND `ready`** (`useStabilizedEntrance`, 400 ms
+  fallback so a slow fetch never strands it). `ready` = that surface's all-data-loaded flag.
+  A modal that doesn't adopt the wrappers renders fields static (default no-motion).
+  Reference consumers: bell / recurring / beneficiary / merge.
+- **Field mutation** — `shared/motion`: **`<MutationPresence>`** + the **`mutationItemProps`**
+  spread on each keyed `m.*` item → a derived field (e.g. assigned-tag chips) **fades the old
+  / rises the new** every time its content recomputes. Keep `m.*` the direct child of
+  `<MutationPresence>` so framer can animate its exit.
+- **Menus & popovers** — `shared/components`: one **`MENU_SURFACE`** (`menuSurface.ts` — chrome
+  + `data-[state]` fade, the single source) feeds **`<Menu>`** (Radix DropdownMenu — link/action
+  menus that close on select) **and** **`<Popover>`** (Radix Popover — surfaces of arbitrary
+  controls that stay open). Both inherit Radix's **native dismiss** (item-select / Escape /
+  outside-click) + the fade-out from Presence, so **no dropdown hand-rolls dismissal** — the
+  exact failure the accessibility popover hit before. Two primitives (different ARIA: `role=menu`
+  closes-on-select vs `role=dialog` stays-open), one surface. `@radix-ui/react-popover` rides the
+  lazy menu chunk (stub-then-hydrate triggers), so it's **0 kB on first paint** — only import
+  `<Popover>` from a lazily-loaded surface to keep it that way.
+  **Carve-out — do NOT migrate these onto `<Menu>`/`<Popover>`:** `SearchableSelect` is a
+  **combobox** (`role=combobox`/`listbox`/`option` + typeahead + keyboard nav) — a different
+  primitive than a `role=menu` DropdownMenu, and Radix has no filterable-combobox; forcing it
+  over would be semantically wrong and risk the tested keyboard logic. Native `<select>`s
+  (type filters, direction/cadence) are native form controls — keep them native. Use `<Menu>`/
+  `<Popover>` only where the surface is *genuinely* a menu of actions/links or a popover of
+  controls.
+
+**Interaction feedback.** The shared **`.tap-press`** token (`index.css`) is the app-wide
+premium tap-feedback: a subtle `active:scale` springing back via `transition-transform`,
+**framer-free + universal** (button / link / NavLink), so the rollout drops it onto any
+button by adding one class. The **`<Button>`** primitive (`shared/components/Button.tsx`)
+bakes it in (variants: `primary` / `secondary` / `ghost` / `danger`; first real consumers:
+the recurring + beneficiaries page CTAs); the TopNav main `NavLink`s apply the raw class.
+The **bell** rings (a framer rotate wobble) on first paint, on hover/focus, and on a
+periodic beat while unseen. Reduced motion neutralizes all of it.
+
+**The `.tap-press` rule (T-nav-ia-reorg #6 — adopt app-wide).** Every **standalone
+click target** carries `.tap-press` (directly, or via `<Button>`): buttons, icon
+buttons, dropdown triggers (e.g. SearchableSelect's chevron/clear), tab buttons, and
+standalone link-CTAs (`<Link>` / `<NavLink>` styled as an action — add `inline-block`
+so the `transform` actually applies; inline elements ignore it). **Two exceptions:**
+(1) **inline text links inside prose** — a scale nudges the surrounding words and inline
+elements don't transform cleanly; (2) **dropdown option rows** — they fire on
+`mousedown`, so the press-scale never renders and the highlight already gives feedback.
+New feature work wires this in as it adds interactive controls.
 
 Out of scope for the scaffold: route/step **transitions** (AnimatePresence) — see
 `motion-rollout-appwide.md`.

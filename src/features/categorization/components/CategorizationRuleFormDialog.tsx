@@ -286,10 +286,12 @@ function useRuleForm({
     [editingRule]
   );
 
-  const isDirty = useMemo(() => {
-    if (!isEditing) return true;
-    return JSON.stringify(form) !== JSON.stringify(originalForm);
-  }, [isEditing, form, originalForm]);
+  // Honest changed-from-initial check (drives the discard-confirm). Create-mode
+  // Save is gated on validity (a beneficiary), not dirtiness — see submitDisabled.
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(originalForm),
+    [form, originalForm]
+  );
 
   // Tag diff vs the persisted rule (edit mode only) — drives the
   // added/removed preview so the user sees the change before saving. `null`
@@ -411,7 +413,10 @@ function useRuleForm({
   });
 
   const saveDisabled =
-    submit.busy || !!beneficiaryConflict || !form.beneficiary_id || !isDirty;
+    submit.busy ||
+    !!beneficiaryConflict ||
+    !form.beneficiary_id ||
+    (isEditing && !isDirty);
 
   return {
     form,

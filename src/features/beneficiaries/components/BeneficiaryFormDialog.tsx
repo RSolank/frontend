@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
 import {
@@ -63,6 +63,10 @@ interface BeneficiaryFormDialogProps {
   // When set, an icon-only Trash button renders in the modal header
   // for edit mode. Parent owns the confirm + mutation flow.
   onRequestRemove?: () => void;
+  // Modal motion origin (T-nav-ia-reorg #6): the dialog grows out of — and
+  // collapses back onto — this element (the Add CTA, or the clicked row in
+  // edit mode). Forwarded to <Modal>.
+  originRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface UseBeneficiaryFormArgs {
@@ -95,6 +99,12 @@ function useBeneficiaryForm({
     [beneficiary, initialName, initialType]
   );
   const [form, setForm] = useState<BeneficiaryFormInput>(initialForm);
+  // Mutable baseline for the dirty check. Starts at `initialForm`, but a person's
+  // category is seeded ASYNC from its categorization rule (no person.category
+  // column) in BeneficiaryFormFields — that's persisted state, not a user edit,
+  // so `syncBaselineCategory` folds it into the baseline (only when empty) to
+  // stop it reading as a spurious change.
+  const [baseline, setBaseline] = useState<BeneficiaryFormInput>(initialForm);
   const [aliasesInvalid, setAliasesInvalid] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,16 +112,27 @@ function useBeneficiaryForm({
   useEffect(() => {
     if (open) {
       setForm(initialForm);
+      setBaseline(initialForm);
       setAliasesInvalid(false);
       setError(null);
       setSaving(false);
     }
   }, [open, initialForm]);
 
-  const isDirty = useMemo(() => {
-    if (!isEditing) return true;
-    return JSON.stringify(form) !== JSON.stringify(initialForm);
-  }, [isEditing, form, initialForm]);
+  const syncBaselineCategory = useCallback((category: string) => {
+    // Only fill an empty baseline category (the person-seed case); never
+    // overwrite a merchant's already-loaded category.
+    setBaseline((b) => (b.category ? b : { ...b, category }));
+  }, []);
+
+  // Honest "did the user change anything from the baseline" — drives the
+  // discard-confirm + dismiss label. NOT the Save gate (a pristine create must
+  // not prompt on close, but a prefilled create must still be saveable — see
+  // canSave, which gates create on validity instead of dirtiness).
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(baseline),
+    [form, baseline]
+  );
 
   async function handleSave() {
     setError(null);
@@ -154,6 +175,7 @@ function useBeneficiaryForm({
     form,
     setForm,
     setAliasesInvalid,
+    syncBaselineCategory,
     isEditing,
     isDirty,
     saving,
@@ -162,7 +184,11 @@ function useBeneficiaryForm({
     title: isEditing ? beneficiary.name || 'Beneficiary' : 'New beneficiary',
     dismissLabel: isDirty ? 'Cancel' : 'Close',
     // Single source of truth for the Save button's enabled state.
-    canSave: !saving && !aliasesInvalid && isDirty && Boolean(form.name.trim()),
+    canSave:
+      !saving &&
+      !aliasesInvalid &&
+      (!isEditing || isDirty) &&
+      Boolean(form.name.trim()),
     handleSave,
   };
 }
@@ -182,11 +208,13 @@ export function BeneficiaryFormDialog({
   initialType = 'merchant',
   onRequestMerge,
   onRequestRemove,
+  originRef,
 }: BeneficiaryFormDialogProps) {
   const {
     form,
     setForm,
     setAliasesInvalid,
+    syncBaselineCategory,
     isEditing,
     isDirty,
     saving,
@@ -210,6 +238,7 @@ export function BeneficiaryFormDialog({
       onClose={onClose}
       size="md"
       title={title}
+      originRef={originRef}
       confirmOnDirty
       isDirty={isDirty}
       headerActions={
@@ -220,7 +249,7 @@ export function BeneficiaryFormDialog({
             disabled={saving}
             aria-label="Remove beneficiary"
             title="Remove beneficiary"
-            className="text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="tap-press text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 dark:hover:text-danger-300 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="beneficiary-form-remove"
           >
             <Trash2 aria-hidden size={16} />
@@ -234,7 +263,7 @@ export function BeneficiaryFormDialog({
               type="button"
               onClick={onRequestMerge}
               disabled={saving}
-              className="border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 mr-auto rounded-md border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="tap-press border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 mr-auto rounded-md border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               Merge…
             </button>
@@ -243,7 +272,7 @@ export function BeneficiaryFormDialog({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="tap-press rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {dismissLabel}
           </button>
@@ -251,7 +280,7 @@ export function BeneficiaryFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="btn-primary !w-auto"
+            className="tap-press btn-primary !w-auto"
           >
             {saveLabel(saving, isEditing)}
           </button>
@@ -259,10 +288,18 @@ export function BeneficiaryFormDialog({
       }
     >
       <BeneficiaryFormFields
+        // Remount on every beneficiary switch so the child's internal state
+        // (ruleTags, the seeded category, loadedCount) can't bleed from the
+        // previously-opened one. The Modal keeps content mounted through its
+        // exit animation, so a quick close→reopen would otherwise reuse the same
+        // instance and flash the prior beneficiary's category + chips
+        // (T-nav-ia-reorg #6 stale-form fix).
+        key={beneficiary?.uid ?? 'new'}
         form={form}
         setForm={setForm}
         excludeUid={beneficiary?.uid ?? null}
         onAliasValidityChange={setAliasesInvalid}
+        onSyncBaselineCategory={syncBaselineCategory}
       />
       {error && <div className="form-error mt-2">{error}</div>}
     </Modal>

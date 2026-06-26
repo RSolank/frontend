@@ -24,13 +24,11 @@ export function CadenceAnchorField({ form, onChange }: Props) {
   if (form.cadence === 'WEEKLY') {
     return (
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-slate-700 dark:text-slate-300">
-          Day of week
-        </span>
+        <span className="form-label">Day of week</span>
         <select
           value={form.day_of_week}
           onChange={(e) => onChange({ ...form, day_of_week: e.target.value })}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+          className="form-input"
         >
           <option value="">No anchor</option>
           {DAY_OF_WEEK_LABELS.map((label, idx) => (
@@ -46,9 +44,7 @@ export function CadenceAnchorField({ form, onChange }: Props) {
   // month from next_due_date / anchor_date on the BE side.
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-slate-700 dark:text-slate-300">
-        Day of month
-      </span>
+      <span className="form-label">Day of month</span>
       <input
         type="number"
         min="1"
@@ -56,7 +52,7 @@ export function CadenceAnchorField({ form, onChange }: Props) {
         value={form.day_of_month}
         onChange={(e) => onChange({ ...form, day_of_month: e.target.value })}
         placeholder="1-31 (optional)"
-        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+        className="form-input"
       />
     </label>
   );

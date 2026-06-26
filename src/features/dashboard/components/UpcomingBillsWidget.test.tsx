@@ -19,7 +19,7 @@ describe('UpcomingBillsWidget', () => {
     );
   });
 
-  test('renders up to MAX_ROWS bills + a "more in /recurring" hint', async () => {
+  test('renders up to MAX_ROWS bills + a "more in Recurring" hint', async () => {
     const bills = Array.from({ length: 7 }, (_, i) => ({
       uid: i + 1,
       template_id: 1,
@@ -51,6 +51,6 @@ describe('UpcomingBillsWidget', () => {
     );
     // 5 rows max (MAX_ROWS = 5)
     expect(screen.getAllByTestId(/dashboard-upcoming-row-/)).toHaveLength(5);
-    expect(screen.getByText(/more in \/recurring/i)).toBeInTheDocument();
+    expect(screen.getByText(/more in Recurring/i)).toBeInTheDocument();
   });
 });

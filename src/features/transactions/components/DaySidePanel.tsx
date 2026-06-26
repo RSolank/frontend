@@ -153,7 +153,7 @@ export function DaySidePanel({
                         <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                           {t.beneficiary_id ? (
                             <Link
-                              to={`/beneficiaries/${t.beneficiary_id}`}
+                              to={`/settings/beneficiaries?edit=${t.beneficiary_id}`}
                               className="text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
                             >
                               {t.beneficiary_name || '—'}

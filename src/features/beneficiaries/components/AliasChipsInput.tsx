@@ -148,7 +148,7 @@ export function AliasChipsInput({
               type="button"
               onClick={handleAdd}
               disabled={!canAdd}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:disabled:bg-slate-900/40 dark:disabled:text-slate-500"
+              className="tap-press rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:disabled:bg-slate-900/40 dark:disabled:text-slate-500"
             >
               Add alias
             </button>
@@ -174,7 +174,7 @@ export function AliasChipsInput({
                   type="button"
                   onClick={() => handleRemove(a)}
                   aria-label={`Remove alias ${a}`}
-                  className="text-accent-500 dark:text-accent-400 ml-0.5 text-base leading-none font-bold"
+                  className="tap-press text-accent-500 dark:text-accent-400 ml-0.5 text-base leading-none font-bold"
                 >
                   ×
                 </button>

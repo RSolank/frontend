@@ -112,7 +112,7 @@ export function SectionedPageLayout({
 
 function mobileTabClass({ isActive }: { isActive: boolean }): string {
   return [
-    'inline-flex min-h-[44px] items-center px-3 py-2 text-sm font-medium no-underline transition-colors',
+    'tap-press inline-flex min-h-[44px] items-center px-3 py-2 text-sm font-medium no-underline transition-colors',
     'border-b-2 -mb-px whitespace-nowrap',
     isActive
       ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
@@ -123,7 +123,7 @@ function mobileTabClass({ isActive }: { isActive: boolean }): string {
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }): string {
   return [
-    'block rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors',
+    'tap-press block rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors',
     isActive
       ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300'
       : 'text-slate-700 hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300',

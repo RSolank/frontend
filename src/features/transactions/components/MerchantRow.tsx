@@ -45,7 +45,7 @@ export function MerchantRow({
       {/* Beneficiary name — primary identity. */}
       <div className="min-w-0 flex-1">
         <Link
-          to={`/beneficiaries/${beneficiaryId}`}
+          to={`/settings/beneficiaries?edit=${beneficiaryId}`}
           className="text-accent-700 hover:text-accent-800 dark:text-accent-300 dark:hover:text-accent-200 truncate text-sm font-medium"
         >
           {beneficiaryName}

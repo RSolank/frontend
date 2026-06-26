@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
 
+import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
 import { useMoneyFormatter } from '../../../shared/hooks/useMoneyFormatter';
+import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { formatDate } from '../../../shared/utils/dateUtils';
+import { highlightClass } from '../../../shared/utils/highlight';
 import { useBeneficiariesQuery } from '../../beneficiaries/api/queries';
 import { useRecurringUpcomingQuery } from '../api/queries';
 import type { RecurringBill } from '../api/schemas';
@@ -21,6 +24,16 @@ export function UpcomingBillsList({ days }: Props) {
   const timezone = usePreferencesStore((s) => s.timezone);
   const upcoming = useRecurringUpcomingQuery(days);
   const benQuery = useBeneficiariesQuery();
+
+  // Deep-link from a recurring bill activity signal:
+  // `/settings/recurring?tab=upcoming&bill=<uid>` flashes + scrolls the row
+  // once the list has loaded, then consumes the param (shared highlight infra).
+  const highlight = useRowHighlight<string>();
+  useDeepLinkHighlight({
+    param: 'bill',
+    flash: highlight.flash,
+    ready: !upcoming.isLoading,
+  });
   const benById = useMemo(() => {
     const m = new Map<number, string>();
     for (const b of benQuery.data ?? []) m.set(b.uid, b.name);
@@ -54,6 +67,7 @@ export function UpcomingBillsList({ days }: Props) {
           }
           moneyLabel={money(bill.expected_amount)}
           timezone={timezone}
+          highlighted={highlight.id === String(bill.uid)}
         />
       ))}
     </ul>
@@ -65,15 +79,18 @@ function UpcomingRow({
   beneficiaryName,
   moneyLabel,
   timezone,
+  highlighted,
 }: {
   bill: RecurringBill;
   beneficiaryName: string;
   moneyLabel: string;
   timezone: string;
+  highlighted: boolean;
 }) {
   return (
     <li
-      className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+      id={`bill-${bill.uid}`}
+      className={`flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900 ${highlightClass(highlighted)}`}
       data-testid={`upcoming-row-${bill.uid}`}
     >
       <div className="flex min-w-0 flex-col">

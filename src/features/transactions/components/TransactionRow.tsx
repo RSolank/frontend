@@ -75,7 +75,7 @@ export function TransactionRow({
         <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
           {txn.beneficiary_id ? (
             <Link
-              to={`/beneficiaries/${txn.beneficiary_id}`}
+              to={`/settings/beneficiaries?edit=${txn.beneficiary_id}`}
               className="text-accent-700 hover:text-accent-800 dark:text-accent-300 dark:hover:text-accent-200"
               onClick={(e) => e.stopPropagation()}
             >

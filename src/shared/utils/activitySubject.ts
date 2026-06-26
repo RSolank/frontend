@@ -22,6 +22,41 @@ export interface ActivitySubjectMeta {
   ctaLabel: string;
 }
 
+// The `recurring` subject's CTA, split out so `subjectMeta`'s switch stays
+// flat. subject_id is the slot key: `tmpl:<uid>` for the pattern-detected
+// signal, `bill:<uid>` for the two bill signals. Point each CTA at its own row
+// on the recurring settings page — the deep-link highlight (useDeepLinkHighlight)
+// flashes + scrolls the target on arrival.
+function recurringSubjectMeta(
+  item: ActivityFeedItem,
+  subjectId: string
+): ActivitySubjectMeta {
+  const targetId = subjectId.includes(':')
+    ? subjectId.slice(subjectId.indexOf(':') + 1)
+    : subjectId;
+  const enc = encodeURIComponent(targetId);
+  if (item.kind === 'recurring_pattern_detected') {
+    return {
+      href: `/settings/recurring?template=${enc}`,
+      ctaLabel: 'View template',
+    };
+  }
+  if (
+    item.kind === 'recurring_bill_pending' ||
+    item.kind === 'recurring_bill_upcoming'
+  ) {
+    return {
+      href: `/settings/recurring?tab=upcoming&bill=${enc}`,
+      ctaLabel:
+        item.kind === 'recurring_bill_pending'
+          ? 'Review bill due'
+          : 'View upcoming bill',
+    };
+  }
+  // Any other recurring-domain signal: land on the page itself.
+  return { href: '/settings/recurring', ctaLabel: 'Open recurring' };
+}
+
 export function subjectMeta(item: ActivityFeedItem): ActivitySubjectMeta {
   const subjectType = item.subject_type;
   const subjectId = item.subject_id;
@@ -39,7 +74,7 @@ export function subjectMeta(item: ActivityFeedItem): ActivitySubjectMeta {
         ctaLabel: 'Open tax settings',
       };
     case 'recurring':
-      return { href: '/transactions', ctaLabel: 'Open transactions' };
+      return recurringSubjectMeta(item, subjectId);
     case 'account':
       return { href: '/account/profile', ctaLabel: 'Open account' };
     case 'account_security':
@@ -49,10 +84,10 @@ export function subjectMeta(item: ActivityFeedItem): ActivitySubjectMeta {
     case 'device':
       return { href: '/account/security', ctaLabel: 'Review devices' };
     case 'new_payees':
-      return { href: '/beneficiaries', ctaLabel: 'Review payees' };
+      return { href: '/settings/beneficiaries', ctaLabel: 'Review payees' };
     case 'beneficiary':
       return {
-        href: `/beneficiaries/${encodeURIComponent(subjectId)}`,
+        href: `/settings/beneficiaries?edit=${encodeURIComponent(subjectId)}`,
         ctaLabel: 'Open payee',
       };
     case 'bank_account':

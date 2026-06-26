@@ -3,11 +3,14 @@ import {
   type SectionSpec,
 } from '../../../shared/components/SectionedPageLayout';
 
-// The three live settings surfaces. Beneficiaries stays at top-level
-// /beneficiaries (heavy cross-feature deep-linking from transactions +
-// categorization rules — keeping it out of the sidebar shortens the
-// reach for the most common settings-adjacent flow).
+// The live settings surfaces. Beneficiaries leads the list (re-homed
+// here from the MAIN nav row in T-nav-ia-reorg and made the default
+// landing tab — the /settings index redirects to it), followed by
+// Recurring (also re-homed out of MAIN). Both carry heavy cross-feature
+// deep-linking, which is what makes them settings-adjacent.
 export const SETTINGS_SECTIONS: SectionSpec[] = [
+  { path: '/settings/beneficiaries', label: 'Beneficiaries' },
+  { path: '/settings/recurring', label: 'Recurring' },
   { path: '/settings/categories', label: 'Categories' },
   { path: '/settings/categorization-rules', label: 'Categorization Rules' },
   { path: '/settings/taxation-rules', label: 'Taxation Rules' },

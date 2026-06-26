@@ -21,8 +21,9 @@
   tax mode auto-disabled, etc.
 - Honor the BE-owned **ranking** (the FE never re-sorts) and the
   BE-owned **event_class** split (NOTIFICATION vs ALERT) — Alerts
-  outrank Notifications in the same surface, but ordering inside
-  each section is BE rank-order.
+  outrank Notifications in the same surface; inside each section the
+  bell clusters items by `domain` under sub-headers (Strategy A) while
+  preserving BE rank-order (clusters, never re-sorts).
 - Surface a 3-state acknowledgement model — UNSEEN → soft-acked
   (rendered) → hard-acked (clicked). The BE owns dedupe; the FE
   fires the seen mutations.
@@ -39,7 +40,7 @@ endpoint set:
 | Surface                                                                                                                                                                      | What it renders                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Owner                                    |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | **TopNav bell** — [`shared/components/ActivityBell.tsx`](../../src/shared/components/ActivityBell.tsx)                                                                       | Lazy-loaded modal trigger. Badge counts UNSEEN items across both classes with a "5+" cap. Lives on every authenticated page.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | App shell                                |
-| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx)                                                     | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs). Capped at 10 items total, with the split between sections driven by BE rank order. Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click — row click now opens **`<ActivityDetailModal>` in place** (Batch 20 UAT, `0791964`) rather than full-page deep-linking, with per-subject CTAs surfaced inside. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell                                |
+| **Activity feed modal** — [`shared/components/ActivityFeedModal.tsx`](../../src/shared/components/ActivityFeedModal.tsx)                                                     | Lazy chunk imported by the bell on first click. Renders Alerts section, then Notifications section, in the same modal (not tabs), each clustered by `domain` under sub-headers (Strategy A — see `groupByDomain`). Capped at 10 items total; the split + ordering are BE rank-driven (the FE clusters but never re-sorts). Soft-acks on render (once per `event_id` per session via `SEEN_THIS_SESSION` set), hard-acks on row click — row click now opens **`<ActivityDetailModal>` in place** (Batch 20 UAT, `0791964`) rather than full-page deep-linking, with per-subject CTAs surfaced inside. "All clear — nothing new" empty state. "Manage notifications →" footer link to `/account/notifications`. | App shell                                |
 | **Activity detail modal** — [`shared/components/ActivityDetailModal.tsx`](../../src/shared/components/ActivityDetailModal.tsx)                                               | In-place expansion of a single activity row. Hosts the per-subject CTAs derived from [`shared/utils/activitySubject.ts`](../../src/shared/utils/activitySubject.ts) (`subjectMeta()` maps each `subject_type` → CTA label + deep-link target). Replaces the prior full-page-navigation pattern so users stay in the feed context.                                                                                                                                                                                                                                                                       | App shell                                |
 | **User Notifications tab** — [`features/account/pages/AccountNotificationsPage.tsx`](../../src/features/account/pages/AccountNotificationsPage.tsx)                          | Per-kind enable/disable for the user's own feed. Renders the shared `<SignalSettingsEditor viewerRole="user">`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [account.md](account.md) § Notifications |
 | **Admin user-detail signal section** — `<SignalSettingsSection>` in [`features/admin/pages/AdminUserDetailPage.tsx`](../../src/features/admin/pages/AdminUserDetailPage.tsx) | Per-user disable for the admin'd account + system-wide catalog tunables (priority / rank_order / system_enabled). Renders the shared `<SignalSettingsEditor viewerRole="admin">` with `onTune` wired.                                                                                                                                                                                                                                                                                                                                                                                                   | [admin.md](admin.md) § Pages             |
@@ -71,11 +72,30 @@ Lazy-loaded modal opened by the bell. Fetches the feed once
 2. **Notifications section** — items where
    `event_class === 'notification'`.
 
-Within each section, the BE rank order is preserved verbatim
-(`magnitude` + `rank_order` + `priority` are server-resolved into
-a deterministic order). Section headers render only when the
-section is non-empty; "All clear — nothing new" renders when both
-are empty.
+Within each section, items are clustered by `domain` under a
+sub-header via [`groupByDomain`](../../src/shared/utils/activityDomain.ts)
+(T-nav-ia-reorg, **Strategy A**): domain groups appear in the order of
+each domain's highest-ranked member (its first appearance in the
+rank-ordered slice) and items inside a group keep their BE order. This
+**clusters** the existing order under headers — it never re-sorts, so the
+BE rank order (`magnitude` + `rank_order` + `priority`, server-resolved)
+is preserved as far as a contiguous grouping allows. `domainLabel` maps
+the raw domain to a friendly header (curated for the 7 known domains,
+title-cased fallback otherwise). Section headers (and domain sub-headers)
+render only when non-empty; "All clear — nothing new" renders when both
+sections are empty.
+
+> Domain grouping is what let the **Recurring** page leave the MAIN nav
+> row (T-nav-ia-reorg): its upcoming/pending bills already arrive as
+> `recurring`-domain signals and now surface under a "Recurring" header,
+> with the full forecast a click away under `/settings/recurring`. The
+> 7-day / weekly-refresh / authorized-templates-only limits of those
+> signals are accepted, since the live forecast lives on the page.
+>
+> Note: `SignalSettingsEditor` keeps its **own** older `DOMAIN_LABELS`
+> map (keyed `tax`/`budget`/`auth`, not the registry's
+> `taxation`/`budgets`/…), so the two are not yet unified — see the
+> follow-up note in the task log.
 
 **Acknowledgement model:**
 

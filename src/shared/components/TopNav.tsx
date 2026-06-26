@@ -14,6 +14,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
 import { resolveBrandLogoUrl, useBrandingQuery } from '../api/branding';
+import { Stagger, StaggerItem } from '../motion';
 import { useAuthStore } from '../state/auth.store';
 
 import { AccessibilityPopover } from './AccessibilityPopover';
@@ -58,17 +59,18 @@ const MAIN_LINKS: NavLinkSpec[] = [
   // Sits after Tax Tracker — it's the savings side of the taxation → savings
   // → investments spine.
   { to: '/treasury', label: 'Savings' },
-  { to: '/recurring', label: 'Recurring' },
-  { to: '/beneficiaries', label: 'Beneficiaries' },
 ];
 
 // Settings — Radix DropdownMenu on ≥lg, SETTINGS section in the drawer.
-// All four live under the /settings/* shell as of Batch 9; legacy
-// /categories and /categorization-rules redirect to their /settings/*
-// counterparts (see features/settings/settings.routes.tsx). Bank
+// Most live under the /settings/* shell as of Batch 9. Beneficiaries and
+// Recurring joined the shell in T-nav-ia-reorg (re-homed out of MAIN to
+// declutter the main row — both are management surfaces with the heaviest
+// cross-feature deep-linking, so they read as settings-adjacent). Bank
 // Accounts was added 2026-06-05 when the live route turned out to be
 // unreachable from the TopNav.
 const SETTINGS_LINKS: NavLinkSpec[] = [
+  { to: '/settings/beneficiaries', label: 'Beneficiaries' },
+  { to: '/settings/recurring', label: 'Recurring' },
   { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/categorization-rules', label: 'Categorization Rules' },
   { to: '/settings/taxation-rules', label: 'Taxation Rules' },
@@ -118,12 +120,15 @@ function mainLinkClass({ isActive }: { isActive: boolean }): string {
       ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
       : 'border-transparent text-slate-600 hover:text-accent-700 hover:border-accent-200 dark:text-slate-300 dark:hover:text-accent-300 dark:hover:border-accent-900/50',
     'focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:outline-none rounded-sm',
+    // Shared premium tap-feedback (T-nav-ia-reorg) — main links are the
+    // first consumer of the app-wide `.tap-press` token.
+    'tap-press',
   ].join(' ');
 }
 
 function drawerLinkClass({ isActive }: { isActive: boolean }): string {
   return [
-    'flex min-h-[44px] items-center px-4 py-2 text-sm font-medium no-underline transition-colors',
+    'tap-press flex min-h-[44px] items-center px-4 py-2 text-sm font-medium no-underline transition-colors',
     isActive
       ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/40 dark:text-accent-300'
       : 'text-slate-700 hover:bg-accent-50 hover:text-accent-700 dark:text-slate-200 dark:hover:bg-accent-950/40 dark:hover:text-accent-300',
@@ -164,7 +169,7 @@ export function TopNav({ onLogout }: TopNavProps) {
               type="button"
               onClick={() => setDrawerOpen(true)}
               aria-label="Open navigation"
-              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden dark:text-slate-300"
+              className="tap-press hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden dark:text-slate-300"
             >
               <Menu aria-hidden="true" size={22} />
             </button>
@@ -176,7 +181,7 @@ export function TopNav({ onLogout }: TopNavProps) {
               to="/dashboard"
               aria-label="Dashboard"
               title="Dashboard"
-              className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+              className="tap-press hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
             >
               <Home aria-hidden="true" size={20} />
             </Link>
@@ -192,7 +197,7 @@ export function TopNav({ onLogout }: TopNavProps) {
           <Link
             to="/"
             aria-label={brandName}
-            className={`${user ? 'hidden' : 'inline-flex'} text-accent-700 hover:text-accent-800 focus-visible:ring-accent-500 dark:text-accent-300 dark:hover:text-accent-200 items-center gap-2 rounded-md px-1 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex`}
+            className={`${user ? 'hidden' : 'inline-flex'} tap-press text-accent-700 hover:text-accent-800 focus-visible:ring-accent-500 dark:text-accent-300 dark:hover:text-accent-200 items-center gap-2 rounded-md px-1 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex`}
           >
             <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={22} />
             <span className="hidden text-base font-semibold tracking-tight sm:inline">
@@ -200,17 +205,20 @@ export function TopNav({ onLogout }: TopNavProps) {
             </span>
           </Link>
 
-          {/* Desktop main-feature links */}
+          {/* Desktop main-feature links — staggered in on mount (T-nav-ia-reorg).
+              The bar mounts once per session, so the entrance plays once; route
+              changes don't replay it. Reduced motion renders them final. */}
           {user && (
-            <nav
-              aria-label="Main"
-              className="ml-6 hidden items-center gap-1 lg:flex"
-            >
-              {MAIN_LINKS.map((link) => (
-                <NavLink key={link.to} to={link.to} className={mainLinkClass}>
-                  {link.label}
-                </NavLink>
-              ))}
+            <nav aria-label="Main" className="ml-6 hidden lg:block">
+              <Stagger className="flex items-center gap-1">
+                {MAIN_LINKS.map((link) => (
+                  <StaggerItem key={link.to} className="inline-flex">
+                    <NavLink to={link.to} className={mainLinkClass}>
+                      {link.label}
+                    </NavLink>
+                  </StaggerItem>
+                ))}
+              </Stagger>
             </nav>
           )}
 
@@ -255,7 +263,7 @@ export function TopNav({ onLogout }: TopNavProps) {
                 to="/help"
                 aria-label="Help"
                 title="Help"
-                className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
+                className="tap-press hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300"
               >
                 <HelpCircle aria-hidden="true" size={20} />
               </Link>
@@ -344,7 +352,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             to="/"
             onClick={onClose}
             aria-label={brandName}
-            className="text-accent-700 dark:text-accent-300 inline-flex items-center gap-2 no-underline"
+            className="tap-press text-accent-700 dark:text-accent-300 inline-flex items-center gap-2 no-underline"
           >
             <BrandMark logoSrc={brandLogoSrc} brandName={brandName} size={20} />
             <span className="text-base font-semibold">{brandName}</span>
@@ -353,7 +361,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="tap-press inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <X aria-hidden="true" size={20} />
           </button>
@@ -384,7 +392,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
           */}
           <Link
             to="/account/accessibility"
-            className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400"
+            className="tap-press hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] items-center justify-between px-4 py-1 text-xs font-semibold tracking-wider text-slate-500 uppercase no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400"
           >
             <span>Accessibility</span>
             <ChevronRight aria-hidden="true" size={14} />
@@ -418,7 +426,7 @@ function MobileDrawer({ onClose, onLogout }: MobileDrawerProps) {
               onClose();
               void onLogout();
             }}
-            className="hover:bg-accent-50 hover:text-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors dark:text-slate-200"
+            className="tap-press hover:bg-accent-50 hover:text-accent-700 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 flex min-h-[44px] w-full items-center px-4 py-2 text-left text-sm font-medium text-slate-700 transition-colors dark:text-slate-200"
           >
             <LogOut aria-hidden="true" size={16} className="mr-2" />
             Sign Out
@@ -471,7 +479,7 @@ function DrawerSection({ label, links }: DrawerSectionProps) {
 const prefetchTopNavMenus = () => import('./TopNavMenus');
 
 const SETTINGS_TRIGGER_CLASS =
-  'hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300';
+  'tap-press hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 hidden h-11 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors focus-visible:ring-2 focus-visible:outline-none lg:inline-flex dark:text-slate-300';
 
 // `onOpen` undefined → presentational (the Suspense fallback while the
 // chunk lands); the click is already in flight.
@@ -526,7 +534,7 @@ function UserTrigger({
       onClick={onOpen}
       onMouseEnter={prefetchTopNavMenus}
       onFocus={prefetchTopNavMenus}
-      className="hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+      className="tap-press hover:ring-accent-300 focus-visible:ring-accent-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-shadow hover:ring-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
     >
       <ProfileImage
         profileImageUrl={user.profile_image_url ?? null}

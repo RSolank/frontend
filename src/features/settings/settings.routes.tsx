@@ -28,6 +28,29 @@ const BankAccountsPage = lazy(() =>
   }))
 );
 
+// Beneficiaries re-homed under /settings (T-nav-ia-reorg): it left the
+// MAIN nav row and now lives in the Settings shell as the first sidebar
+// entry. Its page still lives in `features/beneficiaries/` — only the
+// URL + nav entry points moved (clean replacement, no /beneficiaries
+// redirect; in-app deep-links rewritten to /settings/beneficiaries).
+const BeneficiariesPage = lazy(() =>
+  import('../beneficiaries/pages/BeneficiariesPage').then((m) => ({
+    default: m.BeneficiariesPage,
+  }))
+);
+
+// Recurring re-homed under /settings (T-nav-ia-reorg): it left the MAIN
+// nav row and joins the Settings sidebar (second, after Beneficiaries).
+// The page is template-management first (Detected / Confirmed tabs); its
+// Upcoming-bills forecast also surfaces in the bell via recurring-domain
+// activity signals. Page stays in `features/recurring/`; only the URL +
+// nav entry points moved (clean replacement, no /recurring redirect).
+const RecurringPage = lazy(() =>
+  import('../recurring/pages/RecurringPage').then((m) => ({
+    default: m.RecurringPage,
+  }))
+);
+
 // Wrapped in <ProtectedRoute> by app/routes.tsx via protectedRoutes().
 // Children inherit protection through the parent's gated <Outlet />.
 //
@@ -46,8 +69,10 @@ export const settingsRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Navigate to="/settings/categories" replace />,
+        element: <Navigate to="/settings/beneficiaries" replace />,
       },
+      { path: 'beneficiaries', element: <BeneficiariesPage /> },
+      { path: 'recurring', element: <RecurringPage /> },
       { path: 'categories', element: <TagsPage /> },
       { path: 'categorization-rules', element: <CategorizationRulesPage /> },
       { path: 'taxation-rules', element: <TaxationRulesPage /> },

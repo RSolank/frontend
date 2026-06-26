@@ -152,8 +152,9 @@ function useTagForm({
     [editingTag]
   );
 
+  // Honest changed-from-initial check (drives the discard-confirm). Create-mode
+  // Save is gated on validity (tag_name), not dirtiness — see `saveDisabled`.
   const isDirty = useMemo(() => {
-    if (!isEditing) return true; // any open Add is dirty
     if (form.tag_name !== originalForm.tag_name) return true;
     if (form.parent !== originalForm.parent) return true;
     if (form.tag_type !== originalForm.tag_type) return true;
@@ -162,7 +163,7 @@ function useTagForm({
       if (form.aliases[i] !== originalForm.aliases[i]) return true;
     }
     return false;
-  }, [isEditing, form, originalForm]);
+  }, [form, originalForm]);
 
   function clearLockedBannerOnEdit() {
     if (lockedReason) setLockedReason(null);
@@ -233,7 +234,8 @@ function useTagForm({
 
   const childrenList = useMemo(() => editingTag?.children ?? [], [editingTag]);
 
-  const saveDisabled = saving || !isDirty || !form.tag_name.trim();
+  const saveDisabled =
+    saving || (isEditing && !isDirty) || !form.tag_name.trim();
 
   return {
     form,

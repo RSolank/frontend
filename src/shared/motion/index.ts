@@ -8,6 +8,8 @@ export { MotionProvider } from './MotionProvider';
 export { useCountUp, type CountUpOptions } from './useCountUp';
 export { Stagger, StaggerItem } from './Stagger';
 export { Reveal } from './Reveal';
+export { ModalReveal, RevealField } from './ModalReveal';
+export { MutationPresence, mutationItemProps } from './MutationReveal';
 export { useDrawIn } from './useDrawIn';
 export {
   MOTION_TOKENS,

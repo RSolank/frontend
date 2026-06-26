@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +69,62 @@ describe('ActivityFeedModal', () => {
     expect(
       screen.getByRole('region', { name: /notifications/i })
     ).toBeInTheDocument();
+  });
+
+  it('clusters items by domain under sub-headers, ordered by rank, within each section', async () => {
+    server.use(
+      http.get(`${API_BASE}/activity`, () =>
+        HttpResponse.json({
+          items: [
+            // BE rank order within Alerts: taxation, recurring, taxation.
+            makeItem({
+              uid: 1,
+              kind: 'bill_overdue',
+              event_class: 'alert',
+              domain: 'taxation',
+              summary: 'Tax alert A',
+            }),
+            makeItem({
+              uid: 2,
+              kind: 'recurring_bill_upcoming',
+              event_class: 'alert',
+              domain: 'recurring',
+              summary: 'Recurring alert',
+            }),
+            makeItem({
+              uid: 3,
+              kind: 'bill_due',
+              event_class: 'alert',
+              domain: 'taxation',
+              summary: 'Tax alert B',
+            }),
+          ],
+          has_more: false,
+        })
+      )
+    );
+
+    renderWithProviders(<ActivityFeedModal open={true} onClose={vi.fn()} />);
+
+    const alertsRegion = await screen.findByRole('region', { name: /alerts/i });
+
+    // Domain sub-headers are h4s under the section's h3. Strategy A:
+    // Taxation leads (its top item is rank 0), Recurring follows (rank 1) —
+    // the rank order is preserved, not alphabetised or re-sorted.
+    const domainHeaders = within(alertsRegion).getAllByRole('heading', {
+      level: 4,
+    });
+    expect(domainHeaders.map((h) => h.textContent)).toEqual([
+      'Taxation',
+      'Recurring',
+    ]);
+
+    // Within the Taxation group, items keep their BE order (A before B).
+    const taxA = screen.getByText('Tax alert A');
+    const taxB = screen.getByText('Tax alert B');
+    expect(
+      taxA.compareDocumentPosition(taxB) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
   it('fires the soft-ack POST on open (hard:false)', async () => {

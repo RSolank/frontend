@@ -1,81 +1,62 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
-// The 5 toggles inside the popover are deferred into a lazy chunk —
-// only loaded when the user opens this surface. Frees the first-
-// paint bundle of ~1.5 kB gz (CONTRIBUTING.md §3 ratchet, Platform
-// FE Batch 5).
-const AccessibilityPanel = lazy(() => import('./AccessibilityPanel'));
+import { ACCESSIBILITY_TRIGGER_CLASS } from './accessibilityTriggerClass';
 
-// Desktop-only popover with the five most-flipped accessibility
-// controls: theme, text size, reduced motion, privacy mask, and
-// high contrast. The remaining surfaces (underline links, always-
-// show focus, plus the three data-formatting selects) live on the
-// canonical /account/accessibility page only — those are set-once,
-// not flipped mid-task. A "More" link at the bottom of the popover
-// jumps to the full page.
+// The Radix Popover surface (+ @radix-ui/react-popover) is deferred so it never
+// lands in the first-paint bundle — Radix's positioning / dismissable-layer /
+// focus-scope primitives are ~25 kB gz and nothing on first paint needs them.
+// Mirrors the Settings/Account menu stub-then-hydrate (TopNav.tsx).
+const AccessibilityPopoverSurface = lazy(() =>
+  import('./AccessibilityPopoverSurface').then((m) => ({
+    default: m.AccessibilityPopoverSurface,
+  }))
+);
+
+const prefetchSurface = () => import('./AccessibilityPopoverSurface');
+
+// Desktop-only accessibility quick-settings (theme, text size, reduced motion,
+// privacy mask, contrast), opened from the TopNav. A stub trigger covers the
+// click target until first click; then the lazy surface mounts with the popover
+// already open (so the click is honored without a second tap). Hover/focus warms
+// the chunk so the first click usually resolves from cache, and the Suspense
+// fallback re-renders the SAME stub so the icon never blinks out.
 //
-// Built as a small controlled popover (click-outside + Escape) to
-// avoid pulling in @radix-ui/react-popover for a single surface. The
-// pattern mirrors the pre-Batch-6.5 UserMenu.
-//
-// Naming: this surface groups everything that's user-pref-local
-// (frontend-persisted, no backend sync yet); the data-shape
-// preferences like currency / timezone live on the Account
-// Preferences page instead. See CONTRIBUTING.md §6 "Accessibility
-// vs Preferences".
+// Naming: groups everything user-pref-local (frontend-persisted, no backend
+// sync). Data-shape prefs (currency / timezone) live on the Account Preferences
+// page — see CONTRIBUTING.md §6 "Accessibility vs Preferences".
 export function AccessibilityPopover() {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointer(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative">
+  const [opened, setOpened] = useState(false);
+  if (!opened) {
+    return (
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpened(true)}
+        onMouseEnter={prefetchSurface}
+        onFocus={prefetchSurface}
         aria-label="Accessibility settings"
         aria-haspopup="dialog"
-        aria-expanded={open}
         title="Accessibility"
-        className="hover:bg-accent-50 hover:text-accent-700 focus-visible:ring-accent-500 dark:hover:bg-accent-950/40 dark:hover:text-accent-300 inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:text-slate-400 dark:focus-visible:ring-offset-slate-950"
+        className={ACCESSIBILITY_TRIGGER_CLASS}
       >
         <SlidersHorizontal aria-hidden="true" size={20} />
       </button>
-      {open && (
-        <div
-          role="dialog"
+    );
+  }
+  return (
+    <Suspense
+      fallback={
+        <button
+          type="button"
           aria-label="Accessibility settings"
-          className="absolute right-0 z-50 mt-2 w-80 rounded-md border border-slate-200 bg-white py-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
+          title="Accessibility"
+          className={ACCESSIBILITY_TRIGGER_CLASS}
         >
-          <Suspense
-            fallback={
-              <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
-                Loading…
-              </div>
-            }
-          >
-            <AccessibilityPanel onClose={() => setOpen(false)} />
-          </Suspense>
-        </div>
-      )}
-    </div>
+          <SlidersHorizontal aria-hidden="true" size={20} />
+        </button>
+      }
+    >
+      <AccessibilityPopoverSurface />
+    </Suspense>
   );
 }

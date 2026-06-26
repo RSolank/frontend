@@ -435,4 +435,30 @@ html.dark {
     @apply dark:text-accent-400 dark:hover:bg-accent-950/40 dark:hover:text-accent-300;
     @apply dark:focus-visible:ring-offset-slate-950;
   }
+
+  /*
+   * Shared tap-press — the app-wide premium tap-feedback token
+   * (T-nav-ia-reorg). A subtle scale-down while pressed, springing back on
+   * release via `transition-transform`. Deliberately CSS, not framer: it's
+   * universal (button / link / NavLink / any interactive element),
+   * framer-free, and zero-cost per element, so the app-wide motion rollout
+   * can drop it onto every button by adding one class — no `<button>`→
+   * `<Button>` swap. First consumer: the TopNav main links. Reduced motion
+   * (OS or the in-app toggle) drops the transform — see the guards below.
+   */
+  .tap-press {
+    @apply transition-transform duration-100 ease-out;
+  }
+  .tap-press:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-press:active {
+    transform: none;
+  }
+}
+html.reduce-motion .tap-press:active {
+  transform: none;
 }

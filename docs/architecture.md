@@ -21,7 +21,7 @@ src/
 │   ├── api/routes.ts          # central URL-builder registry (routes.<feature>.<action>()) + the `const V = '/api/v1'` knob
 │   ├── api/branding.ts        # `useBrandingQuery` — Aevum brand identity (`/api/v1/metadata/branding`, BE Phase 2.11)
 │   ├── api/referenceData.ts   # countries / currencies queries (read-only system reference data)
-│   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …
+│   ├── components/            # ErrorBoundary / ProtectedRoute / TopNav / Modal (+ originRef fly-from-trigger) / Menu + Popover (shared MENU_SURFACE) / Button (+ .tap-press) / ConfirmDialog / Country|Currency|TimezoneSelect / SearchableSelect / DateField / …
 │   #                            (the Country/Currency/Timezone pickers + reference data were the old "metadata" feature; they live in shared as infra, not a feature)
 │   ├── hooks/                 # cross-cutting hooks (useModal, useMoneyFormatter, useRowHighlight, …)
 │   ├── utils/                 # dateUtils (tz-aware) / validation / currency (formatMoney) / countryTimezones (pure helpers, BE-sourced) / deviceId / sessionRedirect
@@ -68,7 +68,7 @@ viewport — there is **no desktop sidebar**.
 **Desktop (≥1024 px)** layout:
 
 ```
-[Brand] Transactions  Expense Tracker  Tax Tracker  Savings  Recurring   [☼] [About] [⚙▾] [👤▾]
+[Brand] Transactions  Expense Tracker  Tax Tracker  Savings   [☼] [About] [⚙▾] [👤▾]
 ```
 
 - **Brand** (left). 3-state link target:
@@ -78,7 +78,8 @@ viewport — there is **no desktop sidebar**.
     chain converts that into `/login` automatically
   - no tokens → `/`
 - **Main feature links** (Group 2). Inline `NavLink`s (Transactions,
-  Expense Tracker, Tax Tracker, Savings, Recurring, Beneficiaries); the
+  Expense Tracker, Tax Tracker, Savings) — the four primary surfaces left
+  after T-nav-ia-reorg moved Beneficiaries + Recurring into Settings; the
   active route gets an accent bottom border per the accent-token contract
   (see [`conventions.md`](conventions.md)). "Savings" is the user-facing
   label for the `treasury` feature — the route + feature dir stay
@@ -86,11 +87,12 @@ viewport — there is **no desktop sidebar**.
 - **ThemeToggle** (☼).
 - **About** link → `/`.
 - **Settings dropdown** (⚙▾) — Radix DropdownMenu, click-to-open.
-  Items: Categories, Categorization Rules, Taxation Rules,
-  Bank Accounts — all pointing at their canonical `/settings/*`
-  URLs.
-  (Beneficiaries lives in MAIN, not Settings, so it isn't listed
-  here.)
+  Items: Beneficiaries, Recurring, Categories, Categorization Rules,
+  Taxation Rules, Bank Accounts — all pointing at their canonical
+  `/settings/*` URLs.
+  (Beneficiaries + Recurring were re-homed here from MAIN in
+  T-nav-ia-reorg; Beneficiaries leads and is the `/settings` index
+  default.)
 - **User dropdown** (👤▾) — Radix DropdownMenu. Items: Profile,
   Sign Out. Profile points at `/account/profile`; the legacy
   `/profile` URL is preserved as a redirect alias.
@@ -147,10 +149,31 @@ toggle). Consumers: the **dashboard** and the **landing**. Surface:
   framer — e.g. the Radix dialog overlays (`data-[state=open]:animate-in`). Don't
   hand-roll keyframes.
 - **Modal** — the shared `Modal` animates with **framer** (`forceMount` +
-  `AnimatePresence`): the panel rises + fades in like a card and collapses on close,
-  centering-safe (CSS centering on a wrapper, framer animates the inner panel), reduced
-  motion → instant. It publishes a `StaggerSettledContext` settled-after-open signal so
-  a later task can wrap each modal's fields in `<StaggerItem>` to rise as a second beat.
+  `AnimatePresence`): the panel grows from / collapses to its trigger (`originRef` /
+  `destinationRef`, center fallback), centering-safe (CSS centering on a wrapper, framer
+  animates the inner panel), reduced motion → instant. It publishes a
+  `StaggerSettledContext` settled-after-open signal consumed by the field reveal below.
+- **Modal field reveal (3-beat)** — `shared/motion/ModalReveal.tsx`: wrap a modal's field
+  groups in **`<ModalReveal ready={…}>` + `<RevealField>`**. Three decoupled beats — panel
+  lands → fields fade to 0 timed to the land → fields rise once **settled AND data-ready**
+  (`useStabilizedEntrance(ready)`, 400 ms fallback). A modal that doesn't adopt the wrappers
+  renders its fields static (the default no-motion floor). Consumers: bell / recurring /
+  beneficiary / merge.
+- **Field mutation** — `shared/motion/MutationReveal.tsx`: `<MutationPresence>` + the
+  `mutationItemProps` spread give a DERIVED field (e.g. the beneficiary assigned-tag chips)
+  a fade-old / rise-new flip whenever its content recomputes. Distinct from the entrance
+  reveal (one-shot on open) — this re-fires on every value change.
+- **Menus & popovers** — one shared floating surface: `shared/components/menuSurface.ts`
+  (`MENU_SURFACE` — chrome + `data-[state]` fade, the single source) feeds both
+  **`<Menu>`** (`Menu.tsx`, Radix DropdownMenu — link/action menus that close on select:
+  Settings, Account) and **`<Popover>`** (`Popover.tsx`, Radix Popover — surfaces of
+  arbitrary controls that stay open: the accessibility quick-settings). Native dismiss
+  (item-select / Escape / outside-click) + the fade-out come from Radix Presence, so no
+  dropdown hand-rolls dismissal. `@radix-ui/react-popover` rides the same lazy chunk as the
+  menus (stub-then-hydrate triggers in `TopNav`), so it's **0 kB on first paint**.
+- **Tap feedback** — `.tap-press` (`index.css`) + `<Button>`: every standalone click target
+  carries it (buttons, icon buttons, dropdown triggers, link-CTAs with `inline-block`);
+  skip inline-prose links + dropdown option rows. One CSS rule = the single source.
 - **Bundle** — framer's core **and** the `domAnimation` feature bundle are now in
   the entry chunk: the provider injects `domAnimation` **eagerly** (`app/providers.tsx`)
   so the above-the-fold **landing hero animates with framer on first paint** — a lazy
@@ -249,7 +272,7 @@ What this means for page authors mounting under a sectioned shell:
   empty-state card, or omitted entirely.
 
 Pages NOT mounted under a sectioned shell (standalone routes like
-`/transactions`, `/budgets`, `/consumption-tax`, `/beneficiaries`)
+`/transactions`, `/budgets`, `/consumption-tax`, `/treasury`)
 keep their own page chrome — the shell only owns its consumers.
 
 ### Session-expiry redirect contract

@@ -234,7 +234,7 @@ export function SearchableSelect({
             onClick={clear}
             aria-label={`Clear ${ariaLabel}`}
             tabIndex={-1}
-            className="absolute top-1/2 right-7 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="tap-press absolute top-1/2 right-7 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <X aria-hidden size={14} />
           </button>
@@ -247,7 +247,7 @@ export function SearchableSelect({
           }}
           aria-label={focused ? 'Close options' : 'Open options'}
           tabIndex={-1}
-          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          className="tap-press absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
         >
           <ChevronDown
             aria-hidden

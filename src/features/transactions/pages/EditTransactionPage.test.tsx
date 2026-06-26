@@ -168,10 +168,10 @@ describe('EditTransactionPage', () => {
     );
     mountAt('7');
     const chip = await screen.findByText('Recurring');
-    // Links to the template, highlighted on the recurring page.
+    // Links to the template, highlighted on the recurring settings page.
     expect(chip.closest('a')).toHaveAttribute(
       'href',
-      '/recurring?template=5'
+      '/settings/recurring?template=5'
     );
   });
 

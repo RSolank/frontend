@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { Button } from '../../../shared/components/Button';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { useDeepLinkHighlight } from '../../../shared/hooks/useDeepLinkHighlight';
 import { useRowHighlight } from '../../../shared/hooks/useRowHighlight';
@@ -23,6 +24,23 @@ type TabKey = 'confirmed' | 'detected' | 'upcoming';
 // How many detected (candidate) rows to show before the "show more" reveal.
 const DETECTED_PREVIEW = 5;
 
+// Resolve the landing tab from the deep-link params: a `?bill=` implies the
+// Upcoming tab; otherwise honor a valid `?tab=`; else no deep-link (null).
+function resolveDeepLinkTab(
+  billParam: string | null,
+  tabParam: string | null
+): TabKey | null {
+  if (billParam != null) return 'upcoming';
+  if (
+    tabParam === 'detected' ||
+    tabParam === 'confirmed' ||
+    tabParam === 'upcoming'
+  ) {
+    return tabParam;
+  }
+  return null;
+}
+
 // /recurring — the inference-engine surface. The worker detects patterns and
 // forecasts bills; the page splits them into two tabs (B3):
 //   - **Detected** — `candidate` templates the engine suggested, awaiting a
@@ -41,12 +59,27 @@ export function RecurringPage() {
   );
   const highlight = useRowHighlight<string>();
   const [searchParams] = useSearchParams();
+  // Modal motion origins. The add dialog grows out of the "Add manually" CTA;
+  // the edit dialog grows out of (and collapses back onto) the clicked row —
+  // captured by id at edit time, so it pairs with the row-highlight-on-save.
+  // T-nav-ia-reorg #6.
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const editOriginRef = useRef<HTMLElement | null>(null);
+
+  function handleEdit(t: RecurringTemplate) {
+    editOriginRef.current = document.getElementById(
+      `recurring-template-${t.uid}`
+    );
+    setEditing(t);
+  }
 
   const queryClient = useQueryClient();
   const templates = useRecurringTemplatesQuery();
   const benQuery = useBeneficiariesQuery();
 
   const templateParam = searchParams.get('template');
+  const tabParam = searchParams.get('tab');
+  const billParam = searchParams.get('bill');
   const templatesReady = templates.data != null;
 
   const benData = benQuery.data;
@@ -64,15 +97,25 @@ export function RecurringPage() {
   const confirmedCount =
     buckets.review.length + buckets.locked.length + buckets.inactive.length;
 
-  // Default landing tab, decided once when templates first load (and only when
-  // a deep-link isn't already steering it): start on Detected when there are
-  // candidates awaiting a decision, otherwise the Confirmed home.
+  // Default landing tab, decided once. A `?tab=` deep-link — or a `?bill=`
+  // bill deep-link, which implies the Upcoming tab — lands directly on that
+  // tab and wins over the detected-candidates default (and doesn't wait on
+  // templates, since the Upcoming tab is bill-driven). Otherwise: start on
+  // Detected when candidates await a decision, else the Confirmed home. The
+  // `?bill` value is consumed downstream by UpcomingBillsList's highlight.
   const defaultedRef = useRef(false);
   useEffect(() => {
-    if (!templatesReady || defaultedRef.current) return;
+    if (defaultedRef.current) return;
+    const deepLinkTab = resolveDeepLinkTab(billParam, tabParam);
+    if (deepLinkTab) {
+      defaultedRef.current = true;
+      setTab(deepLinkTab);
+      return;
+    }
+    if (!templatesReady) return;
     defaultedRef.current = true;
     if (!templateParam && detectedCount > 0) setTab('detected');
-  }, [templatesReady, templateParam, detectedCount]);
+  }, [templatesReady, templateParam, tabParam, billParam, detectedCount]);
 
   // Deep-link from a transaction's recurring chip: `/recurring?template=<uid>`
   // selects the tab the target lives in (Detected for a candidate, else
@@ -122,15 +165,15 @@ export function RecurringPage() {
             what no longer applies.
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          ref={addBtnRef}
+          variant="secondary"
           onClick={() => setAdding(true)}
-          className="focus-visible:ring-accent-500 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           data-testid="recurring-add"
         >
           <Plus size={16} aria-hidden />
           Add manually
-        </button>
+        </Button>
       </header>
 
       <Tabs
@@ -149,7 +192,7 @@ export function RecurringPage() {
           benById={benById}
           highlightId={highlight.id}
           onConfirm={handleConfirm}
-          onEdit={setEditing}
+          onEdit={handleEdit}
           onDismiss={setConfirmDelete}
         />
       )}
@@ -162,7 +205,7 @@ export function RecurringPage() {
           benById={benById}
           highlightId={highlight.id}
           onConfirm={handleConfirm}
-          onEdit={setEditing}
+          onEdit={handleEdit}
           onDismiss={setConfirmDelete}
         />
       )}
@@ -182,6 +225,7 @@ export function RecurringPage() {
       <RecurringFormDialog
         open={adding}
         onClose={() => setAdding(false)}
+        originRef={addBtnRef}
         onSaved={(t) => {
           invalidate();
           highlight.flash(String(t.uid));
@@ -191,6 +235,7 @@ export function RecurringPage() {
         open={editing != null}
         template={editing}
         onClose={() => setEditing(null)}
+        originRef={editOriginRef}
         onSaved={(t) => {
           invalidate();
           highlight.flash(String(t.uid));
@@ -295,7 +340,7 @@ function TabButton({
       data-testid={testid}
       aria-current={active ? 'page' : undefined}
       className={[
-        '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
+        'tap-press -mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
         active
           ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-300'
           : 'hover:text-accent-700 dark:hover:text-accent-300 border-transparent text-slate-600 dark:text-slate-300',
@@ -388,7 +433,7 @@ function DetectedView({
           type="button"
           onClick={onShowAll}
           data-testid="recurring-detected-show-more"
-          className="focus-visible:ring-accent-500 self-start rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-300 dark:hover:text-slate-100"
+          className="tap-press focus-visible:ring-accent-500 self-start rounded-md px-2 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-300 dark:hover:text-slate-100"
         >
           Show {hidden} more
         </button>

@@ -46,31 +46,42 @@ describe('Modal', () => {
     expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });
 
-  it('confirms when dirty and confirmOnDirty is set', () => {
-    const confirm = vi.fn().mockReturnValue(false);
-    const original = window.confirm;
-    window.confirm = confirm;
-    try {
-      function Harness() {
-        const [open, setOpen] = useState(true);
-        return (
-          <Modal
-            open={open}
-            onClose={() => setOpen(false)}
-            title="Dirty"
-            confirmOnDirty
-            isDirty
-          >
-            <p>body</p>
-          </Modal>
-        );
-      }
-      render(<Harness />);
-      fireEvent.click(screen.getByLabelText('Close'));
-      expect(confirm).toHaveBeenCalled();
-      expect(screen.getByText('body')).toBeInTheDocument();
-    } finally {
-      window.confirm = original;
+  it('raises the in-modal discard confirm (not window.confirm) when dirty, and only closes on Discard', () => {
+    const onClose = vi.fn();
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return (
+        <Modal
+          open={open}
+          onClose={() => {
+            onClose();
+            setOpen(false);
+          }}
+          title="Dirty"
+          confirmOnDirty
+          isDirty
+        >
+          <p>body</p>
+        </Modal>
+      );
     }
+    render(<Harness />);
+
+    // Dismissing a dirty form via the X raises the custom confirm, NOT a close.
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // "Keep editing" dismisses the confirm and leaves the modal open.
+    fireEvent.click(screen.getByText('Keep editing'));
+    expect(
+      screen.queryByText('Discard unsaved changes?')
+    ).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // "Discard" actually closes.
+    fireEvent.click(screen.getByLabelText('Close'));
+    fireEvent.click(screen.getByText('Discard'));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

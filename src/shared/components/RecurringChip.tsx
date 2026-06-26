@@ -29,7 +29,7 @@ export function RecurringChip({
   if (templateId != null) {
     return (
       <Link
-        to={`/recurring?template=${templateId}`}
+        to={`/settings/recurring?template=${templateId}`}
         className={`${BASE} no-underline transition-colors hover:bg-violet-200 dark:hover:bg-violet-900/70 ${className}`}
         title="View the recurring template"
       >

@@ -116,10 +116,11 @@ describe('TransactionsPage', () => {
 
     expect(screen.getAllByText('Food').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Income').length).toBeGreaterThan(0);
-    // Beneficiary name within the row is a Link to the merchant page.
+    // Beneficiary name within the row deep-links into the re-homed
+    // Beneficiaries settings page's edit modal (T-nav-ia-reorg).
     expect(screen.getByRole('link', { name: 'Supermarket' })).toHaveAttribute(
       'href',
-      '/beneficiaries/10'
+      '/settings/beneficiaries?edit=10'
     );
   });
 
@@ -169,7 +170,7 @@ describe('TransactionsPage', () => {
 
     expect(screen.getByRole('link', { name: 'Coffee Shop' })).toHaveAttribute(
       'href',
-      '/beneficiaries/42'
+      '/settings/beneficiaries?edit=42'
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));

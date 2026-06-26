@@ -3,6 +3,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Button } from '../../../shared/components/Button';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { SystemChip } from '../../../shared/components/SystemChip';
 import { useModal, useUrlValueModal } from '../../../shared/hooks/useModal';
@@ -55,6 +56,18 @@ export function BeneficiariesPage() {
   // that beneficiary as the source. A ref keeps the pre-fill alive
   // across the close/open transition without re-renders.
   const pendingMergeSourceRef = useRef<number | null>(null);
+
+  // Modal motion origins. The add dialog grows out of the "+ Add New" CTA; the
+  // edit dialog grows out of (and collapses back onto) the clicked row — captured
+  // by id at open time (the row stays put, so origin == "the saved row" → it
+  // pairs with the row-highlight-on-save). T-nav-ia-reorg #6.
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const editOriginRef = useRef<HTMLElement | null>(null);
+
+  function openEditFor(uid: number) {
+    editOriginRef.current = document.getElementById(`beneficiary-row-${uid}`);
+    editModal.openWith(String(uid));
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -138,7 +151,7 @@ export function BeneficiariesPage() {
           </h1>
           <Link
             to="/dashboard"
-            className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+            className="tap-press text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 inline-block text-sm font-semibold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
           >
             ← Back to Dashboard
           </Link>
@@ -147,17 +160,13 @@ export function BeneficiariesPage() {
           <button
             type="button"
             onClick={mergeModal.open}
-            className="border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
+            className="tap-press border-warning-300 bg-warning-50 text-warning-800 hover:bg-warning-100 dark:border-warning-900/50 dark:bg-warning-950/40 dark:text-warning-300 dark:hover:bg-warning-950/60 rounded-md border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Merge
           </button>
-          <button
-            type="button"
-            onClick={addModal.open}
-            className="btn-primary !w-auto"
-          >
+          <Button ref={addBtnRef} variant="primary" onClick={addModal.open}>
             + Add New
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -185,7 +194,7 @@ export function BeneficiariesPage() {
         rows={filtered}
         isLoading={isLoading}
         highlightUid={highlightUid}
-        onOpen={(uid) => editModal.openWith(String(uid))}
+        onOpen={openEditFor}
       />
 
       {(loadError || actionError) && (
@@ -206,12 +215,14 @@ export function BeneficiariesPage() {
         open={addModal.isOpen}
         onClose={addModal.close}
         onSaved={handleSaved}
+        originRef={addBtnRef}
       />
       <BeneficiaryFormDialog
         open={editModal.isOpen && !!editingBeneficiary}
         onClose={editModal.close}
         onSaved={handleSaved}
         beneficiary={editingBeneficiary}
+        originRef={editOriginRef}
         onRequestMerge={handleRequestMerge}
         onRequestRemove={
           editingBeneficiary
@@ -294,6 +305,7 @@ function BeneficiaryTable({
     return rows.map((b) => (
       <tr
         key={b.uid}
+        id={`beneficiary-row-${b.uid}`}
         className={`border-t border-slate-100 transition-colors dark:border-slate-800 ${highlightClass(
           highlightUid === b.uid,
           'surface'
@@ -304,7 +316,7 @@ function BeneficiaryTable({
             <button
               type="button"
               onClick={() => onOpen(b.uid)}
-              className="text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
+              className="tap-press text-accent-600 hover:text-accent-700 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-300 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-slate-950"
             >
               {b.name}
             </button>
@@ -323,7 +335,7 @@ function BeneficiaryTable({
             onClick={() => onOpen(b.uid)}
             aria-label={`View / edit beneficiary ${b.name}`}
             title="View / edit"
-            className="focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="tap-press focus-visible:ring-accent-500 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:ring-2 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
           >
             <MoreHorizontal aria-hidden size={16} />
           </button>
@@ -363,7 +375,7 @@ function BeneficiaryNotFoundBanner({ onDismiss }: { onDismiss: () => void }) {
       <button
         type="button"
         onClick={onDismiss}
-        className="border-warning-400 text-warning-800 hover:bg-warning-100 dark:border-warning-700 dark:text-warning-300 dark:hover:bg-warning-950/60 shrink-0 rounded-md border bg-white px-3 py-1 text-xs font-semibold transition-colors dark:bg-slate-900"
+        className="tap-press border-warning-400 text-warning-800 hover:bg-warning-100 dark:border-warning-700 dark:text-warning-300 dark:hover:bg-warning-950/60 shrink-0 rounded-md border bg-white px-3 py-1 text-xs font-semibold transition-colors dark:bg-slate-900"
       >
         Dismiss
       </button>

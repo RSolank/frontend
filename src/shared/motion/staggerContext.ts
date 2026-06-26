@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import { useReducedMotionPref } from './useReducedMotionPref';
 
@@ -25,4 +25,33 @@ export function useEntrancePhase(): EntrancePhase {
   const orchestrated = useContext(StaggerSettledContext);
   if (reduced || orchestrated === null) return 'static';
   return orchestrated ? 'go' : 'hold';
+}
+
+// Like `useEntrancePhase`, but ALSO waits for the surface's content to be ready
+// before reporting 'go' — so the second beat never animates fields that are
+// still mounting / fetching (which reads as jank). Once the panel has settled
+// ('go'), it HOLDS until `ready` is true OR `maxWaitMs` elapses (so a slow or
+// failed fetch never strands the reveal). 'static' (reduced motion / no
+// orchestration) and the pre-settle 'hold' pass straight through.
+// T-nav-ia-reorg #6 Step 1 — pairs the two-beat with data readiness.
+export function useStabilizedEntrance(
+  ready: boolean,
+  maxWaitMs = 400
+): EntrancePhase {
+  const phase = useEntrancePhase();
+  const [waited, setWaited] = useState(false);
+
+  useEffect(() => {
+    if (phase !== 'go') {
+      // (Re)rising or static → arm the fallback fresh for the next settle.
+      if (waited) setWaited(false);
+      return;
+    }
+    if (ready || waited) return;
+    const id = window.setTimeout(() => setWaited(true), maxWaitMs);
+    return () => window.clearTimeout(id);
+  }, [phase, ready, waited, maxWaitMs]);
+
+  if (phase !== 'go') return phase;
+  return ready || waited ? 'go' : 'hold';
 }

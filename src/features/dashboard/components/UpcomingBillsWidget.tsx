@@ -14,7 +14,7 @@ import type { RecurringBill } from '../../recurring/api/schemas';
 // row markup is intentionally inlined here (instead of reaching into
 // `features/recurring/components`) because the eslint boundaries
 // rule restricts dashboard to other features' `api/` surface only;
-// the /recurring management page renders its own UpcomingBillsList
+// the /settings/recurring management page renders its own UpcomingBillsList
 // for the 30-day tab. Drift between the two is acceptable for a
 // 30-line list view; if a third consumer materialises, promote the
 // list to shared/.
@@ -45,7 +45,7 @@ export function UpcomingBillsWidget() {
       money={money}
       hasMore={hasMore}
       timezone={timezone}
-      onManage={() => navigate('/recurring')}
+      onManage={() => navigate('/settings/recurring')}
     />
   );
 }
@@ -58,7 +58,7 @@ interface ViewProps {
   isLoading?: boolean;
   hasMore?: boolean;
   // Header "Manage" affordance. The dashboard passes `onManage` (deep-links to
-  // /recurring). The landing showcase passes `displayOnly` so the same button
+  // /settings/recurring). The landing showcase passes `displayOnly` so the same button
   // (shared styling → no drift from the widget) stays VISIBLE but inert.
   onManage?: () => void;
   displayOnly?: boolean;
@@ -194,7 +194,7 @@ function UpcomingBody({
       </ul>
       {hasMore && (
         <p className="mt-2 text-right text-xs text-slate-500">
-          + more in /recurring
+          + more in Recurring
         </p>
       )}
     </>

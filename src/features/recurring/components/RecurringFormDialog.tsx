@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '../../../shared/components/Modal';
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
+import { ModalReveal, RevealField } from '../../../shared/motion/ModalReveal';
 import { usePreferencesStore } from '../../../shared/state/preferences.store';
 import { todayInUserTz } from '../../../shared/utils/dateUtils';
 import { useBeneficiariesQuery } from '../../beneficiaries/api/queries';
@@ -38,6 +39,10 @@ interface RecurringFormDialogProps {
   // Modal-header Remove-in-edit (conventions.md "Modal-header
   // destructive actions"). The page owns the confirm flow.
   onRequestRemove?: () => void;
+  // Modal motion origin (T-nav-ia-reorg #6): the dialog grows out of — and
+  // collapses back onto — this element (the Add CTA, or the clicked row in
+  // edit mode). Forwarded to <Modal>.
+  originRef?: React.RefObject<HTMLElement | null>;
 }
 
 function saveLabel(saving: boolean, isEditing: boolean): string {
@@ -126,6 +131,7 @@ export function RecurringFormDialog({
   onSaved,
   template = null,
   onRequestRemove,
+  originRef,
 }: RecurringFormDialogProps) {
   const timezone = usePreferencesStore((s) => s.timezone);
   const defaultDate = useMemo(() => todayInUserTz(timezone), [timezone]);
@@ -161,6 +167,7 @@ export function RecurringFormDialog({
       onClose={onClose}
       title={title}
       size="md"
+      originRef={originRef}
       confirmOnDirty
       isDirty={isDirty}
       headerActions={
@@ -170,7 +177,7 @@ export function RecurringFormDialog({
             onClick={onRequestRemove}
             title="Remove template"
             aria-label="Remove template"
-            className="text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="tap-press text-danger-600 hover:bg-danger-50 focus-visible:ring-danger-500 dark:text-danger-400 dark:hover:bg-danger-950/40 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <Trash2 size={16} />
           </button>
@@ -181,7 +188,7 @@ export function RecurringFormDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="tap-press rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             {isDirty ? 'Cancel' : 'Close'}
           </button>
@@ -189,14 +196,48 @@ export function RecurringFormDialog({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="tap-press bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saveLabel(saving, isEditing)}
           </button>
         </div>
       }
     >
-      <div className="flex flex-col gap-3">
+      <RecurringFormBody
+        form={form}
+        setForm={setForm}
+        beneficiaryOptions={beneficiaryOptions}
+        benLoading={benQuery.isLoading}
+        error={error}
+      />
+    </Modal>
+  );
+}
+
+interface RecurringFormBodyProps {
+  form: RecurringTemplateFormInput;
+  setForm: React.Dispatch<React.SetStateAction<RecurringTemplateFormInput>>;
+  beneficiaryOptions: { value: string; label: string }[];
+  benLoading: boolean;
+  error: string | null;
+}
+
+// The form fields, split out of the dialog so it renders as a CHILD of <Modal>
+// — that's what lets the reveal read the Modal's settled signal and run the
+// rise once data is ready (T-nav-ia-reorg #6 three-beat). Each field group is a
+// <RevealField>; outside a Modal (or reduced motion) the phase is 'static' →
+// fields render final. The rise gates on `!benLoading` so the Beneficiary
+// dropdown doesn't pop its options mid-animation.
+function RecurringFormBody({
+  form,
+  setForm,
+  beneficiaryOptions,
+  benLoading,
+  error,
+}: RecurringFormBodyProps) {
+  return (
+    <ModalReveal className="flex flex-col gap-3" ready={!benLoading}>
+      <RevealField>
         <FormField label="Beneficiary">
           <SearchableSelect
             ariaLabel="Beneficiary"
@@ -207,80 +248,84 @@ export function RecurringFormDialog({
             onChange={(v) =>
               setForm({ ...form, beneficiary_id: v === '' ? null : Number(v) })
             }
-            placeholder={benQuery.isLoading ? 'Loading…' : 'Pick a beneficiary'}
+            placeholder={benLoading ? 'Loading…' : 'Pick a beneficiary'}
           />
         </FormField>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="Direction">
-            <select
-              value={form.debit_credit}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  debit_credit: e.target.value as RecurringDirection,
-                })
-              }
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-            >
-              <option value="debit">Debit (expense)</option>
-              <option value="credit">Credit (income)</option>
-            </select>
-          </FormField>
-          <FormField label="Cadence">
-            <select
-              value={form.cadence}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  cadence: e.target.value as RecurringCadence,
-                })
-              }
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-            >
-              {RECURRING_CADENCES.map((c) => (
-                <option key={c} value={c}>
-                  {c[0] + c.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="Expected amount">
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={form.expected_amount}
-              onChange={(e) =>
-                setForm({ ...form, expected_amount: e.target.value })
-              }
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-            />
-          </FormField>
-          <FormField label="Next due date">
-            <input
-              type="date"
-              value={form.next_due_date}
-              onChange={(e) =>
-                setForm({ ...form, next_due_date: e.target.value })
-              }
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-            />
-          </FormField>
-        </div>
+      </RevealField>
+      <RevealField className="grid grid-cols-2 gap-3">
+        <FormField label="Direction">
+          <select
+            value={form.debit_credit}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                debit_credit: e.target.value as RecurringDirection,
+              })
+            }
+            className="form-input"
+          >
+            <option value="debit">Debit (expense)</option>
+            <option value="credit">Credit (income)</option>
+          </select>
+        </FormField>
+        <FormField label="Cadence">
+          <select
+            value={form.cadence}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                cadence: e.target.value as RecurringCadence,
+              })
+            }
+            className="form-input"
+          >
+            {RECURRING_CADENCES.map((c) => (
+              <option key={c} value={c}>
+                {c[0] + c.slice(1).toLowerCase()}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </RevealField>
+      <RevealField className="grid grid-cols-2 gap-3">
+        <FormField label="Expected amount">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={form.expected_amount}
+            onChange={(e) =>
+              setForm({ ...form, expected_amount: e.target.value })
+            }
+            className="form-input"
+          />
+        </FormField>
+        <FormField label="Next due date">
+          <input
+            type="date"
+            value={form.next_due_date}
+            onChange={(e) =>
+              setForm({ ...form, next_due_date: e.target.value })
+            }
+            className="form-input"
+          />
+        </FormField>
+      </RevealField>
+      <RevealField>
         <CadenceAnchorField form={form} onChange={setForm} />
-        {error && (
+      </RevealField>
+      {error && (
+        <RevealField>
           <p
             role="alert"
             className="bg-danger-50 text-danger-700 dark:bg-danger-950/40 dark:text-danger-300 rounded-md px-3 py-2 text-sm"
           >
             {error}
           </p>
-        )}
-      </div>
-    </Modal>
+        </RevealField>
+      )}
+    </ModalReveal>
   );
 }
 
@@ -293,9 +338,7 @@ function FormField({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-slate-700 dark:text-slate-300">
-        {label}
-      </span>
+      <span className="form-label">{label}</span>
       {children}
     </label>
   );

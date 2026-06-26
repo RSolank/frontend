@@ -23,7 +23,9 @@ live in their owning feature module:
 
 | Path                             | Component                         | Owning feature                                                          |
 | -------------------------------- | --------------------------------- | ----------------------------------------------------------------------- |
-| `/settings`                      | redirect → `/settings/categories` | —                                                                       |
+| `/settings`                      | redirect → `/settings/beneficiaries` | —                                                                    |
+| `/settings/beneficiaries`        | `BeneficiariesPage`               | [`features/beneficiaries/`](../../src/features/beneficiaries/) (T-nav-ia-reorg) |
+| `/settings/recurring`            | `RecurringPage`                   | [`features/recurring/`](../../src/features/recurring/) (T-nav-ia-reorg) |
 | `/settings/categories`           | `TagsPage`                        | [`features/tags/`](../../src/features/tags/)                            |
 | `/settings/categorization-rules` | `CategorizationRulesPage`         | [`features/categorization/`](../../src/features/categorization/)        |
 | `/settings/taxation-rules`       | `TaxationRulesPage`               | [`features/taxation/`](../../src/features/taxation/)                    |
@@ -39,17 +41,25 @@ branded 404 page (`app/pages/NotFound.tsx`) inside the App shell — the
 same UX as any other unknown URL (see
 [architecture.md](../architecture.md) Routing model).
 
-Beneficiaries deliberately stays at the top-level `/beneficiaries`
-route — it has heavy cross-feature deep-linking from transactions +
-categorization rules, so keeping it out of the sidebar shortens the
-reach for the most common settings-adjacent flow.
+Beneficiaries + Recurring were both re-homed into this shell from the
+MAIN nav row in T-nav-ia-reorg (declutter pass — the main row keeps only
+the four primary surfaces: Transactions · Expense Tracker · Tax Tracker ·
+Savings). Beneficiaries leads the sidebar and is the `/settings` index
+default; Recurring sits second. Both carry heavy cross-feature
+deep-linking, so in-app links now target their `/settings/*` URLs — the
+transaction-row payee link opens `/settings/beneficiaries?edit=<id>`, and
+the transaction `RecurringChip` opens `/settings/recurring?template=<id>`.
+The old top-level `/beneficiaries` and `/recurring` routes were removed
+outright — clean replacement, no redirect (external bookmarks fall
+through the `*` catch-all to the branded 404, as with every retired URL
+above).
 
 ## Shell
 
 [`components/SettingsLayout.tsx`](../../src/features/settings/components/SettingsLayout.tsx)
 is a thin wrapper around
 [`shared/components/SectionedPageLayout`](../../src/shared/components/SectionedPageLayout.tsx)
-that supplies the three-section spec. The same primitive backs the
+that supplies the section spec. The same primitive backs the
 Account shell (see [`docs/modules/account.md`](account.md)) — write
 once, two consumers.
 

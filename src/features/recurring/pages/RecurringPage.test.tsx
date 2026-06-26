@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, test } from 'vitest';
 
+import { HIGHLIGHT_PULSE } from '../../../shared/utils/highlight';
 import { API_BASE } from '../../../test/baseUrl';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import { server } from '../../../test/server';
@@ -180,5 +181,56 @@ describe('RecurringPage', () => {
     );
     await userEvent.click(screen.getByTestId('recurring-tab-upcoming'));
     expect(screen.getByTestId('upcoming-empty')).toBeInTheDocument();
+  });
+
+  test('?tab=upcoming deep-link lands directly on the Upcoming tab', async () => {
+    // A candidate exists — which would otherwise default to Detected — so this
+    // also proves the tab deep-link wins over the detected-candidates default.
+    withTemplates([templateFixture({ uid: 1, status: 'candidate' })]);
+    renderWithProviders(<RecurringPage />, {
+      initialEntries: ['/settings/recurring?tab=upcoming'],
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('recurring-tab-upcoming')).toHaveAttribute(
+        'aria-current',
+        'page'
+      )
+    );
+    expect(screen.getByTestId('recurring-tab-detected')).not.toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
+  test('?bill deep-link lands on Upcoming and highlights the bill row', async () => {
+    server.use(
+      http.get(`${API_BASE}/recurring/templates`, () => HttpResponse.json([])),
+      http.get(`${API_BASE}/beneficiaries`, () =>
+        HttpResponse.json(BEN_FIXTURE)
+      ),
+      http.get(`${API_BASE}/recurring/upcoming`, () =>
+        HttpResponse.json([
+          {
+            uid: 42,
+            template_id: 1,
+            beneficiary_id: 7,
+            expected_amount: 1200,
+            debit_credit: 'debit',
+            due_date: '2026-07-15',
+            status: 'pending',
+            matched_txn_id: null,
+          },
+        ])
+      )
+    );
+    renderWithProviders(<RecurringPage />, {
+      initialEntries: ['/settings/recurring?tab=upcoming&bill=42'],
+    });
+    const row = await screen.findByTestId('upcoming-row-42');
+    expect(screen.getByTestId('recurring-tab-upcoming')).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    await waitFor(() => expect(row.className).toContain(HIGHLIGHT_PULSE));
   });
 });

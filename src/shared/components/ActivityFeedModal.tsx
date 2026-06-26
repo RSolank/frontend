@@ -11,7 +11,9 @@ import {
   useActivityFeedQuery,
   type ActivityFeedItem,
 } from '../api/activityFeed';
+import { ModalReveal, RevealField } from '../motion/ModalReveal';
 import { usePreferencesStore } from '../state/preferences.store';
+import { groupByDomain } from '../utils/activityDomain';
 import { iconForKind } from '../utils/activityIcon';
 import { priorityToneClass } from '../utils/activityPriority';
 import { formatRelativeTime } from '../utils/dateUtils';
@@ -31,10 +33,19 @@ const ActivityDetailModal = lazy(() =>
 //
 // Rendering rule: ONE fetch (limit=10), preserve BE rank order, split
 // items into Alerts (event_class='alert') then Notifications
-// (event_class='notification') via the catalog. Each section header
-// is hidden when its bucket is empty; both empty = "All clear" copy.
-// BE owns ranking + retention + decay; FE never re-sorts or filters
-// (server-side disable is the SoT for visibility).
+// (event_class='notification') via the catalog. Within each section
+// items are clustered by `domain` under a sub-header (T-nav-ia-reorg,
+// Strategy A): domain groups appear in the order of their highest-ranked
+// member and items within a group keep BE order, so the global ranking is
+// preserved as far as a contiguous grouping allows — see `groupByDomain`.
+// A header (section or domain) is only emitted when it has items; both
+// sections empty = "All clear" copy. BE owns ranking + retention + decay;
+// FE never re-sorts or filters (server-side disable is the SoT).
+//
+// This is also why the Recurring page could leave the MAIN nav row
+// (T-nav-ia-reorg): its upcoming/pending bills already arrive as
+// recurring-domain signals and now surface under a "Recurring" header,
+// with the full forecast one click away in Settings.
 //
 // Click flow (2026-06-05 spec):
 //   - Soft-ack fires once on modal open (`useSoftAckOnOpen`) so the
@@ -68,9 +79,16 @@ function refKey(item: ActivityFeedItem): string {
 interface ActivityFeedModalProps {
   open: boolean;
   onClose: () => void;
+  // The bell button — the modal flies out of it and collapses back into it
+  // (T-nav-ia-reorg, first consumer of the Modal `originRef` infra).
+  originRef?: React.RefObject<HTMLElement | null>;
 }
 
-export function ActivityFeedModal({ open, onClose }: ActivityFeedModalProps) {
+export function ActivityFeedModal({
+  open,
+  onClose,
+  originRef,
+}: ActivityFeedModalProps) {
   const feed = useActivityFeedQuery(FEED_LIMIT, open);
   const catalog = useActivityCatalogQuery(open);
   const timezone = usePreferencesStore((s) => s.timezone);
@@ -96,6 +114,7 @@ export function ActivityFeedModal({ open, onClose }: ActivityFeedModalProps) {
       <Modal
         open={open}
         onClose={onClose}
+        originRef={originRef}
         title="Recent activity"
         size="md"
         footer={
@@ -147,6 +166,11 @@ function ModalBody({
   timezone,
   onItemClick,
 }: ModalBodyProps) {
+  // The Alerts/Notifications sections ride the shared three-beat reveal
+  // (T-nav-ia-reorg #6): the panel lands, fields fade with the grow, then rise
+  // once settled. The bell's feed is already loaded by the time this renders
+  // (the loading branch returns first), so the rise is un-gated (`ready`
+  // defaults true). Reduced motion / no orchestration → static.
   if (loading) {
     return (
       <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
@@ -167,24 +191,28 @@ function ModalBody({
     );
   }
   return (
-    <div className="space-y-4">
+    <ModalReveal className="space-y-4">
       {alerts.length > 0 ? (
-        <FeedSection
-          heading="Alerts"
-          items={alerts}
-          timezone={timezone}
-          onItemClick={onItemClick}
-        />
+        <RevealField>
+          <FeedSection
+            heading="Alerts"
+            items={alerts}
+            timezone={timezone}
+            onItemClick={onItemClick}
+          />
+        </RevealField>
       ) : null}
       {notifications.length > 0 ? (
-        <FeedSection
-          heading="Notifications"
-          items={notifications}
-          timezone={timezone}
-          onItemClick={onItemClick}
-        />
+        <RevealField>
+          <FeedSection
+            heading="Notifications"
+            items={notifications}
+            timezone={timezone}
+            onItemClick={onItemClick}
+          />
+        </RevealField>
       ) : null}
-    </div>
+    </ModalReveal>
   );
 }
 
@@ -202,22 +230,32 @@ function FeedSection({
   onItemClick,
 }: FeedSectionProps) {
   const now = useTickingNow(60_000);
+  const groups = useMemo(() => groupByDomain(items), [items]);
   return (
     <section aria-label={heading}>
       <h3 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400">
         {heading}
       </h3>
-      <ul className="space-y-1">
-        {items.map((item) => (
-          <ActivityRow
-            key={`${item.uid}-${item.kind}`}
-            item={item}
-            now={now}
-            timezone={timezone}
-            onActivate={() => onItemClick(item)}
-          />
+      <div className="space-y-3">
+        {groups.map((group) => (
+          <div key={group.domain || '__none'}>
+            <h4 className="mb-1 px-2 text-[11px] font-medium tracking-wide text-slate-400 dark:text-slate-500">
+              {group.label}
+            </h4>
+            <ul className="space-y-1">
+              {group.items.map((item) => (
+                <ActivityRow
+                  key={`${item.uid}-${item.kind}`}
+                  item={item}
+                  now={now}
+                  timezone={timezone}
+                  onActivate={() => onItemClick(item)}
+                />
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

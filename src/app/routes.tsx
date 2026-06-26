@@ -4,10 +4,8 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { accountRoutes } from '../features/account/account.routes';
 import { adminRoutes } from '../features/admin/admin.routes';
 import { authRoutes } from '../features/auth/auth.routes';
-import { beneficiariesRoutes } from '../features/beneficiaries/beneficiaries.routes';
 import { budgetsRoutes } from '../features/budgets/budgets.routes';
 import { dashboardRoutes } from '../features/dashboard/dashboard.routes';
-import { recurringRoutes } from '../features/recurring/recurring.routes';
 import { settingsRoutes } from '../features/settings/settings.routes';
 import { taxationRoutes } from '../features/taxation/taxation.routes';
 import { transactionsRoutes } from '../features/transactions/transactions.routes';
@@ -64,12 +62,10 @@ const authedRoutes: RouteObject[] = protectedRoutes([
   ...dashboardRoutes,
   ...accountRoutes,
   ...adminRoutes,
-  ...beneficiariesRoutes,
   ...transactionsRoutes,
   ...taxationRoutes,
   ...treasuryRoutes,
   ...budgetsRoutes,
-  ...recurringRoutes,
   ...settingsRoutes,
 ]);
 

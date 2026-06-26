@@ -6,10 +6,11 @@
 
 ## Purpose
 
-- Render the `/beneficiaries` list page where users manage
-  merchants and people. `/beneficiaries/:id` is a legacy alias
-  that redirects to `/beneficiaries?edit=<id>`; the list-page
-  edit modal owns the full view + edit + merge surface.
+- Render the `/settings/beneficiaries` list page where users manage
+  merchants and people (re-homed under the Settings shell in
+  T-nav-ia-reorg). In-app deep-links open it at
+  `/settings/beneficiaries?edit=<id>`; the list-page edit modal owns
+  the full view + edit + merge surface.
 - Drive the alias-uniqueness probe + chip UI that feeds the
   auto-categorization engine.
 - Own the `/api/v1/beneficiaries/*` query surface and the merge flow.
@@ -21,13 +22,15 @@
 
 | Path                 | Component                                        | Notes                                                                                                                                                                                      |
 | -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/beneficiaries`     | `pages/BeneficiariesPage.tsx`                    | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded. System-seeded rows (e.g. `Self`) render a `<SystemChip>` off the `is_system` flag on `Beneficiary` (see conventions.md → System provenance chip).                              |
-| `/beneficiaries/:id` | `DetailRedirect` (in `beneficiaries.routes.tsx`) | Legacy alias — redirects to `/beneficiaries?edit=<id>`. The standalone detail page was retired in the 2026-05-26 follow-up; the list-page modal owns the full view + edit + merge surface. |
+| `/settings/beneficiaries` | `pages/BeneficiariesPage.tsx`               | List + filter + modal-first CRUD (Add / Edit / Merge / Delete all live here). Lazy-loaded. The edit modal also opens via the `?edit=<id>` query param (the in-app deep-link contract). System-seeded rows (e.g. `Self`) render a `<SystemChip>` off the `is_system` flag on `Beneficiary` (see conventions.md → System provenance chip). |
 
-Routes are exported from
-[`features/beneficiaries/beneficiaries.routes.tsx`](../../src/features/beneficiaries/beneficiaries.routes.tsx)
-and composed into the root router by `src/app/routes.tsx`
-(`protectedRoutes()` wraps both).
+The page is composed into the Settings shell as the first sidebar entry
++ `/settings` index default by
+[`features/settings/settings.routes.tsx`](../../src/features/settings/settings.routes.tsx)
+(`protectedRoutes()` gates the whole `/settings/*` subtree). T-nav-ia-reorg
+removed the standalone `features/beneficiaries/beneficiaries.routes.tsx`
+(and its old top-level `/beneficiaries` + `/beneficiaries/:id` routes) —
+clean replacement, no redirect.
 
 ## Components
 
@@ -146,9 +149,11 @@ can promote a shared `beneficiaries.ts` handler if convergence emerges.
   `window.confirm()`.
 - **Merge / type-switch** — accessible from the edit modal's action
   area; opens `<MergeBeneficiariesDialog>` over the edit modal.
-- **Legacy `/beneficiaries/:id` URL** — `DetailRedirect` translates
-  it to `/beneficiaries?edit=<id>` so old share-links land on the
-  edit modal opened to the same record.
+- **In-app payee deep-links** — transaction rows + activity-feed CTAs
+  link straight to `/settings/beneficiaries?edit=<id>`, landing on the
+  edit modal opened to that record. (T-nav-ia-reorg dropped the old
+  `/beneficiaries/:id` → `?edit=` redirect hop in favour of this direct
+  target.)
 
 `components/BeneficiaryFormDialog.tsx` is the unified create/edit
 dialog.

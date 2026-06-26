@@ -1,6 +1,12 @@
+import { m } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 import { SearchableSelect } from '../../../shared/components/SearchableSelect';
+import { ModalReveal, RevealField } from '../../../shared/motion/ModalReveal';
+import {
+  MutationPresence,
+  mutationItemProps,
+} from '../../../shared/motion/MutationReveal';
 import { fetchTags, type TagNode } from '../../tags/api/queries';
 import {
   deleteCategorizationRule,
@@ -66,6 +72,10 @@ interface BeneficiaryFormFieldsProps {
     next: 'merchant' | 'person',
     form: BeneficiaryFormInput
   ) => void;
+  // Called when a person's category is seeded from its rule on open — lets the
+  // dialog fold that persisted value into the dirty baseline so the async seed
+  // doesn't read as a user edit (T-nav-ia-reorg #6 dirty fix).
+  onSyncBaselineCategory?: (category: string) => void;
 }
 
 // Internal helper so callers can pass either a setter function or a
@@ -81,6 +91,52 @@ function applyUpdate(
   );
 }
 
+// The assigned-tag mutations (remove / set-primary) — they optimistically update
+// local `ruleTags` then persist to the beneficiary's categorization rule. Pulled
+// out of the component so its body stays under the line gate.
+function useRuleTagActions(
+  form: BeneficiaryFormInput,
+  setForm: BeneficiaryFormFieldsProps['setForm'],
+  ruleTags: number[],
+  setRuleTags: React.Dispatch<React.SetStateAction<number[]>>
+) {
+  async function handleRemoveRuleTag(tid: number) {
+    const nextTags = ruleTags.filter((id) => id !== tid);
+    setRuleTags(nextTags);
+    if (parseInt(form.category, 10) === tid) {
+      const newPrimary = nextTags.length > 0 ? String(nextTags[0]) : '';
+      applyUpdate(setForm, (f) => ({ ...f, category: newPrimary }));
+    }
+    if (!form.uid) return;
+    try {
+      const res = await fetchCategorizationRules();
+      const rule = (res.rules || []).find((r) => r.beneficiary_id === form.uid);
+      if (rule) {
+        if (nextTags.length === 0) await deleteCategorizationRule(rule.uid);
+        else await updateCategorizationRuleTags(rule.uid, nextTags);
+      }
+    } catch (err) {
+      console.error('Failed to update rule tags', err);
+    }
+  }
+
+  async function handleSetPrimary(tid: number) {
+    const nextTags = [tid, ...ruleTags.filter((id) => id !== tid)];
+    setRuleTags(nextTags);
+    applyUpdate(setForm, (f) => ({ ...f, category: String(tid) }));
+    if (!form.uid) return;
+    try {
+      const res = await fetchCategorizationRules();
+      const rule = (res.rules || []).find((r) => r.beneficiary_id === form.uid);
+      if (rule) await updateCategorizationRuleTags(rule.uid, nextTags);
+    } catch (err) {
+      console.error('Failed to update rule tags', err);
+    }
+  }
+
+  return { handleRemoveRuleTag, handleSetPrimary };
+}
+
 export function BeneficiaryFormFields({
   form,
   setForm,
@@ -88,30 +144,50 @@ export function BeneficiaryFormFields({
   excludeUid = null,
   onAliasValidityChange,
   onTypeChange,
+  onSyncBaselineCategory,
 }: BeneficiaryFormFieldsProps) {
   const disabled = readOnly;
   const isMerchant = form.beneficiary_type === 'merchant';
   const [relationships, setRelationships] = useState<string[]>([]);
   const [tags, setTags] = useState<FlatTag[]>([]);
   const [ruleTags, setRuleTags] = useState<number[]>([]);
+  // Gate the rise on ALL three reference loads (relationships, tags, rules) —
+  // the rules fetch is what resolves the category-derived assigned-tag chips, so
+  // by the time the count hits 3 those chips are ready to render and won't pop in
+  // after the rise (T-nav-ia-reorg #6 — gate on the tags being render-ready).
+  const [loadedCount, setLoadedCount] = useState(0);
 
   useEffect(() => {
     fetchRelationships()
       .then((res) => setRelationships(Array.isArray(res) ? res : []))
-      .catch((err) => console.error('Failed to load relationships', err));
+      .catch((err) => console.error('Failed to load relationships', err))
+      .finally(() => setLoadedCount((n) => n + 1));
 
     fetchTags()
       .then((res) => setTags(flattenTags(res.tags)))
-      .catch((err) => console.error('Failed to load tags', err));
+      .catch((err) => console.error('Failed to load tags', err))
+      .finally(() => setLoadedCount((n) => n + 1));
   }, []);
 
   useEffect(() => {
+    // Clear the prior beneficiary's tags immediately on (re)open / switch so a
+    // slow refetch can't briefly show STALE chips from the last one opened
+    // (T-nav-ia-reorg #6 — the component can persist across quick reopen/switch).
+    setRuleTags([]);
+    // Guard against a STALE resolution: on a quick beneficiary switch the
+    // previous beneficiary's fetch can resolve AFTER this effect re-ran, and —
+    // because `setForm` / `onSyncBaselineCategory` write into the dialog's
+    // shared form state (not this component's) — it would seed the OLD category
+    // + tags onto the new one. The cleanup flips `cancelled` so a late
+    // resolution from a torn-down run writes nothing.
+    let cancelled = false;
     if (!form.uid) {
-      setRuleTags([]);
+      setLoadedCount((n) => n + 1);
       return;
     }
     fetchCategorizationRules()
       .then((res) => {
+        if (cancelled) return;
         const rule = (res.rules || []).find(
           (r: CategorizationRule) => r.beneficiary_id === form.uid
         );
@@ -122,13 +198,25 @@ export function BeneficiaryFormFields({
         // person.category column), so without this the picker would read empty
         // while the chip shows the tag.
         if (tagIds.length > 0) {
+          const seedCat = String(tagIds[0]);
           applyUpdate(setForm, (f) =>
-            f.category ? f : { ...f, category: String(tagIds[0]) }
+            f.category ? f : { ...f, category: seedCat }
           );
+          // Fold the seeded (persisted) category into the dirty baseline so this
+          // async load doesn't read as a user edit — see BeneficiaryFormDialog.
+          onSyncBaselineCategory?.(seedCat);
         }
       })
-      .catch((err) => console.error('Failed to load rules', err));
-  }, [form.uid, setForm]);
+      .catch((err) => {
+        if (!cancelled) console.error('Failed to load rules', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadedCount((n) => n + 1);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.uid, setForm, onSyncBaselineCategory]);
 
   useEffect(() => {
     if (form.category && ruleTags.length === 0) {
@@ -136,48 +224,12 @@ export function BeneficiaryFormFields({
     }
   }, [form.category, ruleTags.length]);
 
-  async function handleRemoveRuleTag(tid: number) {
-    const nextTags = ruleTags.filter((id) => id !== tid);
-    setRuleTags(nextTags);
-    if (parseInt(form.category, 10) === tid) {
-      const newPrimary = nextTags.length > 0 ? String(nextTags[0]) : '';
-      applyUpdate(setForm, (f) => ({ ...f, category: newPrimary }));
-    }
-    if (form.uid) {
-      try {
-        const res = await fetchCategorizationRules();
-        const rule = (res.rules || []).find(
-          (r) => r.beneficiary_id === form.uid
-        );
-        if (rule) {
-          if (nextTags.length === 0) {
-            await deleteCategorizationRule(rule.uid);
-          } else {
-            await updateCategorizationRuleTags(rule.uid, nextTags);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to update rule tags', err);
-      }
-    }
-  }
-
-  async function handleSetPrimary(tid: number) {
-    const nextTags = [tid, ...ruleTags.filter((id) => id !== tid)];
-    setRuleTags(nextTags);
-    applyUpdate(setForm, (f) => ({ ...f, category: String(tid) }));
-    if (form.uid) {
-      try {
-        const res = await fetchCategorizationRules();
-        const rule = (res.rules || []).find(
-          (r) => r.beneficiary_id === form.uid
-        );
-        if (rule) await updateCategorizationRuleTags(rule.uid, nextTags);
-      } catch (err) {
-        console.error('Failed to update rule tags', err);
-      }
-    }
-  }
+  const { handleRemoveRuleTag, handleSetPrimary } = useRuleTagActions(
+    form,
+    setForm,
+    ruleTags,
+    setRuleTags
+  );
 
   // Shallow field patch — sub-components call this instead of reaching for
   // setForm/applyUpdate directly.
@@ -199,8 +251,8 @@ export function BeneficiaryFormFields({
   }
 
   return (
-    <>
-      <div className="mb-4">
+    <ModalReveal ready={loadedCount >= 3}>
+      <RevealField className="mb-4">
         <label htmlFor="beneficiary-name" className="form-label">
           Name
         </label>
@@ -215,9 +267,9 @@ export function BeneficiaryFormFields({
           disabled={disabled}
           className="form-input"
         />
-      </div>
+      </RevealField>
 
-      <div className="mb-4">
+      <RevealField className="mb-4">
         <label htmlFor="beneficiary-type" className="form-label">
           Type
         </label>
@@ -236,48 +288,56 @@ export function BeneficiaryFormFields({
           <option value="merchant">Merchant</option>
           <option value="person">Person</option>
         </select>
-      </div>
+      </RevealField>
 
-      <AliasChipsInput
-        aliases={form.aliases}
-        onChange={(aliases) => applyUpdate(setForm, (f) => ({ ...f, aliases }))}
-        readOnly={readOnly}
-        excludeUid={excludeUid}
-        onValidityChange={(invalid) => onAliasValidityChange?.(invalid)}
-      />
+      <RevealField>
+        <AliasChipsInput
+          aliases={form.aliases}
+          onChange={(aliases) =>
+            applyUpdate(setForm, (f) => ({ ...f, aliases }))
+          }
+          readOnly={readOnly}
+          excludeUid={excludeUid}
+          onValidityChange={(invalid) => onAliasValidityChange?.(invalid)}
+        />
+      </RevealField>
 
-      {isMerchant ? (
-        <MerchantFields
-          category={form.category}
-          contact={form.contact}
-          upi={form.merchant_upi_id}
-          tags={tags}
-          ruleTags={ruleTags}
-          disabled={disabled}
-          readOnly={readOnly}
-          onCategoryChange={handleCategoryChange}
-          onChangeField={updateField}
-          onSetPrimary={handleSetPrimary}
-          onRemoveTag={handleRemoveRuleTag}
-        />
-      ) : (
-        <PersonFields
-          relationshipType={form.relationship_type}
-          phone={form.phone}
-          upi={form.person_upi_id}
-          relationships={relationships}
-          category={form.category}
-          tags={tags}
-          ruleTags={ruleTags}
-          disabled={disabled}
-          readOnly={readOnly}
-          onChangeField={updateField}
-          onCategoryChange={handleCategoryChange}
-          onSetPrimary={handleSetPrimary}
-          onRemoveTag={handleRemoveRuleTag}
-        />
-      )}
-    </>
+      <RevealField>
+        {isMerchant ? (
+          <MerchantFields
+            category={form.category}
+            contact={form.contact}
+            upi={form.merchant_upi_id}
+            tags={tags}
+            ruleTags={ruleTags}
+            reserveChipRow={Boolean(form.uid)}
+            disabled={disabled}
+            readOnly={readOnly}
+            onCategoryChange={handleCategoryChange}
+            onChangeField={updateField}
+            onSetPrimary={handleSetPrimary}
+            onRemoveTag={handleRemoveRuleTag}
+          />
+        ) : (
+          <PersonFields
+            relationshipType={form.relationship_type}
+            phone={form.phone}
+            upi={form.person_upi_id}
+            relationships={relationships}
+            category={form.category}
+            tags={tags}
+            ruleTags={ruleTags}
+            reserveChipRow={Boolean(form.uid)}
+            disabled={disabled}
+            readOnly={readOnly}
+            onChangeField={updateField}
+            onCategoryChange={handleCategoryChange}
+            onSetPrimary={handleSetPrimary}
+            onRemoveTag={handleRemoveRuleTag}
+          />
+        )}
+      </RevealField>
+    </ModalReveal>
   );
 }
 
@@ -287,6 +347,7 @@ interface MerchantFieldsProps {
   upi: string;
   tags: FlatTag[];
   ruleTags: number[];
+  reserveChipRow: boolean;
   disabled: boolean;
   readOnly: boolean;
   onCategoryChange: (newCat: string) => void;
@@ -299,6 +360,9 @@ interface CategoryPickerProps {
   category: string;
   tags: FlatTag[];
   ruleTags: number[];
+  // Render (and reserve) the assigned-tag row even before chips arrive, so the
+  // async chip doesn't reflow the modal mid-reveal. Set when editing.
+  reserveChipRow: boolean;
   disabled: boolean;
   label?: string;
   hint?: string;
@@ -314,6 +378,7 @@ function CategoryPicker({
   category,
   tags,
   ruleTags,
+  reserveChipRow,
   disabled,
   label = 'Category',
   hint,
@@ -360,7 +425,7 @@ function CategoryPicker({
         )}
       </div>
 
-      {ruleTags.length > 0 && (
+      {(ruleTags.length > 0 || reserveChipRow) && (
         <AssignedTagChips
           ruleTags={ruleTags}
           tags={tags}
@@ -380,6 +445,7 @@ function MerchantFields({
   upi,
   tags,
   ruleTags,
+  reserveChipRow,
   disabled,
   readOnly,
   onCategoryChange,
@@ -393,6 +459,7 @@ function MerchantFields({
         category={category}
         tags={tags}
         ruleTags={ruleTags}
+        reserveChipRow={reserveChipRow}
         disabled={disabled}
         onCategoryChange={onCategoryChange}
         onSetPrimary={onSetPrimary}
@@ -449,54 +516,64 @@ function AssignedTagChips({
   return (
     <div className="mb-4">
       <span className="form-label">Assigned Tags</span>
-      <div className="mt-1 flex flex-wrap gap-2">
-        {ruleTags.map((tid, idx) => {
-          const tagLabel = formatTagAssignment(tid, tags);
-          const isPrimary = idx === 0;
-          const baseClass = isPrimary
-            ? 'border-success-200 bg-success-50 text-success-700 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-300'
-            : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
-          // "Set Primary" is always visible (when editable and the chip
-          // isn't already primary). The previous hover-only reveal left
-          // the action unreachable on touch viewports — see
-          // CONTRIBUTING.md §6 "every interactive control is reachable".
-          return (
-            <span
-              key={tid}
-              className={`inline-flex flex-wrap items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${baseClass}`}
-            >
-              {tagLabel}
-              {isPrimary && (
-                <span className="bg-success-600 ml-1 rounded px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
-                  Primary
-                </span>
-              )}
-              {!isPrimary && !disabled && (
-                <button
-                  type="button"
-                  onClick={() => onSetPrimary(tid)}
-                  className="bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 ml-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold text-white focus-visible:ring-2 focus-visible:outline-none"
-                >
-                  Set Primary
-                </button>
-              )}
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={() => onRemoveTag(tid)}
-                  aria-label={`Remove tag ${tagLabel}`}
-                  className={`ml-1 text-base leading-none font-bold ${
-                    isPrimary
-                      ? 'text-success-700 dark:text-success-300'
-                      : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  ×
-                </button>
-              )}
-            </span>
-          );
-        })}
+      {/* min-height reserves the chip row so an async-loaded chip fills it
+          without a vertical reflow mid-reveal (T-nav-ia-reorg #6, option a). */}
+      <div className="mt-1 flex min-h-7 flex-wrap items-center gap-2">
+        {/* The assigned tags are a DERIVED field — they recompute when the
+            category resolves or a tag is added/removed — so each chip gets its
+            own fade-out / rise-in via the shared mutation primitive
+            (T-nav-ia-reorg). The `m.span` stays the direct child so framer can
+            animate its exit; `mutationItemProps` carries the flip config. */}
+        <MutationPresence>
+          {ruleTags.map((tid, idx) => {
+            const tagLabel = formatTagAssignment(tid, tags);
+            const isPrimary = idx === 0;
+            const baseClass = isPrimary
+              ? 'border-success-200 bg-success-50 text-success-700 dark:border-success-900/50 dark:bg-success-950/40 dark:text-success-300'
+              : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300';
+            // "Set Primary" is always visible (when editable and the chip
+            // isn't already primary). The previous hover-only reveal left
+            // the action unreachable on touch viewports — see
+            // CONTRIBUTING.md §6 "every interactive control is reachable".
+            return (
+              <m.span
+                key={tid}
+                {...mutationItemProps}
+                className={`inline-flex flex-wrap items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${baseClass}`}
+              >
+                {tagLabel}
+                {isPrimary && (
+                  <span className="bg-success-600 ml-1 rounded px-1 py-px text-[0.6rem] font-bold tracking-wider text-white uppercase">
+                    Primary
+                  </span>
+                )}
+                {!isPrimary && !disabled && (
+                  <button
+                    type="button"
+                    onClick={() => onSetPrimary(tid)}
+                    className="tap-press bg-accent-600 hover:bg-accent-700 focus-visible:ring-accent-500 ml-1 rounded px-1.5 py-0.5 text-[0.65rem] font-bold text-white focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    Set Primary
+                  </button>
+                )}
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveTag(tid)}
+                    aria-label={`Remove tag ${tagLabel}`}
+                    className={`tap-press ml-1 text-base leading-none font-bold ${
+                      isPrimary
+                        ? 'text-success-700 dark:text-success-300'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    ×
+                  </button>
+                )}
+              </m.span>
+            );
+          })}
+        </MutationPresence>
       </div>
     </div>
   );
@@ -510,6 +587,7 @@ interface PersonFieldsProps {
   category: string;
   tags: FlatTag[];
   ruleTags: number[];
+  reserveChipRow: boolean;
   disabled: boolean;
   readOnly: boolean;
   onChangeField: (patch: Partial<BeneficiaryFormInput>) => void;
@@ -528,6 +606,7 @@ function PersonFields({
   category,
   tags,
   ruleTags,
+  reserveChipRow,
   disabled,
   readOnly,
   onChangeField,
@@ -560,6 +639,7 @@ function PersonFields({
         category={category}
         tags={tags}
         ruleTags={ruleTags}
+        reserveChipRow={reserveChipRow}
         disabled={disabled}
         hint="Payments to a person default to Other Transfer (not taxed). Change it if this is really an expense — e.g. a landlord → Rent."
         onCategoryChange={onCategoryChange}

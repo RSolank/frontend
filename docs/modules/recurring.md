@@ -17,7 +17,7 @@
   in the page header) for templates the engine hasn't detected yet.
 - Render the forecast — pending bill rows from
   `GET /api/v1/recurring/upcoming?days=N` — on the dashboard (`days=7`)
-  and on the `/recurring` Upcoming tab (`days=30`).
+  and on the `/settings/recurring` Upcoming tab (`days=30`).
 
 The page is an **inference-engine surface**, NOT a user-template
 materializer (see backend `[[recurring-engine-design]]` memory). The
@@ -29,14 +29,28 @@ or modify."
 
 ## Pages
 
-| Path         | Component                 | Notes                                                                                        |
-| ------------ | ------------------------- | -------------------------------------------------------------------------------------------- |
-| `/recurring` | `pages/RecurringPage.tsx` | Lazy-loaded. Three tabs (Detected / Confirmed / Upcoming-30d) — detected candidates split from the user's owned templates. |
+| Path                  | Component                 | Notes                                                                                        |
+| --------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
+| `/settings/recurring` | `pages/RecurringPage.tsx` | Lazy-loaded. Three tabs (Detected / Confirmed / Upcoming-30d) — detected candidates split from the user's owned templates; lands template-first (Confirmed, or Detected when candidates await). |
 
-Routes are exported from
-[`recurring.routes.tsx`](../../src/features/recurring/recurring.routes.tsx)
-and composed into the root router by `src/app/routes.tsx` (wrapped
-by `protectedRoutes()` like every authenticated surface).
+The page is composed into the Settings shell as the second sidebar entry
+by [`features/settings/settings.routes.tsx`](../../src/features/settings/settings.routes.tsx)
+(`protectedRoutes()` gates the whole `/settings/*` subtree). T-nav-ia-reorg
+re-homed it here from the MAIN nav row and removed the standalone
+`features/recurring/recurring.routes.tsx` (and its old top-level
+`/recurring` route) — clean replacement, no redirect.
+
+**Deep-links into this page** all land on the corresponding row and flash it
+(shared `useDeepLinkHighlight` + `useRowHighlight`):
+- The transaction `RecurringChip` → `/settings/recurring?template=<id>`
+  (selects Detected/Confirmed by status, highlights the template row).
+- Recurring **activity-bell CTAs** (T-nav-ia-reorg) branch by signal `kind`
+  via `subjectMeta`: `recurring_pattern_detected` →
+  `?template=<uid>`; `recurring_bill_upcoming` / `recurring_bill_pending` →
+  `?tab=upcoming&bill=<uid>` (a `?tab=` param lands directly on a tab; a
+  `?bill=` param implies the Upcoming tab and highlights the bill row in
+  `UpcomingBillsList`). The slot key the signal carries (`tmpl:<uid>` /
+  `bill:<uid>`) is parsed to the bare uid in `subjectMeta`.
 
 ## Status semantics (BE 3-state machine)
 

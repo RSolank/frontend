@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { LockedFieldBanner } from '../../../shared/components/LockedFieldBanner';
 import { Modal } from '../../../shared/components/Modal';
@@ -71,6 +71,35 @@ const DEFAULT_PENALTY_RATE = '50%';
 // reference stable when the parent doesn't pass `availableTypes`.
 const EMPTY_TYPES: readonly string[] = [];
 
+// Honest changed-from-initial check (drives the discard-confirm). Edit mode
+// (an `editingRule` is present) compares against the loaded rule; create mode
+// against the seeded defaults — so a pristine Add reads clean (no discard
+// prompt) yet stays saveable (Save is validity-gated, not dirtiness-gated, via
+// taxationSaveDisabled). At module scope so the component stays under the gate.
+function isTaxationRuleDirty(
+  editingRule: TaxationRule | null | undefined,
+  cur: { txnType: string; taxRate: string; penaltyRate: string },
+  availableTypes: readonly string[]
+): boolean {
+  if (editingRule) {
+    if (cur.taxRate !== formatRateForInput(editingRule.tax_rate)) return true;
+    return cur.penaltyRate !== formatRateForInput(editingRule.default_penalty_rate);
+  }
+  if (cur.txnType !== (availableTypes[0] ?? '')) return true;
+  if (cur.taxRate !== DEFAULT_TAX_RATE) return true;
+  return cur.penaltyRate !== DEFAULT_PENALTY_RATE;
+}
+
+// Create-mode Save needs no edit (the seeded defaults are valid); edit-mode Save
+// needs a real change. Module-scope so the `&&` doesn't cost component complexity.
+function taxationSaveDisabled(
+  saving: boolean,
+  isEditing: boolean,
+  isDirty: boolean
+): boolean {
+  return saving || (isEditing && !isDirty);
+}
+
 // Per the DetailModal convention (Batch 9.8): the txn_type is a
 // server-managed enum so the field is always read-only when
 // editing. Add mode opens a picker since the user is choosing the
@@ -124,13 +153,11 @@ export function TaxationRuleFormDialog({
     setLockedReason(null);
   }, [open, isEditing, editingRule, availableTypes]);
 
-  const isDirty = useMemo(() => {
-    if (!isEditing) return true; // any open Add dialog is dirty
-    if (taxRate !== formatRateForInput(editingRule.tax_rate)) return true;
-    if (penaltyRate !== formatRateForInput(editingRule.default_penalty_rate))
-      return true;
-    return false;
-  }, [isEditing, editingRule, taxRate, penaltyRate]);
+  const isDirty = isTaxationRuleDirty(
+    editingRule,
+    { txnType, taxRate, penaltyRate },
+    availableTypes
+  );
 
   // First successful edit on an editable field clears any active
   // locked-field banner — the user has moved on from the locked
@@ -209,7 +236,7 @@ export function TaxationRuleFormDialog({
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving || !isDirty}
+            disabled={taxationSaveDisabled(saving, isEditing, isDirty)}
             className="btn-primary !w-auto"
           >
             {saveLabel(saving, isEditing)}

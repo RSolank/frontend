@@ -78,7 +78,11 @@ describe('TopNav', () => {
     expect(screen.getByText('Transactions')).toBeInTheDocument();
     expect(screen.getByText('Expense Tracker')).toBeInTheDocument();
     expect(screen.getByText('Tax Tracker')).toBeInTheDocument();
-    expect(screen.getByText('Beneficiaries')).toBeInTheDocument();
+    expect(screen.getByText('Savings')).toBeInTheDocument();
+    // T-nav-ia-reorg: Beneficiaries + Recurring left the inline MAIN row
+    // for the Settings dropdown (closed by default → not in the DOM here).
+    expect(screen.queryByText('Beneficiaries')).not.toBeInTheDocument();
+    expect(screen.queryByText('Recurring')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Settings')).toBeInTheDocument();
     expect(screen.getByLabelText('Account menu')).toHaveTextContent('TD');
     expect(screen.getByLabelText('Open navigation')).toBeInTheDocument();
@@ -114,10 +118,17 @@ describe('TopNav', () => {
       within(drawer).getByRole('link', { name: 'Tax Tracker' })
     ).toBeInTheDocument();
     expect(
-      within(drawer).getByRole('link', { name: 'Beneficiaries' })
+      within(drawer).getByRole('link', { name: 'Savings' })
     ).toBeInTheDocument();
-    // SETTINGS section — Batch 9 moved all three under /settings/*.
+    // SETTINGS section. T-nav-ia-reorg added Beneficiaries + Recurring as
+    // the first two entries (re-homed out of MAIN), at their /settings/* URLs.
     expect(within(drawer).getByText('Settings')).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole('link', { name: 'Beneficiaries' })
+    ).toHaveAttribute('href', '/settings/beneficiaries');
+    expect(
+      within(drawer).getByRole('link', { name: 'Recurring' })
+    ).toHaveAttribute('href', '/settings/recurring');
     expect(
       within(drawer).getByRole('link', { name: 'Categories' })
     ).toHaveAttribute('href', '/settings/categories');

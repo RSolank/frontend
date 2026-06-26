@@ -47,12 +47,12 @@ export const AUTHED_PREFETCH: readonly PrefetchEntry[] = [
     load: () => import('../shared/components/AccessibilityPanel'),
     delayMs: 4_000,
   },
-  // 4.5s — mid-traffic route.
+  // 4.5s — mid-traffic settings surface (re-homed under /settings).
   {
     load: () => import('../features/beneficiaries/pages/BeneficiariesPage'),
     delayMs: 4_500,
   },
-  // 5.0s — lower-traffic main route.
+  // 5.0s — lower-traffic settings surface (re-homed under /settings).
   {
     load: () => import('../features/recurring/pages/RecurringPage'),
     delayMs: 5_000,
