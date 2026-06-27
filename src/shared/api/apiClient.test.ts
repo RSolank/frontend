@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_BASE } from '../../test/baseUrl';
 import { server } from '../../test/server';
@@ -170,5 +170,137 @@ describe('apiFetch — Retry-After surfaces as retryAfterSeconds', () => {
     // the 30-60s band that bracket 45s.
     expect(thrown?.retryAfterSeconds).toBeGreaterThanOrEqual(30);
     expect(thrown?.retryAfterSeconds).toBeLessThanOrEqual(60);
+  });
+});
+
+// Single-flight token refresh (auth fix). After the access token expires a page
+// fires many requests → many parallel 401s. Because the backend rotates the
+// refresh token on every call, un-deduped refreshes race: the first rotates and
+// the rest send a stale token → forced logout. These pin the latch that makes N
+// concurrent 401s share ONE rotation, and the fire-once logout on failure.
+describe('apiFetch — single-flight token refresh', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    _resetDeviceIdCacheForTests();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    vi.restoreAllMocks();
+  });
+
+  it('shares ONE /auth/refresh across concurrent 401s and retries both', async () => {
+    localStorage.setItem('access_token', 'stale');
+    localStorage.setItem('refresh_token', 'refresh-1');
+
+    let refreshCount = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, async () => {
+        refreshCount += 1;
+        // A small delay guarantees the second 401 reaches the latch while the
+        // first refresh is still in flight.
+        await new Promise((r) => setTimeout(r, 20));
+        return HttpResponse.json({
+          access_token: 'fresh',
+          refresh_token: 'refresh-2',
+        });
+      }),
+      http.get(`${API_BASE}/widgets`, ({ request }) =>
+        request.headers.get('authorization') === 'Bearer fresh'
+          ? HttpResponse.json({ ok: true })
+          : HttpResponse.json({ detail: 'expired' }, { status: 401 })
+      )
+    );
+
+    const [a, b] = await Promise.all([
+      apiFetch('/api/v1/widgets'),
+      apiFetch('/api/v1/widgets'),
+    ]);
+
+    expect(refreshCount).toBe(1); // single-flight: one rotation, not two
+    expect(a).toEqual({ ok: true });
+    expect(b).toEqual({ ok: true });
+    // Rotated exactly once — the stale token never leaks back.
+    expect(localStorage.getItem('access_token')).toBe('fresh');
+    expect(localStorage.getItem('refresh_token')).toBe('refresh-2');
+  });
+
+  it('starts a fresh /auth/refresh after the prior one settled', async () => {
+    localStorage.setItem('access_token', 'stale');
+    localStorage.setItem('refresh_token', 'refresh-1');
+
+    let refreshCount = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshCount += 1;
+        return HttpResponse.json({
+          access_token: 'fresh',
+          refresh_token: 'refresh-2',
+        });
+      }),
+      http.get(`${API_BASE}/widgets`, ({ request }) =>
+        request.headers.get('authorization') === 'Bearer fresh'
+          ? HttpResponse.json({ ok: true })
+          : HttpResponse.json({ detail: 'expired' }, { status: 401 })
+      )
+    );
+
+    await apiFetch('/api/v1/widgets');
+    // The latch cleared in `finally`; a later expiry refreshes anew rather than
+    // reusing a stale resolved promise.
+    localStorage.setItem('access_token', 'stale');
+    await apiFetch('/api/v1/widgets');
+
+    expect(refreshCount).toBe(2);
+  });
+
+  it('logs out exactly once when a shared refresh fails', async () => {
+    localStorage.setItem('access_token', 'stale');
+    localStorage.setItem('refresh_token', 'bad-refresh');
+
+    const hrefSpy = vi.fn();
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...realLocation,
+        set href(v: string) {
+          hrefSpy(v);
+        },
+      },
+    });
+
+    let refreshCount = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, async () => {
+        refreshCount += 1;
+        await new Promise((r) => setTimeout(r, 20));
+        return HttpResponse.json({ detail: 'invalid' }, { status: 401 });
+      }),
+      http.get(`${API_BASE}/widgets`, () =>
+        HttpResponse.json({ detail: 'expired' }, { status: 401 })
+      )
+    );
+
+    try {
+      const [a, b] = await Promise.all([
+        apiFetch('/api/v1/widgets'),
+        apiFetch('/api/v1/widgets'),
+      ]);
+
+      expect(refreshCount).toBe(1); // one shared refresh attempt
+      expect(a).toBeUndefined();
+      expect(b).toBeUndefined();
+      expect(localStorage.getItem('access_token')).toBeNull();
+      expect(localStorage.getItem('refresh_token')).toBeNull();
+      // Fire-once: a single redirect, not one per concurrent caller.
+      expect(hrefSpy).toHaveBeenCalledTimes(1);
+      expect(hrefSpy).toHaveBeenCalledWith('/login');
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
   });
 });

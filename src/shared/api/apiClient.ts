@@ -55,14 +55,28 @@ type RefreshOutcome =
   | { kind: 'loggedOut' }
   | { kind: 'skipped' };
 
-// Pulled out of apiFetch so the 401 path doesn't pile four nesting levels
-// onto the request flow. Mutates `headers` in place (Authorization) before
-// replaying, mirroring the original inline logic.
-async function refreshAndRetry(
-  path: string,
-  options: RequestInit,
-  headers: Record<string, string>
-): Promise<RefreshOutcome> {
+// Result of the shared token-rotation step (NOT the per-caller replay):
+//   'refreshed' — rotation succeeded; `accessToken` is the new bearer.
+//   'loggedOut' — refresh token rejected; tokens cleared + redirected to /login.
+//   'skipped'   — no refresh token, or the refresh network call threw.
+type RefreshResult =
+  | { kind: 'refreshed'; accessToken: string }
+  | { kind: 'loggedOut' }
+  | { kind: 'skipped' };
+
+// Single-flight latch. After the access token expires, a page firing N requests
+// gets N parallel 401s — without de-duping, each would POST /auth/refresh, and
+// because the backend ROTATES the refresh token on every call, the first wins
+// and the rest send the now-stale token → 401 → forced logout (the reported
+// repeated-logout bug). Sharing one in-flight refresh means a single rotation.
+// (Cross-tab races live in separate JS contexts this latch can't see — the BE
+// grace window covers those.)
+let refreshInFlight: Promise<RefreshResult> | null = null;
+
+// The shared rotation step. Reads + writes the tokens and owns the logout
+// side-effect, so N concurrent callers produce exactly ONE rotation and at most
+// one token-clear + redirect.
+async function performTokenRefresh(): Promise<RefreshResult> {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) return { kind: 'skipped' };
 
@@ -72,10 +86,10 @@ async function refreshAndRetry(
       headers: {
         'Content-Type': 'application/json',
         'X-Refresh-Token': refreshToken,
-        // Refresh is part of the device-aware lockout surface — the
-        // BE's suspicious-refresh path (Phase 1.4) needs X-Device-Id
-        // to tell "same browser, expired token" apart from "stolen
-        // token replay from a new device".
+        // Refresh is part of the device-aware lockout surface — the BE's
+        // device gate compares this X-Device-Id fingerprint (never the
+        // spoofable User-Agent) to tell "same browser, expired token" apart
+        // from "stolen token replay from a new device".
         'X-Device-Id': getDeviceId(),
       },
     });
@@ -93,14 +107,41 @@ async function refreshAndRetry(
     };
     localStorage.setItem('access_token', tokens.access_token);
     localStorage.setItem('refresh_token', tokens.refresh_token);
-
-    headers['Authorization'] = `Bearer ${tokens.access_token}`;
-    const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
-    return { kind: 'retried', res };
+    return { kind: 'refreshed', accessToken: tokens.access_token };
   } catch (err) {
     console.error('Token refresh error:', err);
     return { kind: 'skipped' };
   }
+}
+
+// Returns the in-flight refresh if one is running, else starts one. The
+// assignment is synchronous, so any 401 that arrives while a refresh is pending
+// awaits the SAME promise. Cleared in `finally` so a later expiry refreshes anew.
+function refreshTokenOnce(): Promise<RefreshResult> {
+  if (!refreshInFlight) {
+    refreshInFlight = performTokenRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+// Pulled out of apiFetch so the 401 path doesn't pile nesting levels onto the
+// request flow. Shares the single-flight rotation, then replays THIS caller's
+// own request with the fresh token (the replay is per-caller; only the rotation
+// is shared). Mutates `headers` in place (Authorization) before replaying.
+async function refreshAndRetry(
+  path: string,
+  options: RequestInit,
+  headers: Record<string, string>
+): Promise<RefreshOutcome> {
+  const result = await refreshTokenOnce();
+  if (result.kind === 'skipped') return { kind: 'skipped' };
+  if (result.kind === 'loggedOut') return { kind: 'loggedOut' };
+
+  headers['Authorization'] = `Bearer ${result.accessToken}`;
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  return { kind: 'retried', res };
 }
 
 export async function apiFetch<T = unknown>(
